@@ -2097,7 +2097,7 @@
       if (canFind && shopSub === 'cheaper') renderCheaper(L, p);
       else if (trust) L.append(trustCard());
       else L.append(el('div', 'optwait', 'HaoHao đang đọc trang… kéo xuống một chút để Shopee tải thông tin shop và đánh giá.'));
-      V.append(L, el('div', 'affnote', HT.AFF_NOTE));
+      V.append(L);
       return;
     }
     // trang khác: chỉ ô tìm sản phẩm
@@ -2106,9 +2106,7 @@
     sr.addEventListener('submit', e => { e.preventDefault(); const q = si.value.trim(); if (q) openDeal(HT.SHOPS[0].search + encodeURIComponent(q)); else si.focus(); });
     const bar = el('div', 'shopbar'); bar.append(el('span', 'lb2', 'Tìm trên:'));
     HT.SHOPS.forEach(sh => { const c = el('button', 'chip', sh.label); c.addEventListener('click', () => { const q = si.value.trim(); if (!q) return si.focus(); openDeal(sh.search + encodeURIComponent(q)); }); bar.append(c); });
-    const L = el('div', 'body-list');
-    L.append(el('div', 'empty', 'Mở một sản phẩm trên Shopee: HaoHao 🛡️ kiểm tra chất lượng, uy tín shop và 🔍 tìm shop bán rẻ hơn.'));
-    V.append(sr, bar, L, el('div', 'affnote', HT.AFF_NOTE));
+    V.append(sr, bar);
   }
 
   // ---------- 🔍 Cùng món, shop khác rẻ hơn (Shopee) ----------
