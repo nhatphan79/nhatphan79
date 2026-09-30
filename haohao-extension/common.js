@@ -412,9 +412,9 @@ HT.trustScore = info => {
   }
   if (info.dupReviews >= 3) add(product, -8, 'bad', `${info.dupReviews} đánh giá giống hệt nhau, nghi đánh giá ảo`);
   // --- shop ---
-  if (info.mall) add(shop, 12, 'ok', 'Shopee Mall: hàng chính hãng, được đổi trả');
+  if (info.mall) add(shop, 12, 'ok', info.platform === 'tiktok' ? 'TikTok Shop Mall: hàng chính hãng' : 'Shopee Mall: hàng chính hãng, được đổi trả');
   else if (info.preferred) add(shop, 6, 'ok', 'Shop Yêu Thích: bán tốt, ít bị phàn nàn');
-  else shop.push({ s: 'warn', t: 'Shop thường, không phải Mall hay Yêu Thích' });
+  else if (info.platform !== 'tiktok') shop.push({ s: 'warn', t: 'Shop thường, không phải Mall hay Yêu Thích' });
   if (info.responseRate != null && !isNaN(info.responseRate)) {
     if (info.responseRate >= 90) add(shop, 4, 'ok', `Phản hồi ${info.responseRate}%${info.responseTime ? ' ' + info.responseTime : ''}`);
     else if (info.responseRate < 70) add(shop, -6, 'warn', `Chỉ phản hồi ${info.responseRate}% tin nhắn`);
@@ -451,8 +451,8 @@ HT.trustScore = info => {
 HT.REVIEW_TOPICS = [
   { id: 'quality', label: 'Chất lượng kém', re: /(chất lượng kém|kém chất lượng|quá tệ|tệ|kém|dởm|đểu|rách|bung chỉ|sứt chỉ|xù lông|phai màu|ra màu|bạc màu|co rút|lỗi|hỏng|hư|mỏng dính|mỏng quá|vải mỏng|không bền|nhanh hỏng|cũ|trầy)/u,
     fold: /(chat luong kem|kem chat luong|te qua|rach|bung chi|xu long|phai mau|ra mau|bac mau|mong dinh|vai mong|khong ben|nhanh hong)/ },
-  { id: 'look', label: 'Xấu, không giống hình', re: /(xấu|không giống hình|khác hình|không giống ảnh|khác ảnh|không như hình|không như ảnh|không đúng mô tả|khác mô tả|sai màu|khác màu|màu không giống)/u,
-    fold: /(khong giong hinh|khac hinh|khong giong anh|khac anh|khong nhu hinh|khong dung mo ta|khac mo ta|sai mau|khac mau)/ },
+  { id: 'look', label: 'Xấu, không giống hình', re: /(xấu|không giống hình|khác hình|không giống ảnh|khác ảnh|không như hình|không như ảnh|không giống video|khác video|không như video|không đúng mô tả|khác mô tả|sai màu|khác màu|màu khác|màu không giống)/u,
+    fold: /(khong giong hinh|khac hinh|khong giong anh|khac anh|khong nhu hinh|khong giong video|khac video|khong dung mo ta|khac mo ta|sai mau|khac mau|mau khac)/ },
   { id: 'size', label: 'Sai size, không vừa', re: /(chật|rộng quá|quá rộng|nhỏ quá|quá nhỏ|to quá|quá to|sai size|không vừa|size không chuẩn|lệch size|form xấu|dài quá|ngắn quá)/u,
     fold: /(sai size|khong vua|size khong chuan|lech size)/ },
   { id: 'fake', label: 'Nghi hàng giả, nhái', re: /(hàng giả|fake|hàng nhái|nhái|không chính hãng|không phải hàng thật|hàng dỏm|hàng lỗi)/u,
