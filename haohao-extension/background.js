@@ -774,7 +774,8 @@ async function sameFindOne({ q, key, title, price }, sender) {
   try {
     const list = await scanIn(tab.id, HT.shopeeSearchUrl(q), 'search', 30000);
     if (!list) return { ok: false, error: 'timeout' };
-    const same = list.filter(x => x.key !== key).map(x => ({ ...x, sim: HT.titleSim(title, x.title) })).filter(x => x.sim >= 0.55 && x.price >= price * 0.4);
+    // chỉ giữ đúng CÙNG sản phẩm (cùng hãng, model, dung lượng, phiên bản, số lượng…); rẻ dưới 1/2 giá là đáng ngờ → bỏ
+    const same = list.filter(x => x.key !== key).map(x => ({ ...x, ...HT.sameProduct(title, x.title) })).filter(x => x.same && x.price >= price * 0.5);
     const cheaper = same.filter(x => x.price < price * 0.99).sort((a, b) => a.price - b.price);
     // ứng viên: 2 món rẻ nhất + 2 món có dấu hiệu uy tín nhất (Mall, Yêu thích, bán nhiều)
     const rep = x => (x.mall ? 3 : x.preferred ? 2 : 0) + (x.sold >= 1000 ? 1 : 0) + (x.rating >= 4.8 ? 1 : 0);
@@ -782,9 +783,11 @@ async function sameFindOne({ q, key, title, price }, sender) {
     const checked = [];
     for (const c of cands) {
       const r = await scanIn(tab.id, c.url, 'item', 20000);
+      // mở trang rồi so lại bằng tên đầy đủ (tên ở trang tìm kiếm có thể bị cắt)
+      if (r && r.title && !HT.sameProduct(title, r.title).same) continue;
       const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
       const ts = HT.trustScore(info);
-      checked.push({ key: c.key, url: c.url, title: c.title, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
+      checked.push({ key: c.key, url: c.url, title: (r && r.title) || c.title, sim: c.sim, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
         rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info),
         // bản kiểm tra gọn cho nút 🛡️: điểm xấu trước, tối đa 6 dòng + 2 lời chê nổi bật
         reasons: [...ts.product, ...ts.shop].sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.s] - { bad: 0, warn: 1, ok: 2 }[b.s])).slice(0, 6),

@@ -293,6 +293,75 @@ HT.titleSim = (a, b) => {
   const wb = new Set(HT.fold(b).split(/[^a-z0-9]+/));
   return wa.filter(w => wb.has(w)).length / wa.length * (miss ? 0.5 : 1);
 };
+// ---------- ✅ Có đúng là CÙNG MỘT sản phẩm không? ----------
+// Chỉ khi qua hết các cửa dưới đây mới được coi là "shop khác bán cùng món":
+// cùng loại hàng, cùng thương hiệu, cùng mã model, cùng dung lượng/khối lượng, cùng số lượng trong gói,
+// không lệch thuộc tính chính (nam/nữ, dài/ngắn, jean/kaki…) và tên giống nhau đủ nhiều.
+const SP_BRANDS = ['apple', 'iphone', 'ipad', 'macbook', 'airpods', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'poco', 'oppo', 'vivo', 'realme', 'huawei', 'honor', 'nokia', 'sony', 'jbl', 'marshall', 'bose', 'anker', 'baseus', 'ugreen', 'remax', 'hoco', 'logitech', 'razer', 'dareu', 'asus', 'acer', 'dell', 'lenovo', 'msi', 'lg', 'panasonic', 'philips', 'sharp', 'toshiba', 'electrolux', 'sunhouse', 'kangaroo', 'tefal', 'elmich', 'lock&lock', 'locknlock', 'casio', 'nike', 'adidas', 'puma', 'converse', 'vans', 'uniqlo', 'loreal', 'cerave', 'bioderma', 'innisfree', 'senka', 'hada labo', 'la roche posay', 'cocoon', 'maybelline', 'romand', '3ce', 'garnier', 'nivea', 'vaseline', 'dove', 'colgate', 'omo', 'downy', 'comfort', 'ariel', 'vinamilk', 'nestle', 'milo', 'enfa', 'similac', 'huggies', 'bobby', 'merries', 'moony', 'pampers'];
+const SP_GROUPS = [
+  ['nam', 'nu', 'be trai', 'be gai', 'tre em'],
+  ['dai', 'ngan', 'short', 'lung'],
+  ['tay dai', 'tay ngan', 'sat nach', 'ba lo'],
+  ['jean', 'kaki', 'tay', 'thun', 'ni', 'len', 'lanh', 'kate', 'jogger', 'da', 'dui'],
+  ['ong rong', 'ong suong', 'ong dung', 'ong loe', 'ong con', 'skinny', 'baggy'],
+  ['co tron', 'co tim', 'co be', 'co lo', 'co tru', 'hoodie', 'polo'],
+  ['co day', 'khong day', 'bluetooth'],
+  ['nguoi lon', 'tre em', 'so sinh'],
+];
+const SP_STOP = new Set('co ban dep chuan form gia re han quoc cao cap thoi trang phong cach sieu xinh basic hang loai xuong mau nhieu mem min tot ben hot trend si le nhe ca tinh tre trung cho va the cua voi sale shop store official chinh sang chanh ulzzang style kieu moi nam nay 2024 2025 2026 sieu'.split(' '));
+const SP_SYN = [[/\bjeans\b/g, 'jean'], [/\bbo\b(?= |$)/g, 'bo'], [/\bquan short\b/g, 'quan ngan'], [/\bunisex\b/g, 'nam nu'], [/\bwireless\b/g, 'khong day'], [/\btrue wireless\b|\btws\b/g, 'khong day']];
+const spNorm = s => { let f = ' ' + HT.fold(HT.cleanTitle(s)).replace(/\d+(?:[.,]\d+)? ?%/g, ' ').replace(/[^a-z0-9.&]+/g, ' ') + ' '; for (const [r, t] of SP_SYN) f = f.replace(r, t); return f.replace(/\s+/g, ' '); };
+const spHas = (f, w) => new RegExp('(^| )' + w.replace(/[.*+?^${}()|[\]\\&]/g, '\\$&') + '(?= |$)').test(f);
+// thông số có đơn vị: 128gb, 500ml, 1.5l, 20000mah, 65w… → { gb:['128'], ml:['500'] }
+const SP_UNITS = { gb: 'gb', g: 'g', tb: 'tb', mah: 'mah', w: 'w', ml: 'ml', l: 'l', lit: 'l', kg: 'kg', gr: 'g', gram: 'g', inch: 'inch', hz: 'hz', btu: 'btu', vien: 'vien', goi: 'goi', mieng: 'mieng' };
+const spSpecs = f => { const o = {}; for (const m of f.matchAll(/(?:^| )(\d+(?:[.,]\d+)?) ?(gb|tb|mah|ml|lit|l|kg|gr|gram|g|w|inch|hz|btu|vien|goi|mieng)(?= |$)/g)) { const u = SP_UNITS[m[2]], v = String(parseFloat(m[1].replace(',', '.'))); (o[u] = o[u] || new Set()).add(v); } return o; };
+// số lượng trong gói: combo 2, set 3, bộ 5, x2, 2 đôi, hộp 10 cái… (không ghi = 1)
+const spQty = f => { const m = f.match(/(?:^| )(?:combo|set|bo|loc|pack|hop|tui) ?(\d{1,3})(?= |$)|(?:^| )x ?(\d{1,2})(?= |$)|(?:^| )(\d{1,3}) ?(?:cai|chiec|doi|cuon|chai|lon|hop|tuyp)(?= |$)/); const n = m ? +(m[1] || m[2] || m[3]) : 1; return n > 0 && n < 500 ? n : 1; };
+HT.sameProduct = (a, b) => {
+  const no = why => ({ same: false, sim: 0, why });
+  const fa = spNorm(a), fb = spNorm(b), ra = HT.fold(a), rb = HT.fold(b);
+  if (ACC.test(rb) !== ACC.test(ra)) return no('phụ kiện khác món');
+  // thương hiệu: tên gốc có thì món kia phải có, và không được là hãng khác
+  const ba = SP_BRANDS.filter(x => spHas(fa, x)), bb = SP_BRANDS.filter(x => spHas(fb, x));
+  if (ba.length && !ba.some(x => bb.includes(x))) return no('khác thương hiệu');
+  if (bb.some(x => !ba.includes(x)) && ba.length) { if (!bb.every(x => ba.includes(x) || ['iphone', 'galaxy', 'redmi', 'poco', 'ipad', 'airpods', 'macbook'].includes(x))) return no('khác thương hiệu'); }
+  // mã model phải khớp đúng (X20 ≠ X200)
+  // (món kia không ghi mã nào thì có thể chỉ là mã riêng của shop → vẫn xét, nhưng đòi tên giống hơn)
+  const hasCode = (code, raw) => new RegExp('(^|[^a-z0-9])' + HT.fold(code).replace(/-/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![0-9a-z])').test(raw.replace(/-/g, ''));
+  const m = HT.modelOf(a), mb = HT.modelOf(b);
+  const noCode = m && !hasCode(m, rb);
+  if (noCode && mb && !hasCode(mb, ra)) return no('khác mã model');
+  // dung lượng, khối lượng, công suất… cùng đơn vị thì phải trùng
+  const sa = spSpecs(fa), sb = spSpecs(fb);
+  for (const u in sa) if (sb[u] && ![...sa[u]].some(v => sb[u].has(v))) return no('khác dung lượng/khối lượng');
+  for (const u of ['gb', 'tb', 'ml', 'l', 'kg', 'mah']) if (sa[u] && !sb[u] && !(u === 'l' && sb.ml) && !(u === 'ml' && sb.l)) return no('không ghi rõ dung lượng');
+  if (spQty(fa) !== spQty(fb)) return no('khác số lượng trong gói');
+  // số trần trong tên (Buds 4, Series 9, 2 lớp…) phải có đủ ở món kia
+  const nums = f => new Set([...f.matchAll(/(?:^| )(\d{1,4})(?= |$)(?! (?:mau|size|kieu|kich|sao))/g)].map(x => String(+x[1])));
+  const na = nums(fa), nb = nums(fb);
+  if ([...na].some(n => !nb.has(n))) return no('khác số hiệu');
+  // phiên bản: Pro / Lite / Max / Plus / Mini / Ultra / SE phải y hệt nhau
+  const ver = f => ['pro', 'lite', 'max', 'plus', 'mini', 'ultra', 'se', 'fe', 'neo'].filter(w => spHas(f, w)).join();
+  if (ver(fa) !== ver(fb)) return no('khác phiên bản');
+  // thuộc tính chính không được lệch nhau
+  for (const g of SP_GROUPS) {
+    const ga = g.filter(w => spHas(fa, w)), gb = g.filter(w => spHas(fb, w));
+    if (ga.length && gb.length && !ga.some(w => gb.includes(w))) return no('khác loại (' + ga[0] + ' / ' + gb[0] + ')');
+  }
+  // loại hàng: 2 chữ đầu của tên (quần jean, áo thun, tai nghe…) phải có trong món kia
+  const wa = fa.trim().split(' ').filter(w => w.length > 1 && !ba.includes(w)), wb = new Set(fb.trim().split(' '));
+  if (!wa.length) return no('không đọc được tên');
+  if (!wa.slice(0, 2).every(w => wb.has(w))) return no('khác loại hàng');
+  // độ giống: phần lớn chữ chính của tên gốc có trong món kia, và ngược lại
+  // bỏ chữ quảng cáo (đẹp, chuẩn, cao cấp, Hàn Quốc…) khi so, chỉ so chữ nói lên món hàng
+  const key = w => w.length > 1 && !SP_STOP.has(w);
+  const ka = [...new Set(wa.filter(key))].slice(0, 12), kb = [...new Set(fb.trim().split(' ').filter(key))].slice(0, 12), sa2 = new Set(fa.trim().split(' '));
+  if (!ka.length) return no('không đọc được tên');
+  const fwd = ka.filter(w => wb.has(w)).length / ka.length, back = kb.length ? kb.filter(w => sa2.has(w)).length / kb.length : 0;
+  const sim = Math.round((fwd * 0.65 + back * 0.35) * 100) / 100;
+  if (fwd < (noCode ? 0.8 : 0.7) || back < 0.45) return { same: false, sim, why: noCode ? 'khác mã model' : 'tên khác nhiều' };
+  return { same: true, sim, why: '' };
+};
 // Nhãn uy tín gọn cho 1 sản phẩm trong danh sách tìm kiếm
 HT.listingTags = it => {
   const t = [];
