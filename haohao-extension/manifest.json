@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – trợ lý ngay trên Chrome",
-  "version": "2.19.1",
+  "version": "2.20.0",
   "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, kiểm tra hàng & mã giảm giá Shopee, TikTok Shop, canh email.",
   "permissions": [
     "storage",
@@ -19,7 +19,12 @@
     "https://mail.google.com/*",
     "https://graph.microsoft.com/*",
     "https://generativelanguage.googleapis.com/*",
-    "https://raw.githubusercontent.com/*"
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/*",
+    "https://vt.tiktok.com/*",
+    "https://vm.tiktok.com/*",
+    "https://www.tiktok.com/*",
+    "https://shop.tiktok.com/*"
   ],
   "background": {
     "service_worker": "background.js"

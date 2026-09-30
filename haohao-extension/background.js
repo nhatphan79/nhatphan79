@@ -284,6 +284,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'rem-done') remDone(msg.ruleId);
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
+  if (msg.type === 'tt-add') { ttAdd(msg).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
+  if (msg.type === 'tt-remove') { ttRemove(msg).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'prod-search') { prodSearch(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'same-find') { sameFind(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'reviews-scan') { reviewsScan(msg).then(send).catch(() => send({ items: [] })); return true; }
@@ -749,21 +751,89 @@ async function openDeal(url) {
   chrome.tabs.create({ url: HT.aff(url) });
 }
 // ---------- 🎟️ Kho mã giảm giá ----------
+// Nhận nội dung coupons.json (từ GitHub hoặc bản đóng gói), lọc dữ liệu hợp lệ rồi lưu cho các trang dùng
+async function applyFeed(feed) {
+  const coupons = (feed.coupons || []).filter(c => c && c.id && HT.couponLive(c)).slice(0, 200);
+  const hubs = (feed.hubs || []).filter(h => h && /^https:\/\//.test(h.url)).slice(0, 12);
+  // link TikTok riêng từng món: chỉ nhận mã sản phẩm là số và link tiktok.com; kèm tên món để gợi ý món tương tự
+  const tt = feed.tiktok || {}, links = {}, titles = {};
+  for (const [id, u] of Object.entries(tt.links || {}).slice(0, 2000)) if (/^\d{8,}$/.test(id) && /^https:\/\/(vt|vm|www|shop)\.tiktok\.com\//.test(u)) {
+    links[id] = u; const t = (tt.titles || {})[id]; if (typeof t === 'string' && t.trim()) titles[id] = t.trim().slice(0, 160);
+  }
+  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links, titles, showcase: /^https:\/\/(www\.|vt\.|vm\.)?tiktok\.com\//.test(tt.showcase || '') ? tt.showcase : '' };
+  HT.setTikTok(tiktok);
+  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok } });
+  return { ok: true, n: coupons.length };
+}
+
+// ---------- 🛍️ Link TikTok của tôi (chủ app): dán link vt.tiktok.com → tự lấy mã + tên món → ghi lên GitHub ----------
+const FEED_REPO = { owner: 'nhatphan79', repo: 'nhatphan79', path: 'haohao-extension/coupons.json', branch: 'main' };
+const ttTitleOf = url => { try { const j = JSON.parse(new URL(url).searchParams.get('og_info') || '{}'); return String(j.title || '').replace(/\+/g, ' ').trim(); } catch { return ''; } };
+const htmlDecode = s => String(s || '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+// 1 dòng dán vào: "link" hoặc "link  mã-sản-phẩm" (khi TikTok không cho HaoHao tự đọc mã)
+async function ttResolve(line) {
+  const link = (line.match(/https:\/\/(?:vt|vm)\.tiktok\.com\/[\w-]+\/?/) || [])[0];
+  const long = (line.match(/https:\/\/(?:www|shop)\.tiktok\.com\/\S+/) || [])[0];
+  let id = (line.replace(/https?:\/\/\S+/g, ' ').match(/\b(\d{15,22})\b/) || [])[1] || (long ? HT.ttId(long) : ''), title = long ? ttTitleOf(long) : '';
+  if (!link) return { line, error: long ? 'Cần link rút gọn vt.tiktok.com (Chia sẻ → Sao chép liên kết)' : 'Không thấy link TikTok' };
+  if (!id || !title) {
+    try {
+      const r = await fetch(link, { redirect: 'follow', credentials: 'omit' });
+      id = id || HT.ttId(r.url); title = title || ttTitleOf(r.url);
+      if (!id || !title) {
+        const html = await r.text();
+        id = id || ((html.match(/\/pdp\/(?:[^"'?\/\s]*\/)?(\d{15,22})|\/product\/(\d{15,22})/) || []).slice(1).find(Boolean) || '');
+        title = title || htmlDecode((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i) || [])[1] || '').replace(/\s*\|\s*TikTok.*$/i, '');
+      }
+    } catch {}
+  }
+  if (!id) return { line, link, error: 'Không đọc được mã sản phẩm: dán thêm mã (dãy số sau /pdp/) cùng dòng' };
+  return { line, link, id, title: title.slice(0, 160) };
+}
+const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g, '')), c => c.charCodeAt(0)));
+const b64enc = s => { const u = new TextEncoder().encode(s); let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(b); };
+// đọc coupons.json trên GitHub (nhánh main), sửa bằng mut(feed), ghi lại; xong áp dụng ngay trên máy này
+async function ghFeedEdit(mut, message) {
+  const { ghToken } = await chrome.storage.local.get('ghToken');
+  if (!ghToken) throw new Error('notoken');
+  const api = `https://api.github.com/repos/${FEED_REPO.owner}/${FEED_REPO.repo}/contents/${FEED_REPO.path}`;
+  const h = { Authorization: 'Bearer ' + ghToken, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+  const r = await fetch(api + '?ref=' + FEED_REPO.branch, { headers: h, cache: 'no-store' });
+  if (r.status === 401) throw new Error('badtoken');
+  if (r.status === 404) throw new Error('nofile');
+  if (!r.ok) throw new Error('GitHub ' + r.status);
+  const j = await r.json(), feed = JSON.parse(b64dec(j.content));
+  mut(feed);
+  feed.updated = new Date().toISOString().slice(0, 10);
+  const w = await fetch(api, { method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, content: b64enc(JSON.stringify(feed, null, 2) + '\n'), sha: j.sha, branch: FEED_REPO.branch }) });
+  if (w.status === 401 || w.status === 403) throw new Error('noperm');
+  if (!w.ok) throw new Error('GitHub ' + w.status);
+  await applyFeed(feed);
+  return feed;
+}
+async function ttAdd({ text }) {
+  const lines = String(text || '').split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 50);
+  const res = []; for (const l of lines) res.push(await ttResolve(l));
+  const ok = res.filter(x => x.id);
+  if (ok.length) await ghFeedEdit(feed => {
+    const t = feed.tiktok = feed.tiktok || {}; t.links = t.links || {}; t.titles = t.titles || {};
+    for (const x of ok) { t.links[x.id] = x.link; if (x.title) t.titles[x.id] = x.title; }
+  }, `HaoHao: thêm ${ok.length} link TikTok`);
+  return { ok: true, added: ok.map(x => ({ id: x.id, title: x.title })), failed: res.filter(x => !x.id).map(x => ({ line: x.line.slice(0, 80), error: x.error })) };
+}
+async function ttRemove({ id }) {
+  await ghFeedEdit(feed => { const t = feed.tiktok || {}; if (t.links) delete t.links[id]; if (t.titles) delete t.titles[id]; }, 'HaoHao: bỏ 1 link TikTok');
+  return { ok: true };
+}
+
 // Lấy từ file coupons.json trên GitHub (chủ app cập nhật); mạng lỗi thì dùng bản đóng gói sẵn trong tiện ích.
 async function syncCoupons() {
   let feed = null;
   try { const r = await fetch(HT.COUPON_FEED + '?t=' + Math.floor(Date.now() / 3600e3), { cache: 'no-store' }); if (r.ok) feed = await r.json(); } catch {}
   if (!feed) { const { couponFeed } = await chrome.storage.local.get('couponFeed'); if (couponFeed && couponFeed.coupons && couponFeed.tiktok) { HT.setTikTok(couponFeed.tiktok); return { ok: true, cached: true, n: couponFeed.coupons.length }; } }
   if (!feed) { try { feed = await (await fetch(chrome.runtime.getURL('coupons.json'))).json(); } catch { return { ok: false }; } }
-  const coupons = (feed.coupons || []).filter(c => c && c.id && HT.couponLive(c)).slice(0, 200);
-  const hubs = (feed.hubs || []).filter(h => h && /^https:\/\//.test(h.url)).slice(0, 12);
-  // link TikTok riêng từng món: chỉ nhận mã sản phẩm là số và link tiktok.com
-  const tt = feed.tiktok || {}, links = {};
-  for (const [id, u] of Object.entries(tt.links || {}).slice(0, 2000)) if (/^\d{8,}$/.test(id) && /^https:\/\/(vt|vm|www|shop)\.tiktok\.com\//.test(u)) links[id] = u;
-  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links, showcase: /^https:\/\/(www\.|vt\.|vm\.)?tiktok\.com\//.test(tt.showcase || '') ? tt.showcase : '' };
-  HT.setTikTok(tiktok);
-  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok } });
-  return { ok: true, n: coupons.length };
+  return applyFeed(feed);
 }
 
 // ---------- 🔍 Tìm cùng món ở shop khác trên Shopee ----------

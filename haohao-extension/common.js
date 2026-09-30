@@ -229,7 +229,7 @@ HT.AFF = {
 // TikTok Shop không có mã chung cho mọi món: mỗi món có link riêng (vt.tiktok.com/…) lấy từ phòng trưng bày.
 // Danh sách nằm trong coupons.json → "tiktok": { creator: tên TikTok, links: { mã sản phẩm: link } }
 HT.TT = { creator: '', links: {} };
-HT.setTikTok = t => { HT.TT = { creator: (t && t.creator) || '', links: (t && t.links) || {}, showcase: (t && t.showcase) || '' }; };
+HT.setTikTok = t => { HT.TT = { creator: (t && t.creator) || '', links: (t && t.links) || {}, titles: (t && t.titles) || {}, showcase: (t && t.showcase) || '' }; };
 // trang TikTok của bạn (phòng trưng bày) để giới thiệu hàng tuyển chọn
 HT.ttShowcase = () => HT.TT.showcase || (HT.TT.creator ? 'https://www.tiktok.com/@' + HT.TT.creator : '');
 HT.ttId = url => { const m = String(url || '').match(/\/product\/(\d{8,})|\/pdp\/(?:[^/?#]*\/)?(\d{8,})/); return m ? (m[1] || m[2]) : ''; };
@@ -415,6 +415,21 @@ HT.suggest = (q, hist = [], n = 6) => {
   for (const t of HT.HOT_KEYWORDS) if (HT.fold(t).startsWith(f) && !has(t)) out.push({ t });
   for (const t of HT.HOT_KEYWORDS) if ((' ' + HT.fold(t)).includes(' ' + f) && !has(t)) out.push({ t });
   return out.slice(0, n);
+};
+// Món trong danh sách TikTok của bạn giống món/từ khoá đang xem (cùng loại hàng, không lệch nam/nữ, trẻ em…)
+HT.related = (text, n = 2, skipId = '') => {
+  const fa = spNorm(text), wa = fa.trim().split(' ').filter(w => w.length > 1 && !SP_STOP.has(w));
+  if (!wa.length) return [];
+  const out = [];
+  for (const [id, title] of Object.entries(HT.TT.titles || {})) {
+    if (id === skipId || !HT.TT.links[id]) continue;
+    const fb = spNorm(title), wb = new Set(fb.trim().split(' '));
+    if (!wb.has(wa[0])) continue;                                   // khác loại hàng (quần ≠ áo)
+    if (SP_GROUPS.some(g => { const ga = g.filter(w => spHas(fa, w)), gb = g.filter(w => spHas(fb, w)); return ga.length && gb.length && !ga.some(w => gb.includes(w)); })) continue;
+    const sc = wa.filter(w => wb.has(w)).length / Math.min(wa.length, 8);
+    if (sc >= 0.35) out.push({ id, title, url: HT.TT.links[id], sc });
+  }
+  return out.sort((a, b) => b.sc - a.sc).slice(0, n);
 };
 // Nhãn uy tín gọn cho 1 sản phẩm trong danh sách tìm kiếm
 HT.listingTags = it => {

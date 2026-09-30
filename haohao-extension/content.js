@@ -467,13 +467,15 @@
   .fhist { border-bottom: 1px dashed #C9CEDF; } .fhist .lb2 { font-size: 11.5px; font-weight: 800; color: #6B7394; }
   .chip.sm { padding: 3px 8px; font-size: 11.5px; font-weight: 500; border-width: 1px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fclr { all: unset; cursor: pointer; color: #9AA1BE; font-size: 12px; padding: 2px 6px; margin-left: auto; } .fclr:hover { color: #D0011B; }
-  .fhead { font-size: 12.5px; font-weight: 800; color: #23305E; margin: 2px 2px 8px; }
+  .fhead { font-size: 12.5px; font-weight: 800; color: #23305E; margin: 2px 2px 8px; } .fhead.alt { margin-top: 14px; padding-top: 10px; border-top: 1px dashed #C9CEDF; }
   .fmore { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
   .otitle { font-size: 12px; color: #23305E; line-height: 1.35; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .ttcard { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 8px 12px 10px; padding: 9px 12px; border-radius: 12px; background: linear-gradient(90deg, #111 0%, #2B2B2B 100%); color: #fff; width: calc(100% - 24px); }
   .ttcard:hover { filter: brightness(1.15); } .ttcard:focus-visible { outline: 3px solid #25F4EE; }
   .ttcard .ttx { flex: 1; display: flex; flex-direction: column; min-width: 0; } .ttcard b { font-size: 13px; } .ttcard small { font-size: 11px; color: #C9CEDF; }
   .ttcard .tth { font-size: 12px; font-weight: 800; color: #25F4EE; white-space: nowrap; }
+  .rpick { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #E3E6F0; border-radius: 12px; background: #fff; margin-bottom: 6px; font-size: 12.5px; color: #23305E; }
+  .rpick span { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } .rpick i { font-style: normal; }
   .osame { font-size: 11px; font-weight: 700; color: #0E9F6E; margin-top: 2px; }
   .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
   .ot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 7px; background: #EEF0F6; color: #5B648A; }
@@ -2197,6 +2199,7 @@
         st.options.forEach(o => L.append(optRow(o, 0, true)));
         L.append(el('div', 'onote', `Lọc từ ${st.total} món: đã bỏ ${st.total - st.safe} shop rủi ro, kiểm tra kỹ các shop còn lại.`));
       }
+      relatedPicks(L, st.q);
       const more = el('div', 'fmore');
       const a1 = el('button', 'chip', 'Xem tất cả trên Shopee ›'); a1.addEventListener('click', () => openDeal(HT.shopeeFindUrl(st.q, findRange)));
       const a2 = el('button', 'chip', 'Tìm trên TikTok Shop ›'); a2.addEventListener('click', () => openDeal(HT.SHOPS[1].search + encodeURIComponent(st.q)));
@@ -2262,7 +2265,10 @@
     if (settings.shopAuto === false || !isItemPage()) return;
     const href = location.href;
     if (isTikTokItem()) {       // TikTok: chờ mục gợi ý cuối trang tải xong (thử lại vài lần)
-      let n = 0; const tick = () => { if (location.href !== href) return; const p = detectProduct(); if (p && p.price && readTikTokCards().length) return findSame(p); if (++n < 8) setTimeout(tick, 3000); };
+      let n = 0, sp = false; const tick = () => {
+        if (location.href !== href) return; const p = detectProduct();
+        if (p && p.price && !sp) { sp = true; findShopee(p); }      // cùng món trên Shopee (qua link Shopee của bạn)
+        if (p && p.price && readTikTokCards().length) return findSame(p); if (++n < 8) setTimeout(tick, 3000); };
       return setTimeout(tick, 2500);
     }
     setTimeout(() => {
@@ -2270,6 +2276,28 @@
       if (location.href !== href || !p || !p.price || (sameState && sameState.url === p.url)) return;
       findSame(p);
     }, 2500);
+  }
+  // Trang TikTok: tìm đúng cùng sản phẩm trên Shopee (tab ẩn, như "Tìm shop rẻ hơn" của Shopee)
+  let shopeeState = null;
+  async function findShopee(p, inRender) {
+    if (shopeeState && shopeeState.url === p.url && (shopeeState.loading || !shopeeState.error)) return;
+    const my = shopeeState = { url: p.url, loading: true };
+    if (!inRender && tab === 'shop' && !ui.panel.hidden) renderPanel();
+    const q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
+    let r = null; try { r = await chrome.runtime.sendMessage({ type: 'same-find', q, key: 'tt:' + itemKey(), title: p.title, price: p.price }); } catch {}
+    if (shopeeState !== my) return;
+    shopeeState = { url: p.url, loading: false, error: r && r.ok ? '' : 'fail', total: (r && r.total) || 0, options: ((r && r.options) || []).map(o => ({ ...o, plat: 'shopee' })) };
+    if (tab === 'shop' && !ui.panel.hidden) renderPanel();
+    if (ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
+  }
+  function renderShopeeAlt(L, p) {
+    let st = shopeeState && shopeeState.url === p.url ? shopeeState : null;
+    if (!st) { findShopee(p, true); st = shopeeState; }
+    L.append(el('div', 'fhead alt', '🟠 Cùng sản phẩm trên Shopee'));
+    if (st.loading) { const box = el('div', 'optwait'); box.append(el('div', 'spin'), el('div', '', 'Đang tìm đúng món này trên Shopee…')); return L.append(box); }
+    if (st.error) { const box = el('div', 'optwait'); box.append(el('div', '', 'Chưa tìm được trên Shopee lần này.')); const b = el('button', 'b', '🔄 Thử lại'); b.addEventListener('click', () => { shopeeState = null; findShopee(p); }); box.append(b); return L.append(box); }
+    if (!st.options.length) return L.append(el('div', 'optwait ok', st.total ? `👍 Giá TikTok đang rẻ hơn ${st.total} shop Shopee bán cùng món` : 'Chưa thấy Shopee bán đúng sản phẩm này.'));
+    st.options.slice(0, 2).forEach(o => L.append(optRow(o, p.price - o.price)));
   }
   async function findSame(p, inRender) {
     if (isTikTokItem()) {       // TikTok: so ngay trên trang, không cần tab ẩn
@@ -2300,7 +2328,7 @@
     const row = el('div', 'opt ' + o.cls);
     const ring = el('div', 'oring'); ring.style.setProperty('--v', o.score); ring.append(el('b', '', o.score));
     const mid = el('div', 'omid');
-    const nm = el('div', 'oshop'); nm.append(el('span', 'on', o.shopName || (isTikTokItem() ? 'Shop khác trên TikTok' : 'Shop trên Shopee'))); nm.title = o.shopName || '';
+    const nm = el('div', 'oshop'); nm.append(el('span', 'on', o.shopName || (o.plat !== 'shopee' && isTikTokItem() ? 'Shop khác trên TikTok' : 'Shop trên Shopee'))); nm.title = o.shopName || '';
     if (o.mall) nm.append(el('em', 'om', 'Mall')); else if (o.preferred) nm.append(el('em', 'op', 'Yêu thích'));
     const meta = el('div', 'ometa'); meta.append(el('span', 'olv', o.level));
     if (o.rating) meta.append(el('span', '', `★${o.rating}`));
@@ -2325,7 +2353,15 @@
     sh.addEventListener('click', () => { det.hidden = !det.hidden; sh.classList.toggle('on', !det.hidden); });
     return row;
   }
-  function renderCheaper(L, p) {
+  function renderCheaper(L, p) { renderCheaper0(L, p); if (isTikTokItem()) renderShopeeAlt(L, p); relatedPicks(L, p.title, HT.ttId(location.href)); }
+  // 🛍️ Món tương tự trong danh sách HaoHao tuyển chọn (link TikTok của bạn)
+  function relatedPicks(L, text, skipId) {
+    const rs = HT.related(text, 2, skipId); if (!rs.length) return;
+    L.append(el('div', 'fhead alt', '🛍️ HaoHao tuyển chọn: món tương tự'));
+    rs.forEach(x => { const r = el('div', 'rpick'); const t = el('span', '', x.title); t.title = x.title;
+      const b = el('button', 'b ogo', 'Xem'); b.addEventListener('click', () => openDeal(x.url)); r.append(el('i', '', '🛍️'), t, b); L.append(r); });
+  }
+  function renderCheaper0(L, p) {
     let st = sameState && sameState.url === p.url ? sameState : null;
     if (!st || (st.error === 'nocards' && isTikTokItem())) { findSame(p, true); st = sameState; }   // đang vẽ bảng: bắt đầu tìm, không vẽ lại lồng nhau
     if (st.loading) {
@@ -2825,12 +2861,15 @@
     // câu mời từ kết quả tự so giá
     const st = p && sameState && sameState.url === p.url ? sameState : null;
     let hookSave = 0;
+    // trang TikTok: món rẻ hơn trên Shopee (điểm tin cậy từ 60 trở lên)
+    function altBest(p) { const a = isTikTokItem() && shopeeState && shopeeState.url === p.url && !shopeeState.loading && shopeeState.options; if (!a) return null; return [...a].filter(x => x.score >= 60 && x.price < p.price).sort((x, y) => x.price - y.price)[0] || null; }
     if (st && st.loading) B.append(el('div', 'tb-hook wait', '🔍 Đang so giá với các shop khác…'));
-    else if (st && !st.error && st.options && st.options.length) {
-      const o = st.options.find(x => x.tags.includes('best')) || st.options[0];
+    else if ((st && !st.error && st.options && st.options.length) || altBest(p)) {
+      const o0 = st && !st.error && st.options && st.options.length ? st.options.find(x => x.tags.includes('best')) || st.options[0] : null, oa = altBest(p);
+      const o = oa && (!o0 || oa.price < o0.price) ? oa : o0;
       hookSave = p.price - o.price;
       const hk = el('button', 'tb-hook hot');
-      hk.append(el('b', '', `🔥 Có shop bán rẻ hơn ${kShort(hookSave)}`), el('span', '', `${o.shopName || (isTikTokItem() ? 'Shop khác trên TikTok' : 'Shop trên Shopee')} · ${o.level} ${o.score}/100`));
+      hk.append(el('b', '', o.plat === 'shopee' ? `🟠 Shopee bán rẻ hơn ${kShort(hookSave)}` : `🔥 Có shop bán rẻ hơn ${kShort(hookSave)}`), el('span', '', `${o.shopName || (o.plat !== 'shopee' && isTikTokItem() ? 'Shop khác trên TikTok' : 'Shop trên Shopee')} · ${o.level} ${o.score}/100`));
       hk.addEventListener('click', e => { e.stopPropagation(); goCheck('cheaper'); });
       B.append(hk);
     } else if (st && !st.error && st.total) B.append(el('div', 'tb-hook ok', `👍 Giá này đang rẻ nhất trong ${st.total + 1} shop`));

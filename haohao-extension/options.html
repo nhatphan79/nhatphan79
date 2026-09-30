@@ -108,7 +108,7 @@
     <label class="chk big"><input type="checkbox" id="desktop"> Khi nhắc nhở, HaoHao ra hẳn màn hình và gõ cửa (đè lên cả ứng dụng khác)</label>
     <label class="chk big"><input type="checkbox" id="sound"> Có tiếng gõ và tiếng chuông</label>
     <label class="chk big"><input type="checkbox" id="shopTrust"> Trên Shopee, HaoHao chấm điểm tin cậy sản phẩm và shop</label>
-    <label class="chk big"><input type="checkbox" id="shopAuto"> Mở sản phẩm Shopee là HaoHao tự so giá với shop khác (mở ngầm 1 tab vài giây)</label>
+    <label class="chk big"><input type="checkbox" id="shopAuto"> Mở sản phẩm Shopee hoặc TikTok là HaoHao tự so giá với shop khác, món TikTok so thêm với Shopee (mở ngầm 1 tab vài giây)</label>
     <label class="chk big"><input type="checkbox" id="shopAsk"> Trên Shopee, luôn hiện bong bóng kết quả kiểm tra (tắt thì chỉ còn điểm nhỏ trên đầu HaoHao)</label>
     <p class="sub">🔗 Nút mua, lấy mã và tìm trên Shopee, TikTok Shop dùng link tiếp thị: HaoHao có thể nhận hoa hồng khi bạn mua, bạn không phải trả thêm.</p>
     <div class="test"><button id="deskTest" class="btn ghost">Thử HaoHao ra màn hình</button><span id="appStatus"></span></div>
@@ -122,6 +122,28 @@
         <button type="button" id="aiTest" class="btn ghost">Thử kết nối</button>
       </div>
       <p id="aiState" class="sub"></p>
+    </div>
+
+    <div id="tiktok" class="setup">
+      <h3>🛍️ Link TikTok của tôi (dành cho chủ app)</h3>
+      <p class="sub">Dán link sản phẩm từ phòng trưng bày TikTok (Chia sẻ → Sao chép liên kết, dạng <b>vt.tiktok.com/…</b>), mỗi link một dòng. HaoHao tự lấy mã và tên sản phẩm, rồi cập nhật cho mọi người dùng (trong vòng 6 giờ).</p>
+      <details class="sub"><summary>Tạo mã GitHub (làm 1 lần)</summary>
+        <ol>
+          <li>Mở <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+          <li>Token name: <b>HaoHao</b>. Expiration: chọn 1 năm.</li>
+          <li>Repository access: <b>Only select repositories</b> → chọn <b>nhatphan79/nhatphan79</b>.</li>
+          <li>Permissions → Repository permissions → <b>Contents: Read and write</b>.</li>
+          <li>Bấm <b>Generate token</b>, sao chép mã (bắt đầu bằng <code>github_pat_</code>) dán vào ô dưới.</li>
+        </ol>
+        Mã chỉ lưu trong Chrome của bạn, không nằm trong code.
+      </details>
+      <div class="test">
+        <label class="f" style="margin:0;max-width:360px">Mã GitHub<input id="ghToken" type="password" placeholder="github_pat_…" autocomplete="off"></label>
+        <button type="button" id="ghSave" class="btn ghost">Lưu mã</button>
+      </div>
+      <label class="f">Link sản phẩm (mỗi dòng một link)<textarea id="ttLinks" rows="4" placeholder="https://vt.tiktok.com/ZS9DRRu7f9fDc-v0h2k/"></textarea></label>
+      <div class="test"><button type="button" id="ttAdd" class="btn">➕ Thêm vào HaoHao</button><span id="ttState" class="sub"></span></div>
+      <ul id="ttList" class="ttlist"></ul>
     </div>
 
     <div id="outlook" class="setup">

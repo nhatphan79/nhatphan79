@@ -246,3 +246,37 @@ $('#aiTest').addEventListener('click', async () => {
   $('#aiState').textContent = r && r.ok ? '✓ Kết nối Gemini được.' : '⚠ Chưa được: ' + ((r && (map[r.error] || r.error)) || 'lỗi không rõ');
 });
 if (location.hash === '#ai') document.querySelector('nav button[data-tab="settings"]').click(), setTimeout(() => $('#ai').scrollIntoView({ behavior: 'smooth' }), 100);
+
+// ---------- 🛍️ Link TikTok của tôi ----------
+const TT_ERR = { notoken: 'chưa có mã GitHub (dán mã rồi bấm Lưu mã)', badtoken: 'mã GitHub không đúng hoặc đã hết hạn', noperm: 'mã GitHub chưa có quyền ghi (Contents: Read and write)', nofile: 'chưa thấy file coupons.json trên nhánh main' };
+async function renderTT() {
+  const { couponFeed, ghToken } = await chrome.storage.local.get(['couponFeed', 'ghToken']);
+  $('#ghToken').value = ghToken || '';
+  const t = (couponFeed && couponFeed.tiktok) || {}, ul = $('#ttList'); ul.textContent = '';
+  const ids = Object.keys(t.links || {});
+  if (!ids.length) { ul.innerHTML = '<li class="sub">Chưa có link nào.</li>'; return; }
+  for (const id of ids) {
+    const li = document.createElement('li');
+    const tx = document.createElement('span'); tx.textContent = ((t.titles || {})[id] || 'Sản phẩm ' + id) + ' '; const sm = document.createElement('small'); sm.textContent = t.links[id]; tx.append(sm);
+    li.append(tx, btn('✕', 'btn ghost sm', async e => {
+      e.target.disabled = true; $('#ttState').textContent = 'Đang bỏ…';
+      const r = await chrome.runtime.sendMessage({ type: 'tt-remove', id }).catch(err => ({ ok: false, error: err.message }));
+      $('#ttState').textContent = r && r.ok ? '✓ Đã bỏ.' : '⚠ ' + (TT_ERR[r && r.error] || (r && r.error) || 'lỗi'); renderTT();
+    }));
+    ul.append(li);
+  }
+}
+renderTT();
+$('#ghSave').addEventListener('click', async () => { await chrome.storage.local.set({ ghToken: $('#ghToken').value.trim() }); $('#ttState').textContent = 'Đã lưu mã GitHub.'; });
+$('#ttAdd').addEventListener('click', async () => {
+  const text = $('#ttLinks').value.trim(); if (!text) return $('#ttLinks').focus();
+  $('#ttAdd').disabled = true; $('#ttState').textContent = 'Đang đọc link và cập nhật…';
+  const r = await chrome.runtime.sendMessage({ type: 'tt-add', text }).catch(err => ({ ok: false, error: err.message }));
+  $('#ttAdd').disabled = false;
+  if (!r || !r.ok) { $('#ttState').textContent = '⚠ Chưa được: ' + (TT_ERR[r && r.error] || (r && r.error) || 'lỗi không rõ'); return; }
+  $('#ttState').textContent = `✓ Đã thêm ${r.added.length} món.` + (r.failed.length ? ` ${r.failed.length} link chưa được: ` + r.failed.map(f => f.error).join('; ') : '');
+  $('#ttLinks').value = r.failed.map(f => f.line).join('\n');
+  renderTT();
+});
+chrome.storage.onChanged.addListener(ch => { if (ch.couponFeed) renderTT(); });
+if (location.hash === '#tiktok') document.querySelector('nav button[data-tab="settings"]').click(), setTimeout(() => $('#tiktok').scrollIntoView({ behavior: 'smooth' }), 100);

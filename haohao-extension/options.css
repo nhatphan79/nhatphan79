@@ -87,3 +87,9 @@ form { background: var(--paper); border: 2px solid var(--ink); border-radius: 20
 .setup a { color: var(--ink); font-weight: 600; }
 .copy { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
 .copy code { background: var(--sky); padding: 6px 10px; border-radius: 8px; font-size: 13px; word-break: break-all; }
+
+.ttlist { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.ttlist li { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 6px 10px; border: 1px solid #E3E6F0; border-radius: 10px; font-size: 13px; }
+.ttlist li small { display: block; color: #8A91AD; font-size: 11px; }
+#tiktok textarea { width: 100%; box-sizing: border-box; font: inherit; }
+#tiktok details { margin: 6px 0 10px; } #tiktok ol { margin: 6px 0; padding-left: 20px; }
