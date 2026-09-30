@@ -155,6 +155,7 @@ function renderSettings() {
   $('#sound').checked = settings.sound !== false;
   $('#shopTrust').checked = settings.shopTrust !== false;
   $('#shopAsk').checked = settings.shopAsk !== false;
+  $('#shopAuto').checked = settings.shopAuto !== false;
   const L = $('#hidden'); L.innerHTML = '';
   if (!settings.hiddenSites.length) L.innerHTML = '<li>Không có trang nào.</li>';
   for (const h of settings.hiddenSites) {
@@ -168,6 +169,7 @@ $('#desktop').addEventListener('change', e => { settings.desktop = e.target.chec
 $('#sound').addEventListener('change', e => { settings.sound = e.target.checked; saveSettings(); });
 $('#shopTrust').addEventListener('change', e => { settings.shopTrust = e.target.checked; saveSettings(); });
 $('#shopAsk').addEventListener('change', e => { settings.shopAsk = e.target.checked; saveSettings(); });
+$('#shopAuto').addEventListener('change', e => { settings.shopAuto = e.target.checked; saveSettings(); });
 $('#deskTest').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'desk-test' }));
 chrome.runtime.sendMessage({ type: 'app-status' }).then(r => {
   $('#appStatus').textContent = r && r.running

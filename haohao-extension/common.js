@@ -392,6 +392,13 @@ HT.trustScore = info => {
   }
   if (info.sold > 50 && n && n / info.sold > 0.9) add(product, -6, 'warn', 'Số đánh giá gần bằng số đã bán, có thể có đánh giá ảo');
   else if (info.sold >= 1000) product.push({ s: 'ok', t: `Đã bán ${fmtN(info.sold)}` });
+  const rv = info.reviewsNormal;
+  if (rv && rv.read) {
+    if (rv.issues.length) {
+      const top = rv.issues.slice(0, 3).map(i => `${i.label.toLowerCase()} (${i.n})`).join(', ');
+      add(product, -Math.min(15, 4 * rv.issues.length), rv.bad >= 3 || rv.issues.length >= 2 ? 'bad' : 'warn', `${rv.bad}/${rv.read} đánh giá đang hiện có lời chê: ${top}`);
+    } else if (rv.read >= 4) product.push({ s: 'ok', t: `Đọc ${rv.read} đánh giá đang hiện: không thấy lời chê` });
+  }
   if (info.dupReviews >= 3) add(product, -8, 'bad', `${info.dupReviews} đánh giá giống hệt nhau, nghi đánh giá ảo`);
   // --- shop ---
   if (info.mall) add(shop, 12, 'ok', 'Shopee Mall: hàng chính hãng, được đổi trả');
@@ -426,6 +433,68 @@ HT.trustScore = info => {
   const score = Math.max(0, Math.min(100, Math.round(sc)));
   const [level, cls] = score >= 80 ? ['Đáng tin', 'good'] : score >= 60 ? ['Khá ổn', 'ok'] : score >= 40 ? ['Cân nhắc', 'warn'] : ['Rủi ro', 'bad'];
   return { score, level, cls, product, shop };
+};
+
+// ---------- 💬 Đọc lời chê trong đánh giá ----------
+// Mỗi chủ đề: mẫu có dấu (đánh giá thường có dấu) + mẫu không dấu. Trích nguyên câu của người mua, không nói chung chung.
+HT.REVIEW_TOPICS = [
+  { id: 'quality', label: 'Chất lượng kém', re: /(chất lượng kém|kém chất lượng|quá tệ|tệ|kém|dởm|đểu|rách|bung chỉ|sứt chỉ|xù lông|phai màu|ra màu|bạc màu|co rút|lỗi|hỏng|hư|mỏng dính|mỏng quá|vải mỏng|không bền|nhanh hỏng|cũ|trầy)/u,
+    fold: /(chat luong kem|kem chat luong|te qua|rach|bung chi|xu long|phai mau|ra mau|bac mau|mong dinh|vai mong|khong ben|nhanh hong)/ },
+  { id: 'look', label: 'Xấu, không giống hình', re: /(xấu|không giống hình|khác hình|không giống ảnh|khác ảnh|không như hình|không như ảnh|không đúng mô tả|khác mô tả|sai màu|khác màu|màu không giống)/u,
+    fold: /(khong giong hinh|khac hinh|khong giong anh|khac anh|khong nhu hinh|khong dung mo ta|khac mo ta|sai mau|khac mau)/ },
+  { id: 'size', label: 'Sai size, không vừa', re: /(chật|rộng quá|quá rộng|nhỏ quá|quá nhỏ|to quá|quá to|sai size|không vừa|size không chuẩn|lệch size|form xấu|dài quá|ngắn quá)/u,
+    fold: /(sai size|khong vua|size khong chuan|lech size)/ },
+  { id: 'fake', label: 'Nghi hàng giả, nhái', re: /(hàng giả|fake|hàng nhái|nhái|không chính hãng|không phải hàng thật|hàng dỏm|hàng lỗi)/u,
+    fold: /(hang gia|hang nhai|khong chinh hang|hang dom)/ },
+  { id: 'ship', label: 'Giao hàng, đóng gói', re: /(giao chậm|giao lâu|giao thiếu|thiếu hàng|thiếu đồ|giao sai|gửi sai|đóng gói sơ sài|đóng gói ẩu|móp|bẹp|vỡ|bể)/u,
+    fold: /(giao cham|giao lau|giao thieu|thieu hang|giao sai|gui sai|dong goi so sai)/ },
+  { id: 'smell', label: 'Mùi khó chịu', re: /(mùi hôi|hôi rình|bốc mùi|mùi khó chịu|mùi hắc|mùi hóa chất|mùi lạ|hôi quá)/u,
+    fold: /(mui hoi|boc mui|mui kho chiu|mui hac|mui hoa chat)/ },
+  { id: 'shop', label: 'Shop, đổi trả', re: /(không trả lời|không rep|thái độ|không hỗ trợ|lừa đảo|lừa|không cho đổi|không đổi trả|không hoàn tiền|shop tệ)/u,
+    fold: /(khong tra loi|khong ho tro|lua dao|khong cho doi|khong doi tra|khong hoan tien)/ },
+  { id: 'upset', label: 'Thất vọng', re: /(thất vọng|không hài lòng|phí tiền|đừng mua|không nên mua|chán|bực|tức|thảm họa|không đáng tiền)/u,
+    fold: /(that vong|khong hai long|phi tien|dung mua|khong nen mua|tham hoa|khong dang tien)/ }
+];
+const NEG_BEFORE = /(không|chẳng|chả|ko|k|hông|chưa|khong|chang|cha|chua)\s+(hề\s+|he\s+|bị\s+|bi\s+|có\s+|co\s+|thấy\s+|thay\s+)?$/u;
+const L_ = '\\p{L}';
+// texts: danh sách đánh giá (chuỗi, hoặc { t, low } với low = đánh giá 1–2★). Trả về { read, bad, issues: [{ id, label, n, quotes }] }
+HT.reviewIssues = texts => {
+  const issues = {}, badSet = new Set();
+  const seen = new Map();
+  for (const x of texts || []) { const t = String(typeof x === 'string' ? x : x.t).trim(); if (t.length >= 4) seen.set(t, (seen.get(t) || false) || !!(x && x.low)); }
+  const list = [...seen.keys()].slice(0, 250);
+  list.forEach((raw, idx) => {
+    let any = false;
+    const t = raw.toLowerCase().normalize('NFC'), f = HT.fold(raw);
+    for (const tp of HT.REVIEW_TOPICS) {
+      // tìm từ đứng riêng (không dính vào chữ khác), bỏ qua khi có "không/chẳng…" ngay trước
+      const re = new RegExp('(?<![' + L_ + '])' + tp.re.source + '(?![' + L_ + '])', 'gu');
+      let hit = null;
+      for (const m of t.matchAll(re)) { if (!NEG_BEFORE.test(t.slice(Math.max(0, m.index - 14), m.index))) { hit = m; break; } }
+      if (!hit && tp.fold) {
+        const rf = new RegExp('(?<![a-z])' + tp.fold.source + '(?![a-z])', 'g');
+        for (const m of f.matchAll(rf)) { if (!NEG_BEFORE.test(f.slice(Math.max(0, m.index - 14), m.index))) { hit = { index: -1, 0: m[0] }; break; } }
+      }
+      if (!hit) continue;
+      any = true;
+      const it = issues[tp.id] || (issues[tp.id] = { id: tp.id, label: tp.label, n: 0, quotes: [], words: new Set() });
+      it.n++; it.words.add(hit[0]); badSet.add(idx);
+      if (it.quotes.length < 3) {
+        // trích câu chứa lời chê (tối đa ~110 ký tự)
+        let q = raw;
+        if (hit.index >= 0) { const s0 = raw.lastIndexOf('.', hit.index) + 1, e0 = raw.indexOf('.', hit.index); q = raw.slice(s0, e0 < 0 ? undefined : e0 + 1).trim() || raw; }
+        if (q.length > 110) q = (hit.index > 60 ? '…' : '') + q.slice(Math.max(0, (hit.index >= 0 ? hit.index : 0) - 50), (hit.index >= 0 ? hit.index : 0) + 60).trim() + '…';
+        if (!it.quotes.includes(q)) it.quotes.push(q);
+      }
+    }
+    // đánh giá 1–2★ không có từ khoá nào vẫn là lời chê: gom vào "Chê khác"
+    if (!any && seen.get(raw)) {
+      const it = issues.other || (issues.other = { id: 'other', label: 'Chê khác (1–2★)', n: 0, quotes: [], words: new Set() });
+      it.n++; badSet.add(idx); if (it.quotes.length < 3) it.quotes.push(raw.length > 110 ? raw.slice(0, 108) + '…' : raw);
+    }
+  });
+  const arr = Object.values(issues).map(x => ({ id: x.id, label: x.label, n: x.n, quotes: x.quotes, words: [...x.words].slice(0, 4) })).sort((a, b) => b.n - a.n);
+  return { read: list.length, bad: badSet.size, issues: arr };
 };
 
 // cho phép trang khác (xem thử) dùng chung

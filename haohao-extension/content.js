@@ -237,6 +237,14 @@
   .tb-x:hover, .tb-x:focus-visible { background: #EEF0F6; color: #23305E; }
   .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; }
   .tb-cp { margin-top: 6px; font-size: 12px; font-weight: 800; color: #D0391B; background: #FFF1EE; border-radius: 8px; padding: 4px 8px; }
+  .tb-hook { all: unset; display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.35; }
+  .tb-hook.wait { background: #F1F4FA; color: #6B7394; }
+  .tb-hook.ok { background: #E8F7F1; color: #1E7A5F; font-weight: 700; }
+  .tb-hook.hot { cursor: pointer; background: linear-gradient(135deg, #FFF1EE, #FFE3D6); border: 1.5px solid #F7A48F; color: #3A4470; }
+  .tb-hook.hot b { display: block; color: #D0391B; font-size: 13px; } .tb-hook.hot span { font-size: 11.5px; }
+  .tb-hook.hot:hover { border-color: #EE4D2D; } .tb-hook.hot:focus-visible { outline: 2px solid #EE4D2D; }
+  .tb-go2.pulse { animation: tbp 1.6s ease-in-out infinite; }
+  @keyframes tbp { 50% { box-shadow: 0 0 0 5px rgba(46,125,215,.25); } }
   .tb-acts { display: flex; gap: 6px; margin-top: 8px; } .tb-acts .tb-go { margin-top: 0; flex: 1; padding: 9px 4px; font-size: 12.5px; white-space: nowrap; } .tb-acts .tb-go:first-child { flex: 0 0 92px; }
   .tb-go2 { background: #2E7DD7 !important; } .tb-go2:hover { background: #2567B5 !important; }
   .tb-go { all: unset; cursor: pointer; display: block; box-sizing: border-box; width: 100%; text-align: center; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #EE4D2D; color: #fff; font-weight: 800; font-size: 13px; }
@@ -402,6 +410,12 @@
   .tli i { font-style: normal; flex: none; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 900; color: #fff; margin-top: 1px; }
   .tli.ok i { background: #1E9E6F; } .tli.warn i { background: #E08A00; } .tli.bad i { background: #E0344B; }
   .tgo { margin-top: 10px; width: 100%; box-sizing: border-box; text-align: center; }
+  .rvi { background: #FFF6F6; border: 1px solid #F6D3D7; border-radius: 10px; padding: 7px 9px; margin: 5px 0; }
+  .rvh { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #B42336; }
+  .rvn { margin-left: auto; font-size: 11px; font-weight: 800; background: #FDE3E3; border-radius: 999px; padding: 1px 7px; }
+  .rvq { font-size: 12px; color: #3A4470; font-style: italic; margin-top: 4px; line-height: 1.4; }
+  .rvq mark { background: #FFD6DB; color: #B42336; font-style: normal; font-weight: 800; border-radius: 3px; padding: 0 2px; }
+  .tnote2 { font-size: 11.5px; color: #6B7394; margin: 4px 0; }
   .tnote { font-size: 11px; color: #8A91AE; margin-top: 8px; line-height: 1.4; }
   .buybox { border-radius: 14px; padding: 12px; margin: 6px 0 8px; background: linear-gradient(135deg, #FFF1EE, #FFF8E8); border: 1.5px solid #F7B5A5; }
   .buybox .bt { font-size: 15px; font-weight: 800; color: #D0391B; }
@@ -2133,13 +2147,25 @@
     const p = detectProduct();
     chrome.runtime.sendMessage({ type: 'scan-result', result: { info, shopName: (shopName || '').slice(0, 40), price: p && p.price } }).catch(() => {});
   }
+  // Mở sản phẩm Shopee: tự so giá với các shop khác ở nền, để bong bóng mời "Có shop bán rẻ hơn …"
+  function autoFindSame() {
+    if (settings.shopAuto === false || !isShopeeItem()) return;
+    const href = location.href;
+    setTimeout(() => {
+      const p = detectProduct();
+      if (location.href !== href || !p || !p.price || (sameState && sameState.url === p.url)) return;
+      findSame(p);
+    }, 2500);
+  }
   async function findSame(p, inRender) {
     sameState = { url: p.url, loading: true };
     if (!inRender && tab === 'shop' && !ui.panel.hidden) renderPanel();
+    if (!inRender && ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
     const q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
     let r = null; try { r = await chrome.runtime.sendMessage({ type: 'same-find', q, key: itemKey(), title: p.title, price: p.price }); } catch {}
     sameState = { url: p.url, loading: false, error: r && r.ok ? '' : 'fail', total: (r && r.total) || 0, options: (r && r.options) || [] };
     if (tab === 'shop' && !ui.panel.hidden) renderPanel();
+    if (ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
   }
   const kShort = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '').replace('.', ',') + 'tr' : n >= 1000 ? Math.round(n / 1000) + 'k' : n + 'đ';
   const OPT_TAG = { best: '⭐ Đáng mua nhất', cheap: '💰 Rẻ nhất', trust: '🏬 Uy tín nhất' };
@@ -2322,6 +2348,37 @@
     const nm = (document.querySelector('h1') || {}).innerText; info.shopName = nm ? nm.trim().slice(0, 60) : '';
     return info;
   }
+  // Lấy các câu đánh giá từ phần "ĐÁNH GIÁ SẢN PHẨM" (dừng khi sang mục khác của trang)
+  const reviewPool = new Map(), lowRead = new Set();
+  function reviewTexts(lines) {
+    const out = [];
+    for (const l of lines.slice(0, 500)) {
+      if (/^(CÓ THỂ BẠN CŨNG THÍCH|SẢN PHẨM KHÁC CỦA SHOP|TOP SẢN PHẨM|SẢN PHẨM TƯƠNG TỰ|Xem tất cả)/i.test(l)) break;
+      if (l.length < 4 || l.length > 400) continue;
+      if (/\||\d{4}-\d{2}-\d{2}|^Phân loại|Sao\s*\(|^Tất Cả$|Có Bình Luận|Có Hình Ảnh|Trong Nước|Hữu ích|^\d[.,]?\d*\s*(trên 5)?$|^\d+$|trên 5|Phản Hồi Của Người Bán/i.test(l)) continue;
+      if (/^[^:]{1,30}:/.test(l)) continue;                 // "Chất liệu: jean", "Màu sắc: xanh"…
+      if (!/\s/.test(l) && !/[^\x00-\x7F]/.test(l)) continue; // tên tài khoản kiểu diemhuong_1308
+      out.push(l);
+    }
+    return out;
+  }
+  // Khách bấm: HaoHao tự bấm bộ lọc "1 Sao", "2 Sao" trên trang để đọc đúng các đánh giá chê, rồi trả về "Tất Cả"
+  async function readLowStars() {
+    const chip = re => [...document.querySelectorAll('div,button,span,a,li')].filter(e => re.test((e.textContent || '').trim()) && (e.textContent || '').trim().length < 24).sort((a, b) => a.textContent.length - b.textContent.length)[0];
+    const key = itemKey(), got = reviewPool.get(key) || [];
+    for (const n of [1, 2]) {
+      const c = chip(new RegExp('^' + n + ' Sao\\s*\\((?!0\\))'));
+      if (!c) continue;
+      c.click(); await wait(1800);
+      const lines = (document.body.innerText || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const ri = lines.findIndex(l => /^ĐÁNH GIÁ SẢN PHẨM$/i.test(l));
+      if (ri >= 0) for (const t of reviewTexts(lines.slice(ri + 1))) got.push({ t, low: true });
+    }
+    const all = chip(/^Tất Cả$/i); if (all) all.click();
+    reviewPool.set(key, got); lowRead.add(key);
+    trustUrl = ''; analyzeShopee(true);
+    if (tab === 'shop' && ui && !ui.panel.hidden) renderPanel();
+  }
   function readShopee() {
     const raw = document.body.innerText || '';
     const t = raw.replace(/\s+/g, ' ');
@@ -2356,16 +2413,17 @@
     const gi = lines.findIndex(l => /^Gửi từ$/i.test(l));
     info.shipFrom = gi >= 0 ? lines[gi + 1] : (m(/Gửi từ\s*(Nước ngoài|[A-ZĐ][\p{L}. ]{2,25}?)(?=\s[A-ZĐ][\p{L}]+\s|$)/iu) || '');
     if (info.shipFrom && info.shipFrom.length > 30) info.shipFrom = '';
-    // đánh giá giống hệt nhau (nghi ảo): chỉ xét câu đủ dài, bỏ dòng thông tin kiểu "Chất liệu: …"
+    // phần đánh giá: đọc từng câu đánh giá (bỏ tên người, ngày, "Chất liệu: …", nút lọc…)
     const ri = lines.findIndex(l => /^ĐÁNH GIÁ SẢN PHẨM$/i.test(l));
     if (ri >= 0) {
-      const cnt = {};
-      for (const l of lines.slice(ri, ri + 400)) {
-        if (l.length < 15 || l.length > 300 || l.split(' ').length < 4 || /\||\d{4}-\d{2}-\d{2}|^Phân loại|Sao \(|Hữu ích/i.test(l) || /^[^:]{1,30}:/.test(l)) continue;
-        const k = HT.fold(l); cnt[k] = (cnt[k] || 0) + 1;
-      }
+      const texts = reviewTexts(lines.slice(ri + 1)), cnt = {};
+      for (const l of texts) if (l.length >= 15 && l.split(' ').length >= 4) { const k = HT.fold(l); cnt[k] = (cnt[k] || 0) + 1; }
       info.dupReviews = Math.max(0, ...Object.values(cnt));
       info.reviewsLoaded = true;
+      const pool = reviewPool.get(itemKey()) || [];
+      info.reviewsNormal = HT.reviewIssues(texts);
+      info.reviews = HT.reviewIssues([...texts, ...pool]);
+      info.lowRead = lowRead.has(itemKey());
     }
     const p = detectProduct(); if (p) info.price = p.price;
     return info;
@@ -2387,6 +2445,7 @@
       const [pk, psub] = (pend || '').split('|');
       if (pk && pk === itemKey()) { try { sessionStorage.removeItem('hh-open'); } catch {} shopSub = psub === 'cheaper' ? 'cheaper' : 'check'; openTab('shop'); }
       else showTrustBubble();
+      autoFindSame();
     } else if (!inRender && ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
   }
   // Mở sản phẩm Shopee: HaoHao chủ động hỏi để khách biết có kiểm tra chất lượng + mã giảm giá
@@ -2426,12 +2485,24 @@
     if (pick.length) B.append(el('div', 'tb-why', pick.map(i => (i.s === 'ok' ? '✓ ' : '⚠ ') + i.t.split(':')[0]).join(' · ')));
     const p = shopOnly ? null : detectProduct(), best = p && bestCouponFor(p);
     if (best) B.append(el('div', 'tb-cp', `🎟️ Có mã: còn ≈ ${vnd(p.price - best.v)}`));
+    // câu mời từ kết quả tự so giá
+    const st = p && sameState && sameState.url === p.url ? sameState : null;
+    let hookSave = 0;
+    if (st && st.loading) B.append(el('div', 'tb-hook wait', '🔍 Đang so giá với các shop khác…'));
+    else if (st && !st.error && st.options && st.options.length) {
+      const o = st.options.find(x => x.tags.includes('best')) || st.options[0];
+      hookSave = p.price - o.price;
+      const hk = el('button', 'tb-hook hot');
+      hk.append(el('b', '', `🔥 Có shop bán rẻ hơn ${kShort(hookSave)}`), el('span', '', `${o.shopName || 'Shop trên Shopee'} · ${o.level} ${o.score}/100`));
+      hk.addEventListener('click', e => { e.stopPropagation(); goCheck('cheaper'); });
+      B.append(hk);
+    } else if (st && !st.error && st.total) B.append(el('div', 'tb-hook ok', `👍 Giá này đang rẻ nhất trong ${st.total + 1} shop`));
     // 2 nút giống 2 tab trong bảng Mua sắm
     const acts = el('div', 'tb-acts');
     const go = el('button', 'tb-go', bad ? '⚠ Kiểm tra' : '🛡️ Kiểm tra');
     go.addEventListener('click', e => { e.stopPropagation(); goCheck('check'); });
     acts.append(go);
-    if (p && p.price) { const go2 = el('button', 'tb-go tb-go2', '🔍 Tìm shop rẻ hơn'); go2.addEventListener('click', e => { e.stopPropagation(); goCheck('cheaper'); }); acts.append(go2); }
+    if (p && p.price) { const go2 = el('button', 'tb-go tb-go2' + (hookSave ? ' pulse' : ''), hookSave ? `🔥 Rẻ hơn ${kShort(hookSave)}` : '🔍 Tìm shop rẻ hơn'); go2.addEventListener('click', e => { e.stopPropagation(); goCheck('cheaper'); }); acts.append(go2); }
     B.append(acts);
     if (!viaHaoHao() && HT.isAff(trustTarget())) B.append(el('div', 'tb-aff', 'Mở qua link tiếp thị của HaoHao'));
     B.hidden = false; clearTimeout(bubbleTimer);
@@ -2461,6 +2532,31 @@
     };
     sec('📦 Chất lượng sản phẩm', trust.product);
     if (!shopOnly && !trust.info.reviewsLoaded) c.append(el('div', 'tnote', '👇 Kéo xuống phần Đánh giá sản phẩm để HaoHao đọc thêm (tỉ lệ sao, đánh giá có ảnh, đánh giá ảo).'));
+    if (!shopOnly && trust.info.reviews) {
+      const rv = trust.info.reviews;
+      c.append(el('div', 'tsec', '💬 Người mua chê gì'));
+      if (!rv.issues.length) c.append(el('div', 'tnote2', `Chưa thấy lời chê trong ${rv.read} đánh giá HaoHao đọc được.`));
+      for (const it of rv.issues) {
+        const box = el('div', 'rvi');
+        const hd = el('div', 'rvh'); hd.append(el('b', '', it.label), el('span', 'rvn', `${it.n} đánh giá`)); box.append(hd);
+        for (const q of it.quotes) {
+          const qd = el('div', 'rvq');
+          // tô đậm đúng chữ chê trong câu trích
+          const w = (it.words || []).find(x => q.toLowerCase().includes(x));
+          if (w) { const i = q.toLowerCase().indexOf(w); qd.append('“' + q.slice(0, i), el('mark', '', q.slice(i, i + w.length)), q.slice(i + w.length) + '”'); }
+          else qd.append('“' + q + '”');
+          box.append(qd);
+        }
+        c.append(box);
+      }
+      const n1 = rv.read;
+      c.append(el('div', 'tnote2', `HaoHao đọc ${n1} đánh giá${trust.info.lowRead ? ' (gồm các đánh giá 1–2★)' : ' đang hiện trên trang'}.`));
+      if (!trust.info.lowRead) {
+        const b = el('button', 'b ghost tgo', '🔎 Đọc thêm đánh giá 1–2★');
+        b.addEventListener('click', async () => { b.disabled = true; b.textContent = '⏳ Đang đọc đánh giá 1–2★…'; await readLowStars(); });
+        c.append(b);
+      }
+    }
     sec('🏪 Uy tín shop', trust.shop);
     if (trust.info.responseRate == null && trust.info.joinedMonths == null) c.append(el('div', 'tnote', '👇 Kéo xuống phần thông tin shop để HaoHao chấm uy tín shop.'));
     if (!shopOnly && trust.score < 60 && detectProduct()) {

@@ -762,7 +762,9 @@ function scanIn(tabId, url, type, ms) {
     chrome.tabs.update(tabId, { url });
   });
 }
-async function sameFind({ q, key, title, price }, sender) {
+let sameQueue = Promise.resolve();
+function sameFind(msg, sender) { const run = sameQueue.then(() => sameFindOne(msg, sender)); sameQueue = run.catch(() => {}); return run; }
+async function sameFindOne({ q, key, title, price }, sender) {
   const ck = 'same2:' + key, cache = (await chrome.storage.session.get(ck))[ck];
   if (cache && Date.now() - cache.at < 20 * 60e3) return { ...cache, cached: true };
   const opener = sender.tab || {};
