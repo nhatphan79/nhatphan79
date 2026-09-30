@@ -389,8 +389,27 @@
   .spark { display: block; width: 100%; height: 34px; margin: 2px 0 4px; }
   .pcard .line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
   .pcard .lb { font-size: 12px; color: #6B7394; font-weight: 700; }
-  .cmp { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #F4C9D2; }
+  .cmp { margin-top: 6px; }
   .cmp .ch3 { font-size: 11.5px; font-weight: 800; color: #6B7394; margin-bottom: 4px; }
+  .ptable { display: flex; flex-direction: column; border: 1.5px solid #F1E2E6; border-radius: 12px; overflow: hidden; background: #fff; }
+  .pr { display: grid; grid-template-columns: 78px 1fr 46px; align-items: center; gap: 8px; padding: 7px 10px; font-size: 12.5px; border-top: 1px solid #F4EEF0; }
+  .pr:first-child { border-top: 0; }
+  .pr.here { background: #FAF8FF; }
+  .pr.best { background: #EAF8F2; }
+  .pr .sh { display: flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pr .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: #9AA1BE; }
+  .dot.shopee { background: #EE4D2D; } .dot.lazada { background: #1A2BD8; } .dot.tiktok { background: #111; box-shadow: 1.5px 0 0 #25F4EE, -1.5px 0 0 #FE2C55; } .dot.tiki { background: #1A94FF; }
+  .pr .pv { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .pr .pv .l1 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .pr .pv b { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .pr.best .pv b { color: #1E7A5F; }
+  .pr .na2 { color: #9AA1BE; }
+  .pr .tg em { font-style: normal; font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 2px 7px; white-space: nowrap; }
+  .pr .tg em.best { background: #1E7A5F; color: #fff; } .pr .tg em.hr { background: #EDE8FF; color: #5B3FD6; }
+  .pr .tg em.dn2 { background: #DDF3EB; color: #1E7A5F; } .pr .tg em.up2 { background: #F1F2F6; color: #6B7394; }
+  .pr .sim { font-style: normal; font-size: 10px; color: #9A6200; background: #FFF1D6; border-radius: 5px; padding: 1px 4px; white-space: nowrap; }
+  .pr button.go { padding: 4px 0; font-size: 12px; text-align: center; }
+  .pr button.go.ghost { padding: 2.5px 0; }
   .cmp .ci { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; }
   .cmp .ci .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cmp .ci b { font-variant-numeric: tabular-nums; }
@@ -2010,11 +2029,11 @@
     sr.addEventListener('submit', e => { e.preventDefault(); const q = si.value.trim(); if (q) openDeal(HT.SHOPS[0].search + encodeURIComponent(q)); else si.focus(); });
     const bar = el('div', 'shopbar'); bar.append(el('span', 'lb2', 'Tìm giá rẻ nhất:'));
     HT.SHOPS.forEach(sh => { const c = el('button', 'chip', sh.label); c.addEventListener('click', () => { const q = si.value.trim(); if (!q) return si.focus(); openDeal(sh.search + encodeURIComponent(q)); }); bar.append(c); });
-    V.append(sr, bar);
     const L = el('div', 'body-list');
 
-    // sản phẩm trên trang đang xem
+    // sản phẩm trên trang đang xem (có bảng giá các sàn thì không cần dòng tìm giá rẻ nhất)
     const p = detectProduct();
+    V.append(sr); if (!p) V.append(bar);
     if (p) {
       const saved = products.find(x => x.url === p.url);
       const card = el('div', 'pcard');
@@ -2040,30 +2059,44 @@
         });
         line.append(el('span', 'lb', '❤️ Đã lưu · báo khi ≤'), ti, b);
       }
-      card.append(line);
-      // so giá nơi khác
-      const cmp = el('div', 'cmp'); cmp.append(el('div', 'ch3', '⚖️ So giá nơi khác'));
+      // bảng giá các sàn: nhìn vào là thấy ngay
+      const cmp = el('div', 'cmp'); cmp.append(el('div', 'ch3', '⚖️ Giá ở các sàn'));
       if (cmpState.url !== p.url) runCompare(p);
-      if (cmpState.url !== p.url || cmpState.loading) cmp.append(el('div', 'ci', 'Đang tìm trên Tiki, Lazada…'));
-      else {
-        const items = (cmpState.res && cmpState.res.items) || [];
-        if (!items.length) cmp.append(el('div', 'ci', 'Chưa thấy đúng sản phẩm này ở Tiki, Lazada. Thử tìm tay:'));
-        for (const x of items) {
-          const row = el('div', 'ci');
-          row.append(el('span', '', SHOP_NAME[x.shop]));
-          const nm = el('span', 'nm', x.name); nm.title = x.name; row.append(nm);
-          if (x.match === 'similar') row.append(el('span', 'sim', 'gần giống'));
-          row.append(el('b', '', vnd(x.price)));
-          if (p.price) { const d = x.price - p.price; row.append(el('span', d < 0 ? 'dn2' : 'up2', d < 0 ? `rẻ hơn ${vnd(-d)}` : d > 0 ? `+${vnd(d)}` : 'bằng giá')); }
-          const go = el('button', 'b ghost', 'Xem'); go.addEventListener('click', () => openDeal(x.url)); row.append(go);
-          cmp.append(row);
+      const loading = cmpState.url !== p.url || cmpState.loading;
+      const found = (!loading && cmpState.res && cmpState.res.items) || [];
+      const here = HT.shopOf(p.url), q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
+      const rows = HT.SHOPS.map(sh => {
+        if (sh.id === here) return { sh, price: p.price, here: true };
+        const x = found.find(f => f.shop === sh.id);
+        return x ? { sh, price: x.price, url: x.url, sim: x.match === 'similar', name: x.name } : { sh, price: 0 };
+      });
+      if (here === 'other') rows.unshift({ sh: { id: 'other', label: HOST.split('.')[0] }, price: p.price, here: true });
+      const known = rows.filter(r => r.price), low = known.length > 1 ? Math.min(...known.map(r => r.price)) : 0;
+      rows.sort((a, b) => (a.price ? 0 : 1) - (b.price ? 0 : 1) || a.price - b.price);
+      const tb = el('div', 'ptable');
+      for (const r of rows) {
+        const row = el('div', 'pr' + (r.here ? ' here' : '') + (low && r.price === low ? ' best' : ''));
+        const nm = el('span', 'sh'); nm.append(el('i', 'dot ' + r.sh.id), document.createTextNode(r.sh.id === 'tiktok' ? 'TikTok' : r.sh.label)); row.append(nm);
+        const pc = el('span', 'pv'), l1 = el('span', 'l1'); pc.append(l1);
+        if (r.price) { l1.append(el('b', '', vnd(r.price))); if (r.sim) { const g = el('em', 'sim', 'gần giống'); g.title = r.name; l1.append(g); } }
+        else l1.append(el('span', 'na2', loading && (r.sh.id === 'tiki' || r.sh.id === 'lazada') ? 'đang tìm…' : 'chưa rõ giá'));
+        const tag = el('span', 'tg');
+        if (low && r.price === low) tag.append(el('em', 'best', r.here ? 'Rẻ nhất · đang xem' : 'Rẻ nhất'));
+        else if (r.here) tag.append(el('em', 'hr', 'Đang xem'));
+        else if (r.price && p.price) { const d = r.price - p.price; tag.append(el('em', d < 0 ? 'dn2' : 'up2', d < 0 ? `rẻ hơn ${vnd(-d)}` : `đắt hơn ${vnd(d)}`)); }
+        if (tag.childNodes.length) pc.append(tag);
+        row.append(pc);
+        if (r.here) row.append(el('span', 'go'));
+        else {
+          const go = el('button', 'go b ' + (r.price ? '' : 'ghost'), r.price ? 'Xem' : 'Tìm');
+          go.title = r.price ? `Mở ở ${r.sh.label}` : `Tìm "${q}" trên ${r.sh.label}`;
+          go.addEventListener('click', () => openDeal(r.url || r.sh.search + encodeURIComponent(q)));
+          row.append(go);
         }
-        const q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
-        const man = el('div', 'line');
-        HT.SHOPS.filter(sh => sh.id !== HT.shopOf(p.url)).forEach(sh => { const c = el('button', 'chip', `🔎 ${sh.label}`); c.addEventListener('click', () => openDeal(sh.search + encodeURIComponent(q))); man.append(c); });
-        cmp.append(man);
+        tb.append(row);
       }
-      card.append(cmp);
+      cmp.append(tb);
+      card.append(cmp, line);
       L.append(card);
     } else L.append(el('div', 'empty', 'Mở một trang sản phẩm (Shopee, Lazada, Tiki…) để ❤️ Lưu, xem lịch sử giá, so giá nơi khác và 🔔 báo khi giảm.'));
 
