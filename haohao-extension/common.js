@@ -310,6 +310,36 @@ HT.parseVouchers = text => {
 };
 
 
+// ---------- 🔍 Tìm cùng món ở shop khác trên Shopee ----------
+// Mã model (X20, WH-1000XM5, S24…): nếu tên gốc có thì món kia bắt buộc phải có
+const UNIT = /^\d+([.,]\d+)?(gb|tb|mb|mah|w|kw|ml|l|g|kg|cm|mm|m|inch|in|hz|v|btu|lit|lít|k|tr|m2)$/i;
+HT.modelOf = title => String(title || '').split(/[\s,()/[\]|+]+/).map(t => t.replace(/^[-.]+|[-.]+$/g, ''))
+  .filter(t => t.length >= 3 && /^[A-Za-z0-9-]+$/.test(t) && /\d/.test(t) && /[a-z]/i.test(t) && !UNIT.test(t) && !/^(spf|pa|ip|usb|hdmi|wifi|ddr|pd|gen|mk|v)\d/i.test(t) && !/^\d+(g|k|x)$/i.test(t))
+  .sort((a, b) => b.length - a.length)[0] || '';
+const ACC = /\b(op lung|bao da|cuong luc|mieng dan|dan man|cap sac|cu sac|day deo|tui dung|gia do|phu kien)\b/;
+// 0..1: tên món kia giống tên gốc bao nhiêu (0 = khác món)
+HT.titleSim = (a, b) => {
+  const fa = HT.fold(a), fb = HT.fold(b);
+  if (ACC.test(fb) && !ACC.test(fa)) return 0;          // ốp lưng, cáp sạc… không phải cùng món
+  const m = HT.modelOf(a);
+  // có mã model mà món kia không có (hoặc là X200 thay vì X20) thì giảm mạnh độ giống
+  const miss = m && !new RegExp('(^|[^a-z0-9])' + HT.fold(m).replace(/-/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![0-9])').test(fb.replace(/-/g, ''));
+  const wa = [...new Set(HT.fold(HT.cleanTitle(a)).split(/[^a-z0-9]+/).filter(w => w.length > 1))].slice(0, 10);
+  if (!wa.length) return 0;
+  const wb = new Set(HT.fold(b).split(/[^a-z0-9]+/));
+  return wa.filter(w => wb.has(w)).length / wa.length * (miss ? 0.5 : 1);
+};
+// Nhãn uy tín gọn cho 1 sản phẩm trong danh sách tìm kiếm
+HT.listingTags = it => {
+  const t = [];
+  if (it.mall) t.push({ s: 'ok', t: '🏬 Mall' }); else if (it.preferred) t.push({ s: 'ok', t: '❤ Yêu thích' });
+  if (it.rating) t.push({ s: it.rating >= 4.7 ? 'ok' : it.rating >= 4.3 ? '' : 'warn', t: `★${it.rating}` });
+  if (it.sold != null && !isNaN(it.sold)) t.push(it.sold < 10 ? { s: 'warn', t: `⚠ Mới bán ${it.sold}` } : { s: it.sold >= 1000 ? 'ok' : '', t: `Đã bán ${it.sold >= 1000 ? (it.sold / 1000).toFixed(it.sold >= 10000 ? 0 : 1).replace('.', ',') + 'k' : it.sold}` });
+  else t.push({ s: 'warn', t: '⚠ Chưa rõ số bán' });
+  if (it.overseas) t.push({ s: 'warn', t: '✈ Hàng nước ngoài' });
+  return t;
+};
+HT.shopeeSearchUrl = q => 'https://shopee.vn/search?keyword=' + encodeURIComponent(q) + '&order=asc&page=0&sortBy=price';
 // Tên sản phẩm gọn để tìm ở sàn khác
 HT.cleanTitle = title => String(title || '').replace(/\[[^\]]*\]|\([^)]*\)|【[^】]*】/g, ' ')
   .replace(/\b(chính hãng|hàng chính hãng|freeship|miễn phí vận chuyển|bảo hành \d+ tháng|mới 100%|giá rẻ|sale|hot|new)\b/gi, ' ')

@@ -284,6 +284,9 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'rem-done') remDone(msg.ruleId);
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
+  if (msg.type === 'same-find') { sameFind(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
+  if (msg.type === 'scan-me') { const job = scanJobs.get(sender.tab && sender.tab.id); send(job ? { scan: true } : { scan: false }); return; }
+  if (msg.type === 'scan-result') { const job = scanJobs.get(sender.tab && sender.tab.id); if (job) job.done(msg.items || []); return; }
   if (msg.type === 'get-quotes') { getQuotes(msg.items || []).then(send); return true; }
 });
 
@@ -770,4 +773,25 @@ async function syncCoupons() {
   const hubs = (feed.hubs || []).filter(h => h && /^https:\/\//.test(h.url)).slice(0, 12);
   await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs } });
   return { ok: true, n: coupons.length };
+}
+
+// ---------- 🔍 Tìm cùng món ở shop khác trên Shopee ----------
+// Shopee không cho đọc từ nền, nên mở trang tìm kiếm Shopee (sắp theo giá) ở 1 tab ẩn,
+// để HaoHao trên trang đó đọc danh sách sản phẩm rồi gửi về, xong đóng tab.
+const scanJobs = new Map();
+async function sameFind({ q, key }, sender) {
+  const ck = 'same:' + key, cache = (await chrome.storage.session.get(ck))[ck];
+  if (cache && Date.now() - cache.at < 20 * 60e3) return { ok: true, items: cache.items, cached: true };
+  const opener = sender.tab || {};
+  // mở tab trống trước, ghi nhận việc cần làm, rồi mới tải trang tìm kiếm (để trang không chạy trước khi kịp ghi nhận)
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
+  const items = await new Promise(resolve => {
+    const t = setTimeout(() => { scanJobs.delete(tab.id); resolve(null); }, 30000);
+    scanJobs.set(tab.id, { done: list => { clearTimeout(t); scanJobs.delete(tab.id); resolve(list); } });
+    chrome.tabs.update(tab.id, { url: HT.shopeeSearchUrl(q) });
+  });
+  chrome.tabs.remove(tab.id).catch(() => {});
+  if (!items) return { ok: false, error: 'timeout' };
+  await chrome.storage.session.set({ [ck]: { at: Date.now(), items } });
+  return { ok: true, items };
 }
