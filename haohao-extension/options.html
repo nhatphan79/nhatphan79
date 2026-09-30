@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HaoHao: cài đặt</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;800&display=swap">
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<aside>
+  <img src="icons/icon128.png" alt="" class="pet">
+  <h1>HaoHao</h1>
+  <p class="tag">Chú hamster canh tin, canh giá và nhắc việc cho bạn trong Chrome.</p>
+  <nav>
+    <button data-tab="rules" class="on">Điều kiện</button>
+    <button data-tab="log">Nhật ký</button>
+    <button data-tab="settings">Cài đặt chung</button>
+  </nav>
+</aside>
+
+<main>
+  <section id="tab-rules">
+    <header class="top">
+      <div>
+        <h2>Điều kiện</h2>
+        <p class="sub">Khi điều kiện đúng, HaoHao nhảy ra báo và gửi thông báo. Todolist, lịch nhắc và danh sách coin cũng chỉnh được ngay trong HaoHao trên trang web.</p>
+      </div>
+      <button id="add" class="btn">Thêm điều kiện</button>
+    </header>
+
+    <form id="editor" hidden>
+      <div class="seg" role="radiogroup" aria-label="Loại điều kiện">
+                <label><input type="radio" name="type" value="price" checked><span>Crypto</span></label>
+        <label><input type="radio" name="type" value="reminder"><span>Nhắc nhở 🔔</span></label>
+      </div>
+
+      <label class="f">Tên gợi nhớ<input name="name" required placeholder="Ví dụ: Kèo meme Solana"></label>
+
+      <div class="grp" data-for="price">
+        <div class="row">
+          <label class="f">Nguồn giá
+            <select name="source">
+              <option value="coingecko">CoinGecko (coin lớn, nhập mã như bitcoin, solana)</option>
+              <option value="dexscreener">DexScreener (meme coin, dán địa chỉ token)</option>
+            </select></label>
+          <label class="f">Mã coin hoặc địa chỉ token<input name="coin" placeholder="bitcoin"></label>
+        </div>
+        <div class="row">
+          <label class="f">Báo khi
+            <select name="op">
+              <option value="above">Giá lớn hơn hoặc bằng ($)</option>
+              <option value="below">Giá nhỏ hơn hoặc bằng ($)</option>
+              <option value="up">Tăng ít nhất (% trong 24h)</option>
+              <option value="down">Giảm ít nhất (% trong 24h)</option>
+            </select></label>
+          <label class="f">Mốc<input name="value" type="number" step="any" placeholder="120000"></label>
+        </div>
+        <div class="test"><button type="button" id="test" class="btn ghost">Xem giá hiện tại</button><span id="testOut"></span></div>
+        <p class="hint">Giá được kiểm tra mỗi phút. Mỗi lần điều kiện chuyển từ sai sang đúng, bạn được báo một lần.</p>
+      </div>
+
+      <div class="grp" data-for="reminder" hidden>
+        <div class="row">
+          <label class="f">Biểu tượng
+            <select name="icon"><option>🔔</option><option>💊</option><option>💧</option><option>🧒</option><option>🍚</option><option>🏃</option><option>📞</option><option>🛏️</option><option>🐶</option><option>🌱</option></select></label>
+          <label class="f">Kiểu nhắc
+            <select name="kind"><option value="daily">Hằng ngày, vào các giờ cố định</option><option value="interval">Lặp lại sau mỗi X phút</option><option value="once">Một lần vào ngày giờ cụ thể</option></select></label>
+        </div>
+        <div class="row">
+          <label class="f" data-kind="daily">Các giờ nhắc, cách nhau dấu phẩy<input name="times" placeholder="08:00, 20:00"></label>
+          <label class="f" data-kind="interval" hidden>Số phút<input name="minutes" type="number" min="5" value="60"></label>
+          <label class="f" data-kind="interval" hidden>Từ giờ<input name="from" type="time" value="08:00"></label>
+          <label class="f" data-kind="interval" hidden>Đến giờ<input name="to" type="time" value="21:00"></label>
+          <label class="f" data-kind="once" hidden>Ngày giờ<input name="datetime" type="datetime-local"></label>
+        </div>
+        <div class="days" data-kind="daily">
+          <span>Ngày trong tuần (không chọn là mọi ngày):</span>
+          <label><input type="checkbox" name="day" value="1">T2</label><label><input type="checkbox" name="day" value="2">T3</label>
+          <label><input type="checkbox" name="day" value="3">T4</label><label><input type="checkbox" name="day" value="4">T5</label>
+          <label><input type="checkbox" name="day" value="5">T6</label><label><input type="checkbox" name="day" value="6">T7</label>
+          <label><input type="checkbox" name="day" value="0">CN</label>
+        </div>
+        <label class="f">Lời nhắc<input name="message" placeholder="Tới giờ đi đón con rồi!"></label>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn">Lưu điều kiện</button>
+        <button type="button" id="cancel" class="btn ghost">Huỷ</button>
+      </div>
+    </form>
+
+    <div id="list"></div>
+  </section>
+
+  <section id="tab-log" hidden>
+    <header class="top">
+      <div><h2>Nhật ký</h2><p class="sub">Những lần HaoHao đã báo cho bạn.</p></div>
+      <button id="clearLog" class="btn ghost">Xoá nhật ký</button>
+    </header>
+    <ol id="log"></ol>
+  </section>
+
+  <section id="tab-settings" hidden>
+    <header class="top"><div><h2>Cài đặt chung</h2></div></header>
+    <label class="chk big"><input type="checkbox" id="mascotEnabled"> Hiện HaoHao trên các trang web</label>
+    <label class="chk big"><input type="checkbox" id="greet"> HaoHao chào và báo việc đang chờ khi mở trang</label>
+    <label class="chk big"><input type="checkbox" id="desktop"> Khi nhắc nhở, HaoHao ra hẳn màn hình và gõ cửa (đè lên cả ứng dụng khác)</label>
+    <label class="chk big"><input type="checkbox" id="sound"> Có tiếng gõ và tiếng chuông</label>
+    <div class="test"><button id="deskTest" class="btn ghost">Thử HaoHao ra màn hình</button><span id="appStatus"></span></div>
+    <div id="ai" class="setup">
+      <h3>📖 Đọc hộ (Gemini)</h3>
+      <p class="sub">Lấy mã miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> → <b>Create API key</b>. Mã chỉ lưu trong Chrome của bạn.</p>
+      <div class="test">
+        <label class="f" style="margin:0;max-width:360px">Mã Gemini<input id="aiKey" type="password" placeholder="AIza…" autocomplete="off"></label>
+        <label class="f" style="margin:0;max-width:220px">Mô hình<input id="aiModel" placeholder="gemini-2.5-flash"></label>
+        <button type="button" id="aiSave" class="btn">Lưu</button>
+        <button type="button" id="aiTest" class="btn ghost">Thử kết nối</button>
+      </div>
+      <p id="aiState" class="sub"></p>
+    </div>
+
+    <div id="outlook" class="setup">
+      <h3>📧 Đăng nhập Outlook / Hotmail (thiết lập 1 lần)</h3>
+      <p class="sub">Microsoft bắt mỗi phần mềm tự đăng ký một "mã ứng dụng" miễn phí. Làm 1 lần là xong, dùng được cho cả Outlook cá nhân (hotmail, outlook.com) và Outlook công ty.</p>
+      <ol>
+        <li>Mở <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">trang App registrations của Microsoft</a>, đăng nhập bằng tài khoản Outlook, bấm <b>New registration</b>.</li>
+        <li>Name: <b>HaoHao</b>. Supported account types: chọn dòng <b>Accounts in any organizational directory … and personal Microsoft accounts</b>.</li>
+        <li>Redirect URI: chọn <b>Web</b>, dán địa chỉ này vào:
+          <div class="copy"><code id="msRedirect">…</code><button type="button" id="copyRedirect" class="btn ghost sm">Sao chép</button></div>
+          rồi bấm <b>Register</b>.</li>
+        <li>Vào mục <b>Authentication</b>, tick ô <b>Access tokens (used for implicit flows)</b>, bấm <b>Save</b>.</li>
+        <li>Quay lại <b>Overview</b>, sao chép <b>Application (client) ID</b>, dán vào ô dưới rồi bấm Lưu.</li>
+      </ol>
+      <div class="test">
+        <label class="f" style="margin:0;max-width:420px">Application (client) ID<input id="msClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+        <button type="button" id="saveClient" class="btn">Lưu</button>
+        <button type="button" id="msLogin" class="btn ghost">Đăng nhập Outlook</button>
+      </div>
+      <p id="msState" class="sub"></p>
+    </div>
+
+    <h3>Trang đang ẩn HaoHao</h3>
+    <ul id="hidden"></ul>
+    <h3>Sao lưu</h3>
+    <div class="test">
+      <button id="export" class="btn ghost">Tải file sao lưu</button>
+      <label class="btn ghost file">Nạp file sao lưu<input type="file" id="import" accept=".json" hidden></label>
+      <button id="resetPos" class="btn ghost">Đưa HaoHao về góc phải</button>
+    </div>
+  </section>
+</main>
+<script src="common.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

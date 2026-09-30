@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "HaoHao – trợ lý ngay trên Chrome",
+  "version": "2.0.0",
+  "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, Mua sắm, canh email.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "system.display",
+    "identity",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://api.coingecko.com/*",
+    "https://api.dexscreener.com/*",
+    "http://127.0.0.1:47321/*",
+    "https://mail.google.com/*",
+    "https://graph.microsoft.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "common.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Mở cài đặt HaoHao"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
