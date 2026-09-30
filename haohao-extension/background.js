@@ -460,21 +460,48 @@ chrome.notifications.onClicked.addListener(async nid => {
 
 // ---------- Đọc hộ: tóm tắt bằng Gemini ----------
 const AI_SYS = 'Bạn là HaoHao, trợ lý "đọc hộ": nói rõ ràng, đi thẳng vào ý, dễ hiểu. Luôn trả lời bằng tiếng Việt. Chỉ dựa vào nội dung được cung cấp, không bịa thêm.';
+// Mẫu mặc định; Google ngừng mẫu cũ thì HaoHao tự tìm mẫu "flash" mới nhất mà mã dùng được và nhớ lại
+const GEMINI_DEFAULT = 'gemini-3.8-flash';
+async function geminiPickModel(key, hint) {
+  if (hint) return hint;
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key } });
+    const j = await r.json();
+    const ver = n => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+    const ok = (j.models || []).map(m => ({ n: String(m.name || '').replace(/^models\//, ''), g: m.supportedGenerationMethods || [] }))
+      .filter(m => m.g.includes('generateContent') && /^gemini-[\d.]+-flash$|^gemini-[\d.]+-flash-\d{3}$|^gemini-[\d.]+-flash-latest$/.test(m.n));
+    ok.sort((x, y) => ver(y.n) - ver(x.n) || x.n.length - y.n.length);
+    return ok.length ? ok[0].n : '';
+  } catch { return ''; }
+}
 async function gemini(contents, system, opts = {}) {
   const { settings = {} } = await chrome.storage.local.get('settings');
   const ai = settings.ai || {};
   const key = (ai.key || '').trim();
   if (!key) throw new Error('nokey');
-  const model = (ai.model || 'gemini-2.5-flash').trim();
+  let model = (ai.model || ai.autoModel || GEMINI_DEFAULT).trim();
   const gen = { temperature: opts.temperature ?? 0.4, maxOutputTokens: opts.maxTokens || 4096 };
-  if (/flash/i.test(model) && /2\.5/.test(model)) gen.thinkingConfig = { thinkingBudget: 0 };   // nhanh hơn, đỡ tốn lượt
   if (opts.video) gen.mediaResolution = 'MEDIA_RESOLUTION_LOW';                                  // video đỡ tốn lượt
   if (opts.json) gen.responseMimeType = 'application/json';
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: system }] }, generationConfig: gen })
-  });
-  const j = await r.json().catch(() => ({}));
+  const call = m => {
+    const g = { ...gen }; if (/flash/i.test(m) && /2\.5/.test(m)) g.thinkingConfig = { thinkingBudget: 0 };   // nhanh hơn, đỡ tốn lượt
+    return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: system }] }, generationConfig: g })
+    });
+  };
+  let r = await call(model), j = await r.json().catch(() => ({}));
+  if (!r.ok && r.status !== 429 && r.status !== 401 && r.status !== 403) {
+    const msg = (j.error && j.error.message) || '';
+    // mẫu bị ngừng / không có: lấy mẫu Google gợi ý trong lỗi, hoặc tự tìm mẫu flash mới nhất, rồi thử lại 1 lần
+    if (r.status === 404 || /no longer available|not found|not supported|deprecated|update your code/i.test(msg)) {
+      const next = await geminiPickModel(key, (msg.match(/models\/(gemini-[\w.-]+)/g) || []).map(x => x.slice(7)).find(x => x !== model));
+      if (next && next !== model) {
+        model = next; r = await call(model); j = await r.json().catch(() => ({}));
+        if (r.ok) { const { settings: s2 = {} } = await chrome.storage.local.get('settings'); s2.ai = { ...(s2.ai || {}), autoModel: model }; if ((s2.ai.model || '') === (ai.model || '') && ai.model) s2.ai.model = ''; await chrome.storage.local.set({ settings: s2 }); }
+      }
+    }
+  }
   if (!r.ok) {
     const msg = (j.error && j.error.message) || ('HTTP ' + r.status);
     if (r.status === 429) throw new Error('quota');

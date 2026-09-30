@@ -243,7 +243,9 @@ $('#aiTest').addEventListener('click', async () => {
   $('#aiState').textContent = 'Đang thử…';
   const r = await chrome.runtime.sendMessage({ type: 'ai-test' }).catch(e => ({ ok: false, error: e.message }));
   const map = { nokey: 'chưa có mã (bấm Lưu trước)', badkey: 'mã không đúng', quota: 'hết lượt miễn phí, thử lại sau' };
-  $('#aiState').textContent = r && r.ok ? '✓ Kết nối Gemini được.' : '⚠ Chưa được: ' + ((r && (map[r.error] || r.error)) || 'lỗi không rõ');
+  const { settings: s3 = {} } = await chrome.storage.local.get('settings'), a3 = s3.ai || {};
+  $('#aiState').textContent = r && r.ok ? `✓ Kết nối Gemini được (mẫu ${a3.model || a3.autoModel || 'gemini-3.8-flash'}).` : '⚠ Chưa được: ' + ((r && (map[r.error] || r.error)) || 'lỗi không rõ');
+  if (r && r.ok) $('#aiModel').value = a3.model || '';
 });
 if (location.hash === '#ai') document.querySelector('nav button[data-tab="settings"]').click(), setTimeout(() => $('#ai').scrollIntoView({ behavior: 'smooth' }), 100);
 
