@@ -250,6 +250,18 @@
   .bubble .t { font-weight: 700; display: block; margin-bottom: 2px; }
   .bubble .note { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 10px; background: #FFF0C7; font-size: 12.5px; color: #3A4470; }
   .bubble .note.late { background: #FDE3E3; color: #9B2C2C; }
+  .bubble.tb { width: 236px; padding: 10px 12px; cursor: default; box-shadow: 4px 4px 0 var(--k); border-color: var(--k); }
+  .tb-top { display: flex; align-items: center; gap: 10px; }
+  .tb-sc { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--k); color: #fff; font: 800 15px/1 "Segoe UI", system-ui, sans-serif; }
+  .tb-lv { font-weight: 800; font-size: 15px; line-height: 1.2; color: var(--k); }
+  .tb-lv small { display: block; font-weight: 600; font-size: 11px; color: #6B7394; margin-top: 2px; }
+  .tb-x { all: unset; cursor: pointer; margin-left: auto; align-self: flex-start; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #9AA1BE; font-size: 13px; }
+  .tb-x:hover, .tb-x:focus-visible { background: #EEF0F6; color: #23305E; }
+  .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; }
+  .tb-cp { margin-top: 6px; font-size: 12px; font-weight: 800; color: #D0391B; background: #FFF1EE; border-radius: 8px; padding: 4px 8px; }
+  .tb-go { all: unset; cursor: pointer; display: block; box-sizing: border-box; width: 100%; text-align: center; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #EE4D2D; color: #fff; font-weight: 800; font-size: 13px; }
+  .tb-go:hover { background: #D73F21; } .tb-go:focus-visible { outline: 3px solid #23305E; outline-offset: 2px; }
+  .tb-aff { font-size: 10px; color: #9AA1BE; margin-top: 5px; text-align: center; }
   .panel { position: absolute; width: 380px; max-width: calc(100vw - 24px); max-height: min(440px, 58vh); display: flex; flex-direction: column; z-index: 4;
     background: #FFFDF6; color: #23305E; border: 2px solid #23305E; border-radius: 18px; box-shadow: 6px 6px 0 var(--tc, #F2B544); overflow: hidden; }
   [hidden] { display: none !important; }
@@ -545,7 +557,7 @@
     $$('.tabs .x').addEventListener('click', () => { closePanel(); ui.pet.focus(); });
     $$('.tabs .big').addEventListener('click', () => { settings.panelBig = !settings.panelBig; ui.panel.classList.toggle('bigp', !!settings.panelBig); chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, panelBig: settings.panelBig } })); });
     ui.panel.classList.toggle('bigp', !!settings.panelBig);
-    ui.bubble.addEventListener('click', () => { hideBubble(); openTab(ui.bubble.dataset.tab || tab); });
+    ui.bubble.addEventListener('click', () => { if (ui.bubble.dataset.kind === 'trust') return goCheck(); hideBubble(); openTab(ui.bubble.dataset.tab || tab); });
     ui.pill.addEventListener('click', () => openTab('focus'));
     pomoPill();
     root.addEventListener('keydown', e => {
@@ -648,7 +660,7 @@
     if (!ui) return;
     menuOpen = force ?? !menuOpen;
     ui.wrap.classList.toggle('menu-open', menuOpen);
-    if (!menuOpen) { subOpen = false; ui.wrap.classList.remove('sub-open'); }
+    if (!menuOpen) { subOpen = false; ui.wrap.classList.remove('sub-open'); setTimeout(showTrustBubble, 300); }
     ui.pet.setAttribute('aria-expanded', menuOpen);
     ui.root.querySelectorAll('.sat[data-b]').forEach(s => s.tabIndex = menuOpen ? 0 : -1);
     ui.root.querySelectorAll('.sat.child').forEach(s => s.tabIndex = -1);
@@ -669,7 +681,7 @@
     renderPanel();
     ui.view.querySelector('input')?.focus({ preventScroll: true });
   }
-  function closePanel() { if (!ui) return; ui.panel.hidden = true; clearInterval(quoteTimer); }
+  function closePanel() { if (!ui) return; ui.panel.hidden = true; clearInterval(quoteTimer); setTimeout(showTrustBubble, 300); }
 
   function setMood(m) {
     if (!ui) return;
@@ -684,7 +696,7 @@
     if (!actions && (!ui.panel.hidden || menuOpen)) { setMood(mood); return; }
     if (actions) { toggleMenu(false); closePanel(); }
     lastBubble = Date.now();
-    ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = toTab;
+    ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = toTab; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb');
     if (title) ui.bubble.appendChild(el('span', 't', title));
     ui.bubble.appendChild(document.createTextNode(text));
     if (actions) {
@@ -713,7 +725,7 @@
       setTimeout(() => ac.close(), 1800);
     } catch {}
   }
-  function hideBubble() { if (ui) ui.bubble.hidden = true; }
+  function hideBubble() { if (!ui) return; const wasTrust = ui.bubble.dataset.kind === 'trust'; ui.bubble.hidden = true; if (!wasTrust) setTimeout(showTrustBubble, 400); }
 
   const alertsOf = k => alerts.filter(a => a.tab === k);
   function counts() {
@@ -2133,7 +2145,7 @@
     if (code) await copyText(code);
     if (viaHaoHao() || !HT.isAff(p.url)) return say(code ? `Đã copy mã ${code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop');
     try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
-    location.assign(HT.aff(p.url));
+    goAff(p.url);
   }
   function renderCoupons(L, p) {
     const shopHere = p ? HT.shopOf(p.url) : (isShopeeShop() ? 'shopee' : '');
@@ -2316,7 +2328,11 @@
     trust = { ...HT.trustScore(info), info };
     trustPill();
     if (!inRender && tab === 'shop' && ui && !ui.panel.hidden && !(ui.root.activeElement && /INPUT/.test(ui.root.activeElement.tagName))) renderPanel();
-    if (first && !inRender) askTrust();
+    if (first && !inRender) {
+      let pend = ''; try { pend = sessionStorage.getItem('hh-open'); } catch {}
+      if (pend && pend === itemKey()) { try { sessionStorage.removeItem('hh-open'); } catch {} openTab('shop'); }
+      else showTrustBubble();
+    } else if (!inRender && ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
   }
   // Mở sản phẩm Shopee: HaoHao chủ động hỏi để khách biết có kiểm tra chất lượng + mã giảm giá
   function bestCouponFor(p) {
@@ -2326,19 +2342,40 @@
     for (const c of (couponFeed ? couponFeed.coupons : []).filter(x => x.shop === 'shopee' && HT.couponLive(x))) { const v = HT.couponValue(c, p.price); if (v && (!best || v > best.v)) best = { c, v }; }
     return best;
   }
-  function askTrust() {
-    if (!trust || !ui || !ui.panel.hidden || menuOpen) return;
-    const shopOnly = !!trust.info.shopOnly, bad = trust.score < 60;
-    if (!bad && settings.shopAsk === false) return;          // khách đã chọn "Không hỏi nữa" (vẫn luôn cảnh báo khi rủi ro)
+  // Bong bóng kết quả kiểm tra: nằm yên trên trang Shopee, chỉ tắt khi khách bấm ✕
+  let trustClosed = '';
+  const goAff = url => location.assign(HT.aff(url));
+  const trustTarget = () => { const p = detectProduct(); return p ? p.url : cleanUrl(location.href); };
+  // Bấm "Xem kiểm tra": mở lại trang qua link tiếp thị (nếu chưa), rồi tự mở bảng kiểm tra
+  function goCheck() {
+    const url = trustTarget();
+    if (!viaHaoHao() && HT.isAff(url)) {
+      try { sessionStorage.setItem('hh-aff', itemKey()); sessionStorage.setItem('hh-open', itemKey()); } catch {}
+      return goAff(url);
+    }
+    ui.bubble.hidden = true; openTab('shop');
+  }
+  function showTrustBubble() {
+    if (!trust || !ui || !ui.panel.hidden || menuOpen || trustClosed === location.href) return;
+    if (settings.shopAsk === false && trust.score >= 60) return;
+    const bad = trust.score < 60, shopOnly = !!trust.info.shopOnly;
     const all = [...trust.shop, ...trust.product];
-    const pick = bad ? all.filter(x => x.s === 'bad').concat(all.filter(x => x.s === 'warn')).slice(0, 2) : all.filter(x => x.s === 'ok').slice(0, 2);
-    const title = `🛡️ HaoHao đã kiểm tra ${shopOnly ? 'shop này' : 'món này'}: ${trust.score}/100 · ${trust.level}`;
-    const acts = [{ label: bad ? '⚠ Xem lý do' : 'Xem kiểm tra', fn: () => openTab('shop') }, { label: 'Để sau', ghost: true, fn: () => {} }];
-    if (!bad) acts.push({ label: 'Không hỏi nữa', ghost: true, fn: () => { settings.shopAsk = false; chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, shopAsk: false } })); say('Được, HaoHao chỉ hiện điểm nhỏ trên đầu. Bấm vào điểm khi cần xem nhé.', 'happy', '', 'shop'); } });
-    say(pick.map(x => (x.s === 'ok' ? '✓ ' : '⚠ ') + x.t).join(' · ') || 'Bấm để xem chi tiết.', bad ? 'alert' : 'happy', title, 'shop', acts);
-    const best = shopOnly ? null : bestCouponFor(detectProduct());
-    if (best) { const cp = el('span', 'note', `🎟️ Có mã giảm: chỉ còn ≈ ${vnd(detectProduct().price - best.v)}`); ui.bubble.insertBefore(cp, ui.bubble.querySelector('.acts')); }
-    if (!bad) { clearTimeout(bubbleTimer); bubbleTimer = setTimeout(hideBubble, 12000); }
+    const pick = (bad ? all.filter(x => x.s === 'bad').concat(all.filter(x => x.s === 'warn')) : all.filter(x => x.s === 'ok')).slice(0, 2);
+    const B = ui.bubble;
+    B.innerHTML = ''; B.dataset.tab = 'shop'; B.dataset.kind = 'trust'; B.classList.add('tb'); B.style.setProperty('--k', { good: '#1E9E6F', ok: '#2E7DD7', warn: '#E08A00', bad: '#E0344B' }[trust.cls]);
+    const top = el('div', 'tb-top');
+    const lv = el('div', 'tb-lv', trust.level); lv.append(el('small', '', shopOnly ? 'HaoHao đã kiểm tra shop này' : 'HaoHao đã kiểm tra món này'));
+    const x = el('button', 'tb-x', '✕'); x.title = 'Ẩn trên trang này'; x.setAttribute('aria-label', 'Ẩn');
+    x.addEventListener('click', e => { e.stopPropagation(); trustClosed = location.href; B.hidden = true; });
+    top.append(el('span', 'tb-sc', trust.score), lv, x); B.append(top);
+    if (pick.length) B.append(el('div', 'tb-why', pick.map(i => (i.s === 'ok' ? '✓ ' : '⚠ ') + i.t.split(':')[0]).join(' · ')));
+    const p = shopOnly ? null : detectProduct(), best = p && bestCouponFor(p);
+    if (best) B.append(el('div', 'tb-cp', `🎟️ Có mã: còn ≈ ${vnd(p.price - best.v)}`));
+    const go = el('button', 'tb-go', bad ? '⚠ Xem lý do' : '🛡️ Xem kiểm tra');
+    go.addEventListener('click', e => { e.stopPropagation(); goCheck(); });
+    B.append(go);
+    if (!viaHaoHao() && HT.isAff(trustTarget())) B.append(el('div', 'tb-aff', 'Mở qua link tiếp thị của HaoHao'));
+    B.hidden = false; clearTimeout(bubbleTimer);
   }
   function trustPill() {
     if (!ui) return;
@@ -2714,7 +2751,7 @@
 
   // ---------- lời chào + việc đang chờ ----------
   async function greet() {
-    if (!ui || !active() || settings.greet === false || !ui.panel.hidden || menuOpen) return;
+    if (!ui || !active() || settings.greet === false || !ui.panel.hidden || menuOpen || trust) return;
     const { greetAt = 0 } = await chrome.storage.local.get('greetAt');
     const now = Date.now();
     const pend = todos.filter(t => !t.done);
@@ -2731,7 +2768,7 @@
     else if (soon.length) note = `⏰ Sắp tới giờ: ${soon[0].text} (${new Date(soon[0].due).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})` + (soon.length > 1 ? ` và ${soon.length - 1} việc khác` : '');
     else if (pend.length) note = `📝 Bạn có ${pend.length} việc đang chờ trong Todolist`;
     lastBubble = now;
-    ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = 'todo';
+    ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = 'todo'; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb');
     ui.bubble.append(el('span', 't', `Xin chào, tôi là trợ lý HaoHao 👋`));
     ui.bubble.append(document.createTextNode(`${hi}! Bấm vào tôi khi cần nhé.`));
     if (note) { const n = el('span', 'note ' + cls, note); if (note.length > 90) n.textContent = note.slice(0, 88) + '…'; ui.bubble.append(n); }
@@ -2807,7 +2844,7 @@
     setInterval(() => {
       if (!ui) return;
       if (location.href !== lastHref) {
-        lastHref = location.href; trust = null; trustPill();
+        lastHref = location.href; trust = null; trustPill(); if (ui.bubble.dataset.kind === 'trust') ui.bubble.hidden = true;
         setTimeout(trackPrice, 2500);
         if (tab === 'shop' && !ui.panel.hidden) setTimeout(renderPanel, 2600);
       }
