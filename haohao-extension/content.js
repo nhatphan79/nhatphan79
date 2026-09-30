@@ -13,6 +13,7 @@
   let ideas = [], ideaFilter = 'all', ideaQuery = '', openIdea = null, ideaCfgOpen = false;
   let dichState = null;
   let pomo = null, pomoStats = {}, pomoCfgOpen = false, lastNudge = 0;
+  let searchQuery = '';
   let explainState = null, products = [], shopAlert = false, dueEditId = null, editId = null;
   const DISTRACT = 'facebook.com, tiktok.com, youtube.com, x.com, instagram.com, reddit.com';
   const pageTr = { map: new Map(), tr: new Map(), running: false, stop: false, done: 0, total: 0, lang: '', showing: 'tr', error: '' };
@@ -94,8 +95,8 @@
   ];
   // Tiện ích con của nhánh 🧰 Tiện ích. Thêm tiện ích mới: thêm 1 dòng ở đây và 1 hàm render.
   const TOOLS = [
-    { id: 'clip', label: 'Clipboard', emoji: '📋', color: '#2E7DD7', desc: 'Lịch sử copy, 1 click copy lại',
-      icon: '<rect x="6" y="4.5" width="12" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 4.5h6v2.5H9zM9 11h6M9 15h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>' },
+    { id: 'search', label: 'Tìm kiếm', emoji: '🔎', color: '#2E7DD7', desc: 'Tìm chung Todo, Note, Nhắc, Mua sắm và trên web',
+      icon: '<circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' },
     { id: 'crypto', label: 'Crypto', emoji: '₿', color: '#D98E1F', desc: 'Theo dõi giá coin, cảnh báo giá',
       icon: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M9.5 8h4a2 2 0 010 4h-4h4.5a2 2 0 010 4H9.5V8M11 6v2M11 16v2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' }
   ];
@@ -177,16 +178,6 @@
   .when-hint[hidden] { display: none; }
   .srcl { all: unset; cursor: pointer; display: block; font-size: 11.5px; color: #2E7DD7; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
   .srcl:hover { text-decoration: underline; }
-  .clip-f { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .clip-f .chip { flex: none; padding: 4px 9px; font-size: 12px; }
-  .clip { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #F0F2F7; border-radius: 8px; transition: background .2s; }
-  .clip.pin { background: #F4F8FF; }
-  .clip.ok { background: #DDF3EB; }
-  .clip .cm { all: unset; cursor: pointer; flex: 1; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 6px 4px; }
-  .clip .cm:hover .cv { color: #2E7DD7; } .clip .cm:focus-visible { outline: 2px solid #2E7DD7; border-radius: 6px; }
-  .clip .ci { font-size: 15px; width: 20px; text-align: center; flex: none; }
-  .clip .ct { min-width: 0; display: flex; flex-direction: column; }
-  .clip .cv { font-size: 13px; color: #23305E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .clip .cs { font-size: 11px; color: #9AA1BE; }
   .tool-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #EEF0F6; }
   .tb-back { all: unset; cursor: pointer; font-size: 12.5px; font-weight: 700; color: #6B7394; padding: 3px 8px; border-radius: 8px; }
   .tb-back:hover, .tb-back:focus-visible { background: #EEF0F6; color: #23305E; }
@@ -204,6 +195,25 @@
   .mail-hd:hover, .mail-hd.on { background: #DCEBFF !important; }
   .mail-in { padding: 6px 2px 2px; }
   .foot { font-size: 11px; color: #9AA1BE; text-align: center; margin-top: 10px; }
+  .sr { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F0F2F7; }
+  .sr .sm { all: unset; cursor: pointer; flex: 1; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 7px 4px; border-radius: 8px; }
+  .sr .sm:hover, .sr .sm:focus-visible { background: #EEF5FF; }
+  .sr .si { font-size: 16px; width: 22px; text-align: center; flex: none; }
+  .sr .st { min-width: 0; display: flex; flex-direction: column; }
+  .sr .sv { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sr .sv mark { background: #FFE08A; color: inherit; border-radius: 3px; padding: 0 1px; }
+  .sr .ss { font-size: 11px; color: #9AA1BE; }
+  .sr.dn .sv { text-decoration: line-through; color: #9AA1BE; }
+  .web { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px dashed #C9CEDF; }
+  .web .chip { padding: 4px 9px; font-size: 12px; }
+  .msearch { position: absolute; z-index: 3; width: 230px; display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 11px; border-radius: 999px; background: #FFFDF6; border: 2.5px solid #2E7DD7;
+    box-shadow: 0 4px 12px rgba(35,48,94,.25); transform: scale(.6); opacity: 0; pointer-events: none; transition: transform .22s cubic-bezier(.3,1.4,.6,1), opacity .18s; }
+  .msearch input { all: unset; flex: 1; min-width: 0; font-size: 13.5px; color: #23305E; }
+  .msearch input::placeholder { color: #9AA1BE; }
+  .msearch button { all: unset; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; background: #2E7DD7; color: #fff; display: grid; place-items: center; flex: none; }
+  .msearch button svg { width: 15px; height: 15px; }
+  .msearch button:focus-visible { outline: 2px solid #23305E; outline-offset: 2px; }
+  .menu-open .msearch { transform: scale(1); opacity: 1; pointer-events: auto; transition-delay: .26s; }
   .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 10px 4px; }
   .tool { all: unset; cursor: pointer; border: 1.5px solid #E3E6F0; border-radius: 12px; padding: 8px 10px; background: #fff; display: flex; gap: 8px; align-items: center; }
   .tool.on { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent); }
@@ -397,6 +407,7 @@
         <svg class="links" aria-hidden="true">${BRANCHES.map(() => '<line/>').join('')}${TOOLS.map(() => '<line class="sub"/>').join('')}</svg>
         ${TOOLS.map(t => `<button class="sat child" data-tool="${t.id}" style="--c:${t.color}" aria-label="Mở tiện ích ${t.label}" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg><b>${t.label}</b></button>`).join('')}
         ${sats}
+        <form class="msearch" role="search"><input type="search" placeholder="Tìm Todo, Note, web…" aria-label="Tìm kiếm chung" tabindex="-1"><button aria-label="Tìm" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></button></form>
         <div class="bubble" hidden role="status"></div>
         <div class="panel" hidden role="dialog" aria-label="HaoHao">
           <div class="tabs" role="tablist">${tabs}<button class="big" aria-label="Phóng to hoặc thu nhỏ bảng" title="Phóng to / thu nhỏ">⤢</button><button class="x" aria-label="Đóng">✕</button></div>
@@ -417,6 +428,8 @@
       openTab(s.dataset.b);
     }));
     root.querySelectorAll('.sat.child').forEach(s => s.addEventListener('click', () => { toolsSub = s.dataset.tool; openTab('tools'); }));
+    const ms = root.querySelector('.msearch');
+    ms.addEventListener('submit', e => { e.preventDefault(); searchQuery = ms.querySelector('input').value.trim(); ms.querySelector('input').value = ''; toolsSub = 'search'; openTab('tools'); });
     root.querySelectorAll('.tabs [data-t]').forEach(t => t.addEventListener('click', () => openTab(t.dataset.t)));
     $$('.tabs .x').addEventListener('click', () => { closePanel(); ui.pet.focus(); });
     $$('.tabs .big').addEventListener('click', () => { settings.panelBig = !settings.panelBig; ui.panel.classList.toggle('bigp', !!settings.panelBig); chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, panelBig: settings.panelBig } })); });
@@ -455,6 +468,11 @@
     const flipX = !lefter, flipY = upper;
     const O = DIST + SAT; // gốc của lớp đường nối
     const lines = ui.root.querySelectorAll('.links line');
+    // ô tìm: nằm ngoài cùng, phía trên vòng cao nhất (hoặc phía dưới khi HaoHao ở nửa trên màn hình), trải về phía có chỗ
+    const ms = ui.root.querySelector('.msearch'), MSW = 230, MSH = 42;
+    ms.style.left = (flipX ? C + SAT / 2 - MSW : C - SAT / 2) + 'px';
+    ms.style.top = (flipY ? C + DIST + SAT / 2 + 12 : C - DIST - SAT / 2 - 12 - MSH) + 'px';
+    ms.style.transformOrigin = `${flipX ? 'right' : 'left'} ${flipY ? 'top' : 'bottom'}`;
     BRANCHES.forEach((br, i) => {
       let a = br.angle; if (flipX) a = 180 - a; if (flipY) a = -a;
       const rad = a * Math.PI / 180, dx = Math.cos(rad), dy = Math.sin(rad);
@@ -516,6 +534,7 @@
     ui.pet.setAttribute('aria-expanded', menuOpen);
     ui.root.querySelectorAll('.sat[data-b]').forEach(s => s.tabIndex = menuOpen ? 0 : -1);
     ui.root.querySelectorAll('.sat.child').forEach(s => s.tabIndex = -1);
+    ui.root.querySelectorAll('.msearch input, .msearch button').forEach(x => x.tabIndex = menuOpen ? 0 : -1);
     if (menuOpen) { hideBubble(); updateBadge(); ui.root.querySelector('.sat').focus({ preventScroll: true }); }
   }
 
@@ -1918,111 +1937,78 @@
     V.append(L);
   }
 
-  // ---------- 📋 Clipboard thông minh ----------
-  // Chỉ ghi những lần copy trên trang web trong Chrome. Không ghi ô mật khẩu, mã OTP, số thẻ, khoá bí mật.
-  let clips = [], clipFilter = 'all', clipQuery = '';
-  const CLIP_T = { phone: ['📞', 'SĐT'], email: ['✉️', 'Email'], url: ['🔗', 'Link'], addr: ['📍', 'Địa chỉ'], code: ['🏷️', 'Mã'], text: ['📄', 'Chữ'] };
-  function luhn(d) { let s2 = 0, alt = false; for (let i = d.length - 1; i >= 0; i--) { let n = +d[i]; if (alt) { n *= 2; if (n > 9) n -= 9; } s2 += n; alt = !alt; } return s2 % 10 === 0; }
-  function sensitive(t, elx) {
-    if (elx) {
-      const a = [elx.type, elx.name, elx.id, elx.autocomplete, elx.getAttribute && elx.getAttribute('aria-label')].join(' ').toLowerCase();
-      if (/password|one-time-code|otp|cvv|cvc|pin|passcode|mật khẩu/.test(a)) return true;
-    }
-    const x = t.trim();
-    if (/^\d{4,8}$/.test(x)) return true;                                        // mã OTP
-    const dg = x.replace(/[\s-]/g, '');
-    if (/^\d{13,19}$/.test(dg) && luhn(dg)) return true;                           // số thẻ
-    if (/^(sk-|AIza|ghp_|gho_|xox[abp]-|eyJ[A-Za-z0-9_-]{10,}\.)/.test(x)) return true;  // khoá, token
-    if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(x)) return true;
-    if (!/\s/.test(x) && x.length >= 32 && /[A-Z]/.test(x) && /[a-z]/.test(x) && /\d/.test(x) && !/^https?:/.test(x)) return true;  // chuỗi bí mật dài
-    if (/(seed|mnemonic|private key|cụm từ khôi phục)/i.test(x) && x.split(/\s+/).length >= 12) return true;
-    if (x.split(/\s+/).length >= 12 && x.split(/\s+/).length <= 24 && /^[a-z\s]+$/.test(x)) return true;   // giống cụm từ ví crypto
-    return false;
+  // ---------- 🔎 Tìm kiếm chung ----------
+  // Tìm cùng lúc trong Todo, Note, Nhắc nhở, cảnh báo giá, đồ đã lưu và coin; Enter để tìm trên Google.
+  function markHit(text, q) {
+    const f = document.createDocumentFragment(), words = HT.fold(q).split(/\s+/).filter(Boolean);
+    const { out, map } = normMap(text, true);
+    const hits = [];
+    for (const w of words) { let i = out.indexOf(w); while (i >= 0 && hits.length < 20) { hits.push([map[i], map[i + w.length - 1] + 1]); i = out.indexOf(w, i + w.length); } }
+    hits.sort((a, b) => a[0] - b[0]);
+    let at = 0;
+    for (const [a, b] of hits) { if (a < at) continue; f.append(text.slice(at, a)); const m = document.createElement('mark'); m.textContent = text.slice(a, b); f.append(m); at = b; }
+    f.append(text.slice(at)); return f;
   }
-  function clipType(t) {
-    const x = t.trim();
-    if (/^(\+?84|0)(\d[\s.-]?){8,10}$/.test(x)) return 'phone';
-    if (/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(x)) return 'email';
-    if (/^https?:\/\/\S+$/.test(x)) return 'url';
-    if (/(đường|phường|quận|huyện|xã|tỉnh|thành phố|tp\.|kiệt|hẻm|số \d)/i.test(x) && x.length < 200) return 'addr';
-    if (/^[A-Z0-9][A-Z0-9_-]{4,24}$/i.test(x) && /\d/.test(x) && /[A-Z]/i.test(x) && !/\s/.test(x)) return 'code';
-    return 'text';
+  function openResult(r) {
+    if (r.kind === 'shop') return window.open(r.url, '_blank');
+    if (r.kind === 'todo') return openTab('todo');
+    if (r.kind === 'idea') { openIdea = r.id; ideaFilter = 'all'; ideaQuery = ''; return openTab('idea'); }
+    if (r.kind === 'bell') return openTab('bell');
+    toolsSub = 'crypto'; openTab('tools');
   }
-  document.addEventListener('copy', () => {
-    if (!active() || (settings.clip || {}).enabled === false) return;
-    const ae = document.activeElement;
-    let t = (window.getSelection() || '').toString();
-    if (!t && ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && ae.type !== 'password') {
-      try { t = ae.value.slice(ae.selectionStart, ae.selectionEnd); } catch {}
-    }
-    t = (t || '').trim();
-    if (!t || t.length > 3000 || (ae && ae.type === 'password') || sensitive(t, ae && /INPUT|TEXTAREA/.test(ae.tagName) ? ae : null)) return;
-    chrome.storage.local.get('clips').then(({ clips: cl = [] }) => {
-      const old = cl.find(c => c.text === t);
-      const rest = cl.filter(c => c.text !== t);
-      const it = { id: old ? old.id : 'c' + Date.now().toString(36), text: t, type: clipType(t), host: HOST, title: document.title.slice(0, 80), at: Date.now(), pin: old ? old.pin : false };
-      const pins = rest.filter(c => c.pin), others = rest.filter(c => !c.pin);
-      chrome.storage.local.set({ clips: [it, ...pins, ...others].slice(0, 30 + pins.length) });
+  function renderSearch(V) {
+    const form = h(`<form class="row" role="search"><input type="search" class="grow" placeholder="🔎 Gõ để tìm, có dấu hay không đều được…" aria-label="Tìm kiếm chung"><button class="b">Google</button></form>`);
+    const inp = form.querySelector('input'); inp.value = searchQuery;
+    const web = el('div', 'web');
+    HT.WEB.forEach(w => {
+      const c = el('button', 'chip', `${w.emoji} ${w.label}`); c.title = `Tìm trên ${w.label}`;
+      c.addEventListener('click', () => { const q = inp.value.trim(); if (!q) return inp.focus(); window.open(HT.webUrl(w.id, q), '_blank'); });
+      web.append(c);
     });
-  }, true);
-  async function copyBack(t, btn) {
-    try { await navigator.clipboard.writeText(t); }
-    catch {
-      const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
-    }
-    if (btn) { btn.classList.add('ok'); setTimeout(() => btn.isConnected && btn.classList.remove('ok'), 900); }
-  }
-  function renderClip(V) {
-    const cfg = settings.clip || {}, on = cfg.enabled !== false;
-    const saveC = patch => { settings.clip = { ...(settings.clip || {}), ...patch }; return chrome.storage.local.set({ settings }); };
-    const top = el('div', 'row');
-    const sq = document.createElement('input'); sq.className = 'grow'; sq.placeholder = '🔍 Tìm trong lịch sử copy…'; sq.value = clipQuery; sq.setAttribute('aria-label', 'Tìm');
-    const tg = el('button', 'b' + (on ? ' ghost' : ''), on ? '⏸ Tạm dừng' : '▶ Bật ghi');
-    tg.title = on ? 'Đang ghi lại những gì bạn copy trên web' : 'Đang tạm dừng';
-    tg.addEventListener('click', () => saveC({ enabled: !on }));
-    top.append(sq, tg); V.append(top);
-    const fl = el('div', 'row clip-f');
-    const counts = {}; clips.forEach(c => counts[c.type] = (counts[c.type] || 0) + 1);
-    const mk = (k, lb) => { const c = el('button', 'chip' + (clipFilter === k ? ' on' : ''), lb); c.addEventListener('click', () => { clipFilter = k; renderPanel(); }); fl.append(c); };
-    mk('all', `Tất cả ${clips.length}`);
-    Object.keys(CLIP_T).forEach(k => { if (counts[k]) mk(k, `${CLIP_T[k][0]} ${counts[k]}`); });
-    V.append(fl);
     const L = el('div', 'body-list');
     const draw = () => {
       L.innerHTML = '';
-      if (!on) L.append(el('div', 'err', '⏸ Đang tạm dừng ghi lịch sử copy.'));
-      const q = norm(clipQuery.trim(), true);
-      const list = clips.filter(c => (clipFilter === 'all' || c.type === clipFilter) && (!q || norm(c.text, true).includes(q)));
-      if (!clips.length) L.append(el('div', 'empty', 'Copy chữ trên bất kỳ trang web nào (Ctrl+C), HaoHao nhớ 30 lần gần nhất. Bấm vào một dòng để copy lại.'));
-      for (const c of list) {
-        const row = el('div', 'clip' + (c.pin ? ' pin' : ''));
-        const main = el('button', 'cm'); main.title = 'Bấm để copy lại';
-        main.append(el('span', 'ci', CLIP_T[c.type][0]));
-        const tx = el('span', 'ct'); tx.append(el('span', 'cv', c.text));
-        const ago = Math.round((Date.now() - c.at) / 60000);
-        tx.append(el('span', 'cs', `${c.host} · ${ago < 1 ? 'vừa xong' : ago < 60 ? ago + ' phút trước' : ago < 1440 ? Math.round(ago / 60) + ' giờ trước' : new Date(c.at).toLocaleDateString('vi-VN')}`));
-        main.append(tx);
-        main.addEventListener('click', () => copyBack(c.text, row));
-        const pn = el('button', 'ic', '📌'); pn.title = c.pin ? 'Bỏ ghim' : 'Ghim (không bị xoá)';
-        pn.style.opacity = c.pin ? '1' : '.3'; pn.style.filter = c.pin ? '' : 'grayscale(1)';
-        pn.addEventListener('click', () => { c.pin = !c.pin; chrome.storage.local.set({ clips }); });
-        const del = el('button', 'ic', '✕'); del.setAttribute('aria-label', 'Xoá');
-        del.addEventListener('click', () => { clips = clips.filter(x => x !== c); chrome.storage.local.set({ clips }); });
-        row.append(main, pn, del); L.append(row);
+      const q = searchQuery.trim();
+      if (!q) {
+        L.append(el('div', 'empty', 'Tìm một lần trong Todo, Note, Nhắc nhở, cảnh báo giá, đồ đã lưu và coin. Bấm một nút phía trên để tìm luôn trên web.'));
+        L.append(el('div', 'empty', '💡 Mẹo: trên thanh địa chỉ Chrome, gõ hh rồi dấu cách và từ cần tìm.'));
+        return;
+      }
+      const res = HT.search({ todos, ideas, rules, products, watch }, q);
+      L.append(el('div', 'gh', res.length ? `Trong HaoHao (${res.length})` : 'Không thấy trong HaoHao'));
+      for (const r of res) {
+        const row = el('div', 'sr' + (r.done ? ' dn' : ''));
+        const m = el('button', 'sm'); m.title = r.kind === 'shop' ? 'Mở trang sản phẩm' : `Mở ${HT.SEARCH_KIND[r.kind]}`;
+        m.append(el('span', 'si', r.icon));
+        const tx = el('span', 'st'); const v = el('span', 'sv'); v.append(markHit(r.title, q)); tx.append(v, el('span', 'ss', r.sub)); m.append(tx);
+        m.addEventListener('click', () => openResult(r));
+        row.append(m);
+        if (r.kind === 'todo') {
+          const t = todos.find(x => x.id === r.id);
+          const ck = el('button', 'ic', t && t.done ? '↺' : '✓'); ck.title = t && t.done ? 'Làm lại' : 'Đánh dấu xong';
+          ck.addEventListener('click', () => { if (!t) return; t.done = !t.done; saveTodos(); draw(); });
+          row.append(ck);
+        }
+        L.append(row);
+      }
+      if (!res.length) {
+        const a = el('div', 'acts');
+        const bt = el('button', 'b ghost', '＋ Thêm thành Todo');
+        bt.addEventListener('click', () => { todos.push({ id: 't' + Date.now().toString(36), text: q, done: false, due: '', notified: false }); saveTodos(); say('Đã thêm vào Todo: ' + q, 'happy', '', 'todo'); draw(); });
+        const bn = el('button', 'b ghost', '💡 Lưu thành Note');
+        bn.addEventListener('click', async () => { await chrome.runtime.sendMessage({ type: 'idea-add', item: { type: 'text', text: q } }).catch(() => {}); bn.textContent = 'Đã lưu ✓'; });
+        a.append(bt, bn); L.append(a);
       }
     };
-    sq.addEventListener('input', () => { clipQuery = sq.value; draw(); });
-    draw(); V.append(L);
-    const pf = el('div', 'pf');
-    const clr = el('button', 'b ghost', 'Xoá hết (giữ mục ghim)');
-    clr.addEventListener('click', () => { if (clr.dataset.sure !== '1') { clr.dataset.sure = '1'; clr.textContent = 'Bấm lần nữa để xoá'; return; } chrome.storage.local.set({ clips: clips.filter(c => c.pin) }); });
-    pf.append(clr, el('span', 'foot', '🔒 Chỉ lưu trong máy. Bỏ qua mật khẩu, OTP, số thẻ.'));
-    V.append(pf);
+    let tm = null;
+    inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { searchQuery = inp.value; draw(); }, 120); });
+    form.addEventListener('submit', e => { e.preventDefault(); const q = inp.value.trim(); if (q) window.open(HT.webUrl('google', q), '_blank'); });
+    V.append(form, web); draw(); V.append(L);
+    setTimeout(() => { inp.focus({ preventScroll: true }); inp.setSelectionRange(inp.value.length, inp.value.length); });
   }
 
   // ---------- 🧰 Tiện ích ----------
-  const TOOL_RENDER = { crypto: V => renderCrypto(V), clip: V => renderClip(V) };
+  const TOOL_RENDER = { crypto: V => renderCrypto(V), search: V => renderSearch(V) };
   function renderTools(V) {
     const cur = TOOLS.find(t => t.id === toolsSub);
     if (cur) {
@@ -2299,8 +2285,7 @@
 
   // ---------- khởi động ----------
   async function load() {
-    const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products', 'clips']);
-    clips = d.clips || [];
+    const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products']);
     products = d.products || [];
     pomo = d.pomo || null; pomoStats = d.pomoStats || {};
     ideas = d.ideas || [];
@@ -2311,12 +2296,6 @@
 
   chrome.storage.onChanged.addListener(async (ch, area) => {
     if (area !== 'local') return;
-    if (ch.clips && !(ch.rules || ch.settings || ch.todos || ch.watch)) {
-      clips = ch.clips.newValue || [];
-      const typing = ui && ui.root.activeElement && /INPUT|TEXTAREA/.test(ui.root.activeElement.tagName);
-      if (tab === 'tools' && toolsSub === 'clip' && !typing) renderPanel();
-      return;
-    }
     if ((ch.pomo || ch.pomoStats) && !(ch.rules || ch.settings || ch.todos || ch.watch)) {
       const was = pomo && pomo.phase;
       if (ch.pomo) pomo = ch.pomo.newValue || null;

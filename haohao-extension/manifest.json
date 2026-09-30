@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – trợ lý ngay trên Chrome",
-  "version": "2.0.0",
-  "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, Mua sắm, canh email.",
+  "version": "2.1.0",
+  "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, Mua sắm, Tìm kiếm chung, canh email.",
   "permissions": [
     "storage",
     "alarms",
@@ -43,5 +43,8 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "omnibox": {
+    "keyword": "hh"
   }
 }
