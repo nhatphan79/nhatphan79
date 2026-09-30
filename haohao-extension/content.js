@@ -480,6 +480,8 @@
   .rpick { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #E3E6F0; border-radius: 12px; background: #fff; margin-bottom: 6px; font-size: 12.5px; color: #23305E; }
   .rpick .rimg { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
   .rpick span { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } .rpick i { font-style: normal; }
+  .oprog { font-size: 11.5px; color: #6B7394; background: #F1F4FA; border-radius: 8px; padding: 5px 9px; margin: 2px 0 6px; }
+  .cry-err { font-size: 12px; color: #C62839; padding: 0 12px 8px; }
   .osame { font-size: 11px; font-weight: 700; color: #0E9F6E; margin-top: 2px; }
   .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 0; grid-column: 1 / -1; }
   .ot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 7px; background: #EEF0F6; color: #5B648A; }
@@ -2127,6 +2129,31 @@
     renderFind(V);
   }
 
+  // Hỏi background (tìm shop rẻ hơn / tìm sản phẩm) nhưng không chờ quá 90 giây
+  const askBg = (msg, ms = 90000) => Promise.race([chrome.runtime.sendMessage(msg).catch(() => null), new Promise(r => setTimeout(() => r({ ok: false, error: 'slow' }), ms))]);
+  // Tiến độ: kết quả nhanh từ trang tìm kiếm, rồi "đang kiểm tra kỹ 1/3…"
+  const stepText = st => st.step === 'check' ? `Đang kiểm tra kỹ từng shop (${st.done || 0}/${st.of || 0})…` : st.step === 'search' ? 'Đang đọc kết quả tìm kiếm Shopee…' : 'Đang mở Shopee…';
+  function waitBox(st, first) { const box = el('div', 'optwait'); box.append(el('div', 'spin'), el('div', '', first), el('small', '', stepText(st))); return box; }
+  const quickOf = st => st && st.loading && st.quick && st.quick.options && st.quick.options.length ? st.quick.options : null;
+  const progLine = st => el('div', 'oprog', '⏳ Kết quả nhanh · ' + stepText(st));
+  function slowBox(msg, retry, q) {
+    const box = el('div', 'optwait'); box.append(el('div', '', msg));
+    const row = el('div', 'fmore'); const b = el('button', 'b', '🔄 Thử lại'); b.addEventListener('click', retry); row.append(b);
+    if (q) { const a = el('button', 'chip', 'Xem trên Shopee ›'); a.addEventListener('click', () => openDeal(HT.shopeeSearchUrl(q))); row.append(a); }
+    box.append(row); return box;
+  }
+  chrome.runtime.onMessage.addListener(msg => {
+    if (msg.type !== 'same-progress' || !ui) return;
+    const k = itemKey(), up = st => ({ ...st, step: msg.step, done: msg.done, of: msg.of, quick: msg.quick || st.quick });
+    let hit = false;
+    if (msg.key === k && sameState && sameState.loading) { sameState = up(sameState); hit = true; }
+    if (msg.key === 'tt:' + k && shopeeState && shopeeState.loading) { shopeeState = up(shopeeState); hit = true; }
+    if (findState && findState.loading && msg.key === 'ps:' + HT.fold(findState.q)) { findState = up(findState); hit = true; }
+    if (!hit) return;
+    const typing = ui.root.activeElement && /INPUT|TEXTAREA/.test(ui.root.activeElement.tagName);
+    if (tab === 'shop' && !ui.panel.hidden && !typing) renderPanel();
+    if (ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
+  });
   // ---------- 🔎 Tìm sản phẩm ----------
   let findQ = '', findRange = '', findMall = false, findState = null, findHist = [];
   const FIND_RANGES = [['lt100', 'Dưới 100k'], ['100-300', '100–300k'], ['gt300', 'Trên 300k']];
@@ -2136,11 +2163,11 @@
     findQ = q;
     findHist = [q, ...findHist.filter(x => HT.fold(x) !== HT.fold(q))].slice(0, 5);
     chrome.storage.local.set({ shopHist: findHist }).catch(() => {});
-    const my = findState = { q, range: findRange, mall: findMall, loading: true };
+    const my = findState = { q, range: findRange, mall: findMall, loading: true, tok: {} };
     if (tab === 'shop' && !ui.panel.hidden) renderPanel();
-    let r = null; try { r = await chrome.runtime.sendMessage({ type: 'prod-search', q, range: findRange, mall: findMall }); } catch {}
-    if (findState !== my) return;           // đã tìm từ khác
-    findState = { ...my, loading: false, error: r && r.ok ? '' : 'fail', total: (r && r.total) || 0, safe: (r && r.safe) || 0, options: (r && r.options) || [] };
+    const r = await askBg({ type: 'prod-search', q, range: findRange, mall: findMall });
+    if (!findState || findState.tok !== my.tok) return;           // đã tìm từ khác
+    findState = { ...my, loading: false, error: r && r.ok ? '' : (r && r.error === 'slow' ? 'slow' : 'fail'), total: (r && r.total) || 0, safe: (r && r.safe) || 0, options: (r && r.options) || [] };
     if (tab === 'shop' && !ui.panel.hidden) renderPanel();
   }
   // Lối vào trang TikTok của bạn (phòng trưng bày): hàng HaoHao tuyển chọn
@@ -2189,13 +2216,13 @@
       V.append(hb);
     }
     const L = el('div', 'body-list'), st = findState;
-    if (st && st.loading) {
-      const box = el('div', 'optwait');
-      box.append(el('div', 'spin'), el('div', '', `Đang tìm “${st.q}” và kiểm tra các shop…`), el('small', '', 'HaoHao mở ngầm Shopee khoảng 30 giây rồi tự đóng'));
-      L.append(box);
+    if (st && st.loading && quickOf(st)) {
+      L.append(el('div', 'fhead', `Lựa chọn cho “${st.q}”`), progLine(st));
+      quickOf(st).forEach(o => L.append(optRow(o, 0, true)));
+    } else if (st && st.loading) {
+      L.append(waitBox(st, `Đang tìm “${st.q}” trên Shopee…`));
     } else if (st && st.error) {
-      const box = el('div', 'optwait'); box.append(el('div', '', 'Chưa tìm được lần này (Shopee tải chậm).'));
-      const b = el('button', 'b', '🔄 Thử lại'); b.addEventListener('click', () => doFind(st.q)); box.append(b); L.append(box);
+      L.append(slowBox(st.error === 'slow' ? 'Shopee phản hồi quá chậm lần này.' : 'Chưa tìm được lần này (Shopee tải chậm hoặc cần đăng nhập).', () => doFind(st.q), st.q));
     } else if (st) {
       if (!st.options.length) L.append(el('div', 'optwait', st.total ? `Có ${st.total} món nhưng đều là shop rủi ro (mới mở, bán ít, hàng nước ngoài). Xem trên Shopee để tự chọn.` : `Chưa thấy món nào đúng “${st.q}”${findRange || findMall ? ' với bộ lọc này' : ''}.`));
       else {
@@ -2261,7 +2288,7 @@
   // Chạy trong tab ẩn trên 1 trang sản phẩm: cuộn cho Shopee tải phần shop + đánh giá, đọc rồi gửi về
   async function runItemScan() {
     const t0 = Date.now(); let info = null;
-    while (Date.now() - t0 < 15000) {
+    while (Date.now() - t0 < 10000) {
       await wait(1000); window.scrollBy(0, 900);
       info = readShopee();
       if ((info.rating || info.ratingCount) && (info.responseRate != null || info.joinedMonths != null) && info.dist) break;
@@ -2294,12 +2321,12 @@
   let shopeeState = null;
   async function findShopee(p, inRender) {
     if (shopeeState && shopeeState.url === p.url && (shopeeState.loading || !shopeeState.error)) return;
-    const my = shopeeState = { url: p.url, loading: true };
+    const my = shopeeState = { url: p.url, loading: true, tok: {} };
     if (!inRender && tab === 'shop' && !ui.panel.hidden) renderPanel();
     const q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
-    let r = null; try { r = await chrome.runtime.sendMessage({ type: 'same-find', q, key: 'tt:' + itemKey(), title: p.title, price: p.price }); } catch {}
-    if (shopeeState !== my) return;
-    shopeeState = { url: p.url, loading: false, error: r && r.ok ? '' : 'fail', total: (r && r.total) || 0, options: ((r && r.options) || []).map(o => ({ ...o, plat: 'shopee' })) };
+    const r = await askBg({ type: 'same-find', q, key: 'tt:' + itemKey(), title: p.title, price: p.price });
+    if (!shopeeState || shopeeState.tok !== my.tok) return;     // đã chuyển sang món khác
+    shopeeState = { url: p.url, loading: false, error: r && r.ok ? '' : (r && r.error === 'slow' ? 'slow' : 'fail'), total: (r && r.total) || 0, options: ((r && r.options) || []).map(o => ({ ...o, plat: 'shopee' })) };
     if (tab === 'shop' && !ui.panel.hidden) renderPanel();
     if (ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
   }
@@ -2307,8 +2334,9 @@
     let st = shopeeState && shopeeState.url === p.url ? shopeeState : null;
     if (!st) { findShopee(p, true); st = shopeeState; }
     L.append(el('div', 'fhead alt', '🟠 Cùng sản phẩm trên Shopee'));
-    if (st.loading) { const box = el('div', 'optwait'); box.append(el('div', 'spin'), el('div', '', 'Đang tìm đúng món này trên Shopee…')); return L.append(box); }
-    if (st.error) { const box = el('div', 'optwait'); box.append(el('div', '', 'Chưa tìm được trên Shopee lần này.')); const b = el('button', 'b', '🔄 Thử lại'); b.addEventListener('click', () => { shopeeState = null; findShopee(p); }); box.append(b); return L.append(box); }
+    if (st.loading && quickOf(st)) { L.append(progLine(st)); quickOf(st).slice(0, 2).forEach(o => L.append(optRow({ ...o, plat: 'shopee' }, p.price - o.price))); return; }
+    if (st.loading) return L.append(waitBox(st, 'Đang tìm đúng món này trên Shopee…'));
+    if (st.error) return L.append(slowBox('Chưa tìm được trên Shopee lần này.', () => { shopeeState = null; findShopee(p); }, HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ')));
     if (!st.options.length) return L.append(el('div', 'optwait ok', st.total ? `👍 Giá TikTok đang rẻ hơn ${st.total} shop Shopee bán cùng món` : 'Chưa thấy Shopee bán đúng sản phẩm này.'));
     st.options.slice(0, 2).forEach(o => L.append(optRow(o, p.price - o.price)));
   }
@@ -2329,8 +2357,8 @@
     if (!inRender && tab === 'shop' && !ui.panel.hidden) renderPanel();
     if (!inRender && ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
     const q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
-    let r = null; try { r = await chrome.runtime.sendMessage({ type: 'same-find', q, key: itemKey(), title: p.title, price: p.price }); } catch {}
-    sameState = { url: p.url, loading: false, error: r && r.ok ? '' : 'fail', total: (r && r.total) || 0, options: (r && r.options) || [] };
+    const r = await askBg({ type: 'same-find', q, key: itemKey(), title: p.title, price: p.price });
+    sameState = { url: p.url, loading: false, error: r && r.ok ? '' : (r && r.error === 'slow' ? 'slow' : 'fail'), total: (r && r.total) || 0, options: (r && r.options) || [] };
     if (tab === 'shop' && !ui.panel.hidden) renderPanel();
     if (ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
   }
@@ -2387,16 +2415,14 @@
   function renderCheaper0(L, p) {
     let st = sameState && sameState.url === p.url ? sameState : null;
     if (!st || (st.error === 'nocards' && isTikTokItem())) { findSame(p, true); st = sameState; }   // đang vẽ bảng: bắt đầu tìm, không vẽ lại lồng nhau
-    if (st.loading) {
-      const box = el('div', 'optwait');
-      box.append(el('div', 'spin'), el('div', '', 'Đang tìm và kiểm tra các shop bán cùng món…'), el('small', '', 'HaoHao mở ngầm Shopee khoảng 15–20 giây rồi tự đóng'));
-      return L.append(box);
-    }
-    if (st.error) {
-      const box = el('div', 'optwait'); box.append(el('div', '', st.error === 'nocards' ? 'Kéo xuống cuối trang để TikTok tải mục "Bạn cũng có thể thích", rồi bấm Thử lại.' : 'Chưa tìm được lần này (Shopee tải chậm).'));
+    if (st.loading && quickOf(st)) { L.append(progLine(st)); quickOf(st).forEach(o => L.append(optRow(o, p.price - o.price))); return; }
+    if (st.loading) return L.append(waitBox(st, 'Đang tìm các shop bán cùng món…'));
+    if (st.error === 'nocards') {
+      const box = el('div', 'optwait'); box.append(el('div', '', 'Kéo xuống cuối trang để TikTok tải mục "Bạn cũng có thể thích", rồi bấm Thử lại.'));
       const b = el('button', 'b', '🔄 Thử lại'); b.addEventListener('click', () => findSame(p)); box.append(b);
       return L.append(box);
     }
+    if (st.error) return L.append(slowBox(st.error === 'slow' ? 'Shopee phản hồi quá chậm lần này.' : 'Chưa tìm được lần này (Shopee tải chậm hoặc cần đăng nhập).', () => { sameState = null; findSame(p); }, HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ')));
     if (!st.options.length) return L.append(el('div', 'optwait ok', st.total ? `👍 Giá ở đây đang rẻ nhất trong ${st.total + 1} shop bán cùng món` : 'Chưa thấy shop khác bán đúng sản phẩm này (HaoHao bỏ qua món chỉ na ná).'));
     st.options.forEach(o => L.append(optRow(o, p.price - o.price)));
     L.append(el('div', 'onote', `So trong ${st.total + 1} shop bán đúng cùng sản phẩm (cùng hãng, mã, dung lượng, phiên bản). Giá chưa gồm mã giảm và phí ship.`));
@@ -2886,9 +2912,10 @@
     let hookSave = 0;
     // trang TikTok: món rẻ hơn trên Shopee (điểm tin cậy từ 60 trở lên)
     function altBest(p) { const a = isTikTokItem() && shopeeState && shopeeState.url === p.url && !shopeeState.loading && shopeeState.options; if (!a) return null; return [...a].filter(x => x.score >= 60 && x.price < p.price).sort((x, y) => x.price - y.price)[0] || null; }
-    if (st && st.loading) B.append(el('div', 'tb-hook wait', '🔍 Đang so giá với các shop khác…'));
-    else if ((st && !st.error && st.options && st.options.length) || altBest(p)) {
-      const o0 = st && !st.error && st.options && st.options.length ? st.options.find(x => x.tags.includes('best')) || st.options[0] : null, oa = altBest(p);
+    const so = st && !st.error ? (st.loading ? quickOf(st) : st.options && st.options.length ? st.options : null) : null;
+    if (st && st.loading && !so && !altBest(p)) B.append(el('div', 'tb-hook wait', '🔍 Đang so giá với các shop khác…'));
+    else if (so || altBest(p)) {
+      const o0 = so ? so.find(x => x.tags.includes('best')) || so[0] : null, oa = altBest(p);
       const o = oa && (!o0 || oa.price < o0.price) ? oa : o0;
       hookSave = p.price - o.price;
       const hk = el('button', 'tb-hook hot');
@@ -3006,31 +3033,44 @@
     } catch {}
   }
   let cryAlertOpen = false;
+  // tên hiển thị: ký hiệu (BTC) thay cho mã CoinGecko (bitcoin)
+  const coinSym = (w, q) => w.source === 'dexscreener' ? (q && q.label && !q.error ? String(q.label).toUpperCase() : w.coin.slice(0, 6) + '…') : (w.sym || HT.cgSymOf(w.coin) || String(w.coin).toUpperCase());
   function renderCrypto(V) {
     // thêm coin: 1 dòng gọn
     const form = h(`<div class="row cry-add">
-        <select aria-label="Nguồn giá"><option value="coingecko">Mã coin</option><option value="dexscreener">Địa chỉ token</option></select>
-        <input class="grow" placeholder="bitcoin, solana…" aria-label="Mã coin hoặc địa chỉ token">
+        <select aria-label="Nguồn giá"><option value="coingecko">Ký hiệu</option><option value="dexscreener">Địa chỉ token</option></select>
+        <input class="grow" placeholder="BTC, ETH, SOL, BNB…" aria-label="Ký hiệu coin hoặc địa chỉ token" autocapitalize="characters">
         <button class="b" aria-label="Theo dõi">＋</button></div>`);
     const src = form.querySelector('select'), inp = form.querySelector('input');
-    src.addEventListener('change', () => inp.placeholder = src.value === 'dexscreener' ? 'Dán địa chỉ token meme…' : 'bitcoin, solana…');
-    const add = () => {
-      const coin = inp.value.trim(); if (!coin) return inp.focus();
-      const it = { source: src.value, coin };
+    src.addEventListener('change', () => inp.placeholder = src.value === 'dexscreener' ? 'Dán địa chỉ token meme…' : 'BTC, ETH, SOL, BNB…');
+    const add = async () => {
+      let coin = inp.value.trim(); if (!coin) return inp.focus();
+      let sym = '';
+      if (src.value === 'coingecko') {
+        // ký hiệu (BTC) → mã CoinGecko (bitcoin); coin lạ thì tra CoinGecko
+        inp.disabled = true;
+        const r = await chrome.runtime.sendMessage({ type: 'cg-resolve', q: coin }).catch(() => null);
+        inp.disabled = false;
+        if (!r || !r.ok) { inp.focus(); err.hidden = false; err.textContent = r && r.error === 'notfound' ? `Không tìm thấy coin "${coin}". Thử ký hiệu khác (vd: BTC, ETH).` : 'Chưa tra được CoinGecko, thử lại sau.'; return; }
+        coin = r.id; sym = r.sym;
+      }
+      const it = { source: src.value, coin, ...(sym ? { sym } : {}) };
       if (!watch.some(w => qKey(w) === qKey(it))) { watch.push(it); chrome.storage.local.set({ watch }); }
       inp.value = ''; loadQuotes(); renderPanel();
     };
     form.querySelector('button').addEventListener('click', add);
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
-    V.append(form);
+    inp.addEventListener('input', () => { err.hidden = true; });
+    const err = el('div', 'cry-err'); err.hidden = true; err.setAttribute('role', 'alert');
+    V.append(form, err);
 
     const list = el('div', 'body-list');
     const ab = alertBlock('tools'); if (ab) list.append(ab);
-    if (!watch.length) list.append(el('div', 'empty', 'Nhập mã coin (vd: bitcoin) hoặc dán địa chỉ token meme để theo dõi giá.'));
+    if (!watch.length) list.append(el('div', 'empty', 'Nhập ký hiệu coin (vd: BTC, ETH, SOL) hoặc dán địa chỉ token meme để theo dõi giá.'));
     for (const w of watch) {
       const q = quotes[qKey(w)];
       const row = el('div', 'cry');
-      const sym = el('span', 'sym', q && q.label && !q.error ? String(q.label).toUpperCase() : (w.source === 'dexscreener' ? w.coin.slice(0, 6) + '…' : w.coin));
+      const sym = el('span', 'sym', coinSym(w, q));
       sym.title = w.source === 'dexscreener' ? 'DexScreener · ' + w.coin : 'CoinGecko · ' + w.coin;
       row.append(sym);
       if (q && !q.error) {
@@ -3061,7 +3101,7 @@
       }
       if (watch.length) {
         const f2 = h(`<div class="row cry-add" style="padding:6px 0;border:0">
-            <select aria-label="Coin">${watch.map((w, i) => `<option value="${i}">${escAttr(w.source === 'dexscreener' ? w.coin.slice(0, 8) + '…' : w.coin)}</option>`).join('')}</select>
+            <select aria-label="Coin">${watch.map((w, i) => `<option value="${i}">${escAttr(coinSym(w, quotes[qKey(w)]))}</option>`).join('')}</select>
             <select aria-label="Điều kiện"><option value="above">giá ≥</option><option value="below">giá ≤</option><option value="up">tăng ≥ %</option><option value="down">giảm ≥ %</option></select>
             <input type="number" step="any" placeholder="mốc" style="width:84px" aria-label="Mốc">
             <button class="b">Đặt</button></div>`);
@@ -3070,7 +3110,7 @@
           if (v.value === '') return v.focus();
           const w = watch[+cSel.value], op = oSel.value, val = Number(v.value);
           const label = { above: '≥ $', below: '≤ $', up: 'tăng ≥ ', down: 'giảm ≥ ' }[op];
-          const name = `${w.source === 'dexscreener' ? w.coin.slice(0, 6) : w.coin} ${label}${op === 'up' || op === 'down' ? val + '%' : fmt(val)}`;
+          const name = `${coinSym(w, quotes[qKey(w)])} ${label}${op === 'up' || op === 'down' ? val + '%' : fmt(val)}`;
           rules.push({ id: 'r' + Date.now().toString(36), type: 'price', name, enabled: true, source: w.source, coin: w.coin, op, value: val });
           chrome.storage.local.set({ rules }); say('Đã đặt cảnh báo: ' + name, 'happy', '', 'tools');
         });

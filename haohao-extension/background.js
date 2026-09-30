@@ -284,6 +284,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'rem-done') remDone(msg.ruleId);
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
+  if (msg.type === 'cg-resolve') { HT.cgResolve(msg.q).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'tt-add') { ttAdd(msg).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'tt-remove') { ttRemove(msg).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'prod-search') { prodSearch(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
@@ -879,6 +880,9 @@ function scanIn(tabId, url, type, ms) {
   });
 }
 let sameQueue = Promise.resolve();
+// báo tiến độ về trang đang hỏi: kết quả nhanh (từ trang tìm kiếm) rồi từng bước kiểm tra kỹ
+const tellTab = (sender, key, m) => { if (sender && sender.tab && sender.tab.id) chrome.tabs.sendMessage(sender.tab.id, { type: 'same-progress', key, ...m }).catch(() => {}); };
+const quickOpts = list => HT.pickOptions(list.map(x => ({ ...x, ...HT.listingScore(x), issues: [], quick: true })));
 function sameFind(msg, sender) { const run = sameQueue.then(() => sameFindOne(msg, sender)); sameQueue = run.catch(() => {}); return run; }
 async function sameFindOne({ q, key, title, price }, sender) {
   const ck = 'same3:' + key, cache = (await chrome.storage.session.get(ck))[ck];
@@ -887,16 +891,18 @@ async function sameFindOne({ q, key, title, price }, sender) {
   // tab trống trước, ghi nhận việc rồi mới tải trang (để trang không chạy trước khi kịp ghi nhận)
   const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
   try {
-    const list = await scanIn(tab.id, HT.shopeeSearchUrl(q), 'search', 30000);
+    tellTab(sender, key, { step: 'search' });
+    const list = await scanIn(tab.id, HT.shopeeSearchUrl(q), 'search', 25000);
     if (!list) return { ok: false, error: 'timeout' };
     // chỉ giữ đúng CÙNG sản phẩm (cùng hãng, model, dung lượng, phiên bản, số lượng…); rẻ dưới 1/2 giá là đáng ngờ → bỏ
     const same = list.filter(x => x.key !== key).map(x => ({ ...x, ...HT.sameProduct(title, x.title) })).filter(x => x.same && x.price >= price * 0.5);
     const cheaper = same.filter(x => x.price < price * 0.99).sort((a, b) => a.price - b.price);
     // ứng viên: 2 món rẻ nhất + 2 món có dấu hiệu uy tín nhất (Mall, Yêu thích, bán nhiều)
     const rep = x => (x.mall ? 3 : x.preferred ? 2 : 0) + (x.sold >= 1000 ? 1 : 0) + (x.rating >= 4.8 ? 1 : 0);
-    const cands = [...new Map([...cheaper.slice(0, 2), ...[...cheaper].sort((a, b) => rep(b) - rep(a) || a.price - b.price).slice(0, 2)].map(x => [x.key, x])).values()];
+    const cands = [...new Map([...cheaper.slice(0, 2), ...[...cheaper].sort((a, b) => rep(b) - rep(a) || a.price - b.price).slice(0, 2)].map(x => [x.key, x])).values()].slice(0, 3);
+    tellTab(sender, key, { step: 'check', done: 0, of: cands.length, quick: { total: same.length, options: quickOpts(cheaper) } });
     const checked = [];
-    for (const c of cands) { const x = await checkListing(tab.id, c, t => HT.sameProduct(title, t).same); if (x) checked.push(x); }
+    for (const c of cands) { const x = await checkListing(tab.id, c, t => HT.sameProduct(title, t).same); if (x) checked.push(x); tellTab(sender, key, { step: 'check', done: checked.length, of: cands.length }); }
     // 3 lựa chọn: đáng mua nhất (rẻ nhất trong shop điểm cao), rẻ nhất, uy tín nhất
     const res = { ok: true, at: Date.now(), total: same.length, options: HT.pickOptions(checked) };
     await chrome.storage.session.set({ [ck]: res });
@@ -906,7 +912,7 @@ async function sameFindOne({ q, key, title, price }, sender) {
 
 // Mở trang 1 sản phẩm trong tab ẩn để chấm điểm shop. verify(tênĐầyĐủ) = false thì bỏ món đó.
 async function checkListing(tabId, c, verify) {
-  const r = await scanIn(tabId, c.url, 'item', 20000);
+  const r = await scanIn(tabId, c.url, 'item', 14000);
   if (verify && r && r.title && !verify(r.title)) return null;
   const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
   const ts = HT.trustScore(info);
@@ -926,7 +932,9 @@ async function prodSearchOne({ q, range, mall }, sender) {
   const opener = sender.tab || {};
   const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
   try {
-    const list = await scanIn(tab.id, HT.shopeeFindUrl(q, range), 'search', 30000);
+    const pk = 'ps:' + HT.fold(q);
+    tellTab(sender, pk, { step: 'search' });
+    const list = await scanIn(tab.id, HT.shopeeFindUrl(q, range), 'search', 25000);
     if (!list) return { ok: false, error: 'timeout' };
     const [lo, hi] = HT.PRICE_RANGES[range] || [0, Infinity];
     const fit = list.filter(x => x.price >= lo && x.price <= hi && (!mall || x.mall) && HT.matchQuery(q, x.title));
@@ -934,9 +942,10 @@ async function prodSearchOne({ q, range, mall }, sender) {
     const safe = fit.filter(x => !x.overseas && !(x.sold != null && x.sold < 10) && !(x.rating && x.rating < 4.3)).map(x => ({ ...x, ...HT.listingScore(x) }));
     const top = [...safe].sort((a, b) => b.score - a.score || a.price - b.price);
     const cheap = [...safe].filter(x => x.score >= 70).sort((a, b) => a.price - b.price);
-    const cands = [...new Map([...top.slice(0, 3), ...cheap.slice(0, 1)].map(x => [x.key, x])).values()].slice(0, 4);
+    const cands = [...new Map([...top.slice(0, 2), ...cheap.slice(0, 1)].map(x => [x.key, x])).values()].slice(0, 3);
+    tellTab(sender, pk, { step: 'check', done: 0, of: cands.length, quick: { total: fit.length, safe: safe.length, options: quickOpts(safe) } });
     const checked = [];
-    for (const c of cands) { const x = await checkListing(tab.id, c); if (x) checked.push(x); }
+    for (const c of cands) { const x = await checkListing(tab.id, c); if (x) checked.push(x); tellTab(sender, pk, { step: 'check', done: checked.length, of: cands.length }); }
     const res = { ok: true, at: Date.now(), total: fit.length, safe: safe.length, options: HT.pickOptions(checked) };
     await chrome.storage.session.set({ [ck]: res });
     return res;
@@ -944,7 +953,9 @@ async function prodSearchOne({ q, range, mall }, sender) {
 }
 
 // Đọc toàn bộ đánh giá bằng tab ẩn (khi không lấy thẳng được): bấm lọc sao và lật từng trang
-function reviewsScan(msg) { const run = sameQueue.then(() => reviewsScanOne(msg)); sameQueue = run.catch(() => {}); return run; }
+// hàng đợi riêng: đọc đánh giá (có thể lâu) không làm chậm việc tìm shop rẻ hơn
+let rvQueue = Promise.resolve();
+function reviewsScan(msg) { const run = rvQueue.then(() => reviewsScanOne(msg)); rvQueue = run.catch(() => {}); return run; }
 async function reviewsScanOne({ url, key }) {
   const ck = 'rv:' + key, cache = (await chrome.storage.session.get(ck))[ck];
   if (cache && Date.now() - cache.at < 60 * 60e3) return cache;

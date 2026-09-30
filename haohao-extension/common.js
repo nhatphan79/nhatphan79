@@ -60,6 +60,29 @@ const HT = {
     if (!p) throw new Error('Không tìm thấy token với địa chỉ này');
     return { price: Number(p.priceUsd), change: Number(p.priceChange?.h24 || 0), label: p.baseToken?.symbol || addr.slice(0, 6) };
   },
+  // Ký hiệu coin → mã CoinGecko (coin phổ biến); coin khác thì tra CoinGecko
+  CG_SYM: { BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin', XRP: 'ripple', DOGE: 'dogecoin', ADA: 'cardano', TRX: 'tron', TON: 'the-open-network',
+    AVAX: 'avalanche-2', SHIB: 'shiba-inu', DOT: 'polkadot', LINK: 'chainlink', POL: 'polygon-ecosystem-token', LTC: 'litecoin', BCH: 'bitcoin-cash', NEAR: 'near',
+    UNI: 'uniswap', APT: 'aptos', SUI: 'sui', ARB: 'arbitrum', OP: 'optimism', PEPE: 'pepe', WIF: 'dogwifcoin', BONK: 'bonk', FIL: 'filecoin', ATOM: 'cosmos',
+    ICP: 'internet-computer', XLM: 'stellar', ETC: 'ethereum-classic', HBAR: 'hedera-hashgraph', INJ: 'injective-protocol', TIA: 'celestia', SEI: 'sei-network',
+    JUP: 'jupiter-exchange-solana', RENDER: 'render-token', FET: 'fetch-ai', TAO: 'bittensor', USDT: 'tether', USDC: 'usd-coin', TRUMP: 'official-trump',
+    HYPE: 'hyperliquid', ENA: 'ethena', ONDO: 'ondo-finance', WLD: 'worldcoin-wld', AAVE: 'aave', LDO: 'lido-dao', PENDLE: 'pendle', FLOKI: 'floki',
+    NOT: 'notcoin', XMR: 'monero', KAS: 'kaspa', CAKE: 'pancakeswap-token', TWT: 'trust-wallet-token', PAXG: 'pax-gold' },
+  cgSymOf(id) { return Object.keys(HT.CG_SYM).find(k => HT.CG_SYM[k] === id) || ''; },
+  // "btc", "BTC", "bitcoin", "Bitcoin" → { id: 'bitcoin', sym: 'BTC' }
+  async cgResolve(q) {
+    const t = String(q || '').trim(); if (!t) return { ok: false, error: 'empty' };
+    const up = t.toUpperCase().replace(/^\$/, '');
+    if (HT.CG_SYM[up]) return { ok: true, id: HT.CG_SYM[up], sym: up };
+    const low = t.toLowerCase(); if (HT.cgSymOf(low)) return { ok: true, id: low, sym: HT.cgSymOf(low) };
+    const res = await fetch('https://api.coingecko.com/api/v3/search?query=' + encodeURIComponent(t));
+    if (!res.ok) return { ok: false, error: 'CoinGecko trả lỗi ' + res.status };
+    const coins = ((await res.json()).coins || []).map(c => ({ ...c, r: c.market_cap_rank || 1e9 }));
+    // ưu tiên đúng ký hiệu, rồi đúng tên / mã; trong đó chọn coin vốn hoá lớn nhất
+    const hit = coins.filter(c => String(c.symbol).toUpperCase() === up).sort((a, b) => a.r - b.r)[0]
+      || coins.filter(c => c.id === low || String(c.name).toLowerCase() === low).sort((a, b) => a.r - b.r)[0];
+    return hit ? { ok: true, id: hit.id, sym: String(hit.symbol).toUpperCase() } : { ok: false, error: 'notfound' };
+  },
   async quote(r) {
     const coin = (r.coin || '').trim();
     if (r.source === 'dexscreener') return HT.dxQuote(coin);
