@@ -80,6 +80,12 @@ HT.WEB.forEach(w => {
   b.addEventListener('click', () => { const q = $('#q').value.trim(); if (!q) return $('#q').focus(); location.href = HT.webUrl(w.id, q); });
   $('#web').append(b);
 });
+HT.SHOPS.forEach(sh => {
+  const b = el('button', 'chip', sh.label);
+  b.addEventListener('click', () => { const q = $('#q').value.trim(); if (!q) return $('#q').focus(); location.href = HT.shopSearch(sh.id, q); });
+  $('#buy').append(b);
+});
+$('#affnote').textContent = HT.AFF_NOTE;
 let tm = null;
 $('#q').addEventListener('input', () => {
   clearTimeout(tm);

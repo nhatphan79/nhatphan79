@@ -220,12 +220,11 @@ HT.SEARCH_KEYS = ['todos', 'ideas', 'rules', 'products', 'watch'];
 HT.WEB = [
   { id: 'google', label: 'Google', emoji: '🌐', url: 'https://www.google.com/search?q=' },
   { id: 'youtube', label: 'YouTube', emoji: '▶️', url: 'https://www.youtube.com/results?search_query=' },
-  { id: 'shopee', label: 'Shopee', emoji: '🛍️', url: 'https://shopee.vn/search?keyword=' },
   { id: 'wiki', label: 'Wikipedia', emoji: '📚', url: 'https://vi.wikipedia.org/w/index.php?search=' },
   { id: 'maps', label: 'Bản đồ', emoji: '📍', url: 'https://www.google.com/maps/search/' },
   { id: 'dich', label: 'Dịch', emoji: '🔤', url: 'https://translate.google.com/?sl=auto&tl=vi&text=' }
 ];
-HT.webUrl = (id, q) => { const w = HT.WEB.find(x => x.id === id) || HT.WEB[0]; return w.url + encodeURIComponent(q); };
+HT.webUrl = (id, q) => { const w = HT.WEB.find(x => x.id === id) || HT.WEB[0]; return HT.aff(w.url + encodeURIComponent(q)); };
 // Trả về danh sách kết quả, việc khớp nhiều/đúng đầu câu xếp trước. Gõ không dấu vẫn ra.
 HT.search = (data, query, limit = 40) => {
   const words = HT.fold(query).split(/\s+/).filter(Boolean);
@@ -253,6 +252,99 @@ HT.search = (data, query, limit = 40) => {
   return out.sort((a, b) => b.score - a.score).slice(0, limit);
 };
 HT.SEARCH_KIND = { todo: 'Todo', idea: 'Note', bell: 'Nhắc nhở', alert: 'Cảnh báo giá', shop: 'Mua sắm', coin: 'Crypto' };
+
+// ---------- 🔗 Link tiếp thị (affiliate) ----------
+// DÁN LINK GIỚI THIỆU CỦA BẠN VÀO ĐÂY. Để trống thì link đi thẳng tới shop, không qua affiliate.
+// Trong mẫu: {url} = link gốc đã mã hoá (dùng cho deep link AccessTrade, Ecomobi…), {raw} = link gốc giữ nguyên.
+//   Ví dụ AccessTrade: 'https://go.isclix.com/deep_link/MÃ_PUBLISHER/MÃ_CHIẾN_DỊCH?url={url}'
+//   Ví dụ Shopee (tham số tiếp thị): '{raw}?utm_source=an_MÃ_AFFILIATE&utm_medium=affiliates&utm_campaign=haohao'
+HT.AFF = {
+  shopee: { host: /(^|\.)shopee\.vn$/, link: '' },
+  lazada: { host: /(^|\.)lazada\.vn$/, link: '' },
+  tiktok: { host: /(^|\.)tiktok\.com$/, link: '' },
+  tiki: { host: /(^|\.)tiki\.vn$/, link: '' },
+  other: { link: '' }   // mọi shop khác (nếu mạng affiliate của bạn có deep link chung)
+};
+HT.AFF_NOTE = 'Link tiếp thị: HaoHao có thể nhận hoa hồng khi bạn mua, bạn không phải trả thêm.';
+HT.shopOf = url => { try { const h = new URL(url).hostname; return Object.keys(HT.AFF).find(k => HT.AFF[k].host && HT.AFF[k].host.test(h)) || 'other'; } catch { return ''; } };
+HT.aff = url => {
+  const k = HT.shopOf(url); const tpl = k && HT.AFF[k].link;
+  if (!tpl) return url;
+  if (tpl.includes('{url}')) return tpl.replace('{url}', encodeURIComponent(url));
+  if (tpl.startsWith('{raw}')) { const rest = tpl.slice(5); return url + (url.includes('?') && rest.startsWith('?') ? '&' + rest.slice(1) : rest); }
+  return tpl;
+};
+HT.isAff = url => { const k = HT.shopOf(url); return !!(k && HT.AFF[k].link); };
+HT.SHOPS = [
+  { id: 'shopee', label: 'Shopee', search: 'https://shopee.vn/search?keyword=' },
+  { id: 'lazada', label: 'Lazada', search: 'https://www.lazada.vn/catalog/?q=' },
+  { id: 'tiktok', label: 'TikTok Shop', search: 'https://www.tiktok.com/search?q=' },
+  { id: 'tiki', label: 'Tiki', search: 'https://tiki.vn/search?q=' }
+];
+HT.shopSearch = (id, q) => { const s = HT.SHOPS.find(x => x.id === id) || HT.SHOPS[0]; return HT.aff(s.search + encodeURIComponent(q)); };
+HT.DEAL_PAGES = { voucher: 'https://shopee.vn/m/ma-giam-gia', flash: 'https://shopee.vn/flash_sale' };
+
+// ---------- ⚖️ So giá: nhận mã model và so khớp tên sản phẩm ----------
+const UNIT = /^\d+([.,]\d+)?(gb|tb|mb|mah|w|kw|ml|l|g|kg|cm|mm|m|inch|in|hz|v|btu|lit|lít|k|tr|m2)$/i;
+HT.modelOf = title => {
+  const toks = String(title || '').split(/[\s,()/[\]|+]+/).map(t => t.replace(/^[-.]+|[-.]+$/g, ''));
+  const c = toks.filter(t => t.length >= 3 && /\d/.test(t) && /[a-z]/i.test(t) && !UNIT.test(t) && !/^(spf|pa|ip|usb|hdmi|wifi|ddr|pd|gen|mk|v)\d/i.test(t) && !/^\d+(g|k|x)$/i.test(t));
+  return c.sort((a, b) => b.length - a.length)[0] || '';
+};
+HT.cleanTitle = title => String(title || '').replace(/\[[^\]]*\]|\([^)]*\)|【[^】]*】/g, ' ')
+  .replace(/\b(chính hãng|hàng chính hãng|freeship|miễn phí vận chuyển|bảo hành \d+ tháng|mới 100%|giá rẻ|sale|hot|new)\b/gi, ' ')
+  .replace(/[|•\-–]+/g, ' ').replace(/\s+/g, ' ').trim();
+// 'model' = cùng mã model (chắc chắn), 'similar' = tên giống nhiều (nên xem lại), '' = không khớp
+const ACCESSORY = /\b(op lung|bao da|cuong luc|mieng dan|dan man|cap sac|cu sac|sac nhanh|day deo|case|op|tui dung|gia do|phu kien)\b/;
+HT.matchProduct = (a, b) => {
+  const m = HT.modelOf(a), fa = HT.fold(a), fb = HT.fold(b);
+  if (ACCESSORY.test(fb) && !ACCESSORY.test(fa)) return '';   // ốp lưng, cáp sạc… không phải cùng món
+  const wa = HT.fold(HT.cleanTitle(a)).split(' ').filter(w => w.length > 1).slice(0, 7);
+  const overlap = wa.length ? wa.filter(w => fb.includes(w)).length / wa.length : 0;
+  if (m) {
+    // mã model phải đứng riêng (X20 khớp "X20+" nhưng không khớp "X200"); bỏ qua gạch ngang: WH-1000XM5 = WH1000XM5
+    const mm = HT.fold(m).replace(/-/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('(^|[^a-z0-9])' + mm + '(?![0-9])').test(fb.replace(/-/g, '')) && overlap >= 0.5 ? 'model' : '';
+  }
+  return wa.length >= 3 && overlap >= 0.75 ? 'similar' : '';
+};
+
+// ---------- 🎟️ Lịch sale ----------
+// Ngày đôi (1.1 … 12.12), sale giữa tháng (15), sale lương về (25), Black Friday. big = ngày sale lớn.
+HT.saleDays = (from = new Date(), n = 4) => {
+  const out = [], d0 = new Date(from); d0.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 400 && out.length < n; i++) {
+    const d = new Date(d0); d.setDate(d0.getDate() + i);
+    const day = d.getDate(), mon = d.getMonth() + 1;
+    const lastFri = mon === 11 && d.getDay() === 5 && day + 7 > 30;
+    let name = '', big = false;
+    if (day === mon) { name = `${day}.${mon}`; big = mon >= 9 || mon === 6 || mon === 3; }
+    else if (lastFri) { name = 'Black Friday'; big = true; }
+    else if (day === 15) name = `Sale giữa tháng 15.${mon}`;
+    else if (day === 25) name = `Sale lương về 25.${mon}`;
+    if (name) out.push({ name, date: d, big, days: i });
+  }
+  return out;
+};
+
+// ---------- 📉 Nhận xét giá từ lịch sử 30 ngày ----------
+HT.priceVerdict = (history, now = Date.now()) => {
+  const pts = (history || []).filter(x => x.p && now - x.t <= 30 * 86400e3);
+  if (pts.length < 3) return { cls: 'na', text: 'Chưa đủ dữ liệu, HaoHao đang theo dõi thêm' };
+  const cur = pts[pts.length - 1].p;
+  // so với giá TRƯỚC lần đổi giá gần nhất (bỏ các lần ghi lặp lại giá hiện tại)
+  let k = pts.length - 1; while (k > 0 && pts[k - 1].p === cur) k--;
+  const prev = pts.slice(0, k).map(x => x.p);
+  if (!prev.length) return { cls: 'ok', text: 'Giá không đổi trong 30 ngày' };
+  const low = Math.min(...prev), avg = prev.reduce((a, b) => a + b, 0) / prev.length;
+  const sale = HT.saleDays(new Date(now), 6).find(x => x.big && x.days <= 10);
+  const rose = pts.some((x, i) => i && now - x.t <= 10 * 86400e3 && x.p > pts[i - 1].p * 1.03);
+  if (cur <= low) return { cls: 'good', text: 'Giá thấp nhất 30 ngày 👍' };
+  if (cur <= avg * 0.97) return { cls: 'good', text: 'Giá tốt, thấp hơn bình thường' };
+  if (sale && rose && cur >= avg * 1.05) return { cls: 'bad', text: `Đang bị đẩy giá trước ${sale.name} ⚠` };
+  if (cur >= avg * 1.05) return { cls: 'warn', text: 'Cao hơn bình thường, nên chờ thêm' };
+  return { cls: 'ok', text: 'Giá bình thường' };
+};
 
 // cho phép trang khác (xem thử) dùng chung
 if (typeof self !== "undefined") self.HT = HT;

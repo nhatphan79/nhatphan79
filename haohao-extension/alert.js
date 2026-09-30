@@ -36,6 +36,10 @@ function render() {
       btn('Mở mail', 'main', () => act(it, 'open')),
       btn('Đã xem ✓', '', () => act(it, 'done'))
     );
+    else if (it.url) acts.append(
+      btn('🛒 Săn deal', 'main', () => act(it, 'deal')),
+      btn('Xong rồi ✓', '', () => act(it, 'done'))
+    );
     else acts.append(
       btn('Xong rồi ✓', 'main', () => act(it, 'done')),
       btn('10 phút nữa', '', () => act(it, 'snooze', 10)),
