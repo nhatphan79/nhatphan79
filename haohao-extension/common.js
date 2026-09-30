@@ -437,6 +437,7 @@ HT.trustScore = info => {
     else if (info.shopRatings < 100) add(shop, -5, 'warn', `Shop mới có ${info.shopRatings} lượt đánh giá`);
   }
   if (info.followers != null && info.followers < 100) add(shop, -3, 'warn', `Chỉ ${info.followers} người theo dõi shop`);
+  if (info.shopName && info.platform === 'tiktok') shop.push({ s: 'ok', t: `Người bán: ${info.shopName}` });
   if (info.shipFrom) {
     if (/nước ngoài|quốc tế|trung quốc|overseas/i.test(info.shipFrom)) add(shop, -4, 'warn', `Hàng gửi từ ${info.shipFrom}: giao lâu, khó đổi trả`);
     else shop.push({ s: 'ok', t: `Gửi từ ${info.shipFrom}` });
@@ -519,6 +520,32 @@ HT.goodReview = texts => {
     if (sc > bs) { bs = sc; best = t; }
   }
   return best && bs >= 1 ? (best.length > 85 ? best.slice(0, 83).trim() + '…' : best) : '';
+};
+// Điểm tham khảo cho 1 sản phẩm trong danh sách (khi trang không hiện thông tin shop, vd mục gợi ý của TikTok)
+HT.listingScore = x => {
+  let sc = 60; const r = [], k = n => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace('.0', '').replace('.', ',') + 'k' : String(n);
+  if (x.rating >= 4.7) { sc += 15; r.push({ s: 'ok', t: `${x.rating}★ điểm đánh giá cao` }); }
+  else if (x.rating >= 4.5) { sc += 8; r.push({ s: 'ok', t: `${x.rating}★` }); }
+  else if (x.rating) { sc -= 15; r.push({ s: 'warn', t: `Chỉ ${x.rating}★` }); }
+  else { sc -= 5; r.push({ s: 'warn', t: 'Chưa có điểm đánh giá' }); }
+  if (x.sold >= 10000) { sc += 15; r.push({ s: 'ok', t: `Đã bán ${k(x.sold)}, rất nhiều người mua` }); }
+  else if (x.sold >= 1000) { sc += 10; r.push({ s: 'ok', t: `Đã bán ${k(x.sold)}` }); }
+  else if (x.sold >= 100) { sc += 3; r.push({ s: 'ok', t: `Đã bán ${k(x.sold)}` }); }
+  else if (x.sold != null) { sc -= 20; r.push({ s: 'bad', t: `Mới bán ${x.sold}, ít người mua` }); }
+  else { sc -= 5; r.push({ s: 'warn', t: 'Chưa rõ số đã bán' }); }
+  if (x.mall) { sc += 10; r.push({ s: 'ok', t: 'Mall: hàng chính hãng' }); }
+  const score = Math.max(0, Math.min(100, Math.round(sc)));
+  const [level, cls] = score >= 80 ? ['Đáng tin', 'good'] : score >= 60 ? ['Khá ổn', 'ok'] : score >= 40 ? ['Cân nhắc', 'warn'] : ['Rủi ro', 'bad'];
+  return { score, level, cls, reasons: r.sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.s] - { bad: 0, warn: 1, ok: 2 }[b.s])) };
+};
+// Chọn 3 lựa chọn: đáng mua nhất (rẻ nhất trong nhóm điểm cao), rẻ nhất, uy tín nhất
+HT.pickOptions = checked => {
+  const byPrice = [...checked].sort((a, b) => a.price - b.price), byScore = [...checked].sort((a, b) => b.score - a.score || a.price - b.price);
+  const best = byPrice.find(x => x.score >= 75) || byScore[0], picks = [];
+  const add = (x, tag) => { if (!x) return; const o = picks.find(y => y.key === x.key); if (o) { if (tag && !o.tags.includes(tag)) o.tags.push(tag); } else picks.push({ ...x, tags: tag ? [tag] : [] }); };
+  add(best, 'best'); add(byPrice[0], 'cheap'); add(byScore[0], 'trust');
+  for (const x of byScore) if (picks.length < 3) add(x, '');
+  return picks.slice(0, 3);
 };
 // cho phép trang khác (xem thử) dùng chung
 if (typeof self !== "undefined") self.HT = HT;
