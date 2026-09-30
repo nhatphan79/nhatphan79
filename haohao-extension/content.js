@@ -2345,7 +2345,7 @@
   }
   // Trang đang xem đã được mở lại qua link HaoHao chưa (để khỏi chuyển trang lần nữa)
   const itemKey = () => { const m = location.pathname.match(/-i\.(\d+\.\d+)|\/product\/(\d+\/\d+)|\/product\/(\d+)|\/pdp\/[^/]*?(\d{8,})/); return m ? (m[1] || m[2] || 'tt' + (m[3] || m[4])) : location.pathname; };
-  function viaHaoHao() { try { return sessionStorage.getItem('hh-aff') === itemKey(); } catch { return false; } }
+  function viaHaoHao() { if (HT.hasOurAff(location.href)) return true; try { return sessionStorage.getItem('hh-aff') === itemKey(); } catch { return false; } }
   // Khách tự bấm lấy mã: copy mã rồi mở lại đúng món này qua link tiếp thị (chỉ khi có mã thật cho món này)
   async function useCoupon(p, code) {
     if (code) await copyText(code);

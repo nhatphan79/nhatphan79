@@ -223,7 +223,7 @@ HT.fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g
 //   Ví dụ AccessTrade: 'https://go.isclix.com/deep_link/MÃ_PUBLISHER/MÃ_CHIẾN_DỊCH?url={url}'
 //   Ví dụ Shopee (tham số tiếp thị): '{raw}?utm_source=an_MÃ_AFFILIATE&utm_medium=affiliates&utm_campaign=haohao'
 HT.AFF = {
-  shopee: { host: /(^|\.)shopee\.vn$/, link: '' },
+  shopee: { host: /(^|\.)shopee\.vn$/, link: '{raw}?utm_source=an_17393130606&utm_medium=affiliates&utm_campaign=id_2luevOJq1Sb&utm_content=HaoHao----&mmp_pid=an_17393130606' },
   tiktok: { host: /(^|\.)tiktok\.com$/, link: '' },
 };
 HT.AFF_NOTE = 'Link tiếp thị: HaoHao có thể nhận hoa hồng khi bạn mua, bạn không phải trả thêm.';
@@ -232,9 +232,20 @@ HT.aff = url => {
   const k = HT.shopOf(url); const tpl = k && HT.AFF[k].link;
   if (!tpl) return url;
   if (tpl.includes('{url}')) return tpl.replace('{url}', encodeURIComponent(url));
-  if (tpl.startsWith('{raw}')) { const rest = tpl.slice(5); return url + (url.includes('?') && rest.startsWith('?') ? '&' + rest.slice(1) : rest); }
+  if (tpl.startsWith('{raw}')) {
+    // bỏ mã tiếp thị cũ trong link (của người khác) rồi gắn mã của mình
+    try {
+      const u = new URL(url), add = new URLSearchParams(tpl.slice(5).replace(/^\?/, ''));
+      for (const k of [...u.searchParams.keys()]) if (/^(utm_|mmp_pid$|uls_trackid$|gads_t_sig$|af_|aff_|smtt$|sp_atk$|xptdk$)/i.test(k)) u.searchParams.delete(k);
+      for (const [k, v] of add) u.searchParams.set(k, v);
+      return u.toString();
+    } catch { const rest = tpl.slice(5); return url + (url.includes('?') && rest.startsWith('?') ? '&' + rest.slice(1) : rest); }
+  }
   return tpl;
 };
+// link này đã mang mã tiếp thị của mình chưa (vd. mở từ nút Xem của HaoHao)
+HT.hasOurAff = url => { const k = HT.shopOf(url), tpl = k && HT.AFF[k].link; if (!tpl || !tpl.startsWith('{raw}')) return false;
+  try { const u = new URL(url), want = new URLSearchParams(tpl.slice(5).replace(/^\?/, '')); return want.has('utm_source') && u.searchParams.get('utm_source') === want.get('utm_source'); } catch { return false; } };
 HT.isAff = url => { const k = HT.shopOf(url); return !!(k && HT.AFF[k].link); };
 HT.SHOPS = [
   { id: 'shopee', label: 'Shopee', search: 'https://shopee.vn/search?keyword=' },
