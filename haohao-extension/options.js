@@ -242,7 +242,7 @@ $('#aiSave').addEventListener('click', async () => {
 $('#aiTest').addEventListener('click', async () => {
   $('#aiState').textContent = 'Đang thử…';
   const r = await chrome.runtime.sendMessage({ type: 'ai-test' }).catch(e => ({ ok: false, error: e.message }));
-  const map = { nokey: 'chưa có mã (bấm Lưu trước)', badkey: 'mã không đúng', quota: 'hết lượt miễn phí, thử lại sau' };
+  const map = { nokey: 'chưa có mã (bấm Lưu trước)', badkey: 'mã không đúng', quota: 'hết lượt miễn phí, thử lại sau', busy: 'Gemini đang quá tải, đợi 1–2 phút rồi thử lại' };
   const { settings: s3 = {} } = await chrome.storage.local.get('settings'), a3 = s3.ai || {};
   $('#aiState').textContent = r && r.ok ? `✓ Kết nối Gemini được (mẫu ${a3.model || a3.autoModel || 'gemini-3.8-flash'}).` : '⚠ Chưa được: ' + ((r && (map[r.error] || r.error)) || 'lỗi không rõ');
   if (r && r.ok) $('#aiModel').value = a3.model || '';

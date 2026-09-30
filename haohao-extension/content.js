@@ -1365,6 +1365,7 @@
   const errText = e => ({
     nokey: 'Chưa có mã Gemini.', badkey: 'Mã Gemini không đúng. Kiểm tra lại trong Cài đặt.',
     quota: 'Hết lượt miễn phí của Gemini lúc này. Đợi ít phút (hoặc tới mai) rồi thử lại.',
+    busy: 'Gemini của Google đang quá tải (nhiều người dùng cùng lúc). Đợi 1–2 phút rồi bấm lại nhé.',
     blocked: 'Gemini từ chối đọc nội dung này.', empty: 'Gemini không trả lời gì, thử lại nhé.'
   }[e] || e);
   async function readCache(key, val) {
