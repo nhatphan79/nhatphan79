@@ -2054,7 +2054,7 @@
     // sản phẩm trên trang đang xem (có bảng giá các sàn thì không cần dòng tìm giá rẻ nhất)
     const p = detectProduct();
     V.append(sr); if (!p) V.append(bar);
-    if (isShopeeItem() && settings.shopTrust !== false) { analyzeShopee(true); if (trust) L.append(trustCard()); }
+    if ((isShopeeItem() || isShopeeShop()) && settings.shopTrust !== false) { analyzeShopee(true); if (trust) L.append(trustCard()); }
     if (p) {
       const saved = products.find(x => x.url === p.url);
       const card = el('div', 'pcard');
@@ -2162,6 +2162,33 @@
   const isShopeeItem = () => /(^|\.)shopee\.vn$/.test(location.hostname) && /-i\.\d+\.\d+|\/product\/\d+\/\d+/.test(location.pathname);
   let trust = null, trustUrl = '', trustLen = 0;
   const NUMK = '([\\d.,]+\\s*(?:k|tr)?\\+?)';
+  // Thông tin shop, đọc được cả 2 kiểu Shopee đang dùng:
+  //   trang sản phẩm: "Đánh Giá 233,2k Tỉ Lệ Phản Hồi 89% Tham Gia 9 năm trước … Người Theo Dõi 154,2k"
+  //   trang shop:     "Người Theo Dõi: 154,2k Đánh Giá: 4.8 (233,2k Đánh Giá) Tỉ Lệ Phản Hồi Chat: 89% (Trong Vài Giờ) Tham Gia: 9 Năm Trước"
+  function readShopStats(t) {
+    const m = (re, i = 1) => { const x = t.match(re); return x ? x[i] : null; }, o = {};
+    const rr = m(/Tỉ Lệ Phản Hồi(?: Chat)?\s*:?\s*(\d{1,3})\s*%/i); if (rr) o.responseRate = +rr;
+    const rt = m(/Tỉ Lệ Phản Hồi(?: Chat)?\s*:?\s*\d{1,3}\s*%\s*\((trong [^)]{2,20})\)/i) || m(/Thời Gian Phản Hồi\s*:?\s*(trong (?:vài )?(?:phút|giờ|ngày)(?: lát)?)/i);
+    o.responseTime = rt ? rt.toLowerCase() : '';
+    const jg = m(/Tham Gia\s*:?\s*(\d+\s*(?:năm|tháng|tuần|ngày|giờ)\s*trước)/i); if (jg) o.joinedMonths = HT.monthsAgo(jg);
+    const fl = m(new RegExp('Người Theo Dõi\\s*:?\\s*' + NUMK, 'i')); if (fl) o.followers = HT.num(fl);
+    const sp = t.match(new RegExp('Đánh Giá\\s*:\\s*(\\d[.,]\\d)\\s*\\(\\s*' + NUMK + '\\s*Đánh Giá\\s*\\)', 'i'));
+    if (sp) { o.shopStar = parseFloat(sp[1].replace(',', '.')); o.shopRatings = HT.num(sp[2]); }
+    else { const sr = m(new RegExp('Đánh Giá\\s*:?\\s*' + NUMK + '\\s*(?:Tỉ Lệ Phản Hồi|Tham Gia|Sản Phẩm|Người Theo Dõi)', 'i')); if (sr) o.shopRatings = HT.num(sr); }
+    return o;
+  }
+  // trang shop (vd shopee.vn/ten_shop): có "Người Theo Dõi:" và "Tham Gia:" ở đầu trang
+  const isShopeeShop = () => /(^|\.)shopee\.vn$/.test(location.hostname) && !isShopeeItem() && /^\/[\w.-]+\/?$/.test(location.pathname)
+    && /Người Theo Dõi\s*:/i.test(document.body.innerText.slice(0, 4000)) && /Tham Gia\s*:/i.test(document.body.innerText.slice(0, 4000));
+  function readShopeeShop() {
+    const raw = document.body.innerText || '', t = raw.replace(/\s+/g, ' ');
+    const info = { shopOnly: true, ...readShopStats(t) };
+    const hi = t.search(/Sản Phẩm\s*:/i), near = hi > 0 ? t.slice(Math.max(0, hi - 500), hi) : '';
+    info.preferred = /Yêu thích\+?/i.test(near);
+    info.mall = /\bMall\b/.test(near) || !!document.querySelector('img[alt*="mall" i]');
+    const nm = (document.querySelector('h1') || {}).innerText; info.shopName = nm ? nm.trim().slice(0, 60) : '';
+    return info;
+  }
   function readShopee() {
     const raw = document.body.innerText || '';
     const t = raw.replace(/\s+/g, ' ');
@@ -2191,12 +2218,7 @@
     info.photos = HT.num(m(/Có Hình Ảnh\s*\/\s*Video\s*\(([\d.,]+\s*(?:k|tr)?)\)/i));
     const avg = m(/(\d[.,]\d)\s*trên\s*5/i); if (avg && !info.rating) info.rating = parseFloat(avg.replace(',', '.'));
     if (!info.ratingCount && info.dist) info.ratingCount = Object.values(dist).reduce((a, b) => a + b, 0);
-    // thông tin shop: "Đánh Giá 45,2k Tỉ Lệ Phản Hồi 98% Tham Gia 5 năm trước … Người Theo Dõi 120k"
-    const rr = m(/Tỉ Lệ Phản Hồi\s*(\d{1,3})\s*%/i); if (rr) info.responseRate = +rr;
-    info.responseTime = m(/Thời Gian Phản Hồi\s*(trong (?:vài )?(?:phút|giờ|ngày)(?: lát)?)/i) || '';
-    const jg = m(/Tham Gia\s*(\d+\s*(?:năm|tháng|tuần|ngày|giờ)\s*trước)/i); if (jg) info.joinedMonths = HT.monthsAgo(jg);
-    const fl = m(new RegExp('Người Theo Dõi\\s*' + NUMK, 'i')); if (fl) info.followers = HT.num(fl);
-    const sr = m(new RegExp('Đánh Giá\\s*' + NUMK + '\\s*(?:Tỉ Lệ Phản Hồi|Tham Gia|Sản Phẩm)', 'i')); if (sr) info.shopRatings = HT.num(sr);
+    Object.assign(info, readShopStats(t));
     // chi tiết sản phẩm: "Gửi từ" → dòng sau
     const gi = lines.findIndex(l => /^Gửi từ$/i.test(l));
     info.shipFrom = gi >= 0 ? lines[gi + 1] : (m(/Gửi từ\s*(Nước ngoài|[A-ZĐ][\p{L}. ]{2,25}?)(?=\s[A-ZĐ][\p{L}]+\s|$)/iu) || '');
@@ -2218,11 +2240,12 @@
     return info;
   }
   function analyzeShopee(inRender) {
-    if (settings.shopTrust === false || !isShopeeItem()) { if (trust) { trust = null; trustPill(); } return; }
+    const item = isShopeeItem(), shopPage = !item && isShopeeShop();
+    if (settings.shopTrust === false || (!item && !shopPage)) { if (trust) { trust = null; trustPill(); } return; }
     const len = (document.body.textContent || '').length;
     if (trustUrl === location.href && Math.abs(len - trustLen) < 200) return;
-    const info = readShopee();
-    if (!info.rating && !info.ratingCount && !info.sold) return;   // trang chưa tải xong
+    const info = item ? readShopee() : readShopeeShop();
+    if (item ? (!info.rating && !info.ratingCount && !info.sold) : (info.joinedMonths == null && info.followers == null)) return;   // trang chưa tải xong
     const first = trustUrl !== location.href;
     trustUrl = location.href; trustLen = len;
     trust = { ...HT.trustScore(info), info };
@@ -2248,8 +2271,9 @@
   function trustCard() {
     const c = el('div', 'tcard ' + trust.cls);
     const top = el('div', 'ttop');
+    const shopOnly = !!trust.info.shopOnly;
     const ring = el('div', 'tring'); ring.style.setProperty('--v', trust.score); ring.append(el('b', trust.score >= 100 ? 'k3' : '', trust.score));
-    const tx = el('div'); tx.append(el('div', 'tlv', trust.level), el('div', 'tsub', 'Điểm tin cậy sản phẩm & shop'));
+    const tx = el('div'); tx.append(el('div', 'tlv', trust.level), el('div', 'tsub', shopOnly ? `Điểm uy tín shop${trust.info.shopName ? ' · ' + trust.info.shopName : ''}` : 'Điểm tin cậy sản phẩm & shop'));
     top.append(ring, tx); c.append(top);
     const sec = (title, list) => {
       if (!list.length) return;
@@ -2257,10 +2281,10 @@
       for (const x of list) { const r = el('div', 'tli ' + x.s); r.append(el('i', '', x.s === 'ok' ? '✓' : x.s === 'warn' ? '!' : '✕'), el('span', '', x.t)); c.append(r); }
     };
     sec('📦 Chất lượng sản phẩm', trust.product);
-    if (!trust.info.reviewsLoaded) c.append(el('div', 'tnote', '👇 Kéo xuống phần Đánh giá sản phẩm để HaoHao đọc thêm (tỉ lệ sao, đánh giá có ảnh, đánh giá ảo).'));
+    if (!shopOnly && !trust.info.reviewsLoaded) c.append(el('div', 'tnote', '👇 Kéo xuống phần Đánh giá sản phẩm để HaoHao đọc thêm (tỉ lệ sao, đánh giá có ảnh, đánh giá ảo).'));
     sec('🏪 Uy tín shop', trust.shop);
     if (trust.info.responseRate == null && trust.info.joinedMonths == null) c.append(el('div', 'tnote', '👇 Kéo xuống phần thông tin shop để HaoHao chấm uy tín shop.'));
-    if (trust.score < 60) {
+    if (!shopOnly && trust.score < 60) {
       const q = HT.cleanTitle((detectProduct() || {}).title || document.title).split(' ').slice(0, 8).join(' ');
       const a = el('div', 'line');
       const b1 = el('button', 'b buy', '🔎 Tìm ở Shopee Mall'); b1.addEventListener('click', () => openDeal('https://shopee.vn/mall/search?keyword=' + encodeURIComponent(q)));

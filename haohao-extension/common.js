@@ -364,11 +364,11 @@ HT.monthsAgo = s => {
 const fmtN = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + 'tr' : n >= 1e3 ? (n / 1e3).toFixed(1).replace('.0', '') + 'k' : String(n);
 // info: { rating, ratingCount, dist: {5,4,3,2,1}, sold, photos, dupReviews, mall, preferred, responseRate, responseTime, joinedMonths, shopRatings, followers, shipFrom, price, marketPrice }
 HT.trustScore = info => {
-  let sc = 60; const product = [], shop = [];
+  let sc = info.shopOnly ? 72 : 60; const product = [], shop = [];
   const add = (list, pts, s, t) => { sc += pts; list.push({ s, t }); };
   const n = info.ratingCount, r = info.rating;
-  // --- sản phẩm ---
-  if (!n) add(product, -15, 'bad', 'Chưa có đánh giá nào, chưa ai kiểm chứng');
+  // --- sản phẩm --- (trang shop thì chỉ chấm shop)
+  if (info.shopOnly) {} else if (!n) add(product, -15, 'bad', 'Chưa có đánh giá nào, chưa ai kiểm chứng');
   else {
     if (r >= 4.95 && n < 50) add(product, -5, 'warn', `${r}★ nhưng chỉ ${n} đánh giá, điểm cao bất thường`);
     else if (r >= 4.8) add(product, n >= 50 ? 10 : 4, 'ok', `${r}★ từ ${fmtN(n)} đánh giá`);
@@ -379,7 +379,7 @@ HT.trustScore = info => {
     else if (n >= 1000) add(product, 8, 'ok', 'Rất nhiều người đã mua và đánh giá');
     else if (n >= 100) add(product, 4, 'ok', 'Đủ nhiều đánh giá để tham khảo');
   }
-  const d = info.dist, tot = d ? [1, 2, 3, 4, 5].reduce((a, k) => a + (d[k] || 0), 0) : 0;
+  const d = info.shopOnly ? null : info.dist, tot = d ? [1, 2, 3, 4, 5].reduce((a, k) => a + (d[k] || 0), 0) : 0;
   if (tot >= 20) {
     const low = ((d[1] || 0) + (d[2] || 0)) / tot;
     if (low >= 0.1) add(product, -12, 'bad', `${Math.round(low * 100)}% đánh giá 1–2★, nhiều người không hài lòng`);
@@ -405,7 +405,7 @@ HT.trustScore = info => {
   if (info.responseRate != null && !isNaN(info.responseRate)) {
     if (info.responseRate >= 90) add(shop, 4, 'ok', `Phản hồi ${info.responseRate}%${info.responseTime ? ' ' + info.responseTime : ''}`);
     else if (info.responseRate < 70) add(shop, -6, 'warn', `Chỉ phản hồi ${info.responseRate}% tin nhắn`);
-    else shop.push({ s: 'ok', t: `Phản hồi ${info.responseRate}%` });
+    else shop.push({ s: 'ok', t: `Phản hồi ${info.responseRate}%${info.responseTime ? ' ' + info.responseTime : ''}` });
   }
   const jm = info.joinedMonths;
   if (jm != null && !isNaN(jm)) {
@@ -413,6 +413,11 @@ HT.trustScore = info => {
     if (jm < 3) add(shop, -10, 'bad', `Shop mới tham gia ${lbl}`);
     else if (jm < 12) add(shop, -3, 'warn', `Shop tham gia ${lbl}`);
     else add(shop, jm >= 24 ? 4 : 2, 'ok', `Shop hoạt động ${lbl}`);
+  }
+  if (info.shopStar) {
+    if (info.shopStar >= 4.8) add(shop, 5, 'ok', `Shop được chấm ${info.shopStar}★`);
+    else if (info.shopStar < 4.5) add(shop, -8, 'warn', `Shop chỉ được ${info.shopStar}★`);
+    else shop.push({ s: 'ok', t: `Shop được chấm ${info.shopStar}★` });
   }
   if (info.shopRatings != null && !isNaN(info.shopRatings)) {
     if (info.shopRatings >= 10000) add(shop, 4, 'ok', `${fmtN(info.shopRatings)} lượt đánh giá shop`);
