@@ -2345,12 +2345,16 @@
   }
   // Trang đang xem đã được mở lại qua link HaoHao chưa (để khỏi chuyển trang lần nữa)
   const itemKey = () => { const m = location.pathname.match(/-i\.(\d+\.\d+)|\/product\/(\d+\/\d+)|\/product\/(\d+)|\/pdp\/[^/]*?(\d{8,})/); return m ? (m[1] || m[2] || 'tt' + (m[3] || m[4])) : location.pathname; };
+  // Link TikTok của bạn chuyển sang tên miền khác (shop.tiktok.com) nên sessionStorage không theo sang:
+  // ghi tạm vào chrome.storage để trang đích biết "đã qua link HaoHao" (khỏi chuyển lần nữa) và tự mở bảng
+  function markJump(sub) { if (isTikTokItem()) chrome.storage.local.set({ hhJump: { key: itemKey(), sub, at: Date.now() } }).catch(() => {}); }
   function viaHaoHao() { if (HT.hasOurAff(location.href)) return true; try { return sessionStorage.getItem('hh-aff') === itemKey(); } catch { return false; } }
   // Khách tự bấm lấy mã: copy mã rồi mở lại đúng món này qua link tiếp thị (chỉ khi có mã thật cho món này)
   async function useCoupon(p, code) {
     if (code) await copyText(code);
     if (viaHaoHao() || !HT.isAff(p.url)) return say(code ? `Đã copy mã ${code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop');
     try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
+    markJump('');
     goAff(p.url);
   }
   function renderCoupons(L, p) {
@@ -2754,6 +2758,7 @@
     const url = trustTarget();
     if (!viaHaoHao() && HT.isAff(url)) {
       try { sessionStorage.setItem('hh-aff', itemKey()); sessionStorage.setItem('hh-open', itemKey() + '|' + sub); } catch {}
+      markJump(sub);
       return goAff(url);
     }
     ui.bubble.hidden = true; shopSub = sub; openTab('shop');
@@ -3173,7 +3178,12 @@
 
   // ---------- khởi động ----------
   async function load() {
-    const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products', 'couponFeed', 'couponSeen']);
+    const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products', 'couponFeed', 'couponSeen', 'hhJump']);
+    const j = d.hhJump;
+    if (j && j.key === itemKey() && Date.now() - j.at < 120e3) {
+      try { sessionStorage.setItem('hh-aff', j.key); if (j.sub) sessionStorage.setItem('hh-open', j.key + '|' + j.sub); } catch {}
+      chrome.storage.local.remove('hhJump').catch(() => {});
+    }
     couponFeed = d.couponFeed || null; couponSeen = d.couponSeen || []; HT.setTikTok(couponFeed && couponFeed.tiktok);
     products = d.products || [];
     pomo = d.pomo || null; pomoStats = d.pomoStats || {};
