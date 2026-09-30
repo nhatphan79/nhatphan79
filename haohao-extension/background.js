@@ -760,7 +760,7 @@ async function syncCoupons() {
   // link TikTok riêng từng món: chỉ nhận mã sản phẩm là số và link tiktok.com
   const tt = feed.tiktok || {}, links = {};
   for (const [id, u] of Object.entries(tt.links || {}).slice(0, 2000)) if (/^\d{8,}$/.test(id) && /^https:\/\/(vt|vm|www|shop)\.tiktok\.com\//.test(u)) links[id] = u;
-  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links };
+  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links, showcase: /^https:\/\/(www\.|vt\.|vm\.)?tiktok\.com\//.test(tt.showcase || '') ? tt.showcase : '' };
   HT.setTikTok(tiktok);
   await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok } });
   return { ok: true, n: coupons.length };

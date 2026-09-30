@@ -470,6 +470,10 @@
   .fhead { font-size: 12.5px; font-weight: 800; color: #23305E; margin: 2px 2px 8px; }
   .fmore { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
   .otitle { font-size: 12px; color: #23305E; line-height: 1.35; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ttcard { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 8px 12px 10px; padding: 9px 12px; border-radius: 12px; background: linear-gradient(90deg, #111 0%, #2B2B2B 100%); color: #fff; width: calc(100% - 24px); }
+  .ttcard:hover { filter: brightness(1.15); } .ttcard:focus-visible { outline: 3px solid #25F4EE; }
+  .ttcard .ttx { flex: 1; display: flex; flex-direction: column; min-width: 0; } .ttcard b { font-size: 13px; } .ttcard small { font-size: 11px; color: #C9CEDF; }
+  .ttcard .tth { font-size: 12px; font-weight: 800; color: #25F4EE; white-space: nowrap; }
   .osame { font-size: 11px; font-weight: 700; color: #0E9F6E; margin-top: 2px; }
   .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
   .ot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 7px; background: #EEF0F6; color: #5B648A; }
@@ -2110,6 +2114,7 @@
       else if (trust) L.append(trustCard());
       else L.append(el('div', 'optwait', 'HaoHao đang đọc trang… kéo xuống một chút để Shopee tải thông tin shop và đánh giá.'));
       V.append(L);
+      if (isTikTokItem() && !HT.ttLink(location.href)) { const tc = ttCard(); if (tc) V.append(tc); }
       return;
     }
     // trang khác: 🔎 tìm sản phẩm, HaoHao lọc sẵn 3 món đáng mua ngay trong bảng
@@ -2131,6 +2136,15 @@
     if (findState !== my) return;           // đã tìm từ khác
     findState = { ...my, loading: false, error: r && r.ok ? '' : 'fail', total: (r && r.total) || 0, safe: (r && r.safe) || 0, options: (r && r.options) || [] };
     if (tab === 'shop' && !ui.panel.hidden) renderPanel();
+  }
+  // Lối vào trang TikTok của bạn (phòng trưng bày): hàng HaoHao tuyển chọn
+  function ttCard() {
+    const url = HT.ttShowcase(); if (!url) return null;
+    const b = el('button', 'ttcard'); b.setAttribute('aria-label', 'Mở hàng HaoHao tuyển chọn trên TikTok');
+    const tx = el('span', 'ttx'); tx.append(el('b', '', '🛍️ Hàng HaoHao tuyển chọn'), el('small', '', 'Món đã kiểm tra, bán trên TikTok Shop'));
+    b.append(tx, el('span', 'tth', '@' + (HT.TT.creator || 'TikTok') + ' ›'));
+    b.addEventListener('click', () => openDeal(url));
+    return b;
   }
   function renderFind(V) {
     const sr = h(`<form class="row fbox" role="search"><input class="grow" placeholder="🔎 Tìm sản phẩm trên Shopee" aria-label="Tìm sản phẩm" autocomplete="off"><button class="b">Tìm</button></form>`);
@@ -2189,6 +2203,7 @@
       more.append(a1, a2); L.append(more);
     }
     if (L.children.length) V.append(L);
+    const tc = ttCard(); if (tc) V.append(tc);
   }
 
   // ---------- 🔍 Cùng món, shop khác rẻ hơn (Shopee) ----------

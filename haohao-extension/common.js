@@ -229,7 +229,9 @@ HT.AFF = {
 // TikTok Shop không có mã chung cho mọi món: mỗi món có link riêng (vt.tiktok.com/…) lấy từ phòng trưng bày.
 // Danh sách nằm trong coupons.json → "tiktok": { creator: tên TikTok, links: { mã sản phẩm: link } }
 HT.TT = { creator: '', links: {} };
-HT.setTikTok = t => { HT.TT = { creator: (t && t.creator) || '', links: (t && t.links) || {} }; };
+HT.setTikTok = t => { HT.TT = { creator: (t && t.creator) || '', links: (t && t.links) || {}, showcase: (t && t.showcase) || '' }; };
+// trang TikTok của bạn (phòng trưng bày) để giới thiệu hàng tuyển chọn
+HT.ttShowcase = () => HT.TT.showcase || (HT.TT.creator ? 'https://www.tiktok.com/@' + HT.TT.creator : '');
 HT.ttId = url => { const m = String(url || '').match(/\/product\/(\d{8,})|\/pdp\/(?:[^/?#]*\/)?(\d{8,})/); return m ? (m[1] || m[2]) : ''; };
 HT.ttLink = url => HT.shopOf(url) === 'tiktok' ? HT.TT.links[HT.ttId(url)] || '' : '';
 HT.AFF_NOTE = 'Link tiếp thị: HaoHao có thể nhận hoa hồng khi bạn mua, bạn không phải trả thêm.';
