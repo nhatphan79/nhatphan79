@@ -410,7 +410,11 @@
   .tli { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.4; padding: 2px 0; }
   .tli i { font-style: normal; flex: none; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 900; color: #fff; margin-top: 1px; }
   .tli.ok i { background: #1E9E6F; } .tli.warn i { background: #E08A00; } .tli.bad i { background: #E0344B; }
+  .tgo { margin-top: 10px; width: 100%; box-sizing: border-box; text-align: center; }
   .tnote { font-size: 11px; color: #8A91AE; margin-top: 8px; line-height: 1.4; }
+  .buybox { border-radius: 14px; padding: 12px; margin: 6px 0 8px; background: linear-gradient(135deg, #FFF1EE, #FFF8E8); border: 1.5px solid #F7B5A5; }
+  .buybox .bt { font-size: 15px; font-weight: 800; color: #D0391B; }
+  .buybox .big2 { display: block; text-align: center; margin: 10px 0 2px; padding: 10px 12px; font-size: 14px; background: #EE4D2D; }
   .cbox { border-radius: 12px; padding: 10px 12px; margin: 6px 0; background: #FFF6E5; border: 1.5px dashed #F2B544; }
   .cbox .ct { font-size: 12.5px; font-weight: 800; margin-bottom: 6px; }
   .cchips { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -2166,11 +2170,23 @@
     const i = t.search(/Mã Giảm Giá (?:Của )?Shop/i);
     return i < 0 ? [] : HT.parseVouchers(t.slice(i, i + 600));
   }
+  // Trạng thái link tiếp thị của trang đang xem:
+  //   'ours'  = khách đã bấm nút HaoHao để mở lại món này qua link của bạn
+  //   'other' = khách vào từ link tiếp thị của người khác (không được đè lên)
+  //   ''      = khách tự vào, chưa qua link tiếp thị nào
+  const itemKey = () => (location.pathname.match(/-i\.(\d+\.\d+)|\/product\/(\d+\/\d+)/) || [])[1] || location.pathname;
+  function affState() {
+    let mine = ''; try { mine = sessionStorage.getItem('hh-aff'); } catch {}
+    if (mine && mine === itemKey()) return 'ours';
+    const q = location.search + ' ' + document.referrer;
+    if (/utm_medium=affiliates|utm_source=an_|[?&]af_|s\.shopee\.vn|shope\.ee/i.test(q)) return 'other';
+    return '';
+  }
   function renderCoupons(L, p) {
     const shopHere = p ? HT.shopOf(p.url) : (isShopeeShop() ? 'shopee' : '');
     const price = p && p.price;
     const newN = couponNew();
-    const hd = el('div', 'gh', `🎟️ Mã giảm giá${newN ? ` · ${newN} mã mới` : ''}`); L.append(hd);
+    const hd = el('div', 'gh cp', `🎟️ Mã giảm giá${newN ? ` · ${newN} mã mới` : ''}`); L.append(hd);
 
     // 1) mã của shop ngay trên trang
     const pv = pageVouchers();
@@ -2191,8 +2207,32 @@
       L.append(box);
     }
 
-    // 2) kho mã của HaoHao
     const list = (couponFeed ? couponFeed.coupons : []).filter(c => HT.couponLive(c));
+
+    // Trên trang sản phẩm Shopee: 1 nút mua với mã tốt nhất, mở lại đúng món này qua link tiếp thị (chỉ khi khách tự bấm)
+    if (p && shopHere === 'shopee' && isShopeeItem()) {
+      let best = null;
+      for (const c of pv) { const v = HT.couponValue(c, price); if (v && (!best || v > best.v)) best = { c, v, page: true }; }
+      for (const c of list.filter(x => x.shop === 'shopee')) { const v = HT.couponValue(c, price); if (v && (!best || v > best.v)) best = { c, v }; }
+      const box = el('div', 'buybox');
+      box.append(el('div', 'bt', best ? `🛒 Mua món này chỉ còn ≈ ${vnd(price - best.v)}` : '🛒 Mua món này qua HaoHao'));
+      if (best) box.append(el('div', 'cnote', `Dùng mã: ${best.c.code ? best.c.code + ' · ' : ''}${HT.couponLabel(best.c)}${best.page ? ' (mã của shop, bấm Lưu trên trang)' : ''}`));
+      const st = affState();
+      if (st === 'ours') box.append(el('div', 'cfit', '✓ Bạn đang mua qua link HaoHao. Lưu mã rồi đặt hàng như bình thường.'));
+      else if (st === 'other') box.append(el('div', 'cnote', 'Bạn đang mua qua link của người giới thiệu khác, HaoHao giữ nguyên link đó.'));
+      const b = el('button', 'b buy big2', st === 'other' || !HT.isAff(p.url) ? (best && best.c.code ? '🎟️ Copy mã' : '🎟️ Xem cách dùng mã') : best && best.c.code ? '🎟️ Copy mã & mua qua HaoHao' : '🎟️ Dùng mã & mua qua HaoHao');
+      b.addEventListener('click', async () => {
+        if (best && best.c.code) await copyText(best.c.code);
+        if (st === 'ours' || st === 'other' || !HT.isAff(p.url)) { say(best && best.c.code ? `Đã copy mã ${best.c.code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop'); return; }
+        try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
+        location.assign(HT.aff(p.url));
+      });
+      if (st !== 'ours') box.append(b);
+      box.append(el('div', 'cnote', '🔗 ' + HT.AFF_NOTE));
+      L.append(box);
+    }
+
+    // 2) kho mã của HaoHao
     const scored = list.map(c => ({ c, v: shopHere && c.shop === shopHere ? HT.couponValue(c, price) : null }))
       .sort((a, b) => (b.c.shop === shopHere) - (a.c.shop === shopHere) || (b.v || 0) - (a.v || 0) || (couponSeen.includes(a.c.id) - couponSeen.includes(b.c.id)) || new Date(a.c.expires || 8e15) - new Date(b.c.expires || 8e15));
     for (const { c, v } of scored.slice(0, 8)) {
@@ -2212,7 +2252,19 @@
         const cp = el('button', 'b ghost', 'Copy mã'); cp.addEventListener('click', () => copyText(c.code, cp));
         acts.append(code, cp);
       }
-      if (c.url) { const go = el('button', 'b buy', c.code ? 'Dùng ngay' : 'Lấy mã'); go.addEventListener('click', () => { if (c.code) copyText(c.code); openDeal(c.url); }); acts.append(go); }
+      const onItem = p && isShopeeItem() && c.shop === 'shopee';
+      if (c.url || onItem) {
+        const go = el('button', 'b buy', c.code ? 'Dùng ngay' : 'Lấy mã');
+        go.addEventListener('click', async () => {
+          if (c.code) await copyText(c.code);
+          if (!onItem) return openDeal(c.url);
+          const st = affState();
+          if (st === 'ours' || st === 'other' || !HT.isAff(p.url)) return say(c.code ? `Đã copy mã ${c.code}. Dán ở bước thanh toán nhé.` : 'Mở kho mã để lưu mã nhé.', 'happy', '🎟️ Mã giảm giá', 'shop', c.code ? null : [{ label: 'Mở kho mã', fn: () => openDeal(c.url) }]);
+          try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
+          location.assign(HT.aff(p.url));
+        });
+        acts.append(go);
+      }
       card.append(acts); L.append(card);
     }
     if (!scored.length && !pv.length) L.append(el('div', 'empty', 'Chưa có mã mới trong kho HaoHao. Xem nhanh kho mã của các sàn:'));
@@ -2360,6 +2412,11 @@
       const b1 = el('button', 'b buy', '🔎 Tìm ở Shopee Mall'); b1.addEventListener('click', () => openDeal('https://shopee.vn/mall/search?keyword=' + encodeURIComponent(q)));
       const b2 = el('button', 'b ghost', 'Xem ở Tiki'); b2.addEventListener('click', () => openDeal(HT.SHOPS.find(x => x.id === 'tiki').search + encodeURIComponent(q)));
       a.append(b1, b2); c.append(el('div', 'tsec', '💡 An toàn hơn: mua cùng món ở nơi chính hãng'), a);
+    }
+    if (!shopOnly) {
+      const go = el('button', 'b ghost tgo', '🎟️ Xem mã giảm giá cho món này ↓');
+      go.addEventListener('click', () => { const bx = ui.view.querySelector('.buybox') || ui.view.querySelector('.gh.cp'); if (bx) bx.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      c.append(go);
     }
     c.append(el('div', 'tnote', 'Đánh giá tham khảo, dựa trên thông tin công khai trên trang.'));
     return c;
@@ -2786,6 +2843,7 @@
     setTimeout(focusNudge, 2000);
     setTimeout(trackPrice, 3000);
     setTimeout(autoCompare, 4500);
+    setTimeout(() => { if (isShopeeItem() && affState() === 'ours') say('Đã mở món này qua HaoHao. Bấm "Lưu" mã trên trang (hoặc dán mã đã copy) rồi đặt hàng nhé.', 'happy', '🎟️ Sẵn sàng mua', 'shop'); }, 3000);
     let lastHref = location.href;
     setInterval(() => {
       if (!ui) return;
