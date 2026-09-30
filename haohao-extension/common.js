@@ -226,11 +226,17 @@ HT.AFF = {
   shopee: { host: /(^|\.)shopee\.vn$/, link: '{raw}?utm_source=an_17393130606&utm_medium=affiliates&utm_campaign=id_2luevOJq1Sb&utm_content=HaoHao----&mmp_pid=an_17393130606' },
   tiktok: { host: /(^|\.)tiktok\.com$/, link: '' },
 };
+// TikTok Shop không có mã chung cho mọi món: mỗi món có link riêng (vt.tiktok.com/…) lấy từ phòng trưng bày.
+// Danh sách nằm trong coupons.json → "tiktok": { creator: tên TikTok, links: { mã sản phẩm: link } }
+HT.TT = { creator: '', links: {} };
+HT.setTikTok = t => { HT.TT = { creator: (t && t.creator) || '', links: (t && t.links) || {} }; };
+HT.ttId = url => { const m = String(url || '').match(/\/product\/(\d{8,})|\/pdp\/(?:[^/?#]*\/)?(\d{8,})/); return m ? (m[1] || m[2]) : ''; };
+HT.ttLink = url => HT.shopOf(url) === 'tiktok' ? HT.TT.links[HT.ttId(url)] || '' : '';
 HT.AFF_NOTE = 'Link tiếp thị: HaoHao có thể nhận hoa hồng khi bạn mua, bạn không phải trả thêm.';
 HT.shopOf = url => { try { const h = new URL(url).hostname; return Object.keys(HT.AFF).find(k => HT.AFF[k].host.test(h)) || ''; } catch { return ''; } };
 HT.aff = url => {
   const k = HT.shopOf(url); const tpl = k && HT.AFF[k].link;
-  if (!tpl) return url;
+  if (!tpl) return HT.ttLink(url) || url;
   if (tpl.includes('{url}')) return tpl.replace('{url}', encodeURIComponent(url));
   if (tpl.startsWith('{raw}')) {
     // bỏ mã tiếp thị cũ trong link (của người khác) rồi gắn mã của mình
@@ -244,9 +250,11 @@ HT.aff = url => {
   return tpl;
 };
 // link này đã mang mã tiếp thị của mình chưa (vd. mở từ nút Xem của HaoHao)
-HT.hasOurAff = url => { const k = HT.shopOf(url), tpl = k && HT.AFF[k].link; if (!tpl || !tpl.startsWith('{raw}')) return false;
+HT.hasOurAff = url => { const k = HT.shopOf(url), tpl = k && HT.AFF[k].link;
+  if (k === 'tiktok' && HT.TT.creator) { try { return new URL(url).searchParams.get('unique_id') === HT.TT.creator; } catch { return false; } }
+  if (!tpl || !tpl.startsWith('{raw}')) return false;
   try { const u = new URL(url), want = new URLSearchParams(tpl.slice(5).replace(/^\?/, '')); return want.has('utm_source') && u.searchParams.get('utm_source') === want.get('utm_source'); } catch { return false; } };
-HT.isAff = url => { const k = HT.shopOf(url); return !!(k && HT.AFF[k].link); };
+HT.isAff = url => { const k = HT.shopOf(url); return !!(k && HT.AFF[k].link) || !!HT.ttLink(url); };
 HT.SHOPS = [
   { id: 'shopee', label: 'Shopee', search: 'https://shopee.vn/search?keyword=' },
   { id: 'tiktok', label: 'TikTok Shop', search: 'https://www.tiktok.com/search?q=' }

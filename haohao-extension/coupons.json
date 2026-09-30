@@ -8,5 +8,12 @@
       "url": "https://shopee.vn/m/ma-giam-gia"
     }
   ],
-  "coupons": []
+  "coupons": [],
+  "_huong_dan_tiktok": "TikTok: vào phòng trưng bày → sản phẩm → Chia sẻ → Sao chép liên kết (vt.tiktok.com/...). Thêm vào 'links' theo dạng \"mã sản phẩm\": \"link\". Mã sản phẩm là dãy số dài trong link sản phẩm (sau /pdp/ hoặc /product/).",
+  "tiktok": {
+    "creator": "nhimkids79",
+    "links": {
+      "1736498717850503115": "https://vt.tiktok.com/ZS9DRRu7f9fDc-v0h2k/"
+    }
+  }
 }

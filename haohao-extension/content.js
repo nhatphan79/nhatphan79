@@ -3174,7 +3174,7 @@
   // ---------- khởi động ----------
   async function load() {
     const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products', 'couponFeed', 'couponSeen']);
-    couponFeed = d.couponFeed || null; couponSeen = d.couponSeen || [];
+    couponFeed = d.couponFeed || null; couponSeen = d.couponSeen || []; HT.setTikTok(couponFeed && couponFeed.tiktok);
     products = d.products || [];
     pomo = d.pomo || null; pomoStats = d.pomoStats || {};
     ideas = d.ideas || [];
@@ -3186,7 +3186,7 @@
   chrome.storage.onChanged.addListener(async (ch, area) => {
     if (area !== 'local') return;
     if ((ch.couponFeed || ch.couponSeen) && !(ch.rules || ch.settings || ch.todos || ch.watch)) {
-      if (ch.couponFeed) couponFeed = ch.couponFeed.newValue || null;
+      if (ch.couponFeed) { couponFeed = ch.couponFeed.newValue || null; HT.setTikTok(couponFeed && couponFeed.tiktok); }
       if (ch.couponSeen) couponSeen = ch.couponSeen.newValue || [];
       updateBadge();
       if (ch.couponFeed && tab === 'shop' && ui && !ui.panel.hidden) renderPanel();

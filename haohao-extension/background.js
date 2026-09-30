@@ -743,8 +743,9 @@ Nếu là tiếng nước ngoài thì ghi nghĩa tiếng Việt trước. Bắt 
 
 // ---------- 🛒 Mua sắm (Shopee, TikTok Shop): mở link tiếp thị ----------
 // Chỉ mở link tiếp thị khi người dùng tự bấm (nút Mua ngay, So giá, Tìm). Không tự thay link khi đang lướt web.
-function openDeal(url) {
+async function openDeal(url) {
   if (typeof url !== 'string' || !/^https:\/\//.test(url) || MAIL_HOSTS.some(h => url.startsWith(h))) return;
+  const { couponFeed } = await chrome.storage.local.get('couponFeed'); HT.setTikTok(couponFeed && couponFeed.tiktok);
   chrome.tabs.create({ url: HT.aff(url) });
 }
 // ---------- 🎟️ Kho mã giảm giá ----------
@@ -752,11 +753,16 @@ function openDeal(url) {
 async function syncCoupons() {
   let feed = null;
   try { const r = await fetch(HT.COUPON_FEED + '?t=' + Math.floor(Date.now() / 3600e3), { cache: 'no-store' }); if (r.ok) feed = await r.json(); } catch {}
-  if (!feed) { const { couponFeed } = await chrome.storage.local.get('couponFeed'); if (couponFeed && couponFeed.coupons) return { ok: true, cached: true, n: couponFeed.coupons.length }; }
+  if (!feed) { const { couponFeed } = await chrome.storage.local.get('couponFeed'); if (couponFeed && couponFeed.coupons && couponFeed.tiktok) { HT.setTikTok(couponFeed.tiktok); return { ok: true, cached: true, n: couponFeed.coupons.length }; } }
   if (!feed) { try { feed = await (await fetch(chrome.runtime.getURL('coupons.json'))).json(); } catch { return { ok: false }; } }
   const coupons = (feed.coupons || []).filter(c => c && c.id && HT.couponLive(c)).slice(0, 200);
   const hubs = (feed.hubs || []).filter(h => h && /^https:\/\//.test(h.url)).slice(0, 12);
-  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs } });
+  // link TikTok riêng từng món: chỉ nhận mã sản phẩm là số và link tiktok.com
+  const tt = feed.tiktok || {}, links = {};
+  for (const [id, u] of Object.entries(tt.links || {}).slice(0, 2000)) if (/^\d{8,}$/.test(id) && /^https:\/\/(vt|vm|www|shop)\.tiktok\.com\//.test(u)) links[id] = u;
+  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links };
+  HT.setTikTok(tiktok);
+  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok } });
   return { ok: true, n: coupons.length };
 }
 
