@@ -2654,7 +2654,7 @@
     if (!p || !p.price) return null;
     let best = null;
     for (const c of pageVouchers()) { const v = HT.couponValue(c, p.price); if (v && (!best || v > best.v)) best = { c, v }; }
-    for (const c of (couponFeed ? couponFeed.coupons : []).filter(x => x.shop === 'shopee' && HT.couponLive(x))) { const v = HT.couponValue(c, p.price); if (v && (!best || v > best.v)) best = { c, v }; }
+    for (const c of (couponFeed ? couponFeed.coupons : []).filter(x => x.shop === (isTikTokItem() ? 'tiktok' : 'shopee') && HT.couponLive(x))) { const v = HT.couponValue(c, p.price); if (v && (!best || v > best.v)) best = { c, v }; }
     return best;
   }
   // Bong bóng kết quả kiểm tra: nằm yên trên trang Shopee, chỉ tắt khi khách bấm ✕
