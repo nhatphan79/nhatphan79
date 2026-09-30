@@ -346,5 +346,87 @@ HT.priceVerdict = (history, now = Date.now()) => {
   return { cls: 'ok', text: 'Giá bình thường' };
 };
 
+// ---------- 🛡️ Kiểm tra sản phẩm & shop (Shopee) ----------
+// Số kiểu Shopee: "2,3k" = 2300, "1,2tr" = 1.200.000, "10k+" = 10000, "1.234" = 1234
+HT.num = s => {
+  const m = String(s || '').toLowerCase().replace(/\s/g, '').match(/^([\d.,]+)(k|tr|triệu|m)?\+?$/);
+  if (!m) return NaN;
+  let x = m[1];
+  if (m[2]) x = x.replace(',', '.'); else x = x.replace(/[.,](?=\d{3}(\D|$))/g, '').replace(',', '.');
+  return Math.round(parseFloat(x) * (m[2] === 'k' ? 1e3 : m[2] ? 1e6 : 1));
+};
+// "5 năm trước" → 60, "3 tháng trước" → 3, "20 ngày trước" → 0.7
+HT.monthsAgo = s => {
+  const m = String(s || '').toLowerCase().match(/(\d+)\s*(năm|tháng|tuần|ngày|giờ|phút)/);
+  if (!m) return NaN;
+  return +m[1] * { 'năm': 12, 'tháng': 1, 'tuần': 0.25, 'ngày': 1 / 30, 'giờ': 0, 'phút': 0 }[m[2]];
+};
+const fmtN = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + 'tr' : n >= 1e3 ? (n / 1e3).toFixed(1).replace('.0', '') + 'k' : String(n);
+// info: { rating, ratingCount, dist: {5,4,3,2,1}, sold, photos, dupReviews, mall, preferred, responseRate, responseTime, joinedMonths, shopRatings, followers, shipFrom, price, marketPrice }
+HT.trustScore = info => {
+  let sc = 60; const product = [], shop = [];
+  const add = (list, pts, s, t) => { sc += pts; list.push({ s, t }); };
+  const n = info.ratingCount, r = info.rating;
+  // --- sản phẩm ---
+  if (!n) add(product, -15, 'bad', 'Chưa có đánh giá nào, chưa ai kiểm chứng');
+  else {
+    if (r >= 4.95 && n < 50) add(product, -5, 'warn', `${r}★ nhưng chỉ ${n} đánh giá, điểm cao bất thường`);
+    else if (r >= 4.8) add(product, n >= 50 ? 10 : 4, 'ok', `${r}★ từ ${fmtN(n)} đánh giá`);
+    else if (r >= 4.5) add(product, 5, 'ok', `${r}★ từ ${fmtN(n)} đánh giá`);
+    else if (r >= 4) add(product, -3, 'warn', `Chỉ ${r}★ (${fmtN(n)} đánh giá), thấp hơn mặt bằng Shopee`);
+    else add(product, r < 3.5 ? -25 : -15, 'bad', `Điểm thấp: ${r}★ (${fmtN(n)} đánh giá)`);
+    if (n < 20) add(product, -10, 'warn', 'Ít đánh giá, chưa đủ để tin');
+    else if (n >= 1000) add(product, 8, 'ok', 'Rất nhiều người đã mua và đánh giá');
+    else if (n >= 100) add(product, 4, 'ok', 'Đủ nhiều đánh giá để tham khảo');
+  }
+  const d = info.dist, tot = d ? [1, 2, 3, 4, 5].reduce((a, k) => a + (d[k] || 0), 0) : 0;
+  if (tot >= 20) {
+    const low = ((d[1] || 0) + (d[2] || 0)) / tot;
+    if (low >= 0.1) add(product, -12, 'bad', `${Math.round(low * 100)}% đánh giá 1–2★, nhiều người không hài lòng`);
+    else if (low >= 0.05) add(product, -5, 'warn', `${Math.round(low * 100)}% đánh giá 1–2★`);
+    else add(product, 3, 'ok', `Chỉ ${Math.round(low * 100)}% đánh giá 1–2★`);
+  }
+  if (info.photos && n) {
+    if (info.photos / n >= 0.1) add(product, 5, 'ok', `${fmtN(info.photos)} đánh giá có ảnh/video thật`);
+    else if (n >= 100 && info.photos / n < 0.03) add(product, -4, 'warn', 'Rất ít đánh giá có ảnh thật');
+  }
+  if (info.sold > 50 && n && n / info.sold > 0.9) add(product, -6, 'warn', 'Số đánh giá gần bằng số đã bán, có thể có đánh giá ảo');
+  else if (info.sold >= 1000) product.push({ s: 'ok', t: `Đã bán ${fmtN(info.sold)}` });
+  if (info.dupReviews >= 3) add(product, -8, 'bad', `${info.dupReviews} đánh giá giống hệt nhau, nghi đánh giá ảo`);
+  if (info.price && info.marketPrice) {
+    if (info.price < info.marketPrice * 0.6) add(product, -12, 'bad', 'Rẻ bất thường so với sàn khác, cẩn thận hàng giả');
+    else if (info.price <= info.marketPrice * 1.02) add(product, 3, 'ok', 'Giá hợp lý so với sàn khác');
+    else if (info.price > info.marketPrice * 1.15) product.push({ s: 'warn', t: 'Đắt hơn sàn khác, xem bảng so giá bên dưới' });
+  }
+  // --- shop ---
+  if (info.mall) add(shop, 12, 'ok', 'Shopee Mall: hàng chính hãng, được đổi trả');
+  else if (info.preferred) add(shop, 6, 'ok', 'Shop Yêu Thích: bán tốt, ít bị phàn nàn');
+  else shop.push({ s: 'warn', t: 'Shop thường, không phải Mall hay Yêu Thích' });
+  if (info.responseRate != null && !isNaN(info.responseRate)) {
+    if (info.responseRate >= 90) add(shop, 4, 'ok', `Phản hồi ${info.responseRate}%${info.responseTime ? ' ' + info.responseTime : ''}`);
+    else if (info.responseRate < 70) add(shop, -6, 'warn', `Chỉ phản hồi ${info.responseRate}% tin nhắn`);
+    else shop.push({ s: 'ok', t: `Phản hồi ${info.responseRate}%` });
+  }
+  const jm = info.joinedMonths;
+  if (jm != null && !isNaN(jm)) {
+    const lbl = jm >= 12 ? `${Math.floor(jm / 12)} năm` : jm >= 1 ? `${Math.round(jm)} tháng` : 'chưa tới 1 tháng';
+    if (jm < 3) add(shop, -10, 'bad', `Shop mới tham gia ${lbl}`);
+    else if (jm < 12) add(shop, -3, 'warn', `Shop tham gia ${lbl}`);
+    else add(shop, jm >= 24 ? 4 : 2, 'ok', `Shop hoạt động ${lbl}`);
+  }
+  if (info.shopRatings != null && !isNaN(info.shopRatings)) {
+    if (info.shopRatings >= 10000) add(shop, 4, 'ok', `${fmtN(info.shopRatings)} lượt đánh giá shop`);
+    else if (info.shopRatings < 100) add(shop, -5, 'warn', `Shop mới có ${info.shopRatings} lượt đánh giá`);
+  }
+  if (info.followers != null && info.followers < 100) add(shop, -3, 'warn', `Chỉ ${info.followers} người theo dõi shop`);
+  if (info.shipFrom) {
+    if (/nước ngoài|quốc tế|trung quốc|overseas/i.test(info.shipFrom)) add(shop, -4, 'warn', `Hàng gửi từ ${info.shipFrom}: giao lâu, khó đổi trả`);
+    else shop.push({ s: 'ok', t: `Gửi từ ${info.shipFrom}` });
+  }
+  const score = Math.max(0, Math.min(100, Math.round(sc)));
+  const [level, cls] = score >= 80 ? ['Đáng tin', 'good'] : score >= 60 ? ['Khá ổn', 'ok'] : score >= 40 ? ['Cân nhắc', 'warn'] : ['Rủi ro', 'bad'];
+  return { score, level, cls, product, shop };
+};
+
 // cho phép trang khác (xem thử) dùng chung
 if (typeof self !== "undefined") self.HT = HT;

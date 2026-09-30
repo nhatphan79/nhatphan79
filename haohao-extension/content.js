@@ -391,6 +391,26 @@
   .pcard .lb { font-size: 12px; color: #6B7394; font-weight: 700; }
   .cmp { margin-top: 6px; }
   .cmp .ch3 { font-size: 11.5px; font-weight: 800; color: #6B7394; margin-bottom: 4px; }
+  .trust-pill { all: unset; cursor: pointer; position: absolute; left: -14px; top: -8px; z-index: 4; font: 800 12px/1 "Segoe UI", system-ui, sans-serif; color: #fff;
+    padding: 5px 8px; border-radius: 999px; border: 2px solid #fff; box-shadow: 0 3px 8px rgba(35,48,94,.25); background: #6B7394; white-space: nowrap; }
+  .trust-pill.good { background: #1E9E6F; } .trust-pill.ok { background: #2E7DD7; } .trust-pill.warn { background: #E08A00; } .trust-pill.bad { background: #E0344B; }
+  .trust-pill[hidden] { display: none; }
+  .menu-open .trust-pill { opacity: 0; pointer-events: none; }
+  .tcard { border-radius: 14px; padding: 12px; margin: 8px 0; background: #fff; border: 1.5px solid #E3E6F0; --tc: #2E7DD7; }
+  .tcard.good { --tc: #1E9E6F; background: #F2FBF7; border-color: #BFE6D6; } .tcard.warn { --tc: #E08A00; background: #FFF9EE; border-color: #F5DDB0; }
+  .tcard.bad { --tc: #E0344B; background: #FFF4F5; border-color: #F6C3CA; } .tcard.ok { background: #F4F8FF; border-color: #C9DCF7; }
+  .ttop { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .tring { width: 54px; height: 54px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    background: radial-gradient(closest-side, #fff 76%, transparent 78% 100%), conic-gradient(var(--tc) calc(var(--v) * 1%), #E6E9F2 0); }
+  .tring b.k3 { font-size: 15px !important; }
+  .tring b { font: 800 18px/1 "Segoe UI", system-ui, sans-serif; color: var(--tc); }
+  .tlv { font-size: 17px; font-weight: 800; color: var(--tc); }
+  .tsub { font-size: 11.5px; color: #6B7394; }
+  .tsec { font-size: 12px; font-weight: 800; color: #3A4470; margin: 10px 0 4px; }
+  .tli { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.4; padding: 2px 0; }
+  .tli i { font-style: normal; flex: none; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 900; color: #fff; margin-top: 1px; }
+  .tli.ok i { background: #1E9E6F; } .tli.warn i { background: #E08A00; } .tli.bad i { background: #E0344B; }
+  .tnote { font-size: 11px; color: #8A91AE; margin-top: 8px; line-height: 1.4; }
   .ptable { display: flex; flex-direction: column; border: 1.5px solid #F1E2E6; border-radius: 12px; overflow: hidden; background: #fff; }
   .pr { display: grid; grid-template-columns: 78px 1fr 46px; align-items: center; gap: 8px; padding: 7px 10px; font-size: 12.5px; border-top: 1px solid #F4EEF0; }
   .pr:first-child { border-top: 0; }
@@ -1957,7 +1977,7 @@
       const title = ((document.querySelector('h1') || {}).innerText || document.title).trim();
       if (price) p = { title: title.slice(0, 150), price };
     }
-    if (p && p.title) p.url = cleanUrl(location.href);
+    if (p && p.title) { p.title = p.title.replace(/^\s*(Yêu thích\+?|Mall|Shopee Mall|Chính hãng)\s*/i, '').trim(); p.url = cleanUrl(location.href); }
     return p && p.title ? p : null;
   }
   function trackPrice() {   // mỗi lần mở lại trang sản phẩm đã lưu: ghi giá, báo nếu đạt mức
@@ -2034,6 +2054,7 @@
     // sản phẩm trên trang đang xem (có bảng giá các sàn thì không cần dòng tìm giá rẻ nhất)
     const p = detectProduct();
     V.append(sr); if (!p) V.append(bar);
+    if (isShopeeItem() && settings.shopTrust !== false) { analyzeShopee(true); if (trust) L.append(trustCard()); }
     if (p) {
       const saved = products.find(x => x.url === p.url);
       const card = el('div', 'pcard');
@@ -2134,6 +2155,120 @@
     L.append(vc);
     V.append(L);
     V.append(el('div', 'affnote', HT.AFF_NOTE));
+  }
+
+  // ---------- 🛡️ Kiểm tra sản phẩm & shop trên Shopee ----------
+  // Đọc theo chữ hiện trên trang (không theo mã ẩn của Shopee) để ít hỏng khi Shopee đổi giao diện.
+  const isShopeeItem = () => /(^|\.)shopee\.vn$/.test(location.hostname) && /-i\.\d+\.\d+|\/product\/\d+\/\d+/.test(location.pathname);
+  let trust = null, trustUrl = '', trustLen = 0;
+  const NUMK = '([\\d.,]+\\s*(?:k|tr)?\\+?)';
+  function readShopee() {
+    const raw = document.body.innerText || '';
+    const t = raw.replace(/\s+/g, ' ');
+    const lines = raw.split('\n').map(x => x.trim()).filter(Boolean);
+    const m = (re, i = 1) => { const x = t.match(re); return x ? x[i] : null; };
+    const info = {};
+    // dòng đầu sản phẩm: "4.8 16,1k Đánh Giá Đã Bán 60k+"
+    const head = t.match(new RegExp('(\\d[.,]\\d)[\\s★☆]+' + NUMK + '\\s*Đánh Giá', 'i'));
+    if (head) { info.rating = parseFloat(head[1].replace(',', '.')); info.ratingCount = HT.num(head[2]); }
+    info.sold = HT.num(m(new RegExp('Đã Bán\\s*' + NUMK, 'i')));
+    // JSON-LD (nếu có) bổ sung khi chưa đọc được
+    for (const sc of document.querySelectorAll('script[type="application/ld+json"]')) {
+      try {
+        const arr = [].concat((j => j['@graph'] || j)(JSON.parse(sc.textContent)));
+        const ar = (arr.find(x => x && x.aggregateRating) || {}).aggregateRating;
+        if (ar) { info.rating = info.rating || parseFloat(ar.ratingValue); info.ratingCount = info.ratingCount || HT.num(String(ar.ratingCount || ar.reviewCount || '')); }
+      } catch {}
+    }
+    // nhãn Mall / Yêu thích nằm ngay trước tên sản phẩm
+    const hi = head ? t.indexOf(head[0]) : -1, near = hi > 0 ? t.slice(Math.max(0, hi - 400), hi) : '';
+    info.preferred = /Yêu thích\+?/i.test(near);
+    info.mall = /\bMall\b/.test(near) || !!document.querySelector('h1 img[alt*="mall" i], [class*="official" i] img[alt*="mall" i]');
+    // phần đánh giá: "5 Sao (15,2k) … Có Hình Ảnh / Video (3,2k)"
+    const dist = {}; let dn = 0;
+    for (const x of t.matchAll(/([1-5]) Sao\s*\(([\d.,]+\s*(?:k|tr)?)\)/gi)) { dist[x[1]] = HT.num(x[2]); dn++; }
+    if (dn >= 3) info.dist = dist;
+    info.photos = HT.num(m(/Có Hình Ảnh\s*\/\s*Video\s*\(([\d.,]+\s*(?:k|tr)?)\)/i));
+    const avg = m(/(\d[.,]\d)\s*trên\s*5/i); if (avg && !info.rating) info.rating = parseFloat(avg.replace(',', '.'));
+    if (!info.ratingCount && info.dist) info.ratingCount = Object.values(dist).reduce((a, b) => a + b, 0);
+    // thông tin shop: "Đánh Giá 45,2k Tỉ Lệ Phản Hồi 98% Tham Gia 5 năm trước … Người Theo Dõi 120k"
+    const rr = m(/Tỉ Lệ Phản Hồi\s*(\d{1,3})\s*%/i); if (rr) info.responseRate = +rr;
+    info.responseTime = m(/Thời Gian Phản Hồi\s*(trong (?:vài )?(?:phút|giờ|ngày)(?: lát)?)/i) || '';
+    const jg = m(/Tham Gia\s*(\d+\s*(?:năm|tháng|tuần|ngày|giờ)\s*trước)/i); if (jg) info.joinedMonths = HT.monthsAgo(jg);
+    const fl = m(new RegExp('Người Theo Dõi\\s*' + NUMK, 'i')); if (fl) info.followers = HT.num(fl);
+    const sr = m(new RegExp('Đánh Giá\\s*' + NUMK + '\\s*(?:Tỉ Lệ Phản Hồi|Tham Gia|Sản Phẩm)', 'i')); if (sr) info.shopRatings = HT.num(sr);
+    // chi tiết sản phẩm: "Gửi từ" → dòng sau
+    const gi = lines.findIndex(l => /^Gửi từ$/i.test(l));
+    info.shipFrom = gi >= 0 ? lines[gi + 1] : (m(/Gửi từ\s*(Nước ngoài|[A-ZĐ][\p{L}. ]{2,25}?)(?=\s[A-ZĐ][\p{L}]+\s|$)/iu) || '');
+    if (info.shipFrom && info.shipFrom.length > 30) info.shipFrom = '';
+    // đánh giá giống hệt nhau (nghi ảo): chỉ xét câu đủ dài, bỏ dòng thông tin kiểu "Chất liệu: …"
+    const ri = lines.findIndex(l => /^ĐÁNH GIÁ SẢN PHẨM$/i.test(l));
+    if (ri >= 0) {
+      const cnt = {};
+      for (const l of lines.slice(ri, ri + 400)) {
+        if (l.length < 15 || l.length > 300 || l.split(' ').length < 4 || /\||\d{4}-\d{2}-\d{2}|^Phân loại|Sao \(|Hữu ích/i.test(l) || /^[^:]{1,30}:/.test(l)) continue;
+        const k = HT.fold(l); cnt[k] = (cnt[k] || 0) + 1;
+      }
+      info.dupReviews = Math.max(0, ...Object.values(cnt));
+      info.reviewsLoaded = true;
+    }
+    const p = detectProduct(); if (p) info.price = p.price;
+    const mk = cmpState.url === cleanUrl(location.href) && cmpState.res ? cmpState.res.items.filter(x => x.match === 'model').map(x => x.price) : [];
+    if (mk.length) info.marketPrice = Math.min(...mk);
+    return info;
+  }
+  function analyzeShopee(inRender) {
+    if (settings.shopTrust === false || !isShopeeItem()) { if (trust) { trust = null; trustPill(); } return; }
+    const len = (document.body.textContent || '').length;
+    if (trustUrl === location.href && Math.abs(len - trustLen) < 200) return;
+    const info = readShopee();
+    if (!info.rating && !info.ratingCount && !info.sold) return;   // trang chưa tải xong
+    const first = trustUrl !== location.href;
+    trustUrl = location.href; trustLen = len;
+    trust = { ...HT.trustScore(info), info };
+    trustPill();
+    if (!inRender && tab === 'shop' && ui && !ui.panel.hidden && !(ui.root.activeElement && /INPUT/.test(ui.root.activeElement.tagName))) renderPanel();
+    if (first && !inRender && trust.score < 60) {
+      const why = [...trust.shop, ...trust.product].find(x => x.s === 'bad') || [...trust.shop, ...trust.product].find(x => x.s === 'warn');
+      say(why ? why.t : 'Có vài dấu hiệu cần cân nhắc.', 'alert', `🛡️ ${trust.score}/100 · ${trust.level}`, 'shop',
+        [{ label: 'Xem kiểm tra', fn: () => openTab('shop') }, { label: 'Bỏ qua', ghost: true, fn: () => {} }]);
+    }
+  }
+  function trustPill() {
+    if (!ui) return;
+    let pl = ui.root.querySelector('.trust-pill');
+    if (!trust) { if (pl) pl.hidden = true; return; }
+    if (!pl) {
+      pl = el('button', 'trust-pill'); pl.addEventListener('click', () => openTab('shop'));
+      ui.wrap.append(pl);
+    }
+    pl.hidden = false; pl.className = 'trust-pill ' + trust.cls;
+    pl.textContent = `🛡️ ${trust.score}`; pl.title = `Kiểm tra sản phẩm & shop: ${trust.score}/100 · ${trust.level}. Bấm để xem`;
+  }
+  function trustCard() {
+    const c = el('div', 'tcard ' + trust.cls);
+    const top = el('div', 'ttop');
+    const ring = el('div', 'tring'); ring.style.setProperty('--v', trust.score); ring.append(el('b', trust.score >= 100 ? 'k3' : '', trust.score));
+    const tx = el('div'); tx.append(el('div', 'tlv', trust.level), el('div', 'tsub', 'Điểm tin cậy sản phẩm & shop'));
+    top.append(ring, tx); c.append(top);
+    const sec = (title, list) => {
+      if (!list.length) return;
+      c.append(el('div', 'tsec', title));
+      for (const x of list) { const r = el('div', 'tli ' + x.s); r.append(el('i', '', x.s === 'ok' ? '✓' : x.s === 'warn' ? '!' : '✕'), el('span', '', x.t)); c.append(r); }
+    };
+    sec('📦 Chất lượng sản phẩm', trust.product);
+    if (!trust.info.reviewsLoaded) c.append(el('div', 'tnote', '👇 Kéo xuống phần Đánh giá sản phẩm để HaoHao đọc thêm (tỉ lệ sao, đánh giá có ảnh, đánh giá ảo).'));
+    sec('🏪 Uy tín shop', trust.shop);
+    if (trust.info.responseRate == null && trust.info.joinedMonths == null) c.append(el('div', 'tnote', '👇 Kéo xuống phần thông tin shop để HaoHao chấm uy tín shop.'));
+    if (trust.score < 60) {
+      const q = HT.cleanTitle((detectProduct() || {}).title || document.title).split(' ').slice(0, 8).join(' ');
+      const a = el('div', 'line');
+      const b1 = el('button', 'b buy', '🔎 Tìm ở Shopee Mall'); b1.addEventListener('click', () => openDeal('https://shopee.vn/mall/search?keyword=' + encodeURIComponent(q)));
+      const b2 = el('button', 'b ghost', 'Xem ở Tiki'); b2.addEventListener('click', () => openDeal(HT.SHOPS.find(x => x.id === 'tiki').search + encodeURIComponent(q)));
+      a.append(b1, b2); c.append(el('div', 'tsec', '💡 An toàn hơn: mua cùng món ở nơi chính hãng'), a);
+    }
+    c.append(el('div', 'tnote', 'Đánh giá tham khảo, dựa trên thông tin công khai trên trang.'));
+    return c;
   }
 
   // ---------- 🔎 Tìm kiếm chung ----------
@@ -2549,6 +2684,16 @@
     setTimeout(focusNudge, 2000);
     setTimeout(trackPrice, 3000);
     setTimeout(autoCompare, 4500);
+    let lastHref = location.href;
+    setInterval(() => {
+      if (!ui) return;
+      if (location.href !== lastHref) {
+        lastHref = location.href; trust = null; trustPill();
+        setTimeout(trackPrice, 2500); setTimeout(autoCompare, 3500);
+        if (tab === 'shop' && !ui.panel.hidden) setTimeout(renderPanel, 2600);
+      }
+      if (document.visibilityState === 'visible') analyzeShopee();
+    }, 2500);
   });
   // có việc sắp tới giờ trong lúc đang mở trang thì cũng nhắc nhẹ
   setInterval(() => { if (document.visibilityState === 'visible') greet(); }, 5 * 60e3);
