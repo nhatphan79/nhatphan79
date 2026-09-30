@@ -150,6 +150,7 @@ $('#clearLog').addEventListener('click', () => chrome.storage.local.set({ log: [
 
 // ---------- cài đặt chung ----------
 function renderSettings() {
+  $('#lang').value = settings.lang === 'en' ? 'en' : 'vi';
   $('#mascotEnabled').checked = settings.mascotEnabled !== false;
   $('#greet').checked = settings.greet !== false;
   $('#desktop').checked = settings.desktop !== false;
@@ -165,6 +166,7 @@ function renderSettings() {
     L.append(li);
   }
 }
+$('#lang').addEventListener('change', e => { settings.lang = e.target.value; saveSettings(); });   // trang tự tải lại theo ngôn ngữ mới
 $('#mascotEnabled').addEventListener('change', e => { settings.mascotEnabled = e.target.checked; saveSettings(); });
 $('#desktop').addEventListener('change', e => { settings.desktop = e.target.checked; saveSettings(); });
 $('#sound').addEventListener('change', e => { settings.sound = e.target.checked; saveSettings(); });

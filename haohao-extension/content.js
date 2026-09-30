@@ -596,6 +596,7 @@
     }
     const host = document.createElement('div'); host.id = 'hattieu-host';
     const root = host.attachShadow({ mode: 'open' });
+    HT.i18nWatch(root);          // giao diện tiếng Anh (nếu đã chọn English)
     const sats = BRANCHES.map(b => `<button class="sat" data-b="${b.id}" style="--c:${b.color}" aria-label="Mở ${b.label}" tabindex="-1">
         <svg viewBox="0 0 24 24" aria-hidden="true">${b.menuIcon || b.icon}</svg><b>${b.label}</b><span class="n" hidden></span></button>`).join('');
     const tabs = BRANCHES.map(b => `<button role="tab" data-t="${b.id}" style="--c:${b.color}" title="${b.label}" aria-label="${b.label}"><svg viewBox="0 0 24 24" aria-hidden="true">${b.icon}</svg><span>${b.label}</span></button>`).join('');
@@ -3317,6 +3318,7 @@
     mailStatus = d.mailStatus || null; msAccount = d.msAccount || '';
     rules = d.rules || []; todos = d.todos || []; watch = d.watch || [];
     settings = { mascotEnabled: true, hiddenSites: [], ...(d.settings || {}) };
+    HT.setLang(settings.lang);
   }
 
   chrome.storage.onChanged.addListener(async (ch, area) => {
@@ -3354,9 +3356,11 @@
     const wasActive = active();
     const onlyPos = ch.settings && !ch.rules &&
       JSON.stringify({ ...ch.settings.newValue, pos: 0 }) === JSON.stringify({ ...(ch.settings.oldValue || {}), pos: 0 });
+    const langWas = HT.lang;
     await load();
     if (!active()) { destroyUI(); return; }
     if (!ui) { buildUI(); return; }
+    if (HT.lang !== langWas) { destroyUI(); buildUI(); return; }   // đổi ngôn ngữ: vẽ lại toàn bộ
     if (onlyPos) { placeWrap(); return; }
     if (ch.watch || ch.rules) loadQuotes();
     renderPanel();

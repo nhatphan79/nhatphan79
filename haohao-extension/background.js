@@ -1,5 +1,18 @@
 // © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
-importScripts('common.js');
+importScripts('common.js', 'i18n.js');
+
+// ngôn ngữ giao diện (vi mặc định / en) cho thông báo, menu chuột phải và câu trả lời của Gemini
+const loadLang = async () => { const { settings = {} } = await chrome.storage.local.get('settings'); HT.setLang(settings.lang); return HT.lang; };
+chrome.storage.onChanged.addListener((ch, area) => {
+  if (area === 'local' && ch.settings && ((ch.settings.newValue || {}).lang || 'vi') !== ((ch.settings.oldValue || {}).lang || 'vi')) { HT.setLang((ch.settings.newValue || {}).lang); makeMenus(); }
+});
+// thông báo của Chrome: dịch tiêu đề / nội dung / nút khi đang dùng tiếng Anh
+async function notifyTr(id, opt) {
+  await loadLang();
+  const o = { ...opt, title: HT.tr(opt.title || ''), message: HT.tr(opt.message || '') };
+  if (opt.buttons) o.buttons = opt.buttons.map(b => ({ ...b, title: HT.tr(b.title) }));
+  return chrome.notifications.create(id, o);
+}
 
 const DEFAULT_RULES = [
   { id: 'r3', type: 'price', name: 'BTC vượt 120k', enabled: false, source: 'coingecko', coin: 'bitcoin', op: 'above', value: 120000 },
@@ -173,7 +186,7 @@ async function fire(r, text, mood, extra = {}) {
     const { notifUrl = {} } = await chrome.storage.session.get('notifUrl');
     notifUrl[nid] = extra.url; await chrome.storage.session.set({ notifUrl });
   }
-  chrome.notifications.create(nid, opt);
+  notifyTr(nid, opt);
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: 'ht-alert', title: r.name, text, mood, kind: r.type, ruleId: r.id, url: extra.url, next: extra.next, end: extra.end, task: extra.task }).catch(() => {});
 }
@@ -486,6 +499,7 @@ async function gemini(contents, system, opts = {}) {
   const key = (ai.key || '').trim();
   if (!key) throw new Error('nokey');
   let model = (ai.model || ai.autoModel || GEMINI_DEFAULT).trim();
+  if (settings.lang === 'en' && system !== TR_SYS) system += '\nIMPORTANT: The user interface is in English. Write the whole answer in English, even if other instructions say Vietnamese.';
   const gen = { temperature: opts.temperature ?? 0.4, maxOutputTokens: opts.maxTokens || 4096 };
   if (opts.video) gen.mediaResolution = 'MEDIA_RESOLUTION_LOW';                                  // video đỡ tốn lượt
   if (opts.json) gen.responseMimeType = 'application/json';
@@ -729,16 +743,17 @@ async function quickRemind(text) {
 }
 
 // ---------- Menu chuột phải ----------
-function makeMenus() {
+async function makeMenus() {
+  await loadLang();
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({ id: 'hh', title: '🐹 HaoHao', contexts: ['selection', 'page'] });
-    chrome.contextMenus.create({ id: 'hh-remind', parentId: 'hh', title: '🔔 Nhắc tôi: “%s”', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'hh-note', parentId: 'hh', title: '📝 Lưu Note', contexts: ['selection', 'page'] });
-    chrome.contextMenus.create({ id: 'hh-todo', parentId: 'hh', title: '☑️ Thêm vào Todo', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'hh-translate', parentId: 'hh', title: '🌐 Dịch', contexts: ['selection', 'page'] });
-    chrome.contextMenus.create({ id: 'hh-explain', parentId: 'hh', title: '💡 Giải thích', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'hh-shop', parentId: 'hh', title: '🛒 Tìm trên Shopee: “%s”', contexts: ['selection'] });
-    chrome.contextMenus.create({ id: 'hh-summary', parentId: 'hh', title: '✨ Tóm tắt trang này', contexts: ['page', 'selection'] });
+    chrome.contextMenus.create({ id: 'hh', title: HT.tr('🐹 HaoHao'), contexts: ['selection', 'page'] });
+    chrome.contextMenus.create({ id: 'hh-remind', parentId: 'hh', title: HT.tr('🔔 Nhắc tôi: “%s”'), contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'hh-note', parentId: 'hh', title: HT.tr('📝 Lưu Note'), contexts: ['selection', 'page'] });
+    chrome.contextMenus.create({ id: 'hh-todo', parentId: 'hh', title: HT.tr('☑️ Thêm vào Todo'), contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'hh-translate', parentId: 'hh', title: HT.tr('🌐 Dịch'), contexts: ['selection', 'page'] });
+    chrome.contextMenus.create({ id: 'hh-explain', parentId: 'hh', title: HT.tr('💡 Giải thích'), contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'hh-shop', parentId: 'hh', title: HT.tr('🛒 Tìm trên Shopee: “%s”'), contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'hh-summary', parentId: 'hh', title: HT.tr('✨ Tóm tắt trang này'), contexts: ['page', 'selection'] });
   });
 }
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -747,7 +762,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'hh-remind' && sel) {
     const r = await quickRemind(sel);
     const when = r.due ? new Date(r.due).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', weekday: 'short', day: '2-digit', month: '2-digit' }) : '';
-    chrome.notifications.create('hr' + Date.now(), { type: 'basic', iconUrl: 'icons/icon128.png', title: '🐹 Đã đặt nhắc',
+    notifyTr('hr' + Date.now(), { type: 'basic', iconUrl: 'icons/icon128.png', title: '🐹 Đã đặt nhắc',
       message: when ? `${when}: ${r.item.text}` : `Đã thêm "${r.item.text}" vào Todo. Chưa thấy giờ trong câu, bạn bấm ⏰ để hẹn giờ nhé.` });
     toTab({ type: 'hh-open', tab: 'bell' });
   }
