@@ -285,8 +285,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
   if (msg.type === 'same-find') { sameFind(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
-  if (msg.type === 'scan-me') { const job = scanJobs.get(sender.tab && sender.tab.id); send(job ? { scan: true } : { scan: false }); return; }
-  if (msg.type === 'scan-result') { const job = scanJobs.get(sender.tab && sender.tab.id); if (job) job.done(msg.items || []); return; }
+  if (msg.type === 'scan-me') { const job = scanJobs.get(sender.tab && sender.tab.id); send({ scan: job ? job.type : false }); return; }
+  if (msg.type === 'scan-result') { const job = scanJobs.get(sender.tab && sender.tab.id); if (job) job.done(msg.result); return; }
   if (msg.type === 'get-quotes') { getQuotes(msg.items || []).then(send); return true; }
 });
 
@@ -776,22 +776,47 @@ async function syncCoupons() {
 }
 
 // ---------- 🔍 Tìm cùng món ở shop khác trên Shopee ----------
-// Shopee không cho đọc từ nền, nên mở trang tìm kiếm Shopee (sắp theo giá) ở 1 tab ẩn,
-// để HaoHao trên trang đó đọc danh sách sản phẩm rồi gửi về, xong đóng tab.
+// Shopee không cho đọc từ nền, nên dùng 1 tab ẩn: mở trang tìm kiếm (sắp theo giá) để lấy danh sách,
+// rồi mở lần lượt vài sản phẩm rẻ hơn để đọc tên shop và chấm điểm kiểm tra, xong đóng tab.
 const scanJobs = new Map();
-async function sameFind({ q, key }, sender) {
-  const ck = 'same:' + key, cache = (await chrome.storage.session.get(ck))[ck];
-  if (cache && Date.now() - cache.at < 20 * 60e3) return { ok: true, items: cache.items, cached: true };
-  const opener = sender.tab || {};
-  // mở tab trống trước, ghi nhận việc cần làm, rồi mới tải trang tìm kiếm (để trang không chạy trước khi kịp ghi nhận)
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
-  const items = await new Promise(resolve => {
-    const t = setTimeout(() => { scanJobs.delete(tab.id); resolve(null); }, 30000);
-    scanJobs.set(tab.id, { done: list => { clearTimeout(t); scanJobs.delete(tab.id); resolve(list); } });
-    chrome.tabs.update(tab.id, { url: HT.shopeeSearchUrl(q) });
+function scanIn(tabId, url, type, ms) {
+  return new Promise(resolve => {
+    const t = setTimeout(() => { scanJobs.delete(tabId); resolve(null); }, ms);
+    scanJobs.set(tabId, { type, done: r => { clearTimeout(t); scanJobs.delete(tabId); resolve(r); } });
+    chrome.tabs.update(tabId, { url });
   });
-  chrome.tabs.remove(tab.id).catch(() => {});
-  if (!items) return { ok: false, error: 'timeout' };
-  await chrome.storage.session.set({ [ck]: { at: Date.now(), items } });
-  return { ok: true, items };
+}
+async function sameFind({ q, key, title, price }, sender) {
+  const ck = 'same2:' + key, cache = (await chrome.storage.session.get(ck))[ck];
+  if (cache && Date.now() - cache.at < 20 * 60e3) return { ...cache, cached: true };
+  const opener = sender.tab || {};
+  // tab trống trước, ghi nhận việc rồi mới tải trang (để trang không chạy trước khi kịp ghi nhận)
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
+  try {
+    const list = await scanIn(tab.id, HT.shopeeSearchUrl(q), 'search', 30000);
+    if (!list) return { ok: false, error: 'timeout' };
+    const same = list.filter(x => x.key !== key).map(x => ({ ...x, sim: HT.titleSim(title, x.title) })).filter(x => x.sim >= 0.55 && x.price >= price * 0.4);
+    const cheaper = same.filter(x => x.price < price * 0.99).sort((a, b) => a.price - b.price);
+    // ứng viên: 2 món rẻ nhất + 2 món có dấu hiệu uy tín nhất (Mall, Yêu thích, bán nhiều)
+    const rep = x => (x.mall ? 3 : x.preferred ? 2 : 0) + (x.sold >= 1000 ? 1 : 0) + (x.rating >= 4.8 ? 1 : 0);
+    const cands = [...new Map([...cheaper.slice(0, 2), ...[...cheaper].sort((a, b) => rep(b) - rep(a) || a.price - b.price).slice(0, 2)].map(x => [x.key, x])).values()];
+    const checked = [];
+    for (const c of cands) {
+      const r = await scanIn(tab.id, c.url, 'item', 20000);
+      const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
+      const ts = HT.trustScore(info);
+      checked.push({ key: c.key, url: c.url, title: c.title, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
+        rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info) });
+    }
+    // 3 lựa chọn: đáng mua nhất (rẻ nhất trong shop điểm cao), rẻ nhất, uy tín nhất
+    const byPrice = [...checked].sort((a, b) => a.price - b.price), byScore = [...checked].sort((a, b) => b.score - a.score || a.price - b.price);
+    const best = byPrice.find(x => x.score >= 75) || byScore[0];
+    const picks = [];
+    const add = (x, tag) => { if (!x) return; const o = picks.find(y => y.key === x.key); if (o) { if (tag && !o.tags.includes(tag)) o.tags.push(tag); } else picks.push({ ...x, tags: tag ? [tag] : [] }); };
+    add(best, 'best'); add(byPrice[0], 'cheap'); add(byScore[0], 'trust');
+    for (const x of byScore) if (picks.length < 3) add(x, '');
+    const res = { ok: true, at: Date.now(), total: same.length, options: picks.slice(0, 3) };
+    await chrome.storage.session.set({ [ck]: res });
+    return res;
+  } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
 }
