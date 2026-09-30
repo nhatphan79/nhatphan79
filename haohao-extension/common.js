@@ -392,7 +392,18 @@ HT.trustScore = info => {
   }
   if (info.sold > 50 && n && n / info.sold > 0.9) add(product, -6, 'warn', 'Số đánh giá gần bằng số đã bán, có thể có đánh giá ảo');
   else if (info.sold >= 1000) product.push({ s: 'ok', t: `Đã bán ${fmtN(info.sold)}` });
-  const rv = info.reviewsNormal;
+  // đã đọc toàn bộ đánh giá (gồm hết 1–2★): trừ điểm theo tỉ lệ lời chê trên tổng số đánh giá
+  const fr = info.fullRead, rvAll = info.reviews;
+  if (fr && rvAll) {
+    if (rvAll.issues.length) {
+      const share = rvAll.bad / Math.max(info.ratingCount || 0, rvAll.read);
+      const top = rvAll.issues.slice(0, 3).map(i => `${i.label.toLowerCase()} (${i.n})`).join(', ');
+      // càng nhiều người chê càng trừ nặng: 1/5 người mua chê thì gần như chắc chắn có vấn đề
+      const pts = share >= 0.2 ? -35 : share >= 0.1 ? -22 : share >= 0.05 ? -12 : share >= 0.02 ? -6 : -3;
+      add(product, pts, share >= 0.05 ? 'bad' : 'warn', `${rvAll.bad} đánh giá chê (${(share * 100).toFixed(share < 0.01 ? 1 : 0)}%): ${top}`);
+    } else add(product, 3, 'ok', `Đọc ${rvAll.read} đánh giá: không thấy lời chê`);
+  }
+  const rv = fr ? null : info.reviewsNormal;
   if (rv && rv.read) {
     if (rv.issues.length) {
       const top = rv.issues.slice(0, 3).map(i => `${i.label.toLowerCase()} (${i.n})`).join(', ');
@@ -462,7 +473,7 @@ HT.reviewIssues = texts => {
   const issues = {}, badSet = new Set();
   const seen = new Map();
   for (const x of texts || []) { const t = String(typeof x === 'string' ? x : x.t).trim(); if (t.length >= 4) seen.set(t, (seen.get(t) || false) || !!(x && x.low)); }
-  const list = [...seen.keys()].slice(0, 250);
+  const list = [...seen.keys()].slice(0, 1200);
   list.forEach((raw, idx) => {
     let any = false;
     const t = raw.toLowerCase().normalize('NFC'), f = HT.fold(raw);

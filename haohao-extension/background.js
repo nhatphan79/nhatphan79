@@ -285,6 +285,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
   if (msg.type === 'same-find') { sameFind(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
+  if (msg.type === 'reviews-scan') { reviewsScan(msg).then(send).catch(() => send({ items: [] })); return true; }
   if (msg.type === 'scan-me') { const job = scanJobs.get(sender.tab && sender.tab.id); send({ scan: job ? job.type : false }); return; }
   if (msg.type === 'scan-result') { const job = scanJobs.get(sender.tab && sender.tab.id); if (job) job.done(msg.result); return; }
   if (msg.type === 'get-quotes') { getQuotes(msg.items || []).then(send); return true; }
@@ -798,6 +799,20 @@ async function sameFindOne({ q, key, title, price }, sender) {
     for (const x of byScore) if (picks.length < 3) add(x, '');
     const res = { ok: true, at: Date.now(), total: same.length, options: picks.slice(0, 3) };
     await chrome.storage.session.set({ [ck]: res });
+    return res;
+  } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
+}
+
+// Đọc toàn bộ đánh giá bằng tab ẩn (khi không lấy thẳng được): bấm lọc sao và lật từng trang
+function reviewsScan(msg) { const run = sameQueue.then(() => reviewsScanOne(msg)); sameQueue = run.catch(() => {}); return run; }
+async function reviewsScanOne({ url, key }) {
+  const ck = 'rv:' + key, cache = (await chrome.storage.session.get(ck))[ck];
+  if (cache && Date.now() - cache.at < 60 * 60e3) return cache;
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
+  try {
+    const items = await scanIn(tab.id, url, 'reviews', 120000);
+    const res = { at: Date.now(), items: items || [] };
+    if (items && items.length) await chrome.storage.session.set({ [ck]: res });
     return res;
   } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
 }

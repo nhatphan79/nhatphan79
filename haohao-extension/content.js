@@ -241,6 +241,7 @@
   .tb-rv > b { display: block; font-size: 11.5px; margin-bottom: 2px; }
   .tb-rv.bad { background: #FFF4F5; border: 1px solid #F6C3CA; } .tb-rv.bad > b { color: #B42336; }
   .tb-rv.good { background: #F2FBF7; border: 1px solid #BFE6D6; } .tb-rv.good > b { color: #1E7A5F; }
+  .tb-rs { display: block; font-size: 10.5px; color: #8A91AE; margin: -1px 0 3px; }
   .tb-rl { margin-top: 3px; } .tb-rl em { font-style: normal; font-weight: 800; color: #B42336; margin-right: 4px; }
   .tb-q { font-style: italic; color: #3A4470; } .tb-q mark { background: #FFD6DB; color: #B42336; font-weight: 800; font-style: normal; border-radius: 3px; padding: 0 2px; }
   .tb-hook { all: unset; display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.35; }
@@ -2372,6 +2373,75 @@
     const nm = (document.querySelector('h1') || {}).innerText; info.shopName = nm ? nm.trim().slice(0, 60) : '';
     return info;
   }
+  // ---------- Đọc toàn bộ đánh giá ----------
+  // 1) lấy thẳng danh sách đánh giá từ Shopee (như trang Shopee tự tải khi lật trang đánh giá)
+  // 2) không được thì nhờ background mở tab ẩn, bấm lọc 1★/2★/3★ và lật từng trang để đọc
+  const fullRev = new Map();
+  const findChip = re => [...document.querySelectorAll('div,button,span,a,li')].filter(e => re.test((e.textContent || '').trim()) && (e.textContent || '').trim().length < 24).sort((a, b) => a.textContent.length - b.textContent.length)[0];
+  async function reviewsViaApi() {
+    const m = location.pathname.match(/-i\.(\d+)\.(\d+)|\/product\/(\d+)\/(\d+)/); if (!m) return null;
+    const shop = m[1] || m[3], item = m[2] || m[4];
+    const get = async (type, offset) => {
+      const r = await fetch(`/api/v2/item/get_ratings?exclude_filter=1&filter=0&flag=1&itemid=${item}&limit=50&offset=${offset}&shopid=${shop}&type=${type}`,
+        { credentials: 'include', headers: { 'x-api-source': 'pc', 'x-shopee-language': 'vi', 'x-requested-with': 'XMLHttpRequest' } });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const j = await r.json(); if (j.error) throw new Error('err ' + j.error);
+      return ((j.data || {}).ratings || []).map(x => ({ t: String(x.comment || '').replace(/\s+/g, ' ').trim(), star: +x.rating_star || 0 }));
+    };
+    const out = [];
+    for (const [type, max] of [[1, 300], [2, 300], [3, 150], [0, 100]]) {
+      for (let off = 0; off < max; off += 50) { const b = await get(type, off); out.push(...b.filter(x => x.t)); if (b.length < 50) break; await wait(200); }
+    }
+    return out;
+  }
+  async function loadAllReviews() {
+    if (!isShopeeItem() || settings.shopTrust === false) return;
+    const key = itemKey(); if (fullRev.has(key)) return;
+    fullRev.set(key, { state: 'loading', items: [] }); analyzeShopee(false, true);
+    let items = null;
+    try { items = await reviewsViaApi(); } catch { items = null; }
+    if (!items || !items.length) {
+      const r = await chrome.runtime.sendMessage({ type: 'reviews-scan', url: cleanUrl(location.href), key }).catch(() => null);
+      items = r && r.items;
+    }
+    fullRev.set(key, items && items.length ? { state: 'done', items } : { state: 'fail', items: [] });
+    if (itemKey() === key) analyzeShopee(false, true);
+  }
+  // Chạy trong tab ẩn: bấm lọc 1★, 2★, 3★ (và Tất Cả) rồi lật từng trang đánh giá
+  async function runReviewScan() {
+    const out = [];
+    for (let t0 = Date.now(); Date.now() - t0 < 15000 && !/ĐÁNH GIÁ SẢN PHẨM/i.test(document.body.innerText); ) { window.scrollBy(0, 1200); await wait(800); }
+    const readPage = star => {
+      const lines = (document.body.innerText || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const ri = lines.findIndex(l => /^ĐÁNH GIÁ SẢN PHẨM$/i.test(l));
+      if (ri >= 0) for (const t of reviewTexts(lines.slice(ri + 1))) out.push({ t, star });
+    };
+    // nút sang trang: nút số ngay sau trang đang chọn, hoặc nút mũi tên phải trong phần đánh giá
+    const nextBtn = () => {
+      const head = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && /^ĐÁNH GIÁ SẢN PHẨM$/i.test((e.textContent || '').trim()));
+      const btns = [...document.querySelectorAll('button')].filter(b => !head || (head.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING));
+      const cur = btns.find(b => /^\d+$/.test(b.textContent.trim()) && (/active|solid|current|primary/i.test(b.className) || b.getAttribute('aria-current')));
+      if (cur) { const nx = btns.find(b => b.textContent.trim() === String(+cur.textContent.trim() + 1)); if (nx) return nx; }
+      return btns.find(b => /(right|next)/i.test(b.className + ' ' + (b.getAttribute('aria-label') || '')) && !b.disabled) || null;
+    };
+    for (const [n, pages] of [[1, 40], [2, 40], [3, 8], [0, 2]]) {
+      const c = n ? findChip(new RegExp('^' + n + ' Sao\\s*\\((?!0\\))')) : findChip(/^Tất Cả$/i);
+      if (!c) continue;
+      c.click(); await wait(1400);
+      let last = '';
+      for (let pg = 0; pg < pages; pg++) {
+        readPage(n || 0);
+        const b = nextBtn(); if (!b) break;
+        const sig = out.length + ':' + (out[out.length - 1] || {}).t;
+        b.click(); await wait(900);
+        if (sig === last) break; last = sig;
+      }
+    }
+    // bỏ trùng (1 trang có thể bị đọc 2 lần khi lật trang)
+    const uniq = [...new Map(out.map(x => [x.star + '|' + x.t, x])).values()];
+    chrome.runtime.sendMessage({ type: 'scan-result', result: uniq.slice(0, 1500) }).catch(() => {});
+  }
+
   // Lấy các câu đánh giá từ phần "ĐÁNH GIÁ SẢN PHẨM" (dừng khi sang mục khác của trang)
   const reviewPool = new Map(), lowRead = new Set();
   function reviewTexts(lines) {
@@ -2379,6 +2449,7 @@
     for (const l of lines.slice(0, 500)) {
       if (/^(CÓ THỂ BẠN CŨNG THÍCH|SẢN PHẨM KHÁC CỦA SHOP|TOP SẢN PHẨM|SẢN PHẨM TƯƠNG TỰ|Xem tất cả)/i.test(l)) break;
       if (l.length < 4 || l.length > 400) continue;
+      if (/^[\d\s›‹<>«»…./|-]+$/.test(l)) continue;             // thanh chuyển trang "1 2 3 … ›"
       if (/\||\d{4}-\d{2}-\d{2}|^Phân loại|Sao\s*\(|^Tất Cả$|Có Bình Luận|Có Hình Ảnh|Trong Nước|Hữu ích|^\d[.,]?\d*\s*(trên 5)?$|^\d+$|trên 5|Phản Hồi Của Người Bán/i.test(l)) continue;
       if (/^[^:]{1,30}:/.test(l)) continue;                 // "Chất liệu: jean", "Màu sắc: xanh"…
       if (!/\s/.test(l) && !/[^\x00-\x7F]/.test(l)) continue; // tên tài khoản kiểu diemhuong_1308
@@ -2388,7 +2459,7 @@
   }
   // Khách bấm: HaoHao tự bấm bộ lọc "1 Sao", "2 Sao" trên trang để đọc đúng các đánh giá chê, rồi trả về "Tất Cả"
   async function readLowStars() {
-    const chip = re => [...document.querySelectorAll('div,button,span,a,li')].filter(e => re.test((e.textContent || '').trim()) && (e.textContent || '').trim().length < 24).sort((a, b) => a.textContent.length - b.textContent.length)[0];
+    const chip = findChip;
     const key = itemKey(), got = reviewPool.get(key) || [];
     for (const n of [1, 2]) {
       const c = chip(new RegExp('^' + n + ' Sao\\s*\\((?!0\\))'));
@@ -2450,14 +2521,22 @@
       info.goodReview = HT.goodReview(texts);
       info.lowRead = lowRead.has(itemKey());
     }
+    const fr = fullRev.get(itemKey());
+    if (fr && fr.state === 'done') {
+      info.reviews = HT.reviewIssues(fr.items.map(x => ({ t: x.t, low: x.star > 0 && x.star <= 2 })));
+      info.fullRead = { read: info.reviews.read, low: fr.items.filter(x => x.star > 0 && x.star <= 2).length, expect: info.dist ? (info.dist[1] || 0) + (info.dist[2] || 0) : 0 };
+      info.fullRead.lowLabel = info.fullRead.expect && info.fullRead.low < info.fullRead.expect * 0.95 ? `${info.fullRead.low}/${info.fullRead.expect}` : `toàn bộ ${info.fullRead.low}`;
+      info.goodReview = HT.goodReview(fr.items.filter(x => x.star === 5 || x.star === 0).map(x => x.t)) || info.goodReview;
+      info.reviewsNormal = null; info.reviewsLoaded = true;
+    } else if (fr && fr.state === 'loading') info.reviewsReading = true;
     const p = detectProduct(); if (p) info.price = p.price;
     return info;
   }
-  function analyzeShopee(inRender) {
+  function analyzeShopee(inRender, force) {
     const item = isShopeeItem(), shopPage = !item && isShopeeShop();
     if (settings.shopTrust === false || (!item && !shopPage)) { if (trust) { trust = null; trustPill(); } return; }
     const len = (document.body.textContent || '').length;
-    if (trustUrl === location.href && Math.abs(len - trustLen) < 200) return;
+    if (!force && trustUrl === location.href && Math.abs(len - trustLen) < 200) return;
     const info = item ? readShopee() : readShopeeShop();
     if (item ? (!info.rating && !info.ratingCount && !info.sold) : (info.joinedMonths == null && info.followers == null)) return;   // trang chưa tải xong
     const first = trustUrl !== location.href;
@@ -2471,7 +2550,9 @@
       if (pk && pk === itemKey()) { try { sessionStorage.removeItem('hh-open'); } catch {} shopSub = psub === 'cheaper' ? 'cheaper' : 'check'; openTab('shop'); }
       else showTrustBubble();
       autoFindSame();
+      setTimeout(loadAllReviews, 1200);
     } else if (!inRender && ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
+    else if (force && !inRender && ui.bubble.hidden && ui.panel.hidden && trustClosed !== location.href) showTrustBubble();
   }
   // Mở sản phẩm Shopee: HaoHao chủ động hỏi để khách biết có kiểm tra chất lượng + mã giảm giá
   function bestCouponFor(p) {
@@ -2514,7 +2595,9 @@
       return d;
     };
     if (rv && rv.issues.length) {
-      const box = el('div', 'tb-rv bad'); box.append(el('b', '', `💬 Người mua chê (${rv.bad}/${rv.read} đánh giá)`));
+      const fr = trust.info.fullRead;
+      const box = el('div', 'tb-rv bad'); box.append(el('b', '', fr ? `💬 Người mua chê · ${rv.bad} đánh giá` : `💬 Người mua chê (${rv.bad}/${rv.read} đánh giá)`));
+      if (fr) box.append(el('small', 'tb-rs', `Đã đọc ${fr.read} đánh giá, gồm ${fr.lowLabel} đánh giá 1–2★`));
       // tối đa 2 câu chê khác nhau, đủ ý (bỏ mẩu quá ngắn như "Thất vọng" nếu có câu khác rõ hơn)
       const pairs = [];
       for (const it of rv.issues) for (const q of it.quotes) if (!pairs.some(x => x.q === q)) pairs.push({ it, q });
@@ -2528,7 +2611,8 @@
         box.append(row);
       }
       B.append(box);
-    } else if (bad && pick.length) B.append(el('div', 'tb-why', pick.map(i => '⚠ ' + i.t.split(':')[0]).join(' · ')));
+    } else if (trust.info.reviewsReading) B.append(el('div', 'tb-hook wait', '💬 Đang đọc toàn bộ đánh giá…'));
+    else if (bad && pick.length) B.append(el('div', 'tb-why', pick.map(i => '⚠ ' + i.t.split(':')[0]).join(' · ')));
     else if (trust.info.goodReview) {
       const box = el('div', 'tb-rv good'); box.append(el('b', '', `💬 Đánh giá nổi bật · ${rv ? rv.read : 0} đánh giá không thấy lời chê`), quote(trust.info.goodReview));
       B.append(box);
@@ -2582,7 +2666,8 @@
     };
     sec('📦 Chất lượng sản phẩm', trust.product);
     if (!shopOnly && !trust.info.reviewsLoaded) c.append(el('div', 'tnote', '👇 Kéo xuống phần Đánh giá sản phẩm để HaoHao đọc thêm (tỉ lệ sao, đánh giá có ảnh, đánh giá ảo).'));
-    if (!shopOnly && trust.info.reviews) {
+    if (!shopOnly && (trust.info.reviews || trust.info.reviewsReading)) {
+      if (!trust.info.reviews) { c.append(el('div', 'tsec', '💬 Người mua chê gì'), el('div', 'tnote2', '⏳ Đang đọc toàn bộ đánh giá…')); } else {
       const rv = trust.info.reviews;
       c.append(el('div', 'tsec', '💬 Người mua chê gì'));
       if (!rv.issues.length) c.append(el('div', 'tnote2', `Chưa thấy lời chê trong ${rv.read} đánh giá HaoHao đọc được.`));
@@ -2599,14 +2684,14 @@
         }
         c.append(box);
       }
-      const n1 = rv.read;
-      c.append(el('div', 'tnote2', `HaoHao đọc ${n1} đánh giá${trust.info.lowRead ? ' (gồm các đánh giá 1–2★)' : ' đang hiện trên trang'}.`));
-      if (!trust.info.lowRead) {
+      const n1 = rv.read, fr = trust.info.fullRead;
+      c.append(el('div', 'tnote2', fr ? `HaoHao đã đọc ${fr.read} đánh giá, gồm ${fr.lowLabel} đánh giá 1–2★.` : trust.info.reviewsReading ? '⏳ Đang đọc toàn bộ đánh giá…' : `HaoHao đọc ${n1} đánh giá${trust.info.lowRead ? ' (gồm các đánh giá 1–2★)' : ' đang hiện trên trang'}.`));
+      if (!fr && !trust.info.reviewsReading && !trust.info.lowRead) {
         const b = el('button', 'b ghost tgo', '🔎 Đọc thêm đánh giá 1–2★');
         b.addEventListener('click', async () => { b.disabled = true; b.textContent = '⏳ Đang đọc đánh giá 1–2★…'; await readLowStars(); });
         c.append(b);
       }
-    }
+    } }
     sec('🏪 Uy tín shop', trust.shop);
     if (trust.info.responseRate == null && trust.info.joinedMonths == null) c.append(el('div', 'tnote', '👇 Kéo xuống phần thông tin shop để HaoHao chấm uy tín shop.'));
     if (!shopOnly && trust.score < 60 && detectProduct()) {
@@ -2965,6 +3050,7 @@
       const r = await chrome.runtime.sendMessage({ type: 'scan-me' }).catch(() => null);
       if (r && r.scan === 'search') return runScan();
       if (r && r.scan === 'item') return runItemScan();
+      if (r && r.scan === 'reviews') return runReviewScan();
     }
     if (!active()) return;
     buildUI();
