@@ -13,7 +13,6 @@
   let ideas = [], ideaFilter = 'all', ideaQuery = '', openIdea = null, ideaCfgOpen = false;
   let dichState = null;
   let pomo = null, pomoStats = {}, pomoCfgOpen = false, lastNudge = 0;
-  let searchQuery = '';
   let explainState = null, products = [], shopAlert = false, dueEditId = null, editId = null;
   const DISTRACT = 'facebook.com, tiktok.com, youtube.com, x.com, instagram.com, reddit.com';
   const pageTr = { map: new Map(), tr: new Map(), running: false, stop: false, done: 0, total: 0, lang: '', showing: 'tr', error: '' };
@@ -102,8 +101,6 @@
   ];
   // Tiện ích con của nhánh 🧰 Tiện ích. Thêm tiện ích mới: thêm 1 dòng ở đây và 1 hàm render.
   const TOOLS = [
-    { id: 'search', label: 'Tìm kiếm', emoji: '🔎', color: '#2E7DD7', desc: 'Tìm chung Todo, Note, Nhắc, Mua sắm và trên web',
-      icon: '<circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' },
     { id: 'crypto', label: 'Crypto', emoji: '₿', color: '#D98E1F', desc: 'Theo dõi giá coin, cảnh báo giá',
       icon: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M9.5 8h4a2 2 0 010 4h-4h4.5a2 2 0 010 4H9.5V8M11 6v2M11 16v2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' }
   ];
@@ -209,25 +206,6 @@
   .mail-hd:hover, .mail-hd.on { background: #DCEBFF !important; }
   .mail-in { padding: 6px 2px 2px; }
   .foot { font-size: 11px; color: #9AA1BE; text-align: center; margin-top: 10px; }
-  .sr { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #F0F2F7; }
-  .sr .sm { all: unset; cursor: pointer; flex: 1; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 7px 4px; border-radius: 8px; }
-  .sr .sm:hover, .sr .sm:focus-visible { background: #EEF5FF; }
-  .sr .si { font-size: 16px; width: 22px; text-align: center; flex: none; }
-  .sr .st { min-width: 0; display: flex; flex-direction: column; }
-  .sr .sv { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sr .sv mark { background: #FFE08A; color: inherit; border-radius: 3px; padding: 0 1px; }
-  .sr .ss { font-size: 11px; color: #9AA1BE; }
-  .sr.dn .sv { text-decoration: line-through; color: #9AA1BE; }
-  .web { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px dashed #C9CEDF; }
-  .web .chip { padding: 4px 9px; font-size: 12px; }
-  .msearch { position: absolute; z-index: 3; width: 230px; display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 11px; border-radius: 999px; background: #FFFDF6; border: 2.5px solid #2E7DD7;
-    box-shadow: 0 4px 12px rgba(35,48,94,.25); transform: scale(.6); opacity: 0; pointer-events: none; transition: transform .22s cubic-bezier(.3,1.4,.6,1), opacity .18s; }
-  .msearch input { all: unset; flex: 1; min-width: 0; font-size: 13.5px; color: #23305E; }
-  .msearch input::placeholder { color: #9AA1BE; }
-  .msearch button { all: unset; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; background: #2E7DD7; color: #fff; display: grid; place-items: center; flex: none; }
-  .msearch button svg { width: 15px; height: 15px; }
-  .msearch button:focus-visible { outline: 2px solid #23305E; outline-offset: 2px; }
-  .menu-open .msearch { transform: scale(1); opacity: 1; pointer-events: auto; transition-delay: .26s; }
   .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; }
   .tool { all: unset; cursor: pointer; border: 1.5px solid #E6E9F2; border-radius: 16px; padding: 14px 12px; background: #fff; display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
     box-shadow: 0 2px 8px rgba(35,48,94,.06); transition: transform .15s, box-shadow .15s, border-color .15s; }
@@ -571,7 +549,6 @@
         <svg class="links" aria-hidden="true">${BRANCHES.map(b => `<line style="stroke:${b.color}"/>`).join('')}${TOOLS.map(t => `<line class="sub" style="stroke:${t.color}"/>`).join('')}${BRANCHES.map(b => `<circle class="d0" style="fill:${b.color}"/><circle class="d1" style="fill:${b.color}"/>`).join('')}</svg>
         ${TOOLS.map(t => `<button class="sat child" data-tool="${t.id}" style="--c:${t.color}" aria-label="Mở tiện ích ${t.label}" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg><b>${t.label}</b></button>`).join('')}
         ${sats}
-        <form class="msearch" role="search"><input type="search" placeholder="Tìm Todo, Note, web…" aria-label="Tìm kiếm chung" tabindex="-1"><button aria-label="Tìm" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></button></form>
         <div class="bubble" hidden role="status"></div>
         <div class="panel" hidden role="dialog" aria-label="HaoHao">
           <div class="tabs" role="tablist">${tabs}<button class="big" aria-label="Phóng to hoặc thu nhỏ bảng" title="Phóng to / thu nhỏ">⤢</button><button class="x" aria-label="Đóng">✕</button></div>
@@ -592,8 +569,6 @@
       openTab(s.dataset.b);
     }));
     root.querySelectorAll('.sat.child').forEach(s => s.addEventListener('click', () => { toolsSub = s.dataset.tool; openTab('tools'); }));
-    const ms = root.querySelector('.msearch');
-    ms.addEventListener('submit', e => { e.preventDefault(); searchQuery = ms.querySelector('input').value.trim(); ms.querySelector('input').value = ''; toolsSub = 'search'; openTab('tools'); });
     root.querySelectorAll('.tabs [data-t]').forEach(t => t.addEventListener('click', () => openTab(t.dataset.t)));
     $$('.tabs .x').addEventListener('click', () => { closePanel(); ui.pet.focus(); });
     $$('.tabs .big').addEventListener('click', () => { settings.panelBig = !settings.panelBig; ui.panel.classList.toggle('bigp', !!settings.panelBig); chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, panelBig: settings.panelBig } })); });
@@ -633,13 +608,11 @@
     ui.wrap.classList.toggle('fy', flipY);
     const O = DIST + STAG + SAT; // gốc của lớp đường nối
     const lines = ui.root.querySelectorAll('.links line'), dots = ui.root.querySelectorAll('.links circle');
-    let minY = 0, maxY = 0;
     BRANCHES.forEach((br, i) => {
       let a = br.angle; if (flipX) a = 180 - a; if (flipY) a = -a;
       const rad = a * Math.PI / 180, dx = Math.cos(rad), dy = Math.sin(rad);
       const R = DIST + (i % 2 ? STAG : 0);   // xen kẽ gần/xa như hình mẫu
       const sx = C + R * dx, sy = C + R * dy;
-      minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
       const sat = ui.root.querySelector(`.sat[data-b="${br.id}"]`);
       sat.style.left = (sx - SAT / 2) + 'px';
       sat.style.top = (sy - SAT / 2) + 'px';
@@ -662,11 +635,6 @@
         });
       }
     });
-    // ô tìm: nằm ngoài cùng, phía trên vòng cao nhất (hoặc phía dưới khi HaoHao ở nửa trên màn hình), trải về phía có chỗ
-    const ms = ui.root.querySelector('.msearch'), MSW = 230, MSH = 42;
-    ms.style.left = (flipX ? C + SAT / 2 - MSW : C - SAT / 2) + 'px';
-    ms.style.top = (flipY ? maxY + SAT / 2 + 16 : minY - SAT / 2 - 16 - MSH) + 'px';
-    ms.style.transformOrigin = `${flipX ? 'right' : 'left'} ${flipY ? 'top' : 'bottom'}`;
   }
 
   function setupDrag() {
@@ -705,7 +673,6 @@
     ui.pet.setAttribute('aria-expanded', menuOpen);
     ui.root.querySelectorAll('.sat[data-b]').forEach(s => s.tabIndex = menuOpen ? 0 : -1);
     ui.root.querySelectorAll('.sat.child').forEach(s => s.tabIndex = -1);
-    ui.root.querySelectorAll('.msearch input, .msearch button').forEach(x => x.tabIndex = menuOpen ? 0 : -1);
     if (menuOpen) { hideBubble(); updateBadge(); ui.root.querySelector('.sat').focus({ preventScroll: true }); }
   }
 
@@ -2505,80 +2472,8 @@
     return c;
   }
 
-  // ---------- 🔎 Tìm kiếm chung ----------
-  // Tìm cùng lúc trong Todo, Note, Nhắc nhở, cảnh báo giá, đồ đã lưu và coin; Enter để tìm trên Google.
-  function markHit(text, q) {
-    const f = document.createDocumentFragment(), words = HT.fold(q).split(/\s+/).filter(Boolean);
-    const { out, map } = normMap(text, true);
-    const hits = [];
-    for (const w of words) { let i = out.indexOf(w); while (i >= 0 && hits.length < 20) { hits.push([map[i], map[i + w.length - 1] + 1]); i = out.indexOf(w, i + w.length); } }
-    hits.sort((a, b) => a[0] - b[0]);
-    let at = 0;
-    for (const [a, b] of hits) { if (a < at) continue; f.append(text.slice(at, a)); const m = document.createElement('mark'); m.textContent = text.slice(a, b); f.append(m); at = b; }
-    f.append(text.slice(at)); return f;
-  }
-  function openResult(r) {
-    if (r.kind === 'shop') return window.open(r.url, '_blank');
-    if (r.kind === 'todo') return openTab('todo');
-    if (r.kind === 'idea') { openIdea = r.id; ideaFilter = 'all'; ideaQuery = ''; return openTab('idea'); }
-    if (r.kind === 'bell') return openTab('bell');
-    toolsSub = 'crypto'; openTab('tools');
-  }
-  function renderSearch(V) {
-    const form = h(`<form class="row" role="search"><input type="search" class="grow" placeholder="🔎 Gõ để tìm, có dấu hay không đều được…" aria-label="Tìm kiếm chung"><button class="b">Google</button></form>`);
-    const inp = form.querySelector('input'); inp.value = searchQuery;
-    const web = el('div', 'web');
-    HT.WEB.forEach(w => {
-      const c = el('button', 'chip', `${w.emoji} ${w.label}`); c.title = `Tìm trên ${w.label}`;
-      c.addEventListener('click', () => { const q = inp.value.trim(); if (!q) return inp.focus(); window.open(HT.webUrl(w.id, q), '_blank'); });
-      web.append(c);
-    });
-    const buy = el('div', 'shopbar'); buy.append(el('span', 'lb2', '🛍️ Tìm trên:'));
-    HT.SHOPS.forEach(sh => { const c = el('button', 'chip', sh.label); c.title = 'Link tiếp thị'; c.addEventListener('click', () => { const q = inp.value.trim(); if (!q) return inp.focus(); openDeal(sh.search + encodeURIComponent(q)); }); buy.append(c); });
-    const L = el('div', 'body-list');
-    const draw = () => {
-      L.innerHTML = '';
-      const q = searchQuery.trim();
-      if (!q) {
-        L.append(el('div', 'empty', 'Tìm một lần trong Todo, Note, Nhắc nhở, cảnh báo giá, đồ đã lưu và coin. Bấm một nút phía trên để tìm luôn trên web.'));
-        L.append(el('div', 'empty', '💡 Mẹo: trên thanh địa chỉ Chrome, gõ hh rồi dấu cách và từ cần tìm.'));
-        return;
-      }
-      const res = HT.search({ todos, ideas, rules, products, watch }, q);
-      L.append(el('div', 'gh', res.length ? `Trong HaoHao (${res.length})` : 'Không thấy trong HaoHao'));
-      for (const r of res) {
-        const row = el('div', 'sr' + (r.done ? ' dn' : ''));
-        const m = el('button', 'sm'); m.title = r.kind === 'shop' ? 'Mở trang sản phẩm' : `Mở ${HT.SEARCH_KIND[r.kind]}`;
-        m.append(el('span', 'si', r.icon));
-        const tx = el('span', 'st'); const v = el('span', 'sv'); v.append(markHit(r.title, q)); tx.append(v, el('span', 'ss', r.sub)); m.append(tx);
-        m.addEventListener('click', () => openResult(r));
-        row.append(m);
-        if (r.kind === 'todo') {
-          const t = todos.find(x => x.id === r.id);
-          const ck = el('button', 'ic', t && t.done ? '↺' : '✓'); ck.title = t && t.done ? 'Làm lại' : 'Đánh dấu xong';
-          ck.addEventListener('click', () => { if (!t) return; t.done = !t.done; saveTodos(); draw(); });
-          row.append(ck);
-        }
-        L.append(row);
-      }
-      if (!res.length) {
-        const a = el('div', 'acts');
-        const bt = el('button', 'b ghost', '＋ Thêm thành Todo');
-        bt.addEventListener('click', () => { todos.push({ id: 't' + Date.now().toString(36), text: q, done: false, due: '', notified: false }); saveTodos(); say('Đã thêm vào Todo: ' + q, 'happy', '', 'todo'); draw(); });
-        const bn = el('button', 'b ghost', '💡 Lưu thành Note');
-        bn.addEventListener('click', async () => { await chrome.runtime.sendMessage({ type: 'idea-add', item: { type: 'text', text: q } }).catch(() => {}); bn.textContent = 'Đã lưu ✓'; });
-        a.append(bt, bn); L.append(a);
-      }
-    };
-    let tm = null;
-    inp.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { searchQuery = inp.value; draw(); }, 120); });
-    form.addEventListener('submit', e => { e.preventDefault(); const q = inp.value.trim(); if (q) window.open(HT.webUrl('google', q), '_blank'); });
-    V.append(form, web, buy); draw(); V.append(L, el('div', 'affnote', HT.AFF_NOTE));
-    setTimeout(() => { inp.focus({ preventScroll: true }); inp.setSelectionRange(inp.value.length, inp.value.length); });
-  }
-
   // ---------- 🧰 Tiện ích ----------
-  const TOOL_RENDER = { crypto: V => renderCrypto(V), search: V => renderSearch(V) };
+  const TOOL_RENDER = { crypto: V => renderCrypto(V) };
   function renderTools(V) {
     const cur = TOOLS.find(t => t.id === toolsSub);
     if (cur) {

@@ -732,30 +732,6 @@ ${how}
 Nếu là tiếng nước ngoài thì ghi nghĩa tiếng Việt trước. Bắt đầu bằng **tên cụm từ** in đậm. Trả lời bằng tiếng Việt.` }] }], AI_SYS, { temperature: 0.3, maxTokens: 2048 });
 }
 
-// ---------- 🔎 Tìm kiếm chung trên thanh địa chỉ: gõ "hh" + dấu cách ----------
-const escXml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
-const searchPage = q => chrome.runtime.getURL('search.html') + (q ? '?q=' + encodeURIComponent(q) : '');
-chrome.omnibox.setDefaultSuggestion({ description: 'Tìm trong HaoHao: gõ từ cần tìm (Todo, Note, Nhắc nhở, Mua sắm…)' });
-chrome.omnibox.onInputChanged.addListener(async (text, suggest) => {
-  const q = text.trim(); if (!q) return suggest([]);
-  const data = await chrome.storage.local.get(HT.SEARCH_KEYS);
-  const res = HT.search(data, q, 5);
-  chrome.omnibox.setDefaultSuggestion({ description: res.length ? `Xem cả ${res.length}${res.length === 5 ? '+' : ''} kết quả cho "<match>${escXml(q)}</match>" trong HaoHao` : `Không thấy "<match>${escXml(q)}</match>" trong HaoHao. Enter để mở trang tìm kiếm` });
-  suggest([
-    ...res.map(r => ({ content: r.url || 'hh:' + r.kind + ':' + r.id + ':' + q, description: `${escXml(r.icon)} ${escXml(r.title)} <dim>· ${escXml(r.sub)}</dim>` })),
-    { content: 'g:' + q, description: `🌐 Tìm "<match>${escXml(q)}</match>" trên Google` }
-  ]);
-});
-chrome.omnibox.onInputEntered.addListener((text, disposition) => {
-  let url;
-  if (/^https?:\/\//.test(text)) url = text;
-  else if (text.startsWith('g:')) url = HT.webUrl('google', text.slice(2));
-  else if (text.startsWith('hh:')) { const [, kind, id, ...q] = text.split(':'); url = searchPage(q.join(':')) + '&open=' + encodeURIComponent(kind + ':' + id); }
-  else url = searchPage(text.trim());
-  if (disposition === 'currentTab') chrome.tabs.update({ url });
-  else chrome.tabs.create({ url, active: disposition === 'newForegroundTab' });
-});
-
 // ---------- 🛒 Mua sắm (Shopee, TikTok Shop): mở link tiếp thị ----------
 // Chỉ mở link tiếp thị khi người dùng tự bấm (nút Mua ngay, So giá, Tìm). Không tự thay link khi đang lướt web.
 function openDeal(url) {

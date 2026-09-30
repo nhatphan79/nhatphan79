@@ -214,44 +214,8 @@ HT.parseWhen = function (input, now = new Date()) {
 };
 HT.localISO = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
 
-// ---------- 🔎 Tìm kiếm chung: tìm trong mọi thứ HaoHao đang giữ (dùng cho HaoHao trên trang, trang tìm kiếm và ô địa chỉ "hh") ----------
+// Bỏ dấu tiếng Việt để so khớp (gõ không dấu vẫn ra)
 HT.fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
-HT.SEARCH_KEYS = ['todos', 'ideas', 'rules', 'products', 'watch'];
-HT.WEB = [
-  { id: 'google', label: 'Google', emoji: '🌐', url: 'https://www.google.com/search?q=' },
-  { id: 'youtube', label: 'YouTube', emoji: '▶️', url: 'https://www.youtube.com/results?search_query=' },
-  { id: 'wiki', label: 'Wikipedia', emoji: '📚', url: 'https://vi.wikipedia.org/w/index.php?search=' },
-  { id: 'maps', label: 'Bản đồ', emoji: '📍', url: 'https://www.google.com/maps/search/' },
-  { id: 'dich', label: 'Dịch', emoji: '🔤', url: 'https://translate.google.com/?sl=auto&tl=vi&text=' }
-];
-HT.webUrl = (id, q) => { const w = HT.WEB.find(x => x.id === id) || HT.WEB[0]; return HT.aff(w.url + encodeURIComponent(q)); };
-// Trả về danh sách kết quả, việc khớp nhiều/đúng đầu câu xếp trước. Gõ không dấu vẫn ra.
-HT.search = (data, query, limit = 40) => {
-  const words = HT.fold(query).split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  const out = [];
-  const test = (kind, icon, title, sub, extra, ...fields) => {
-    const hay = HT.fold(fields.join(' \n '));
-    if (!words.every(w => hay.includes(w))) return;
-    const t = HT.fold(title);
-    const score = (t.startsWith(words[0]) ? 3 : 0) + words.filter(w => t.includes(w)).length;
-    out.push({ kind, icon, title: String(title || '').slice(0, 140), sub, score, ...extra });
-  };
-  for (const t of data.todos || [])
-    test('todo', t.done ? '☑️' : '✅', t.text, t.done ? 'Todo · đã xong' : 'Todo' + (t.due ? ' · hạn ' + new Date(t.due).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ''), { id: t.id, done: !!t.done }, t.text);
-  for (const i of data.ideas || [])
-    test('idea', '💡', i.title || i.text, 'Note' + (i.url ? ' · ' + (i.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]) : ''), { id: i.id, url: i.url || '' },
-      i.title, i.text, i.url, i.ai && (i.ai.summary || i.ai.title || ''), (i.ai && i.ai.tags || []).join(' '));
-  for (const r of data.rules || [])
-    test(r.type === 'price' ? 'alert' : 'bell', r.type === 'price' ? '📈' : (r.icon || '🔔'), r.name,
-      (r.type === 'price' ? 'Cảnh báo giá · ' : 'Nhắc nhở · ') + (r.enabled ? 'đang bật' : 'đang tắt'), { id: r.id }, r.name, r.message, r.coin);
-  for (const p of data.products || [])
-    test('shop', '🛒', p.title, 'Mua sắm · ' + (p.price ? Number(p.price).toLocaleString('vi-VN') + 'đ' : 'đã lưu'), { id: p.id, url: p.url }, p.title, p.url);
-  for (const w of data.watch || [])
-    test('coin', '₿', w.coin, 'Crypto · ' + (w.source === 'dexscreener' ? 'DexScreener' : 'CoinGecko'), {}, w.coin);
-  return out.sort((a, b) => b.score - a.score).slice(0, limit);
-};
-HT.SEARCH_KIND = { todo: 'Todo', idea: 'Note', bell: 'Nhắc nhở', alert: 'Cảnh báo giá', shop: 'Mua sắm', coin: 'Crypto' };
 
 // ---------- 🔗 Link tiếp thị (affiliate) ----------
 // DÁN LINK GIỚI THIỆU CỦA BẠN VÀO ĐÂY. Để trống thì link đi thẳng tới shop, không qua affiliate.
