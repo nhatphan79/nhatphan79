@@ -2363,11 +2363,29 @@
     trust = { ...HT.trustScore(info), info };
     trustPill();
     if (!inRender && tab === 'shop' && ui && !ui.panel.hidden && !(ui.root.activeElement && /INPUT/.test(ui.root.activeElement.tagName))) renderPanel();
-    if (first && !inRender && trust.score < 60) {
-      const why = [...trust.shop, ...trust.product].find(x => x.s === 'bad') || [...trust.shop, ...trust.product].find(x => x.s === 'warn');
-      say(why ? why.t : 'Có vài dấu hiệu cần cân nhắc.', 'alert', `🛡️ ${trust.score}/100 · ${trust.level}`, 'shop',
-        [{ label: 'Xem kiểm tra', fn: () => openTab('shop') }, { label: 'Bỏ qua', ghost: true, fn: () => {} }]);
-    }
+    if (first && !inRender) askTrust();
+  }
+  // Mở sản phẩm Shopee: HaoHao chủ động hỏi để khách biết có kiểm tra chất lượng + mã giảm giá
+  function bestCouponFor(p) {
+    if (!p || !p.price) return null;
+    let best = null;
+    for (const c of pageVouchers()) { const v = HT.couponValue(c, p.price); if (v && (!best || v > best.v)) best = { c, v }; }
+    for (const c of (couponFeed ? couponFeed.coupons : []).filter(x => x.shop === 'shopee' && HT.couponLive(x))) { const v = HT.couponValue(c, p.price); if (v && (!best || v > best.v)) best = { c, v }; }
+    return best;
+  }
+  function askTrust() {
+    if (!trust || !ui || !ui.panel.hidden || menuOpen) return;
+    const shopOnly = !!trust.info.shopOnly, bad = trust.score < 60;
+    if (!bad && settings.shopAsk === false) return;          // khách đã chọn "Không hỏi nữa" (vẫn luôn cảnh báo khi rủi ro)
+    const all = [...trust.shop, ...trust.product];
+    const pick = bad ? all.filter(x => x.s === 'bad').concat(all.filter(x => x.s === 'warn')).slice(0, 2) : all.filter(x => x.s === 'ok').slice(0, 2);
+    const title = `🛡️ HaoHao đã kiểm tra ${shopOnly ? 'shop này' : 'món này'}: ${trust.score}/100 · ${trust.level}`;
+    const acts = [{ label: bad ? '⚠ Xem lý do' : 'Xem kiểm tra', fn: () => openTab('shop') }, { label: 'Để sau', ghost: true, fn: () => {} }];
+    if (!bad) acts.push({ label: 'Không hỏi nữa', ghost: true, fn: () => { settings.shopAsk = false; chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, shopAsk: false } })); say('Được, HaoHao chỉ hiện điểm nhỏ trên đầu. Bấm vào điểm khi cần xem nhé.', 'happy', '', 'shop'); } });
+    say(pick.map(x => (x.s === 'ok' ? '✓ ' : '⚠ ') + x.t).join(' · ') || 'Bấm để xem chi tiết.', bad ? 'alert' : 'happy', title, 'shop', acts);
+    const best = shopOnly ? null : bestCouponFor(detectProduct());
+    if (best) { const cp = el('span', 'note', `🎟️ Có mã giảm: chỉ còn ≈ ${vnd(detectProduct().price - best.v)}`); ui.bubble.insertBefore(cp, ui.bubble.querySelector('.acts')); }
+    if (!bad) { clearTimeout(bubbleTimer); bubbleTimer = setTimeout(hideBubble, 12000); }
   }
   function trustPill() {
     if (!ui) return;
