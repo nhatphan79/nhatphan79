@@ -3122,7 +3122,7 @@
   }
 
 
-  chrome.runtime.onMessage.addListener(msg => {
+  const onOpen = msg => {
     if (msg.type !== 'hh-open' || !ui) return;
     if (msg.search) { findRange = ''; findMall = false; openTab('shop'); doFind(msg.search); return; }
     if (msg.sub === 'dich' && msg.text) return translateText(msg.text, 'sel');
@@ -3130,7 +3130,10 @@
     if (msg.sub === 'explain') return doExplain(msg.text);
     if (msg.sub === 'read') { infoSub = 'read'; openTab('info'); if (msg.run && (settings.ai || {}).key) doSummary(false); return; }
     openTab(msg.tab);
-  });
+  };
+  chrome.runtime.onMessage.addListener(onOpen);
+  // Tab mới của HaoHao (trang của chính tiện ích): nút nhanh mở mục bằng sự kiện trên trang
+  if (location.protocol === 'chrome-extension:') window.addEventListener('hh-open', e => onOpen({ type: 'hh-open', ...(e.detail || {}) }));
 
   // ---------- nhận tin từ background ----------
   chrome.runtime.onMessage.addListener(async msg => {

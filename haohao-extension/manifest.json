@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – trợ lý ngay trên Chrome",
-  "version": "2.20.6",
+  "version": "2.21.0",
   "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, kiểm tra hàng & mã giảm giá Shopee, TikTok Shop, canh email.",
   "permissions": [
     "storage",
@@ -10,7 +10,8 @@
     "tabs",
     "system.display",
     "identity",
-    "contextMenus"
+    "contextMenus",
+    "search"
   ],
   "host_permissions": [
     "https://api.coingecko.com/*",
@@ -41,6 +42,9 @@
       "run_at": "document_idle"
     }
   ],
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
   "options_page": "options.html",
   "action": {
     "default_title": "Mở cài đặt HaoHao"
