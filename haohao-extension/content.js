@@ -458,6 +458,13 @@
   .opr { font-size: 14.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .osave { font-size: 10.5px; font-weight: 800; color: #1E7A5F; white-space: nowrap; }
   button.b.ogo { padding: 4px 14px; font-size: 12px; background: #EE4D2D; }
+  .obtns { display: flex; gap: 5px; align-items: center; }
+  .oshield { all: unset; cursor: pointer; width: 28px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 14px; border: 1.5px solid #D5DAE8; background: #fff; }
+  .oshield:hover, .oshield.on { border-color: var(--k); background: color-mix(in srgb, var(--k) 12%, #fff); }
+  .oshield:focus-visible { outline: 2px solid var(--k); outline-offset: 1px; }
+  .odet { grid-column: 1 / -1; border-top: 1px dashed #E3E6F0; padding-top: 6px; margin-top: 2px; }
+  .odet .tli { font-size: 12px; padding: 1px 0; }
+  .oiss { font-size: 11.5px; margin-top: 5px; line-height: 1.35; } .oiss b { color: #B42336; margin-right: 4px; } .oiss span { font-style: italic; color: #3A4470; }
   .onote { font-size: 11px; color: #8A91AE; text-align: center; margin: 4px 0 6px; }
   .cbox { border-radius: 12px; padding: 10px 12px; margin: 6px 0; background: #FFF6E5; border: 1.5px dashed #F2B544; }
   .cbox .ct { font-size: 12.5px; font-weight: 800; margin-bottom: 6px; }
@@ -2196,8 +2203,19 @@
       if (o.tags.length) { const tg = el('div', 'otags'); o.tags.forEach(t => tg.append(el('span', 'ot ' + t, OPT_TAG[t]))); mid.append(tg); }
       const right = el('div', 'oright');
       right.append(el('b', 'opr', vnd(o.price)), el('span', 'osave', `rẻ hơn ${kShort(p.price - o.price)}`));
-      const go = el('button', 'b ogo', 'Xem'); go.addEventListener('click', () => openDeal(o.url)); right.append(go);
-      row.append(ring, mid, right); L.append(row);
+      const btns = el('div', 'obtns');
+      const sh = el('button', 'oshield', '🛡️'); sh.title = 'Xem kiểm tra shop này'; sh.setAttribute('aria-label', 'Xem kiểm tra ' + (o.shopName || 'shop này'));
+      const go = el('button', 'b ogo', 'Xem'); go.addEventListener('click', () => openDeal(o.url));
+      btns.append(sh, go); right.append(btns);
+      row.append(ring, mid, right);
+      // bấm 🛡️: mở bản kiểm tra gọn ngay dưới
+      const det = el('div', 'odet'); det.hidden = true;
+      if (o.reasons && o.reasons.length) o.reasons.forEach(x => { const r = el('div', 'tli ' + x.s); r.append(el('i', '', x.s === 'ok' ? '✓' : x.s === 'warn' ? '!' : '✕'), el('span', '', x.t)); det.append(r); });
+      else det.append(el('div', 'tnote2', 'Chưa đọc được đủ thông tin shop này.'));
+      (o.issues || []).forEach(i => { const q = el('div', 'oiss'); q.append(el('b', '', `💬 ${i.label} (${i.n})`)); if (i.quote) q.append(el('span', '', `“${i.quote}”`)); det.append(q); });
+      row.append(det);
+      sh.addEventListener('click', () => { det.hidden = !det.hidden; sh.classList.toggle('on', !det.hidden); });
+      L.append(row);
     });
     L.append(el('div', 'onote', `So trong ${st.total + 1} shop bán cùng món. Giá chưa gồm mã giảm và phí ship.`));
   }

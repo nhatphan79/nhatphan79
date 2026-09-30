@@ -765,7 +765,7 @@ function scanIn(tabId, url, type, ms) {
 let sameQueue = Promise.resolve();
 function sameFind(msg, sender) { const run = sameQueue.then(() => sameFindOne(msg, sender)); sameQueue = run.catch(() => {}); return run; }
 async function sameFindOne({ q, key, title, price }, sender) {
-  const ck = 'same2:' + key, cache = (await chrome.storage.session.get(ck))[ck];
+  const ck = 'same3:' + key, cache = (await chrome.storage.session.get(ck))[ck];
   if (cache && Date.now() - cache.at < 20 * 60e3) return { ...cache, cached: true };
   const opener = sender.tab || {};
   // tab trống trước, ghi nhận việc rồi mới tải trang (để trang không chạy trước khi kịp ghi nhận)
@@ -784,7 +784,10 @@ async function sameFindOne({ q, key, title, price }, sender) {
       const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
       const ts = HT.trustScore(info);
       checked.push({ key: c.key, url: c.url, title: c.title, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
-        rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info) });
+        rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info),
+        // bản kiểm tra gọn cho nút 🛡️: điểm xấu trước, tối đa 6 dòng + 2 lời chê nổi bật
+        reasons: [...ts.product, ...ts.shop].sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.s] - { bad: 0, warn: 1, ok: 2 }[b.s])).slice(0, 6),
+        issues: ((info.reviews && info.reviews.issues) || []).slice(0, 2).map(i => ({ label: i.label, n: i.n, quote: i.quotes[0] || '' })) });
     }
     // 3 lựa chọn: đáng mua nhất (rẻ nhất trong shop điểm cao), rẻ nhất, uy tín nhất
     const byPrice = [...checked].sort((a, b) => a.price - b.price), byScore = [...checked].sort((a, b) => b.score - a.score || a.price - b.price);
