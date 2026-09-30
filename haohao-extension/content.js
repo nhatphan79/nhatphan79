@@ -250,7 +250,7 @@
   .bubble .t { font-weight: 700; display: block; margin-bottom: 2px; }
   .bubble .note { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 10px; background: #FFF0C7; font-size: 12.5px; color: #3A4470; }
   .bubble .note.late { background: #FDE3E3; color: #9B2C2C; }
-  .bubble.tb { width: 236px; padding: 10px 12px; cursor: default; box-shadow: 4px 4px 0 var(--k); border-color: var(--k); }
+  .bubble.tb { width: 272px; padding: 10px 12px; cursor: default; box-shadow: 4px 4px 0 var(--k); border-color: var(--k); }
   .tb-top { display: flex; align-items: center; gap: 10px; }
   .tb-sc { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--k); color: #fff; font: 800 15px/1 "Segoe UI", system-ui, sans-serif; }
   .tb-lv { font-weight: 800; font-size: 15px; line-height: 1.2; color: var(--k); }
@@ -259,6 +259,8 @@
   .tb-x:hover, .tb-x:focus-visible { background: #EEF0F6; color: #23305E; }
   .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; }
   .tb-cp { margin-top: 6px; font-size: 12px; font-weight: 800; color: #D0391B; background: #FFF1EE; border-radius: 8px; padding: 4px 8px; }
+  .tb-acts { display: flex; gap: 6px; margin-top: 8px; } .tb-acts .tb-go { margin-top: 0; flex: 1; padding: 9px 4px; font-size: 12.5px; white-space: nowrap; } .tb-acts .tb-go:first-child { flex: 0 0 92px; }
+  .tb-go2 { background: #2E7DD7 !important; } .tb-go2:hover { background: #2567B5 !important; }
   .tb-go { all: unset; cursor: pointer; display: block; box-sizing: border-box; width: 100%; text-align: center; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #EE4D2D; color: #fff; font-weight: 800; font-size: 13px; }
   .tb-go:hover { background: #D73F21; } .tb-go:focus-visible { outline: 3px solid #23305E; outline-offset: 2px; }
   .tb-aff { font-size: 10px; color: #9AA1BE; margin-top: 5px; text-align: center; }
@@ -2415,7 +2417,8 @@
     if (!inRender && tab === 'shop' && ui && !ui.panel.hidden && !(ui.root.activeElement && /INPUT/.test(ui.root.activeElement.tagName))) renderPanel();
     if (first && !inRender) {
       let pend = ''; try { pend = sessionStorage.getItem('hh-open'); } catch {}
-      if (pend && pend === itemKey()) { try { sessionStorage.removeItem('hh-open'); } catch {} shopSub = 'check'; openTab('shop'); }
+      const [pk, psub] = (pend || '').split('|');
+      if (pk && pk === itemKey()) { try { sessionStorage.removeItem('hh-open'); } catch {} shopSub = psub === 'cheaper' ? 'cheaper' : 'check'; openTab('shop'); }
       else showTrustBubble();
     } else if (!inRender && ui.bubble.dataset.kind === 'trust' && !ui.bubble.hidden) showTrustBubble();
   }
@@ -2432,13 +2435,13 @@
   const goAff = url => location.assign(HT.aff(url));
   const trustTarget = () => { const p = detectProduct(); return p ? p.url : cleanUrl(location.href); };
   // Bấm "Xem kiểm tra": mở lại trang qua link tiếp thị (nếu chưa), rồi tự mở bảng kiểm tra
-  function goCheck() {
+  function goCheck(sub = 'check') {
     const url = trustTarget();
     if (!viaHaoHao() && HT.isAff(url)) {
-      try { sessionStorage.setItem('hh-aff', itemKey()); sessionStorage.setItem('hh-open', itemKey()); } catch {}
+      try { sessionStorage.setItem('hh-aff', itemKey()); sessionStorage.setItem('hh-open', itemKey() + '|' + sub); } catch {}
       return goAff(url);
     }
-    ui.bubble.hidden = true; shopSub = 'check'; openTab('shop');
+    ui.bubble.hidden = true; shopSub = sub; openTab('shop');
   }
   function showTrustBubble() {
     if (!trust || !ui || !ui.panel.hidden || menuOpen || trustClosed === location.href) return;
@@ -2456,9 +2459,13 @@
     if (pick.length) B.append(el('div', 'tb-why', pick.map(i => (i.s === 'ok' ? '✓ ' : '⚠ ') + i.t.split(':')[0]).join(' · ')));
     const p = shopOnly ? null : detectProduct(), best = p && bestCouponFor(p);
     if (best) B.append(el('div', 'tb-cp', `🎟️ Có mã: còn ≈ ${vnd(p.price - best.v)}`));
-    const go = el('button', 'tb-go', bad ? '⚠ Xem lý do' : '🛡️ Xem kiểm tra');
-    go.addEventListener('click', e => { e.stopPropagation(); goCheck(); });
-    B.append(go);
+    // 2 nút giống 2 tab trong bảng Mua sắm
+    const acts = el('div', 'tb-acts');
+    const go = el('button', 'tb-go', bad ? '⚠ Kiểm tra' : '🛡️ Kiểm tra');
+    go.addEventListener('click', e => { e.stopPropagation(); goCheck('check'); });
+    acts.append(go);
+    if (p && p.price) { const go2 = el('button', 'tb-go tb-go2', '🔍 Tìm shop rẻ hơn'); go2.addEventListener('click', e => { e.stopPropagation(); goCheck('cheaper'); }); acts.append(go2); }
+    B.append(acts);
     if (!viaHaoHao() && HT.isAff(trustTarget())) B.append(el('div', 'tb-aff', 'Mở qua link tiếp thị của HaoHao'));
     B.hidden = false; clearTimeout(bubbleTimer);
   }
