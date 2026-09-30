@@ -107,7 +107,6 @@
     { id: 'crypto', label: 'Crypto', emoji: '₿', color: '#D98E1F', desc: 'Theo dõi giá coin, cảnh báo giá',
       icon: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M9.5 8h4a2 2 0 010 4h-4h4.5a2 2 0 010 4H9.5V8M11 6v2M11 16v2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' }
   ];
-  const TOOLS_SOON = ['🧮 Tính chi phí xây nhà', '💱 Đổi tỷ giá', '📏 Đổi đơn vị', '🔐 Tạo mật khẩu'];
   const DIST = 244, SAT = 58, C = 38, SUB = 46, SUBD = 92, STAG = 46; // STAG: vòng xen kẽ đẩy ra xa hơn cho nhãn khỏi chồng nhau // khoảng cách nhánh, cỡ vòng tròn nhánh, tâm HaoHao
 
   const CSS = `
@@ -229,11 +228,16 @@
   .msearch button svg { width: 15px; height: 15px; }
   .msearch button:focus-visible { outline: 2px solid #23305E; outline-offset: 2px; }
   .menu-open .msearch { transform: scale(1); opacity: 1; pointer-events: auto; transition-delay: .26s; }
-  .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 10px 4px; }
-  .tool { all: unset; cursor: pointer; border: 1.5px solid #E3E6F0; border-radius: 12px; padding: 8px 10px; background: #fff; display: flex; gap: 8px; align-items: center; }
-  .tool.on { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent); }
-  .tool .em { font-size: 18px; } .tool b { display: block; font-size: 13px; } .tool span { font-size: 11px; color: #6B7394; }
-  .tool.soon { cursor: default; opacity: .55; border-style: dashed; }
+  .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; }
+  .tool { all: unset; cursor: pointer; border: 1.5px solid #E6E9F2; border-radius: 16px; padding: 14px 12px; background: #fff; display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+    box-shadow: 0 2px 8px rgba(35,48,94,.06); transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .tool:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 45%, transparent); box-shadow: 0 8px 20px color-mix(in srgb, var(--c) 22%, transparent); }
+  .tool .ti { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff;
+    background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--c) 55%, #fff) 0%, var(--c) 60%, color-mix(in srgb, var(--c) 82%, #000) 100%);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--c) 40%, transparent); }
+  .tool .ti svg { width: 24px; height: 24px; }
+  .tool b { display: block; font-size: 15.5px; font-weight: 800; color: #23305E; line-height: 1.25; }
+  .tool span.td { display: block; font-size: 12.5px; color: #6B7394; line-height: 1.4; margin-top: 3px; }
   .tool:focus-visible { outline: 2px solid #D98E1F; outline-offset: 2px; }
   .menu-open .sat:nth-of-type(5) { transition-delay: .16s; } .menu-open .sat:nth-of-type(6) { transition-delay: .2s; }
   .menu-open .sat:hover { transform: scale(1.08); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, transparent), 0 0 26px color-mix(in srgb, var(--c) 60%, transparent), 0 8px 18px rgba(35,48,94,.22); }
@@ -1955,7 +1959,6 @@
       del.addEventListener('click', () => { products = products.filter(x => x !== it); chrome.storage.local.set({ products }); renderPanel(); });
       row.append(tx, del); L.append(row);
     }
-    L.append(el('div', 'empty', 'Sắp có: ⚖️ So giá nhiều shop và 🛍️ Xem trên Shopee. HaoHao có thể nhận hoa hồng từ đơn hàng đủ điều kiện qua liên kết tiếp thị, và sẽ luôn ghi rõ.'));
     V.append(L);
   }
 
@@ -2046,11 +2049,11 @@
     const g = el('div', 'tools-grid');
     TOOLS.forEach(t => {
       const b = el('button', 'tool'); b.style.setProperty('--c', t.color);
-      b.append(el('span', 'em', t.emoji)); const tx = el('div'); tx.append(el('b', '', t.label), el('span', '', t.desc)); b.append(tx);
+      const ti = el('span', 'ti'); ti.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg>`;
+      const tx = el('div'); tx.append(el('b', '', t.label), el('span', 'td', t.desc)); b.append(ti, tx);
       b.addEventListener('click', () => { toolsSub = t.id; if (t.id === 'crypto') loadQuotes(); renderPanel(); });
       g.append(b);
     });
-    TOOLS_SOON.forEach(n => { const b = el('div', 'tool soon'); const tx = el('div'); tx.append(el('b', '', n), el('span', '', 'Sắp có')); b.append(tx); g.append(b); });
     V.append(g);
   }
 
