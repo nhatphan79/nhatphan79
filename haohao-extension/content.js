@@ -648,7 +648,8 @@
 
   function placeWrap() {
     if (!ui) return;
-    const p = settings.pos || { r: 24, b: 24 };
+    // mặc định: sát cạnh phải, cao hơn góc dưới ~1/4 màn hình (không che nút Chat của Shopee ở góc)
+    const p = settings.pos || { r: 24, b: Math.round(Math.min(300, Math.max(150, innerHeight * 0.26))) };
     const r = Math.min(Math.max(4, p.r), innerWidth - 80), b = Math.min(Math.max(4, p.b), innerHeight - 80);
     Object.assign(ui.wrap.style, { right: r + 'px', bottom: b + 'px' });
     const upper = b > innerHeight / 2, lefter = r > innerWidth / 2;
