@@ -449,10 +449,13 @@
   .optwait small { color: #8A91AE; font-size: 11.5px; } .optwait.ok { color: #1E7A5F; font-weight: 800; }
   .spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid #F4D2CA; border-top-color: #EE4D2D; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .opt { --k: #2E7DD7; display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center; padding: 10px; margin: 8px 0; border-radius: 14px; background: #fff; border: 1.5px solid #E6E9F2; }
+  .opt { --k: #2E7DD7; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 10px; margin: 8px 0; border-radius: 14px; background: #fff; border: 1.5px solid #E6E9F2; }
   .opt.good { --k: #1E9E6F; } .opt.warn { --k: #E08A00; } .opt.bad { --k: #E0344B; background: #FFF8F8; }
   .oring { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(closest-side, #fff 74%, transparent 76% 100%), conic-gradient(var(--k) calc(var(--v) * 1%), #E6E9F2 0); }
   .oring b { font: 800 14px/1 "Segoe UI", system-ui, sans-serif; color: var(--k); }
+  .othumb { position: relative; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; background: #F1F4FA; }
+  .othumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .othumb .osc { position: absolute; left: 3px; bottom: 3px; min-width: 22px; padding: 1px 5px; border-radius: 999px; background: var(--k); color: #fff; font: 800 11px/16px "Segoe UI", system-ui, sans-serif; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
   .omid { min-width: 0; }
   .oshop { display: flex; align-items: center; gap: 5px; }
   .oshop .on { font-weight: 800; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -475,9 +478,10 @@
   .ttcard .ttx { flex: 1; display: flex; flex-direction: column; min-width: 0; } .ttcard b { font-size: 13px; } .ttcard small { font-size: 11px; color: #C9CEDF; }
   .ttcard .tth { font-size: 12px; font-weight: 800; color: #25F4EE; white-space: nowrap; }
   .rpick { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #E3E6F0; border-radius: 12px; background: #fff; margin-bottom: 6px; font-size: 12.5px; color: #23305E; }
+  .rpick .rimg { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
   .rpick span { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } .rpick i { font-style: normal; }
   .osame { font-size: 11px; font-weight: 700; color: #0E9F6E; margin-top: 2px; }
-  .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 0; grid-column: 1 / -1; }
   .ot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 7px; background: #EEF0F6; color: #5B648A; }
   .ot.best { background: #FFF1D6; color: #9A6200; } .ot.cheap { background: #DDF3EB; color: #1E7A5F; } .ot.trust { background: #E8F0FF; color: #2E5FB7; }
   .oright { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
@@ -2213,6 +2217,15 @@
   let sameState = null;
   const wait = ms => new Promise(r => setTimeout(r, ms));
   // Đọc các thẻ sản phẩm trên trang tìm kiếm Shopee (theo chữ hiện trên thẻ)
+  // Hình sản phẩm trong 1 thẻ: ảnh thật (bỏ ảnh chờ tải, icon nhỏ, ảnh nhúng data:)
+  function cardImg(card) {
+    for (const im of card.querySelectorAll('img')) {
+      const u = im.currentSrc || im.src || im.getAttribute('data-src') || '';
+      if (/^https:\/\//.test(u) && !/\.svg(\?|$)/i.test(u) && !(im.naturalWidth && im.naturalWidth < 60)) return u;
+    }
+    return '';
+  }
+  const pageImg = () => { const m = document.querySelector('meta[property="og:image"], meta[name="og:image"]'); const u = m && m.content || ''; return /^https:\/\//.test(u) ? u : ''; };
   function readSearchCards() {
     const seen = new Set(), out = [];
     for (const a of document.querySelectorAll('a[href*="-i."]')) {
@@ -2227,7 +2240,7 @@
       seen.add(key);
       const sold = HT.num((flat.match(/Đã bán\s*([\d.,]+\s*k?\+?)/i) || flat.match(/([\d.,]+\s*k?\+?)\s*đã bán/i) || [])[1]);
       const rt = lines.find(l => /^\d[.,]\d$/.test(l)) || (flat.match(/★\s*(\d[.,]\d)/) || [])[1];
-      out.push({ key, url: 'https://shopee.vn' + new URL(a.href).pathname, title: title.replace(/^(Yêu thích\+?|Mall)\s*/i, ''), price: Math.min(...prices),
+      out.push({ key, url: 'https://shopee.vn' + new URL(a.href).pathname, image: cardImg(card), title: title.replace(/^(Yêu thích\+?|Mall)\s*/i, ''), price: Math.min(...prices),
         sold: isNaN(sold) ? null : sold, rating: rt ? parseFloat(String(rt).replace(',', '.')) : null,
         mall: /(^|\s)Mall(\s|$)/.test(flat), preferred: /Yêu thích/i.test(flat), overseas: /nước ngoài|quốc tế/i.test(flat) });
     }
@@ -2258,7 +2271,7 @@
     let shopName = oi > 0 ? lines[oi - 1] : '';
     if (/^(Mall|Yêu thích\+?)$/i.test(shopName) && oi > 1) shopName = lines[oi - 2];
     const p = detectProduct();
-    chrome.runtime.sendMessage({ type: 'scan-result', result: { info, shopName: (shopName || '').slice(0, 40), price: p && p.price, title: p && p.title } }).catch(() => {});
+    chrome.runtime.sendMessage({ type: 'scan-result', result: { info, shopName: (shopName || '').slice(0, 40), price: p && p.price, title: p && p.title, image: pageImg() } }).catch(() => {});
   }
   // Mở sản phẩm Shopee: tự so giá với các shop khác ở nền, để bong bóng mời "Có shop bán rẻ hơn …"
   function autoFindSame() {
@@ -2327,6 +2340,13 @@
   function optRow(o, save, withTitle) {
     const row = el('div', 'opt ' + o.cls);
     const ring = el('div', 'oring'); ring.style.setProperty('--v', o.score); ring.append(el('b', '', o.score));
+    let lead = ring;
+    if (o.image && /^(https:\/\/|data:image\/)/.test(o.image)) {
+      // có hình: hình sản phẩm + điểm nhỏ ở góc; hình lỗi thì quay về vòng điểm
+      lead = el('div', 'othumb'); const im = document.createElement('img'); im.src = o.image; im.alt = ''; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer';
+      im.addEventListener('error', () => lead.replaceWith(ring));
+      lead.append(im, el('b', 'osc', o.score));
+    }
     const mid = el('div', 'omid');
     const nm = el('div', 'oshop'); nm.append(el('span', 'on', o.shopName || (o.plat !== 'shopee' && isTikTokItem() ? 'Shop khác trên TikTok' : 'Shop trên Shopee'))); nm.title = o.shopName || '';
     if (o.mall) nm.append(el('em', 'om', 'Mall')); else if (o.preferred) nm.append(el('em', 'op', 'Yêu thích'));
@@ -2336,14 +2356,14 @@
     if (withTitle && o.title) { const tt = el('div', 'otitle', o.title); tt.title = o.title; mid.append(tt); }
     mid.append(nm, meta);
     if (o.sim) mid.append(el('div', 'osame', `✓ Cùng sản phẩm${o.sim ? ' ' + Math.round(o.sim * 100) + '%' : ''}`));
-    if (o.tags.length) { const tg = el('div', 'otags'); o.tags.forEach(t => tg.append(el('span', 'ot ' + t, OPT_TAG[t]))); mid.append(tg); }
+    let tg = null; if (o.tags.length) { tg = el('div', 'otags'); o.tags.forEach(t => tg.append(el('span', 'ot ' + t, OPT_TAG[t]))); }
     const right = el('div', 'oright');
     right.append(el('b', 'opr', vnd(o.price))); if (save > 0) right.append(el('span', 'osave', `rẻ hơn ${kShort(save)}`));
     const btns = el('div', 'obtns');
     const sh = el('button', 'oshield', '🛡️'); sh.title = 'Xem kiểm tra shop này'; sh.setAttribute('aria-label', 'Xem kiểm tra ' + (o.shopName || 'shop này'));
     const go = el('button', 'b ogo', 'Xem'); go.addEventListener('click', () => openDeal(o.url));
     btns.append(sh, go); right.append(btns);
-    row.append(ring, mid, right);
+    row.append(lead, mid, right); if (tg) row.append(tg);
     // bấm 🛡️: mở bản kiểm tra gọn ngay dưới
     const det = el('div', 'odet'); det.hidden = true;
     if (o.reasons && o.reasons.length) o.reasons.forEach(x => { const r = el('div', 'tli ' + x.s); r.append(el('i', '', x.s === 'ok' ? '✓' : x.s === 'warn' ? '!' : '✕'), el('span', '', x.t)); det.append(r); });
@@ -2359,7 +2379,10 @@
     const rs = HT.related(text, 2, skipId); if (!rs.length) return;
     L.append(el('div', 'fhead alt', '🛍️ HaoHao tuyển chọn: món tương tự'));
     rs.forEach(x => { const r = el('div', 'rpick'); const t = el('span', '', x.title); t.title = x.title;
-      const b = el('button', 'b ogo', 'Xem'); b.addEventListener('click', () => openDeal(x.url)); r.append(el('i', '', '🛍️'), t, b); L.append(r); });
+      const b = el('button', 'b ogo', 'Xem'); b.addEventListener('click', () => openDeal(x.url));
+      let ic = el('i', '', '🛍️');
+      if (x.image) { const im = document.createElement('img'); im.src = x.image; im.alt = ''; im.className = 'rimg'; im.referrerPolicy = 'no-referrer'; im.addEventListener('error', () => im.replaceWith(el('i', '', '🛍️'))); ic = im; }
+      r.append(ic, t, b); L.append(r); });
   }
   function renderCheaper0(L, p) {
     let st = sameState && sameState.url === p.url ? sameState : null;
@@ -2707,7 +2730,7 @@
       for (const hd of heads) { const sec = hd.closest('section') || (hd.parentElement && hd.parentElement.parentElement); if (sec && sec.contains(a)) { shopName = hd.textContent.trim().replace(/^Khám phá thêm sản phẩm từ\s+/i, ''); break; } }
       const sold = HT.num((flat.match(/([\d.,]+\s*[KkMm]?\+?)\s*đã (?:được )?bán/i) || [])[1]);
       const rt = (flat.match(/(?:^|\s)(\d[.,]\d)(?=\s|$)/) || [])[1];
-      out.push({ key, url: a.href.split('?')[0], title: title.replace(/^(Xu Hướng|Deal|Mall)\s*/i, ''), price: Math.min(...prices),
+      out.push({ key, url: a.href.split('?')[0], image: cardImg(card), title: title.replace(/^(Xu Hướng|Deal|Mall)\s*/i, ''), price: Math.min(...prices),
         sold: isNaN(sold) ? null : sold, rating: rt ? parseFloat(rt.replace(',', '.')) : null, shopName, mall: /(^|\s)Mall(\s|$)/.test(flat) });
     }
     return out;

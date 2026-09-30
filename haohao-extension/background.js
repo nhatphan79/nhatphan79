@@ -756,11 +756,12 @@ async function applyFeed(feed) {
   const coupons = (feed.coupons || []).filter(c => c && c.id && HT.couponLive(c)).slice(0, 200);
   const hubs = (feed.hubs || []).filter(h => h && /^https:\/\//.test(h.url)).slice(0, 12);
   // link TikTok riêng từng món: chỉ nhận mã sản phẩm là số và link tiktok.com; kèm tên món để gợi ý món tương tự
-  const tt = feed.tiktok || {}, links = {}, titles = {};
+  const tt = feed.tiktok || {}, links = {}, titles = {}, images = {};
   for (const [id, u] of Object.entries(tt.links || {}).slice(0, 2000)) if (/^\d{8,}$/.test(id) && /^https:\/\/(vt|vm|www|shop)\.tiktok\.com\//.test(u)) {
     links[id] = u; const t = (tt.titles || {})[id]; if (typeof t === 'string' && t.trim()) titles[id] = t.trim().slice(0, 160);
+    const im = (tt.images || {})[id]; if (typeof im === 'string' && /^https:\/\/[\w.-]+\.(ibyteimg|tiktokcdn|tiktokcdn-us|byteimg)\.com\//.test(im)) images[id] = im;
   }
-  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links, titles, showcase: /^https:\/\/(www\.|vt\.|vm\.)?tiktok\.com\//.test(tt.showcase || '') ? tt.showcase : '' };
+  const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links, titles, images, showcase: /^https:\/\/(www\.|vt\.|vm\.)?tiktok\.com\//.test(tt.showcase || '') ? tt.showcase : '' };
   HT.setTikTok(tiktok);
   await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok } });
   return { ok: true, n: coupons.length };
@@ -769,26 +770,28 @@ async function applyFeed(feed) {
 // ---------- 🛍️ Link TikTok của tôi (chủ app): dán link vt.tiktok.com → tự lấy mã + tên món → ghi lên GitHub ----------
 const FEED_REPO = { owner: 'nhatphan79', repo: 'nhatphan79', path: 'haohao-extension/coupons.json', branch: 'main' };
 const ttTitleOf = url => { try { const j = JSON.parse(new URL(url).searchParams.get('og_info') || '{}'); return String(j.title || '').replace(/\+/g, ' ').trim(); } catch { return ''; } };
+const ttImageOf = url => { try { const j = JSON.parse(new URL(url).searchParams.get('og_info') || '{}'); return /^https:\/\//.test(j.image || '') ? j.image : ''; } catch { return ''; } };
 const htmlDecode = s => String(s || '').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 // 1 dòng dán vào: "link" hoặc "link  mã-sản-phẩm" (khi TikTok không cho HaoHao tự đọc mã)
 async function ttResolve(line) {
   const link = (line.match(/https:\/\/(?:vt|vm)\.tiktok\.com\/[\w-]+\/?/) || [])[0];
   const long = (line.match(/https:\/\/(?:www|shop)\.tiktok\.com\/\S+/) || [])[0];
-  let id = (line.replace(/https?:\/\/\S+/g, ' ').match(/\b(\d{15,22})\b/) || [])[1] || (long ? HT.ttId(long) : ''), title = long ? ttTitleOf(long) : '';
+  let id = (line.replace(/https?:\/\/\S+/g, ' ').match(/\b(\d{15,22})\b/) || [])[1] || (long ? HT.ttId(long) : ''), title = long ? ttTitleOf(long) : '', image = long ? ttImageOf(long) : '';
   if (!link) return { line, error: long ? 'Cần link rút gọn vt.tiktok.com (Chia sẻ → Sao chép liên kết)' : 'Không thấy link TikTok' };
   if (!id || !title) {
     try {
       const r = await fetch(link, { redirect: 'follow', credentials: 'omit' });
-      id = id || HT.ttId(r.url); title = title || ttTitleOf(r.url);
+      id = id || HT.ttId(r.url); title = title || ttTitleOf(r.url); image = image || ttImageOf(r.url);
       if (!id || !title) {
         const html = await r.text();
         id = id || ((html.match(/\/pdp\/(?:[^"'?\/\s]*\/)?(\d{15,22})|\/product\/(\d{15,22})/) || []).slice(1).find(Boolean) || '');
         title = title || htmlDecode((html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i) || [])[1] || '').replace(/\s*\|\s*TikTok.*$/i, '');
+        image = image || htmlDecode((html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)/i) || [])[1] || '');
       }
     } catch {}
   }
   if (!id) return { line, link, error: 'Không đọc được mã sản phẩm: dán thêm mã (dãy số sau /pdp/) cùng dòng' };
-  return { line, link, id, title: title.slice(0, 160) };
+  return { line, link, id, title: title.slice(0, 160), image };
 }
 const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g, '')), c => c.charCodeAt(0)));
 const b64enc = s => { const u = new TextEncoder().encode(s); let b = ''; for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(b); };
@@ -818,12 +821,13 @@ async function ttAdd({ text }) {
   const ok = res.filter(x => x.id);
   if (ok.length) await ghFeedEdit(feed => {
     const t = feed.tiktok = feed.tiktok || {}; t.links = t.links || {}; t.titles = t.titles || {};
-    for (const x of ok) { t.links[x.id] = x.link; if (x.title) t.titles[x.id] = x.title; }
+    t.images = t.images || {};
+    for (const x of ok) { t.links[x.id] = x.link; if (x.title) t.titles[x.id] = x.title; if (x.image) t.images[x.id] = x.image; }
   }, `HaoHao: thêm ${ok.length} link TikTok`);
   return { ok: true, added: ok.map(x => ({ id: x.id, title: x.title })), failed: res.filter(x => !x.id).map(x => ({ line: x.line.slice(0, 80), error: x.error })) };
 }
 async function ttRemove({ id }) {
-  await ghFeedEdit(feed => { const t = feed.tiktok || {}; if (t.links) delete t.links[id]; if (t.titles) delete t.titles[id]; }, 'HaoHao: bỏ 1 link TikTok');
+  await ghFeedEdit(feed => { const t = feed.tiktok || {}; if (t.links) delete t.links[id]; if (t.titles) delete t.titles[id]; if (t.images) delete t.images[id]; }, 'HaoHao: bỏ 1 link TikTok');
   return { ok: true };
 }
 
@@ -879,7 +883,7 @@ async function checkListing(tabId, c, verify) {
   if (verify && r && r.title && !verify(r.title)) return null;
   const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
   const ts = HT.trustScore(info);
-  return { key: c.key, url: c.url, title: (r && r.title) || c.title, sim: c.sim, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
+  return { key: c.key, url: c.url, image: (r && r.image) || c.image || '', title: (r && r.title) || c.title, sim: c.sim, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
     rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info),
     // bản kiểm tra gọn cho nút 🛡️: điểm xấu trước, tối đa 6 dòng + 2 lời chê nổi bật
     reasons: [...ts.product, ...ts.shop].sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.s] - { bad: 0, warn: 1, ok: 2 }[b.s])).slice(0, 6),
