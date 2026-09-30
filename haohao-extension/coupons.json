@@ -1,10 +1,12 @@
 {
   "updated": "2026-09-30",
-  "_huong_dan": "Thêm mã vào 'coupons'. shop: shopee | lazada | tiktok | tiki | other. Dùng discount (số tiền) HOẶC percent (+ maxDiscount nếu có). minOrder = đơn tối thiểu. code để trống nếu là mã 'Lưu' trên trang. url = trang dùng mã (tự đi qua link tiếp thị). expires = hạn dùng. Chỉ đăng mã thật, còn hạn.",
+  "_huong_dan": "Thêm mã vào 'coupons'. shop: shopee | tiktok. Dùng discount (số tiền) HOẶC percent (+ maxDiscount nếu có). minOrder = đơn tối thiểu. code để trống nếu là mã 'Lưu' trên trang. url = trang dùng mã (tự đi qua link tiếp thị). expires = hạn dùng. Chỉ đăng mã thật, còn hạn.",
   "hubs": [
-    { "shop": "shopee", "label": "Kho mã Shopee", "url": "https://shopee.vn/m/ma-giam-gia" },
-    { "shop": "lazada", "label": "Voucher Lazada", "url": "https://www.lazada.vn/" },
-    { "shop": "tiki", "label": "Mã Tiki", "url": "https://tiki.vn/" }
+    {
+      "shop": "shopee",
+      "label": "Kho mã Shopee",
+      "url": "https://shopee.vn/m/ma-giam-gia"
+    }
   ],
   "coupons": []
 }

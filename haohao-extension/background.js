@@ -58,7 +58,6 @@ async function scheduleAll() {
   await clearAlarms(n => !n.startsWith('todo:') && !n.startsWith('snz:') && n !== 'pomo');
   chrome.alarms.create('desk-sync', { delayInMinutes: 1, periodInMinutes: 1 });
   chrome.alarms.create('mail-check', { delayInMinutes: 0.5, periodInMinutes: 1 });
-  chrome.alarms.create('shop-check', { delayInMinutes: 2, periodInMinutes: 180 });
   chrome.alarms.create('coupon-sync', { delayInMinutes: 1, periodInMinutes: 360 });
   if (rules.some(r => r.enabled && r.type === 'price')) {
     chrome.alarms.create('price-check', { delayInMinutes: 0.5, periodInMinutes: 1 });
@@ -81,7 +80,6 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name === 'desk-sync') return syncApp();
   if (a.name === 'pomo') return pomoTick();
   if (a.name === 'mail-check') return checkMail(false);
-  if (a.name === 'shop-check') return checkShop();
   if (a.name === 'coupon-sync') return syncCoupons();
   if (a.name.startsWith('todo:')) {
     const { todos = [] } = await chrome.storage.local.get('todos');
@@ -284,7 +282,6 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'desk-act') deskAct(msg);
   if (msg.type === 'desk-test') remindOnDesk({ id: 'test' + Date.now(), ruleId: null, title: 'Thử HaoHao', text: '💧 Uống một ly nước nhé!', kind: 'test', t: Date.now() });
   if (msg.type === 'rem-done') remDone(msg.ruleId);
-  if (msg.type === 'shop-compare') { shopCompare(msg).then(send).catch(() => send({ items: [] })); return true; }
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
   if (msg.type === 'get-quotes') { getQuotes(msg.items || []).then(send); return true; }
@@ -756,100 +753,12 @@ chrome.omnibox.onInputEntered.addListener((text, disposition) => {
   else chrome.tabs.create({ url, active: disposition === 'newForegroundTab' });
 });
 
-// ---------- 🛒 Mua sắm: tự kiểm tra giá, so giá, mở link tiếp thị ----------
+// ---------- 🛒 Mua sắm (Shopee, TikTok Shop): mở link tiếp thị ----------
 // Chỉ mở link tiếp thị khi người dùng tự bấm (nút Mua ngay, So giá, Tìm). Không tự thay link khi đang lướt web.
 function openDeal(url) {
   if (typeof url !== 'string' || !/^https:\/\//.test(url) || MAIL_HOSTS.some(h => url.startsWith(h))) return;
   chrome.tabs.create({ url: HT.aff(url) });
 }
-const UA_HEADERS = { 'Accept-Language': 'vi-VN,vi;q=0.9' };
-const tikiId = url => (String(url).match(/-p(\d+)\.html/) || [])[1];
-function priceFromHtml(html) {
-  for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
-    try {
-      const j = JSON.parse(m[1]); const arr = [].concat(j['@graph'] || j);
-      const prod = arr.find(x => x && [].concat(x['@type']).includes('Product'));
-      if (prod) { const of = [].concat(prod.offers || [])[0] || {}; const p = Number(of.price || of.lowPrice || (of.priceSpecification || {}).price); if (p) return p; }
-    } catch {}
-  }
-  const mt = html.match(/<meta[^>]+(?:property|itemprop)=["'](?:product:price:amount|og:price:amount|price)["'][^>]+content=["']([\d.]+)["']/i)
-    || html.match(/<meta[^>]+content=["']([\d.]+)["'][^>]+(?:property|itemprop)=["'](?:product:price:amount|og:price:amount|price)["']/i);
-  return mt ? Number(mt[1]) : 0;
-}
-// Shopee chỉ đọc được giá khi bạn mở trang (trang của Shopee không cho đọc từ nền).
-async function fetchPrice(url) {
-  const shop = HT.shopOf(url);
-  if (shop === 'shopee' || shop === 'tiktok') return 0;
-  if (shop === 'tiki' && tikiId(url)) {
-    const r = await fetch(`https://tiki.vn/api/v2/products/${tikiId(url)}`, { headers: UA_HEADERS });
-    if (!r.ok) return 0; const j = await r.json(); return Number(j.price) || 0;
-  }
-  const r = await fetch(url, { headers: UA_HEADERS, credentials: 'omit' });
-  if (!r.ok) return 0;
-  return priceFromHtml(await r.text());
-}
-async function notifyShop(it, before) {
-  const nid = 'shop:' + it.id + ':' + Date.now();
-  const { shopNotif = {} } = await chrome.storage.session.get('shopNotif');
-  shopNotif[nid] = it.url; await chrome.storage.session.set({ shopNotif });
-  const vnd = n => Number(n).toLocaleString('vi-VN') + 'đ';
-  chrome.notifications.create(nid, { type: 'basic', iconUrl: 'icons/icon128.png', priority: 2, requireInteraction: true,
-    title: '🛒 Giảm giá rồi! ' + it.title.slice(0, 60), message: `${before ? vnd(before) + ' → ' : ''}${vnd(it.price)} (bạn muốn ≤ ${vnd(it.target)})`,
-    buttons: [{ title: '🛒 Mua ngay' }, { title: 'Để sau' }] });
-  addLog({ t: Date.now(), rule: 'Mua sắm', kind: 'shop', text: `${it.title.slice(0, 60)}: ${vnd(it.price)}` });
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: 'shop-hit', id: it.id }).catch(() => {});
-}
-async function checkShop() {
-  const { products = [] } = await chrome.storage.local.get('products');
-  let changed = false;
-  for (const it of products) {
-    if (!it.target || it.hit) continue;
-    let p = 0; try { p = await fetchPrice(it.url); } catch {}
-    if (!p) continue;
-    const last = it.history[it.history.length - 1];
-    if (!last || last.p !== p || Date.now() - last.t > 6 * 3600e3) it.history = [...it.history, { t: Date.now(), p }].slice(-60);
-    const before = it.price; it.price = p; it.checkedAt = Date.now(); changed = true;
-    if (p <= it.target) { it.hit = true; await notifyShop(it, before); }
-  }
-  if (changed) await chrome.storage.local.set({ products });
-}
-// So giá: tìm cùng sản phẩm trên Tiki và Lazada (Shopee không cho tìm từ nền, nên để nút tìm tay).
-async function searchTiki(q) {
-  const r = await fetch('https://tiki.vn/api/v2/products?limit=12&q=' + encodeURIComponent(q), { headers: UA_HEADERS });
-  if (!r.ok) return [];
-  const j = await r.json();
-  return (j.data || []).map(x => ({ shop: 'tiki', name: x.name, price: Number(x.price) || 0, url: 'https://tiki.vn/' + String(x.url_path || x.url_key + '.html').replace(/^\//, '').split('?')[0] }));
-}
-async function searchLazada(q) {
-  const r = await fetch('https://www.lazada.vn/catalog/?ajax=true&q=' + encodeURIComponent(q), { headers: { ...UA_HEADERS, Accept: 'application/json' } });
-  if (!r.ok || !(r.headers.get('content-type') || '').includes('json')) return [];   // bị chặn bằng captcha thì bỏ qua
-  const j = await r.json();
-  return ((j.mods || {}).listItems || []).map(x => ({ shop: 'lazada', name: x.name, price: Number(String(x.price).replace(/[^\d.]/g, '')) || 0, url: ('https:' + String(x.itemUrl || '').replace(/^https?:/, '')).split('?')[0] }));
-}
-async function shopCompare({ title, price, url }) {
-  const key = 'cmp:' + url;
-  const cache = (await chrome.storage.session.get(key))[key];
-  if (cache && Date.now() - cache.at < 30 * 60e3) return cache;
-  const here = HT.shopOf(url), m = HT.modelOf(title);
-  const q = m ? HT.cleanTitle(title).split(' ').slice(0, 3).join(' ') + ' ' + m : HT.cleanTitle(title).split(' ').slice(0, 8).join(' ');
-  const jobs = [];
-  if (here !== 'tiki') jobs.push(searchTiki(q).catch(() => []));
-  if (here !== 'lazada') jobs.push(searchLazada(q).catch(() => []));
-  const found = (await Promise.all(jobs)).flat();
-  const items = [];
-  for (const shop of ['tiki', 'lazada']) {
-    const best = found.filter(x => x.shop === shop && x.price > 0).map(x => ({ ...x, match: HT.matchProduct(title, x.name) })).filter(x => x.match)
-      // bỏ giá lệch quá xa (thường là phụ kiện hoặc hàng khác loại)
-      .filter(x => !price || (x.price > price * 0.5 && x.price < price * 1.6))
-      .sort((a, b) => (a.match === 'model' ? 0 : 1) - (b.match === 'model' ? 0 : 1) || a.price - b.price)[0];
-    if (best) items.push(best);
-  }
-  const res = { at: Date.now(), q, items };
-  await chrome.storage.session.set({ [key]: res });
-  return res;
-}
-
 // ---------- 🎟️ Kho mã giảm giá ----------
 // Lấy từ file coupons.json trên GitHub (chủ app cập nhật); mạng lỗi thì dùng bản đóng gói sẵn trong tiện ích.
 async function syncCoupons() {

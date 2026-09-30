@@ -14,7 +14,6 @@
   let dichState = null;
   let pomo = null, pomoStats = {}, pomoCfgOpen = false, lastNudge = 0;
   let searchQuery = '';
-  let cmpState = { url: '', loading: false, res: null };
   let explainState = null, products = [], shopAlert = false, dueEditId = null, editId = null;
   const DISTRACT = 'facebook.com, tiktok.com, youtube.com, x.com, instagram.com, reddit.com';
   const pageTr = { map: new Map(), tr: new Map(), running: false, stop: false, done: 0, total: 0, lang: '', showing: 'tr', error: '' };
@@ -441,7 +440,7 @@
   .pr.best { background: #EAF8F2; }
   .pr .sh { display: flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pr .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: #9AA1BE; }
-  .dot.shopee { background: #EE4D2D; } .dot.lazada { background: #1A2BD8; } .dot.tiktok { background: #111; box-shadow: 1.5px 0 0 #25F4EE, -1.5px 0 0 #FE2C55; } .dot.tiki { background: #1A94FF; }
+  .dot.shopee { background: #EE4D2D; } .dot.tiktok { background: #111; box-shadow: 1.5px 0 0 #25F4EE, -1.5px 0 0 #FE2C55; }
   .pr .pv { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
   .pr .pv .l1 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
   .pr .pv b { font-size: 14px; font-variant-numeric: tabular-nums; }
@@ -1973,7 +1972,9 @@
   // ---------- 🛒 Mua sắm ----------
   const cleanUrl = u => { try { const x = new URL(u); return x.origin + x.pathname; } catch { return u; } };
   const vnd = n => n ? Number(n).toLocaleString('vi-VN') + 'đ' : '?';
+  const isShopHost = () => /(^|\.)(shopee\.vn|tiktok\.com)$/.test(location.hostname);
   function detectProduct() {
+    if (!isShopHost()) return null;
     let p = null;
     for (const sc of document.querySelectorAll('script[type="application/ld+json"]')) {
       try {
@@ -1990,7 +1991,7 @@
       const mp = document.querySelector('meta[property="product:price:amount"],meta[property="og:price:amount"],meta[itemprop="price"]');
       if (mp) p = { title: (document.querySelector('meta[property="og:title"]') || {}).content || document.title, price: Number(mp.content) || 0 };
     }
-    if (!p && /shopee|lazada|tiki|sendo|thegioididong|dienmayxanh|cellphones|fptshop/.test(HOST)) {
+    if (!p) {
       const cand = [...document.querySelectorAll('[class*="price" i]')].map(e => (e.innerText || '').trim()).find(t => /\d[\d.,]{3,}\s*(₫|đ|VND)|(₫|đ)\s*\d[\d.,]{3,}/i.test(t));
       const price = cand ? Number((cand.match(/\d[\d.,]{3,}/) || [''])[0].replace(/[.,]/g, '')) : 0;
       const title = ((document.querySelector('h1') || {}).innerText || document.title).trim();
@@ -2015,7 +2016,7 @@
   // mở link qua background để luôn đi qua link tiếp thị (chỉ khi người dùng bấm)
   const openDeal = url => chrome.runtime.sendMessage({ type: 'open-deal', url }).catch(() => window.open(HT.aff(url), '_blank'));
   const buyActs = it => [{ label: '🛒 Mua ngay', fn: () => openDeal(it.url) }, { label: 'Để sau', ghost: true, fn: () => {} }];
-  const SHOP_NAME = { shopee: 'Shopee', lazada: 'Lazada', tiki: 'Tiki', tiktok: 'TikTok Shop', other: 'shop khác' };
+  const SHOP_NAME = { shopee: 'Shopee', tiktok: 'TikTok Shop' };
   function sparkline(history) {
     const pts = (history || []).filter(x => x.p && Date.now() - x.t <= 30 * 86400e3);
     if (pts.length < 2) return null;
@@ -2028,37 +2029,12 @@
       <path d="${d}" fill="none" stroke="#EC4A68" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
       <path d="M${X(last.t).toFixed(1)} ${Y(last.p).toFixed(1)}h0" stroke="#EC4A68" stroke-width="6" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`);
   }
-  async function runCompare(p) {
-    if (cmpState.url === p.url && (cmpState.loading || cmpState.res)) return cmpState.res;
-    cmpState = { url: p.url, loading: true, res: null };
-    let res = null;
-    try { res = await chrome.runtime.sendMessage({ type: 'shop-compare', title: p.title, price: p.price, url: p.url }); } catch {}
-    if (cmpState.url !== p.url) return res;
-    cmpState = { url: p.url, loading: false, res: res || { items: [] } };
-    if (tab === 'shop' && ui && !ui.panel.hidden) renderPanel();
-    return cmpState.res;
-  }
-  // mở trang sản phẩm: nếu nơi khác bán CÙNG MÃ model rẻ hơn rõ rệt thì HaoHao nhắc nhẹ (mỗi sản phẩm 1 lần/ngày)
-  async function autoCompare() {
-    if (settings.shopCompare === false) return;
-    const p = detectProduct(); if (!p || !p.price) return;
-    const res = await runCompare(p);
-    const best = (res && res.items || []).filter(x => x.match === 'model' && x.price <= p.price * 0.97 && p.price - x.price >= 10000).sort((a, b) => a.price - b.price)[0];
-    if (!best) return;
-    const { cmpSeen = {} } = await chrome.storage.local.get('cmpSeen');
-    const day = new Date().toDateString();
-    if (cmpSeen[p.url] === day) return;
-    for (const k in cmpSeen) if (cmpSeen[k] !== day) delete cmpSeen[k];
-    cmpSeen[p.url] = day; chrome.storage.local.set({ cmpSeen });
-    say(`${SHOP_NAME[best.shop]} bán ${vnd(best.price)}, rẻ hơn ${vnd(p.price - best.price)} so với ở đây.`, 'happy', '⚖️ So giá', 'shop',
-      [{ label: `Xem ở ${SHOP_NAME[best.shop]}`, fn: () => openDeal(best.url) }, { label: 'Bỏ qua', ghost: true, fn: () => {} }]);
-  }
   function renderShop(V) {
     shopAlert = false;
     const sr = h(`<form class="row" role="search"><input class="grow" placeholder="🔎 Tìm sản phẩm (vd: robot hút bụi 5 triệu)" aria-label="Tìm sản phẩm"><button class="b">Tìm</button></form>`);
     const si = sr.querySelector('input');
     sr.addEventListener('submit', e => { e.preventDefault(); const q = si.value.trim(); if (q) openDeal(HT.SHOPS[0].search + encodeURIComponent(q)); else si.focus(); });
-    const bar = el('div', 'shopbar'); bar.append(el('span', 'lb2', 'Tìm giá rẻ nhất:'));
+    const bar = el('div', 'shopbar'); bar.append(el('span', 'lb2', 'Tìm trên:'));
     HT.SHOPS.forEach(sh => { const c = el('button', 'chip', sh.label); c.addEventListener('click', () => { const q = si.value.trim(); if (!q) return si.focus(); openDeal(sh.search + encodeURIComponent(q)); }); bar.append(c); });
     const L = el('div', 'body-list');
 
@@ -2085,52 +2061,31 @@
         const b = el('button', 'b', saved.target ? '🔔 Cập nhật' : '🔔 Báo khi giảm');
         b.addEventListener('click', () => {
           saved.target = Number(ti.value) || 0; saved.hit = false; chrome.storage.local.set({ products });
-          const bg = HT.shopOf(saved.url) === 'shopee' || HT.shopOf(saved.url) === 'tiktok' ? 'mỗi lần bạn mở lại trang này' : '3 giờ một lần, kể cả khi bạn không mở trang';
-          say(saved.target ? `HaoHao kiểm tra giá ${bg}, và báo khi ≤ ${vnd(saved.target)}.` : 'Đã tắt báo giảm giá.', 'happy', '', 'shop');
+          say(saved.target ? `HaoHao kiểm tra giá mỗi lần bạn mở lại trang này, và báo khi ≤ ${vnd(saved.target)}.` : 'Đã tắt báo giảm giá.', 'happy', '', 'shop');
           renderPanel();
         });
         line.append(el('span', 'lb', '❤️ Đã lưu · báo khi ≤'), ti, b);
       }
-      // bảng giá các sàn: nhìn vào là thấy ngay
+      // giá ở 2 sàn: sàn đang xem + nút tìm cùng món ở sàn còn lại
       const cmp = el('div', 'cmp'); cmp.append(el('div', 'ch3', '⚖️ Giá ở các sàn'));
-      if (cmpState.url !== p.url) runCompare(p);
-      const loading = cmpState.url !== p.url || cmpState.loading;
-      const found = (!loading && cmpState.res && cmpState.res.items) || [];
       const here = HT.shopOf(p.url), q = HT.cleanTitle(p.title).split(' ').slice(0, 8).join(' ');
-      const rows = HT.SHOPS.map(sh => {
-        if (sh.id === here) return { sh, price: p.price, here: true };
-        const x = found.find(f => f.shop === sh.id);
-        return x ? { sh, price: x.price, url: x.url, sim: x.match === 'similar', name: x.name } : { sh, price: 0 };
-      });
-      if (here === 'other') rows.unshift({ sh: { id: 'other', label: HOST.split('.')[0] }, price: p.price, here: true });
-      const known = rows.filter(r => r.price), low = known.length > 1 ? Math.min(...known.map(r => r.price)) : 0;
-      rows.sort((a, b) => (a.price ? 0 : 1) - (b.price ? 0 : 1) || a.price - b.price);
       const tb = el('div', 'ptable');
-      for (const r of rows) {
-        const row = el('div', 'pr' + (r.here ? ' here' : '') + (low && r.price === low ? ' best' : ''));
-        const nm = el('span', 'sh'); nm.append(el('i', 'dot ' + r.sh.id), document.createTextNode(r.sh.id === 'tiktok' ? 'TikTok' : r.sh.label)); row.append(nm);
+      for (const sh of HT.SHOPS) {
+        const isHere = sh.id === here;
+        const row = el('div', 'pr' + (isHere ? ' here' : ''));
+        const nm = el('span', 'sh'); nm.append(el('i', 'dot ' + sh.id), document.createTextNode(sh.id === 'tiktok' ? 'TikTok' : sh.label)); row.append(nm);
         const pc = el('span', 'pv'), l1 = el('span', 'l1'); pc.append(l1);
-        if (r.price) { l1.append(el('b', '', vnd(r.price))); if (r.sim) { const g = el('em', 'sim', 'gần giống'); g.title = r.name; l1.append(g); } }
-        else l1.append(el('span', 'na2', loading && (r.sh.id === 'tiki' || r.sh.id === 'lazada') ? 'đang tìm…' : 'chưa rõ giá'));
-        const tag = el('span', 'tg');
-        if (low && r.price === low) tag.append(el('em', 'best', r.here ? 'Rẻ nhất · đang xem' : 'Rẻ nhất'));
-        else if (r.here) tag.append(el('em', 'hr', 'Đang xem'));
-        else if (r.price && p.price) { const d = r.price - p.price; tag.append(el('em', d < 0 ? 'dn2' : 'up2', d < 0 ? `rẻ hơn ${vnd(-d)}` : `đắt hơn ${vnd(d)}`)); }
-        if (tag.childNodes.length) pc.append(tag);
+        if (isHere && p.price) { l1.append(el('b', '', vnd(p.price))); const tg = el('span', 'tg'); tg.append(el('em', 'hr', 'Đang xem')); pc.append(tg); }
+        else l1.append(el('span', 'na2', 'bấm Tìm để so giá'));
         row.append(pc);
-        if (r.here) row.append(el('span', 'go'));
-        else {
-          const go = el('button', 'go b ' + (r.price ? '' : 'ghost'), r.price ? 'Xem' : 'Tìm');
-          go.title = r.price ? `Mở ở ${r.sh.label}` : `Tìm "${q}" trên ${r.sh.label}`;
-          go.addEventListener('click', () => openDeal(r.url || r.sh.search + encodeURIComponent(q)));
-          row.append(go);
-        }
+        if (isHere) row.append(el('span', 'go'));
+        else { const go = el('button', 'go b ghost', 'Tìm'); go.title = `Tìm "${q}" trên ${sh.label}`; go.addEventListener('click', () => openDeal(sh.search + encodeURIComponent(q))); row.append(go); }
         tb.append(row);
       }
       cmp.append(tb);
       card.append(cmp, line);
       L.append(card);
-    } else L.append(el('div', 'empty', 'Mở một trang sản phẩm (Shopee, Lazada, Tiki…) để ❤️ Lưu, xem lịch sử giá, so giá nơi khác và 🔔 báo khi giảm.'));
+    } else L.append(el('div', 'empty', 'Mở một trang sản phẩm Shopee hoặc TikTok Shop để HaoHao kiểm tra chất lượng, tìm mã giảm giá, ❤️ lưu và 🔔 báo khi giảm.'));
 
     renderCoupons(L, p);
 
@@ -2184,7 +2139,7 @@
     const shopHere = p ? HT.shopOf(p.url) : (isShopeeShop() ? 'shopee' : '');
     const price = p && p.price;
     const newN = couponNew();
-    const hd = el('div', 'gh cp', `🎟️ Mã giảm giá${newN ? ` · ${newN} mã mới` : ''}`); L.append(hd);
+    const hd = el('div', 'gh cphd', `🎟️ Mã giảm giá${newN ? ` · ${newN} mã mới` : ''}`); L.append(hd);
 
     // 1) mã của shop ngay trên trang
     const pv = pageVouchers();
@@ -2347,8 +2302,6 @@
       info.reviewsLoaded = true;
     }
     const p = detectProduct(); if (p) info.price = p.price;
-    const mk = cmpState.url === cleanUrl(location.href) && cmpState.res ? cmpState.res.items.filter(x => x.match === 'model').map(x => x.price) : [];
-    if (mk.length) info.marketPrice = Math.min(...mk);
     return info;
   }
   function analyzeShopee(inRender) {
@@ -2418,12 +2371,12 @@
       const q = HT.cleanTitle((detectProduct() || {}).title || document.title).split(' ').slice(0, 8).join(' ');
       const a = el('div', 'line');
       const b1 = el('button', 'b buy', '🔎 Tìm ở Shopee Mall'); b1.addEventListener('click', () => openDeal('https://shopee.vn/mall/search?keyword=' + encodeURIComponent(q)));
-      const b2 = el('button', 'b ghost', 'Xem ở Tiki'); b2.addEventListener('click', () => openDeal(HT.SHOPS.find(x => x.id === 'tiki').search + encodeURIComponent(q)));
+      const b2 = el('button', 'b ghost', 'Tìm trên TikTok Shop'); b2.addEventListener('click', () => openDeal(HT.shopSearch('tiktok', q)));
       a.append(b1, b2); c.append(el('div', 'tsec', '💡 An toàn hơn: mua cùng món ở nơi chính hãng'), a);
     }
     if (!shopOnly) {
       const go = el('button', 'b ghost tgo', '🎟️ Xem mã giảm giá cho món này ↓');
-      go.addEventListener('click', () => { const bx = ui.view.querySelector('.buybox') || ui.view.querySelector('.gh.cp'); if (bx) bx.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      go.addEventListener('click', () => { const bx = ui.view.querySelector('.buybox') || ui.view.querySelector('.gh.cphd'); if (bx) bx.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       c.append(go);
     }
     c.append(el('div', 'tnote', 'Đánh giá tham khảo, dựa trên thông tin công khai trên trang.'));
@@ -2458,7 +2411,7 @@
       c.addEventListener('click', () => { const q = inp.value.trim(); if (!q) return inp.focus(); window.open(HT.webUrl(w.id, q), '_blank'); });
       web.append(c);
     });
-    const buy = el('div', 'shopbar'); buy.append(el('span', 'lb2', '💰 Tìm giá rẻ nhất:'));
+    const buy = el('div', 'shopbar'); buy.append(el('span', 'lb2', '🛍️ Tìm trên:'));
     HT.SHOPS.forEach(sh => { const c = el('button', 'chip', sh.label); c.title = 'Link tiếp thị'; c.addEventListener('click', () => { const q = inp.value.trim(); if (!q) return inp.focus(); openDeal(sh.search + encodeURIComponent(q)); }); buy.append(c); });
     const L = el('div', 'body-list');
     const draw = () => {
@@ -2850,13 +2803,12 @@
     setTimeout(greet, 1500);
     setTimeout(focusNudge, 2000);
     setTimeout(trackPrice, 3000);
-    setTimeout(autoCompare, 4500);
     let lastHref = location.href;
     setInterval(() => {
       if (!ui) return;
       if (location.href !== lastHref) {
         lastHref = location.href; trust = null; trustPill();
-        setTimeout(trackPrice, 2500); setTimeout(autoCompare, 3500);
+        setTimeout(trackPrice, 2500);
         if (tab === 'shop' && !ui.panel.hidden) setTimeout(renderPanel, 2600);
       }
       if (document.visibilityState === 'visible') analyzeShopee();
