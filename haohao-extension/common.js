@@ -362,6 +362,39 @@ HT.sameProduct = (a, b) => {
   if (fwd < (noCode ? 0.8 : 0.7) || back < 0.45) return { same: false, sim, why: noCode ? 'khác mã model' : 'tên khác nhiều' };
   return { same: true, sim, why: '' };
 };
+// ---------- 🔎 Tìm sản phẩm ----------
+HT.PRICE_RANGES = { lt100: [0, 100000], '100-300': [100000, 300000], gt300: [300000, Infinity] };
+// trang tìm kiếm Shopee theo độ liên quan, kèm khoảng giá nếu có
+HT.shopeeFindUrl = (q, range) => {
+  const r = HT.PRICE_RANGES[range];
+  return 'https://shopee.vn/search?keyword=' + encodeURIComponent(q) + (r ? (r[0] ? '&minPrice=' + r[0] : '') + (r[1] < Infinity ? '&maxPrice=' + r[1] : '') : '');
+};
+// tên món có đúng thứ người dùng tìm không (đủ ~70% chữ của từ khoá, không lạc sang phụ kiện)
+HT.matchQuery = (q, title) => {
+  const wq = [...new Set(HT.fold(q).split(/[^a-z0-9]+/).filter(w => w.length > 1))];
+  if (!wq.length) return true;
+  const ft = HT.fold(title);
+  if (ACC.test(ft) && !ACC.test(HT.fold(q))) return false;
+  const wt = new Set(ft.split(/[^a-z0-9]+/));
+  return wq.filter(w => wt.has(w)).length >= Math.ceil(wq.length * 0.7);
+};
+// từ khoá hay được tìm, để gợi ý khi đang gõ
+HT.HOT_KEYWORDS = ('tai nghe bluetooth|tai nghe có dây|tai nghe chụp tai|tai nghe gaming|loa bluetooth|sạc dự phòng|củ sạc nhanh|cáp sạc type c|cáp sạc iphone|ốp lưng iphone|kính cường lực|chuột không dây|bàn phím cơ|bàn phím không dây|lót chuột|giá đỡ điện thoại|đồng hồ thông minh|camera wifi|ổ cắm điện|đèn ngủ|đèn học|quạt mini|quạt tích điện|' +
+  'quần jean nam|quần jean nữ|quần short nam|quần tây nam|quần ống rộng nữ|áo thun nam|áo thun nữ|áo polo nam|áo sơ mi nam|áo sơ mi nữ|áo khoác nam|áo khoác nữ|áo hoodie|áo len|váy nữ|đầm công sở|đồ bộ nữ|đồ ngủ|đồ lót nữ|quần lót nam|tất vớ|' +
+  'giày thể thao nam|giày thể thao nữ|giày sneaker|dép nam|dép nữ|sandal nữ|giày cao gót|túi xách nữ|balo laptop|balo đi học|ví nam|thắt lưng nam|mũ lưỡi trai|kính mát|đồng hồ nam|đồng hồ nữ|' +
+  'sữa rửa mặt|kem chống nắng|serum vitamin c|toner|kem dưỡng ẩm|tẩy trang|son môi|phấn phủ|kem nền|mặt nạ|dầu gội|sữa tắm|kem đánh răng|bàn chải điện|nước hoa nữ|nước hoa nam|lăn khử mùi|máy sấy tóc|máy cạo râu|' +
+  'nồi chiên không dầu|nồi cơm điện|ấm siêu tốc|máy xay sinh tố|bếp từ|chảo chống dính|bộ nồi|hộp đựng thực phẩm|bình giữ nhiệt|máy hút bụi|robot hút bụi|cây lau nhà|móc treo quần áo|giá phơi đồ|chăn ga gối|gối ngủ|nệm|rèm cửa|' +
+  'tã bỉm|sữa bột|bình sữa|xe đẩy em bé|đồ chơi trẻ em|quần áo trẻ em|' +
+  'bánh tráng|đồ ăn vặt|cà phê|trà|hạt dinh dưỡng|nước giặt|nước xả vải|nước rửa chén|giấy vệ sinh|khăn giấy|' +
+  'thức ăn cho mèo|cát vệ sinh cho mèo|thức ăn cho chó|vợt cầu lông|thảm tập yoga|tạ tay|dây nhảy|bình nước thể thao').split('|');
+HT.suggest = (q, hist = [], n = 6) => {
+  const f = HT.fold(q).trim(); if (!f) return hist.slice(0, n).map(t => ({ t, hist: true }));
+  const out = [], has = t => out.some(x => HT.fold(x.t) === HT.fold(t));
+  for (const t of hist) if (HT.fold(t).includes(f) && !has(t)) out.push({ t, hist: true });
+  for (const t of HT.HOT_KEYWORDS) if (HT.fold(t).startsWith(f) && !has(t)) out.push({ t });
+  for (const t of HT.HOT_KEYWORDS) if ((' ' + HT.fold(t)).includes(' ' + f) && !has(t)) out.push({ t });
+  return out.slice(0, n);
+};
 // Nhãn uy tín gọn cho 1 sản phẩm trong danh sách tìm kiếm
 HT.listingTags = it => {
   const t = [];

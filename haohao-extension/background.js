@@ -284,6 +284,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'rem-done') remDone(msg.ruleId);
   if (msg.type === 'open-deal') openDeal(msg.url);
   if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
+  if (msg.type === 'prod-search') { prodSearch(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'same-find') { sameFind(msg, sender).then(send).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'reviews-scan') { reviewsScan(msg).then(send).catch(() => send({ items: [] })); return true; }
   if (msg.type === 'scan-me') { const job = scanJobs.get(sender.tab && sender.tab.id); send({ scan: job ? job.type : false }); return; }
@@ -691,6 +692,7 @@ function makeMenus() {
     chrome.contextMenus.create({ id: 'hh-todo', parentId: 'hh', title: '☑️ Thêm vào Todo', contexts: ['selection'] });
     chrome.contextMenus.create({ id: 'hh-translate', parentId: 'hh', title: '🌐 Dịch', contexts: ['selection', 'page'] });
     chrome.contextMenus.create({ id: 'hh-explain', parentId: 'hh', title: '💡 Giải thích', contexts: ['selection'] });
+    chrome.contextMenus.create({ id: 'hh-shop', parentId: 'hh', title: '🛒 Tìm trên Shopee: “%s”', contexts: ['selection'] });
     chrome.contextMenus.create({ id: 'hh-summary', parentId: 'hh', title: '✨ Tóm tắt trang này', contexts: ['page', 'selection'] });
   });
 }
@@ -716,6 +718,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
   if (info.menuItemId === 'hh-translate') toTab({ type: 'hh-open', tab: 'info', sub: 'dich', text: sel });
   if (info.menuItemId === 'hh-explain') toTab({ type: 'hh-open', tab: 'info', sub: 'explain', text: sel });
+  // bôi đen tên món → HaoHao tìm và lọc sẵn trong bảng Mua sắm; trang không chạy được HaoHao thì mở thẳng Shopee
+  if (info.menuItemId === 'hh-shop' && sel) {
+    const q = sel.replace(/\s+/g, ' ').slice(0, 100);
+    const ok = tab && tab.id && await chrome.tabs.sendMessage(tab.id, { type: 'hh-open', tab: 'shop', search: q }).then(() => true).catch(() => false);
+    if (!ok) openDeal(HT.shopeeFindUrl(q));
+  }
   if (info.menuItemId === 'hh-summary') toTab({ type: 'hh-open', tab: 'info', sub: 'read', run: true });
 });
 
@@ -781,26 +789,48 @@ async function sameFindOne({ q, key, title, price }, sender) {
     const rep = x => (x.mall ? 3 : x.preferred ? 2 : 0) + (x.sold >= 1000 ? 1 : 0) + (x.rating >= 4.8 ? 1 : 0);
     const cands = [...new Map([...cheaper.slice(0, 2), ...[...cheaper].sort((a, b) => rep(b) - rep(a) || a.price - b.price).slice(0, 2)].map(x => [x.key, x])).values()];
     const checked = [];
-    for (const c of cands) {
-      const r = await scanIn(tab.id, c.url, 'item', 20000);
-      // mở trang rồi so lại bằng tên đầy đủ (tên ở trang tìm kiếm có thể bị cắt)
-      if (r && r.title && !HT.sameProduct(title, r.title).same) continue;
-      const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
-      const ts = HT.trustScore(info);
-      checked.push({ key: c.key, url: c.url, title: (r && r.title) || c.title, sim: c.sim, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
-        rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info),
-        // bản kiểm tra gọn cho nút 🛡️: điểm xấu trước, tối đa 6 dòng + 2 lời chê nổi bật
-        reasons: [...ts.product, ...ts.shop].sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.s] - { bad: 0, warn: 1, ok: 2 }[b.s])).slice(0, 6),
-        issues: ((info.reviews && info.reviews.issues) || []).slice(0, 2).map(i => ({ label: i.label, n: i.n, quote: i.quotes[0] || '' })) });
-    }
+    for (const c of cands) { const x = await checkListing(tab.id, c, t => HT.sameProduct(title, t).same); if (x) checked.push(x); }
     // 3 lựa chọn: đáng mua nhất (rẻ nhất trong shop điểm cao), rẻ nhất, uy tín nhất
-    const byPrice = [...checked].sort((a, b) => a.price - b.price), byScore = [...checked].sort((a, b) => b.score - a.score || a.price - b.price);
-    const best = byPrice.find(x => x.score >= 75) || byScore[0];
-    const picks = [];
-    const add = (x, tag) => { if (!x) return; const o = picks.find(y => y.key === x.key); if (o) { if (tag && !o.tags.includes(tag)) o.tags.push(tag); } else picks.push({ ...x, tags: tag ? [tag] : [] }); };
-    add(best, 'best'); add(byPrice[0], 'cheap'); add(byScore[0], 'trust');
-    for (const x of byScore) if (picks.length < 3) add(x, '');
-    const res = { ok: true, at: Date.now(), total: same.length, options: picks.slice(0, 3) };
+    const res = { ok: true, at: Date.now(), total: same.length, options: HT.pickOptions(checked) };
+    await chrome.storage.session.set({ [ck]: res });
+    return res;
+  } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
+}
+
+// Mở trang 1 sản phẩm trong tab ẩn để chấm điểm shop. verify(tênĐầyĐủ) = false thì bỏ món đó.
+async function checkListing(tabId, c, verify) {
+  const r = await scanIn(tabId, c.url, 'item', 20000);
+  if (verify && r && r.title && !verify(r.title)) return null;
+  const info = (r && r.info) || { rating: c.rating, ratingCount: null, sold: c.sold, mall: c.mall, preferred: c.preferred, shipFrom: c.overseas ? 'Nước ngoài' : '' };
+  const ts = HT.trustScore(info);
+  return { key: c.key, url: c.url, title: (r && r.title) || c.title, sim: c.sim, price: (r && r.price) || c.price, shopName: (r && r.shopName) || '', score: ts.score, level: ts.level, cls: ts.cls,
+    rating: info.rating || c.rating, sold: info.sold ?? c.sold, mall: !!(info.mall || c.mall), preferred: !!(info.preferred || c.preferred), full: !!(r && r.info),
+    // bản kiểm tra gọn cho nút 🛡️: điểm xấu trước, tối đa 6 dòng + 2 lời chê nổi bật
+    reasons: [...ts.product, ...ts.shop].sort((a, b) => ({ bad: 0, warn: 1, ok: 2 }[a.s] - { bad: 0, warn: 1, ok: 2 }[b.s])).slice(0, 6),
+    issues: ((info.reviews && info.reviews.issues) || []).slice(0, 2).map(i => ({ label: i.label, n: i.n, quote: i.quotes[0] || '' })) };
+}
+
+// 🔎 Tìm sản phẩm: mở ngầm trang tìm kiếm Shopee, bỏ món rủi ro / lạc đề, kiểm tra 4 món tốt nhất rồi chọn 3
+function prodSearch(msg, sender) { const run = sameQueue.then(() => prodSearchOne(msg, sender)); sameQueue = run.catch(() => {}); return run; }
+async function prodSearchOne({ q, range, mall }, sender) {
+  q = String(q || '').trim().slice(0, 100); if (!q) return { ok: false, error: 'empty' };
+  const ck = 'ps:' + HT.fold(q) + '|' + (range || '') + '|' + (mall ? 1 : 0), cache = (await chrome.storage.session.get(ck))[ck];
+  if (cache && Date.now() - cache.at < 20 * 60e3) return { ...cache, cached: true };
+  const opener = sender.tab || {};
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
+  try {
+    const list = await scanIn(tab.id, HT.shopeeFindUrl(q, range), 'search', 30000);
+    if (!list) return { ok: false, error: 'timeout' };
+    const [lo, hi] = HT.PRICE_RANGES[range] || [0, Infinity];
+    const fit = list.filter(x => x.price >= lo && x.price <= hi && (!mall || x.mall) && HT.matchQuery(q, x.title));
+    // bỏ món rủi ro: bán dưới 10, điểm dưới 4.3, hàng nước ngoài
+    const safe = fit.filter(x => !x.overseas && !(x.sold != null && x.sold < 10) && !(x.rating && x.rating < 4.3)).map(x => ({ ...x, ...HT.listingScore(x) }));
+    const top = [...safe].sort((a, b) => b.score - a.score || a.price - b.price);
+    const cheap = [...safe].filter(x => x.score >= 70).sort((a, b) => a.price - b.price);
+    const cands = [...new Map([...top.slice(0, 3), ...cheap.slice(0, 1)].map(x => [x.key, x])).values()].slice(0, 4);
+    const checked = [];
+    for (const c of cands) { const x = await checkListing(tab.id, c); if (x) checked.push(x); }
+    const res = { ok: true, at: Date.now(), total: fit.length, safe: safe.length, options: HT.pickOptions(checked) };
     await chrome.storage.session.set({ [ck]: res });
     return res;
   } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
