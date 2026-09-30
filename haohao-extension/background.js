@@ -1,3 +1,4 @@
+// © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
 importScripts('common.js');
 
 const DEFAULT_RULES = [

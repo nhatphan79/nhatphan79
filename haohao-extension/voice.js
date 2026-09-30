@@ -1,3 +1,4 @@
+// © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
 const $ = s => document.querySelector(s);
 const target = new URLSearchParams(location.search).get('target') || 'idea';
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;

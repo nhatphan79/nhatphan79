@@ -1,3 +1,4 @@
+// © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
 const $ = s => document.querySelector(s);
 let items = [], knocks = 0, ac = null, soundOn = true, closing = false;
 const MAX_KNOCKS = 6, KNOCK_EVERY = 45000;

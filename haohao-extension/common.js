@@ -1,3 +1,4 @@
+// © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
 // Dùng chung cho background và trang cài đặt
 const HT = {
   fmt(p) {
@@ -236,6 +237,10 @@ HT.parseWhen = function (input, now = new Date()) {
   return { due, task: task || String(input || '').trim() };
 };
 HT.localISO = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
+
+// ---------- ©️ Bản quyền ----------
+HT.OWNER = { name: 'Phan Thanh Nhật', phone: '0366.159.790', tel: 'tel:0366159790', year: 2026 };
+HT.COPYRIGHT = `© ${HT.OWNER.year} HaoHao · Bản quyền thuộc ${HT.OWNER.name} · ${HT.OWNER.phone}`;
 
 // Bỏ dấu tiếng Việt để so khớp (gõ không dấu vẫn ra)
 HT.fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');

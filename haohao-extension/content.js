@@ -1,3 +1,4 @@
+// © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
 (() => {
   if (window.top !== window || document.getElementById('hattieu-host')) return;
 
@@ -482,6 +483,7 @@
   .rpick span { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } .rpick i { font-style: normal; }
   .oprog { font-size: 11.5px; color: #6B7394; background: #F1F4FA; border-radius: 8px; padding: 5px 9px; margin: 2px 0 6px; }
   .cry-err { font-size: 12px; color: #C62839; padding: 0 12px 8px; }
+  .copyr { display: block; text-align: center; font-size: 11px; color: #8A91AD; padding: 8px 12px 10px; text-decoration: none; } .copyr:hover { color: #23305E; text-decoration: underline; }
   .osame { font-size: 11px; font-weight: 700; color: #0E9F6E; margin-top: 2px; }
   .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 0; grid-column: 1 / -1; }
   .ot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 7px; background: #EEF0F6; color: #5B648A; }
@@ -3020,6 +3022,8 @@
       g.append(b);
     });
     V.append(g);
+    const cp = el('a', 'copyr', HT.COPYRIGHT); cp.href = HT.OWNER.tel; cp.title = 'Liên hệ ' + HT.OWNER.name;
+    V.append(cp);
   }
 
 

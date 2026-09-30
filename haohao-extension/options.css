@@ -93,3 +93,6 @@ form { background: var(--paper); border: 2px solid var(--ink); border-radius: 20
 .ttlist li small { display: block; color: #8A91AD; font-size: 11px; }
 #tiktok textarea { width: 100%; box-sizing: border-box; font: inherit; }
 #tiktok details { margin: 6px 0 10px; } #tiktok ol { margin: 6px 0; padding-left: 20px; }
+
+.copyr { text-align: center; font-size: 13px; color: #6B7394; padding: 18px 16px 28px; }
+.copyr a { color: inherit; }
