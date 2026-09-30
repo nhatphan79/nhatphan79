@@ -2170,17 +2170,15 @@
     const i = t.search(/Mã Giảm Giá (?:Của )?Shop/i);
     return i < 0 ? [] : HT.parseVouchers(t.slice(i, i + 600));
   }
-  // Trạng thái link tiếp thị của trang đang xem:
-  //   'ours'  = khách đã bấm nút HaoHao để mở lại món này qua link của bạn
-  //   'other' = khách vào từ link tiếp thị của người khác (không được đè lên)
-  //   ''      = khách tự vào, chưa qua link tiếp thị nào
+  // Trang đang xem đã được mở lại qua link HaoHao chưa (để khỏi chuyển trang lần nữa)
   const itemKey = () => (location.pathname.match(/-i\.(\d+\.\d+)|\/product\/(\d+\/\d+)/) || [])[1] || location.pathname;
-  function affState() {
-    let mine = ''; try { mine = sessionStorage.getItem('hh-aff'); } catch {}
-    if (mine && mine === itemKey()) return 'ours';
-    const q = location.search + ' ' + document.referrer;
-    if (/utm_medium=affiliates|utm_source=an_|[?&]af_|s\.shopee\.vn|shope\.ee/i.test(q)) return 'other';
-    return '';
+  function viaHaoHao() { try { return sessionStorage.getItem('hh-aff') === itemKey(); } catch { return false; } }
+  // Khách tự bấm lấy mã: copy mã rồi mở lại đúng món này qua link tiếp thị (chỉ khi có mã thật cho món này)
+  async function useCoupon(p, code) {
+    if (code) await copyText(code);
+    if (viaHaoHao() || !HT.isAff(p.url)) return say(code ? `Đã copy mã ${code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop');
+    try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
+    location.assign(HT.aff(p.url));
   }
   function renderCoupons(L, p) {
     const shopHere = p ? HT.shopOf(p.url) : (isShopeeShop() ? 'shopee' : '');
@@ -2215,19 +2213,13 @@
       for (const c of pv) { const v = HT.couponValue(c, price); if (v && (!best || v > best.v)) best = { c, v, page: true }; }
       for (const c of list.filter(x => x.shop === 'shopee')) { const v = HT.couponValue(c, price); if (v && (!best || v > best.v)) best = { c, v }; }
       const box = el('div', 'buybox');
-      box.append(el('div', 'bt', best ? `🛒 Mua món này chỉ còn ≈ ${vnd(price - best.v)}` : '🛒 Mua món này qua HaoHao'));
+      box.append(el('div', 'bt', best ? `🛒 Mua món này chỉ còn ≈ ${vnd(price - best.v)}` : '🛒 Chưa có mã giảm giá cho món này'));
       if (best) box.append(el('div', 'cnote', `Dùng mã: ${best.c.code ? best.c.code + ' · ' : ''}${HT.couponLabel(best.c)}${best.page ? ' (mã của shop, bấm Lưu trên trang)' : ''}`));
-      const st = affState();
-      if (st === 'ours') box.append(el('div', 'cfit', '✓ Bạn đang mua qua link HaoHao. Lưu mã rồi đặt hàng như bình thường.'));
-      else if (st === 'other') box.append(el('div', 'cnote', 'Bạn đang mua qua link của người giới thiệu khác, HaoHao giữ nguyên link đó.'));
-      const b = el('button', 'b buy big2', st === 'other' || !HT.isAff(p.url) ? (best && best.c.code ? '🎟️ Copy mã' : '🎟️ Xem cách dùng mã') : best && best.c.code ? '🎟️ Copy mã & mua qua HaoHao' : '🎟️ Dùng mã & mua qua HaoHao');
-      b.addEventListener('click', async () => {
-        if (best && best.c.code) await copyText(best.c.code);
-        if (st === 'ours' || st === 'other' || !HT.isAff(p.url)) { say(best && best.c.code ? `Đã copy mã ${best.c.code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop'); return; }
-        try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
-        location.assign(HT.aff(p.url));
-      });
-      if (st !== 'ours') box.append(b);
+      if (best) {
+        const b = el('button', 'b buy big2', best.c.code ? '🎟️ Copy mã & mua ngay' : '🎟️ Lấy mã & mua ngay');
+        b.addEventListener('click', () => useCoupon(p, best.c.code));
+        box.append(b);
+      }
       box.append(el('div', 'cnote', '🔗 ' + HT.AFF_NOTE));
       L.append(box);
     }
@@ -2256,12 +2248,10 @@
       if (c.url || onItem) {
         const go = el('button', 'b buy', c.code ? 'Dùng ngay' : 'Lấy mã');
         go.addEventListener('click', async () => {
+          if (!onItem) { if (c.code) await copyText(c.code); return openDeal(c.url); }
+          if (HT.couponValue(c, price) || !c.minOrder) return useCoupon(p, c.code);
           if (c.code) await copyText(c.code);
-          if (!onItem) return openDeal(c.url);
-          const st = affState();
-          if (st === 'ours' || st === 'other' || !HT.isAff(p.url)) return say(c.code ? `Đã copy mã ${c.code}. Dán ở bước thanh toán nhé.` : 'Mở kho mã để lưu mã nhé.', 'happy', '🎟️ Mã giảm giá', 'shop', c.code ? null : [{ label: 'Mở kho mã', fn: () => openDeal(c.url) }]);
-          try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
-          location.assign(HT.aff(p.url));
+          say(`Đã copy mã. Món này chưa đủ đơn tối thiểu ${vnd(c.minOrder)}, mua kèm thêm để dùng mã nhé.`, 'happy', '🎟️ Mã giảm giá', 'shop');
         });
         acts.append(go);
       }
@@ -2843,7 +2833,6 @@
     setTimeout(focusNudge, 2000);
     setTimeout(trackPrice, 3000);
     setTimeout(autoCompare, 4500);
-    setTimeout(() => { if (isShopeeItem() && affState() === 'ours') say('Đã mở món này qua HaoHao. Bấm "Lưu" mã trên trang (hoặc dán mã đã copy) rồi đặt hàng nhé.', 'happy', '🎟️ Sẵn sàng mua', 'shop'); }, 3000);
     let lastHref = location.href;
     setInterval(() => {
       if (!ui) return;
