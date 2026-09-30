@@ -411,6 +411,25 @@
   .tli i { font-style: normal; flex: none; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 900; color: #fff; margin-top: 1px; }
   .tli.ok i { background: #1E9E6F; } .tli.warn i { background: #E08A00; } .tli.bad i { background: #E0344B; }
   .tnote { font-size: 11px; color: #8A91AE; margin-top: 8px; line-height: 1.4; }
+  .cbox { border-radius: 12px; padding: 10px 12px; margin: 6px 0; background: #FFF6E5; border: 1.5px dashed #F2B544; }
+  .cbox .ct { font-size: 12.5px; font-weight: 800; margin-bottom: 6px; }
+  .cchips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .cchip { font-size: 12px; font-weight: 700; color: #EE4D2D; background: #fff; border: 1.5px solid #F7B5A5; border-radius: 6px; padding: 3px 8px; }
+  .cchip.off { color: #9AA1BE; border-color: #E3E6F0; }
+  .cbest { margin-top: 8px; font-size: 13px; font-weight: 800; color: #1E7A5F; }
+  .cnote { font-size: 11.5px; color: #6B7394; margin-top: 4px; line-height: 1.4; }
+  .coupon { position: relative; border-radius: 12px; padding: 9px 12px 10px; margin: 6px 0; background: #fff; border: 1.5px solid #EEF0F6; border-left: 5px solid #EC4A68; }
+  .coupon.fit { border-color: #BFE6D6; border-left-color: #1E9E6F; background: #F6FCF9; }
+  .coupon .cl1 { display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+  .coupon .sh { display: flex; align-items: center; gap: 5px; font-weight: 800; }
+  .coupon .dot, .hubs .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9AA1BE; }
+  .cnew { font-style: normal; font-size: 10px; font-weight: 800; background: #EC4A68; color: #fff; border-radius: 999px; padding: 1px 6px; }
+  .cexp { margin-left: auto; color: #6B7394; } .cexp.soon { color: #E0344B; font-weight: 800; }
+  .coupon .cti { font-size: 14px; font-weight: 800; margin-top: 4px; }
+  .cfit { font-size: 12px; font-weight: 800; color: #1E7A5F; margin-top: 4px; }
+  .cacts { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .ccode { font: 800 13px/1 ui-monospace, Consolas, monospace; letter-spacing: .06em; padding: 6px 10px; border-radius: 8px; border: 1.5px dashed #23305E; background: #FFFDF6; }
+  .hubs { margin: 6px 0 4px; } .hubs .chip { padding: 5px 10px; font-size: 12px; }
   .ptable { display: flex; flex-direction: column; border: 1.5px solid #F1E2E6; border-radius: 12px; overflow: hidden; background: #fff; }
   .pr { display: grid; grid-template-columns: 78px 1fr 46px; align-items: center; gap: 8px; padding: 7px 10px; font-size: 12.5px; border-top: 1px solid #F4EEF0; }
   .pr:first-child { border-top: 0; }
@@ -443,10 +462,6 @@
   .sp .spark { width: 70px; height: 26px; flex: none; margin: 0; }
   .sp .tm { display: block; font-size: 11.5px; color: #6B7394; }
   .sp .tm.late { color: #1E7A5F; font-weight: 800; }
-  .sales { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 6px; }
-  .sale { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 12px; background: #fff; border: 1.5px solid #EEF0F6; font-size: 12.5px; }
-  .sale.big { border-color: #F4C9D2; background: #FFF7F9; }
-  .sale .sn { font-weight: 800; flex: 1; } .sale .sd { color: #6B7394; font-size: 11.5px; }
   .affnote { font-size: 10.5px; color: #9AA1BE; padding: 6px 12px 8px; border-top: 1px dashed #C9CEDF; line-height: 1.4; }
   .trbox { background: #F3F0FF; border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
   .trbox .lg { font-size: 11.5px; font-weight: 800; color: #5B3FD6; margin-bottom: 4px; }
@@ -703,7 +718,7 @@
     return {
       todo: todos.filter(t => !t.done && t.due && new Date(t.due).getTime() <= now).length + alertsOf('todo').length,
       bell: alertsOf('bell').length,
-      idea: 0, focus: 0, shop: shopAlert ? 1 : 0,
+      idea: 0, focus: 0, shop: (shopAlert ? 1 : 0) + couponNew(),
       info: readReady ? 1 : 0,
       tools: alertsOf('tools').length
     };
@@ -2034,14 +2049,6 @@
     say(`${SHOP_NAME[best.shop]} bán ${vnd(best.price)}, rẻ hơn ${vnd(p.price - best.price)} so với ở đây.`, 'happy', '⚖️ So giá', 'shop',
       [{ label: `Xem ở ${SHOP_NAME[best.shop]}`, fn: () => openDeal(best.url) }, { label: 'Bỏ qua', ghost: true, fn: () => {} }]);
   }
-  function remindSale(sale) {
-    const at = new Date(sale.date.getTime() - 15 * 60e3);
-    if (at.getTime() <= Date.now()) return openDeal(HT.DEAL_PAGES.flash);
-    rules.push({ id: 'r' + Date.now().toString(36), type: 'reminder', name: `Săn sale ${sale.name}`, icon: '🎟️', enabled: true, kind: 'once',
-      datetime: HT.localISO(at), message: `Còn 15 phút nữa là ${sale.name} mở sale! Mã giảm giá và flash sale mở lúc 0h.`, url: HT.DEAL_PAGES.flash, sale: sale.name + '|' + sale.date.toDateString() });
-    chrome.storage.local.set({ rules });
-    say(`HaoHao sẽ nhắc bạn lúc ${at.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}.`, 'happy', '🎟️ Đã hẹn săn sale', 'shop');
-  }
   function renderShop(V) {
     shopAlert = false;
     const sr = h(`<form class="row" role="search"><input class="grow" placeholder="🔎 Tìm sản phẩm (vd: robot hút bụi 5 triệu)" aria-label="Tìm sản phẩm"><button class="b">Tìm</button></form>`);
@@ -2121,6 +2128,8 @@
       L.append(card);
     } else L.append(el('div', 'empty', 'Mở một trang sản phẩm (Shopee, Lazada, Tiki…) để ❤️ Lưu, xem lịch sử giá, so giá nơi khác và 🔔 báo khi giảm.'));
 
+    renderCoupons(L, p);
+
     // đồ đã lưu
     L.append(el('div', 'gh', `❤️ Đã lưu (${products.length})`));
     for (const it of products) {
@@ -2138,23 +2147,84 @@
       row.append(del); L.append(row);
     }
 
-    // lịch sale
-    L.append(el('div', 'gh', '🎟️ Sale sắp tới'));
-    const sales = el('div', 'sales');
-    for (const sale of HT.saleDays(new Date(), 3)) {
-      const row = el('div', 'sale' + (sale.big ? ' big' : ''));
-      row.append(el('span', 'sn', `${sale.big ? '🔥 ' : ''}${sale.name}`), el('span', 'sd', sale.days === 0 ? 'Hôm nay' : sale.days === 1 ? 'Ngày mai' : `còn ${sale.days} ngày`));
-      const key = sale.name + '|' + sale.date.toDateString();
-      if (sale.days === 0) { const b = el('button', 'b buy', 'Săn ngay'); b.addEventListener('click', () => openDeal(HT.DEAL_PAGES.flash)); row.append(b); }
-      else if (rules.some(r => r.sale === key)) row.append(el('span', 'sd', 'Đã hẹn ✓'));
-      else { const b = el('button', 'b ghost', '🔔 Nhắc tôi'); b.addEventListener('click', () => { remindSale(sale); renderPanel(); }); row.append(b); }
-      sales.append(row);
-    }
-    L.append(sales);
-    const vc = el('button', 'b ghost', '🎟️ Lấy mã giảm giá Shopee'); vc.addEventListener('click', () => openDeal(HT.DEAL_PAGES.voucher));
-    L.append(vc);
     V.append(L);
     V.append(el('div', 'affnote', HT.AFF_NOTE));
+  }
+
+  // ---------- 🎟️ Mã giảm giá ----------
+  let couponFeed = null, couponSeen = [];
+  const couponNew = () => couponFeed ? couponFeed.coupons.filter(c => HT.couponLive(c) && !couponSeen.includes(c.id)).length : 0;
+  async function copyText(t, btn) {
+    try { await navigator.clipboard.writeText(t); }
+    catch { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    if (btn) { const o = btn.textContent; btn.textContent = 'Đã copy ✓'; setTimeout(() => { if (btn.isConnected) btn.textContent = o; }, 1500); }
+  }
+  // mã của shop hiện ngay trên trang Shopee đang xem ("Mã Giảm Giá Của Shop: Giảm ₫5k …")
+  function pageVouchers() {
+    if (!isShopeeItem()) return [];
+    const t = (document.body.innerText || '').replace(/\s+/g, ' ');
+    const i = t.search(/Mã Giảm Giá (?:Của )?Shop/i);
+    return i < 0 ? [] : HT.parseVouchers(t.slice(i, i + 600));
+  }
+  function renderCoupons(L, p) {
+    const shopHere = p ? HT.shopOf(p.url) : (isShopeeShop() ? 'shopee' : '');
+    const price = p && p.price;
+    const newN = couponNew();
+    const hd = el('div', 'gh', `🎟️ Mã giảm giá${newN ? ` · ${newN} mã mới` : ''}`); L.append(hd);
+
+    // 1) mã của shop ngay trên trang
+    const pv = pageVouchers();
+    if (pv.length) {
+      const box = el('div', 'cbox here');
+      box.append(el('div', 'ct', '🏷️ Mã của shop trên trang này'));
+      const chips = el('div', 'cchips');
+      let best = 0, bestC = null;
+      for (const c of pv) {
+        const v = HT.couponValue(c, price);
+        if (v != null && v > best) { best = v; bestC = c; }
+        chips.append(el('span', 'cchip' + (v == null ? ' off' : ''), HT.couponLabel(c)));
+      }
+      box.append(chips);
+      if (best) box.append(el('div', 'cbest', `Giá sau mã tốt nhất ≈ ${vnd(price - best)} (${HT.couponLabel(bestC)})`));
+      else if (price) box.append(el('div', 'cnote', 'Món này chưa đủ đơn tối thiểu của các mã trên. Mua kèm thêm để dùng được mã.'));
+      box.append(el('div', 'cnote', 'Bấm "Lưu" mã ngay trên trang Shopee, mã tự áp khi thanh toán.'));
+      L.append(box);
+    }
+
+    // 2) kho mã của HaoHao
+    const list = (couponFeed ? couponFeed.coupons : []).filter(c => HT.couponLive(c));
+    const scored = list.map(c => ({ c, v: shopHere && c.shop === shopHere ? HT.couponValue(c, price) : null }))
+      .sort((a, b) => (b.c.shop === shopHere) - (a.c.shop === shopHere) || (b.v || 0) - (a.v || 0) || (couponSeen.includes(a.c.id) - couponSeen.includes(b.c.id)) || new Date(a.c.expires || 8e15) - new Date(b.c.expires || 8e15));
+    for (const { c, v } of scored.slice(0, 8)) {
+      const card = el('div', 'coupon' + (v ? ' fit' : ''));
+      const top = el('div', 'cl1');
+      const nm = el('span', 'sh'); nm.append(el('i', 'dot ' + c.shop), document.createTextNode(SHOP_NAME[c.shop] || c.shop)); top.append(nm);
+      if (!couponSeen.includes(c.id)) top.append(el('em', 'cnew', 'Mới'));
+      if (c.expires) { const d = Math.ceil((new Date(c.expires) - Date.now()) / 86400e3); top.append(el('span', 'cexp' + (d <= 1 ? ' soon' : ''), d <= 1 ? 'Hết hạn hôm nay' : `HSD ${new Date(c.expires).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`)); }
+      card.append(top, el('div', 'cti', c.title || HT.couponLabel(c)));
+      if (c.title && (c.discount || c.percent)) card.append(el('div', 'cnote', HT.couponLabel(c)));
+      if (v) card.append(el('div', 'cfit', `✓ Dùng được cho món này: còn ${vnd(price - v)}`));
+      else if (price && shopHere === c.shop && c.minOrder && price < c.minOrder) card.append(el('div', 'cnote', `Cần mua thêm ${vnd(c.minOrder - price)} để dùng mã`));
+      if (c.note) card.append(el('div', 'cnote', c.note));
+      const acts = el('div', 'cacts');
+      if (c.code) {
+        const code = el('span', 'ccode', c.code);
+        const cp = el('button', 'b ghost', 'Copy mã'); cp.addEventListener('click', () => copyText(c.code, cp));
+        acts.append(code, cp);
+      }
+      if (c.url) { const go = el('button', 'b buy', c.code ? 'Dùng ngay' : 'Lấy mã'); go.addEventListener('click', () => { if (c.code) copyText(c.code); openDeal(c.url); }); acts.append(go); }
+      card.append(acts); L.append(card);
+    }
+    if (!scored.length && !pv.length) L.append(el('div', 'empty', 'Chưa có mã mới trong kho HaoHao. Xem nhanh kho mã của các sàn:'));
+
+    // 3) lối tắt kho mã các sàn
+    const hubs = couponFeed && couponFeed.hubs && couponFeed.hubs.length ? couponFeed.hubs : [{ shop: 'shopee', label: 'Kho mã Shopee', url: 'https://shopee.vn/m/ma-giam-gia' }];
+    const hb = el('div', 'line hubs');
+    hubs.forEach(hh => { const c = el('button', 'chip'); c.append(el('i', 'dot ' + hh.shop), document.createTextNode(' ' + hh.label)); c.addEventListener('click', () => openDeal(hh.url)); hb.append(c); });
+    L.append(hb);
+
+    // đã xem thì bỏ số "mới" trên nhánh Mua sắm (để lần sau vẫn thấy nhãn "Mới" trên thẻ)
+    if (newN) setTimeout(() => { couponSeen = [...new Set([...couponSeen, ...list.map(c => c.id)])].slice(-400); chrome.storage.local.set({ couponSeen }); updateBadge(); }, 1500);
   }
 
   // ---------- 🛡️ Kiểm tra sản phẩm & shop trên Shopee ----------
@@ -2653,7 +2723,8 @@
 
   // ---------- khởi động ----------
   async function load() {
-    const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products']);
+    const d = await chrome.storage.local.get(['rules', 'settings', 'todos', 'watch', 'mailStatus', 'msAccount', 'ideas', 'pomo', 'pomoStats', 'products', 'couponFeed', 'couponSeen']);
+    couponFeed = d.couponFeed || null; couponSeen = d.couponSeen || [];
     products = d.products || [];
     pomo = d.pomo || null; pomoStats = d.pomoStats || {};
     ideas = d.ideas || [];
@@ -2664,6 +2735,13 @@
 
   chrome.storage.onChanged.addListener(async (ch, area) => {
     if (area !== 'local') return;
+    if ((ch.couponFeed || ch.couponSeen) && !(ch.rules || ch.settings || ch.todos || ch.watch)) {
+      if (ch.couponFeed) couponFeed = ch.couponFeed.newValue || null;
+      if (ch.couponSeen) couponSeen = ch.couponSeen.newValue || [];
+      updateBadge();
+      if (ch.couponFeed && tab === 'shop' && ui && !ui.panel.hidden) renderPanel();
+      return;
+    }
     if ((ch.pomo || ch.pomoStats) && !(ch.rules || ch.settings || ch.todos || ch.watch)) {
       const was = pomo && pomo.phase;
       if (ch.pomo) pomo = ch.pomo.newValue || null;

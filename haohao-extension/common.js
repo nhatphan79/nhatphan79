@@ -282,7 +282,38 @@ HT.SHOPS = [
   { id: 'tiki', label: 'Tiki', search: 'https://tiki.vn/search?q=' }
 ];
 HT.shopSearch = (id, q) => { const s = HT.SHOPS.find(x => x.id === id) || HT.SHOPS[0]; return HT.aff(s.search + encodeURIComponent(q)); };
-HT.DEAL_PAGES = { voucher: 'https://shopee.vn/m/ma-giam-gia', flash: 'https://shopee.vn/flash_sale' };
+// ---------- 🎟️ Mã giảm giá ----------
+// Kho mã của bạn: sửa file haohao-extension/coupons.json trên GitHub, mọi người dùng tự nhận mã mới (6 giờ/lần), không cần ra bản mới.
+HT.COUPON_FEED = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/main/haohao-extension/coupons.json';
+// Số tiền giảm của 1 mã cho đơn giá `price` (null = chưa đủ điều kiện đơn tối thiểu)
+HT.couponValue = (c, price) => {
+  if (!price) return null;
+  if (c.minOrder && price < c.minOrder) return null;
+  let v = c.discount ? +c.discount : c.percent ? price * c.percent / 100 : 0;
+  if (c.maxDiscount) v = Math.min(v, +c.maxDiscount);
+  return Math.min(Math.round(v), price);
+};
+HT.couponLive = (c, now = Date.now()) => !c.expires || new Date(c.expires).getTime() > now;
+HT.couponLabel = c => {
+  const k = n => n >= 1e6 ? (n / 1e6).toString().replace('.', ',') + 'tr' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n);
+  const main = c.discount ? `Giảm ${k(c.discount)}` : c.percent ? `Giảm ${c.percent}%${c.maxDiscount ? ' tối đa ' + k(c.maxDiscount) : ''}` : (c.title || 'Ưu đãi');
+  return main + (c.minOrder ? ` · đơn từ ${k(c.minOrder)}` : '');
+};
+// Đọc chip mã trên trang Shopee: "Giảm ₫5k", "Giảm 10%", kèm "Đơn Tối Thiểu ₫99k", "Giảm tối đa ₫20k" nếu có
+HT.parseVouchers = text => {
+  const out = [], t = String(text || '').replace(/\s+/g, ' ');
+  const re = /Giảm\s*(?:giá\s*)?(₫\s*[\d.,]+\s*k?|[\d.,]+\s*k?\s*₫|\d{1,2}\s*%)(?:\s*(?:Giảm tối đa|Tối đa)\s*(₫\s*[\d.,]+\s*k?|[\d.,]+\s*k?\s*₫))?(?:[^₫%]{0,20}Đơn (?:Tối Thiểu|tối thiểu|từ)\s*(₫\s*[\d.,]+\s*k?|[\d.,]+\s*k?\s*₫))?/gi;
+  const money = s => HT.num(String(s).replace(/[₫\s]/g, ''));
+  for (const m of t.matchAll(re)) {
+    const c = /%/.test(m[1]) ? { percent: parseInt(m[1]) } : { discount: money(m[1]) };
+    if (m[2]) c.maxDiscount = money(m[2]);
+    if (m[3]) c.minOrder = money(m[3]);
+    if ((c.discount && c.discount < 500) || (c.percent && c.percent > 90)) continue;
+    const key = JSON.stringify(c); if (!out.some(x => JSON.stringify(x) === key)) out.push(c);
+  }
+  return out.slice(0, 12);
+};
+
 
 // ---------- ⚖️ So giá: nhận mã model và so khớp tên sản phẩm ----------
 const UNIT = /^\d+([.,]\d+)?(gb|tb|mb|mah|w|kw|ml|l|g|kg|cm|mm|m|inch|in|hz|v|btu|lit|lít|k|tr|m2)$/i;

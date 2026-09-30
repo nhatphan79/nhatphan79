@@ -22,7 +22,7 @@ chrome.runtime.onInstalled.addListener(async () => {
       log: [], priceState: {}
     });
   }
-  scheduleAll(); scheduleTodos(); makeMenus();
+  scheduleAll(); scheduleTodos(); makeMenus(); syncCoupons();
 });
 chrome.runtime.onStartup.addListener(() => { scheduleAll(); scheduleTodos(); });
 chrome.storage.onChanged.addListener((ch, area) => {
@@ -59,6 +59,7 @@ async function scheduleAll() {
   chrome.alarms.create('desk-sync', { delayInMinutes: 1, periodInMinutes: 1 });
   chrome.alarms.create('mail-check', { delayInMinutes: 0.5, periodInMinutes: 1 });
   chrome.alarms.create('shop-check', { delayInMinutes: 2, periodInMinutes: 180 });
+  chrome.alarms.create('coupon-sync', { delayInMinutes: 1, periodInMinutes: 360 });
   if (rules.some(r => r.enabled && r.type === 'price')) {
     chrome.alarms.create('price-check', { delayInMinutes: 0.5, periodInMinutes: 1 });
   }
@@ -81,6 +82,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name === 'pomo') return pomoTick();
   if (a.name === 'mail-check') return checkMail(false);
   if (a.name === 'shop-check') return checkShop();
+  if (a.name === 'coupon-sync') return syncCoupons();
   if (a.name.startsWith('todo:')) {
     const { todos = [] } = await chrome.storage.local.get('todos');
     const t = todos.find(x => x.id === a.name.slice(5));
@@ -284,6 +286,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'rem-done') remDone(msg.ruleId);
   if (msg.type === 'shop-compare') { shopCompare(msg).then(send).catch(() => send({ items: [] })); return true; }
   if (msg.type === 'open-deal') openDeal(msg.url);
+  if (msg.type === 'coupon-sync') { syncCoupons().then(send); return true; }
   if (msg.type === 'get-quotes') { getQuotes(msg.items || []).then(send); return true; }
 });
 
@@ -845,4 +848,17 @@ async function shopCompare({ title, price, url }) {
   const res = { at: Date.now(), q, items };
   await chrome.storage.session.set({ [key]: res });
   return res;
+}
+
+// ---------- 🎟️ Kho mã giảm giá ----------
+// Lấy từ file coupons.json trên GitHub (chủ app cập nhật); mạng lỗi thì dùng bản đóng gói sẵn trong tiện ích.
+async function syncCoupons() {
+  let feed = null;
+  try { const r = await fetch(HT.COUPON_FEED + '?t=' + Math.floor(Date.now() / 3600e3), { cache: 'no-store' }); if (r.ok) feed = await r.json(); } catch {}
+  if (!feed) { const { couponFeed } = await chrome.storage.local.get('couponFeed'); if (couponFeed && couponFeed.coupons) return { ok: true, cached: true, n: couponFeed.coupons.length }; }
+  if (!feed) { try { feed = await (await fetch(chrome.runtime.getURL('coupons.json'))).json(); } catch { return { ok: false }; } }
+  const coupons = (feed.coupons || []).filter(c => c && c.id && HT.couponLive(c)).slice(0, 200);
+  const hubs = (feed.hubs || []).filter(h => h && /^https:\/\//.test(h.url)).slice(0, 12);
+  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs } });
+  return { ok: true, n: coupons.length };
 }
