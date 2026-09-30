@@ -237,6 +237,12 @@
   .tb-x:hover, .tb-x:focus-visible { background: #EEF0F6; color: #23305E; }
   .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; }
   .tb-cp { margin-top: 6px; font-size: 12px; font-weight: 800; color: #D0391B; background: #FFF1EE; border-radius: 8px; padding: 4px 8px; }
+  .tb-rv { margin-top: 7px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.4; }
+  .tb-rv > b { display: block; font-size: 11.5px; margin-bottom: 2px; }
+  .tb-rv.bad { background: #FFF4F5; border: 1px solid #F6C3CA; } .tb-rv.bad > b { color: #B42336; }
+  .tb-rv.good { background: #F2FBF7; border: 1px solid #BFE6D6; } .tb-rv.good > b { color: #1E7A5F; }
+  .tb-rl { margin-top: 3px; } .tb-rl em { font-style: normal; font-weight: 800; color: #B42336; margin-right: 4px; }
+  .tb-q { font-style: italic; color: #3A4470; } .tb-q mark { background: #FFD6DB; color: #B42336; font-weight: 800; font-style: normal; border-radius: 3px; padding: 0 2px; }
   .tb-hook { all: unset; display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.35; }
   .tb-hook.wait { background: #F1F4FA; color: #6B7394; }
   .tb-hook.ok { background: #E8F7F1; color: #1E7A5F; font-weight: 700; }
@@ -2441,6 +2447,7 @@
       const pool = reviewPool.get(itemKey()) || [];
       info.reviewsNormal = HT.reviewIssues(texts);
       info.reviews = HT.reviewIssues([...texts, ...pool]);
+      info.goodReview = HT.goodReview(texts);
       info.lowRead = lowRead.has(itemKey());
     }
     const p = detectProduct(); if (p) info.price = p.price;
@@ -2500,7 +2507,32 @@
     const x = el('button', 'tb-x', '✕'); x.title = 'Ẩn trên trang này'; x.setAttribute('aria-label', 'Ẩn');
     x.addEventListener('click', e => { e.stopPropagation(); trustClosed = location.href; B.hidden = true; });
     top.append(el('span', 'tb-sc', trust.score), lv, x); B.append(top);
-    if (pick.length) B.append(el('div', 'tb-why', pick.map(i => (i.s === 'ok' ? '✓ ' : '⚠ ') + i.t.split(':')[0]).join(' · ')));
+    // dòng đánh giá nổi bật: có lời chê thì hiện ngay; không thì 1 đánh giá khen tiêu biểu
+    const rv = trust.info.reviews, quote = (q, w) => {
+      const d = el('span', 'tb-q'); const i = w ? q.toLowerCase().indexOf(w) : -1;
+      if (i >= 0) d.append('“' + q.slice(0, i), el('mark', '', q.slice(i, i + w.length)), q.slice(i + w.length) + '”'); else d.append('“' + q + '”');
+      return d;
+    };
+    if (rv && rv.issues.length) {
+      const box = el('div', 'tb-rv bad'); box.append(el('b', '', `💬 Người mua chê (${rv.bad}/${rv.read} đánh giá)`));
+      // tối đa 2 câu chê khác nhau, đủ ý (bỏ mẩu quá ngắn như "Thất vọng" nếu có câu khác rõ hơn)
+      const pairs = [];
+      for (const it of rv.issues) for (const q of it.quotes) if (!pairs.some(x => x.q === q)) pairs.push({ it, q });
+      const pick2 = [...pairs.filter(x => x.q.length >= 12), ...pairs.filter(x => x.q.length < 12)].slice(0, 2);
+      let lastLabel = '';
+      for (const { it, q: full } of pick2) {
+        const q = full.slice(0, 90), row = el('div', 'tb-rl');
+        if (it.label !== lastLabel) row.append(el('em', '', `${it.label} (${it.n})`));
+        lastLabel = it.label;
+        row.append(quote(q, (it.words || []).find(w => q.toLowerCase().includes(w))));
+        box.append(row);
+      }
+      B.append(box);
+    } else if (bad && pick.length) B.append(el('div', 'tb-why', pick.map(i => '⚠ ' + i.t.split(':')[0]).join(' · ')));
+    else if (trust.info.goodReview) {
+      const box = el('div', 'tb-rv good'); box.append(el('b', '', `💬 Đánh giá nổi bật · ${rv ? rv.read : 0} đánh giá không thấy lời chê`), quote(trust.info.goodReview));
+      B.append(box);
+    } else if (pick.length) B.append(el('div', 'tb-why', pick.map(i => (i.s === 'ok' ? '✓ ' : '⚠ ') + i.t.split(':')[0]).join(' · ')));
     const p = shopOnly ? null : detectProduct(), best = p && bestCouponFor(p);
     if (best) B.append(el('div', 'tb-cp', `🎟️ Có mã: còn ≈ ${vnd(p.price - best.v)}`));
     // câu mời từ kết quả tự so giá

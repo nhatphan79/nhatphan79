@@ -497,5 +497,17 @@ HT.reviewIssues = texts => {
   return { read: list.length, bad: badSet.size, issues: arr };
 };
 
+// Đánh giá khen tiêu biểu (không có lời chê, nhiều ý khen nhất, độ dài vừa đọc)
+const GOOD_RE = /(đẹp|tốt|ưng|thích|hài lòng|chất lượng|đáng tiền|giống hình|như hình|đúng mô tả|giao nhanh|nhanh|chuẩn|vừa|mát|bền|xịn|tuyệt|nên mua|ủng hộ|rẻ|dày dặn|mềm)/gu;
+HT.goodReview = texts => {
+  let best = null, bs = 0;
+  for (const raw of texts || []) {
+    const t = String(raw).trim(); if (t.length < 15) continue;
+    if (HT.reviewIssues([t]).bad) continue;
+    const sc = (t.toLowerCase().match(GOOD_RE) || []).length - (t.length > 140 ? 1 : 0);
+    if (sc > bs) { bs = sc; best = t; }
+  }
+  return best && bs >= 1 ? (best.length > 85 ? best.slice(0, 83).trim() + '…' : best) : '';
+};
 // cho phép trang khác (xem thử) dùng chung
 if (typeof self !== "undefined") self.HT = HT;
