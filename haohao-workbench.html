@@ -146,6 +146,7 @@ header p { margin: 0; font-size: 13px; flex: 1; min-width: 180px; }
       <h2>Xem thử</h2>
       <div class="tabs" role="tablist">
         <button role="tab" data-pv="demo" class="on">Trang web mẫu</button>
+        <button role="tab" data-pv="shopee">Shopee mẫu</button>
         <button role="tab" data-pv="yt">YouTube mẫu</button>
         <button role="tab" data-pv="options">Trang cài đặt</button>
         <button role="tab" data-pv="desk">Ra màn hình</button>
@@ -155,6 +156,7 @@ header p { margin: 0; font-size: 13px; flex: 1; min-width: 180px; }
       <iframe id="fDemo" title="Trang web mẫu có HaoHao"></iframe>
       <iframe id="fOptions" title="Trang cài đặt HaoHao" hidden></iframe>
       <iframe id="fYt" title="Trang YouTube mẫu có HaoHao" hidden></iframe>
+      <iframe id="fShopee" title="Trang Shopee mẫu có HaoHao" hidden></iframe>
       <div id="deskWrap" hidden><div class="desk-bg"><span>Màn hình Windows (giả lập)</span></div><iframe id="fDesk" title="Cửa sổ HaoHao trên màn hình"></iframe></div>
     </div>
     <div class="sim">
@@ -528,6 +530,14 @@ window.__ht = {
       return { ok: true, status: store.data.mailStatus };
     }
     if (m && m.type === 'ms-logout') { store.data.msAccount = ''; window.__ht.emit({ msAccount: { oldValue: 'x', newValue: '' } }); log('info', 'Đã đăng xuất Outlook (giả lập)'); return; }
+    if (m && m.type === 'shop-compare') {
+      const base = Number(m.price) || 100000, t = String(m.title || '');
+      const items = [{ shop: 'tiki', name: t.slice(0, 50), price: Math.round(base * 0.94 / 1000) * 1000, url: 'https://tiki.vn/mau-p1.html', match: 'model' },
+                     { shop: 'lazada', name: t.slice(0, 50), price: Math.round(base * 1.06 / 1000) * 1000, url: 'https://www.lazada.vn/products/mau.html', match: 'similar' }];
+      log('info', `${from} so giá (giá mẫu) cho: ${t.slice(0, 50)}`);
+      return { at: Date.now(), items };
+    }
+    if (m && m.type === 'open-deal') { log('info', `${from} mở link (qua link tiếp thị): ${m.url}`); return; }
     if (m && m.type === 'get-quotes') {
       const out = {};
       for (const it of m.items) {
@@ -585,7 +595,7 @@ const SHIM = from => `<script>
     },
     runtime: {
       async sendMessage(m) { return H.msg(m, FROM); },
-      onMessage: ev(FROM === 'trang mẫu' ? S.msgListeners : new Set()),
+      onMessage: ev(FROM === 'trang mẫu' || FROM === 'Shopee mẫu' ? S.msgListeners : new Set()),
       openOptionsPage() { H.msg({ type: 'open-options' }, FROM); },
       getURL: p => p
     },
@@ -649,6 +659,32 @@ function buildYt() {
     .replace("location.pathname === '/watch' ? new URLSearchParams(location.search).get('v')", "true ? 'demoKetCau1'");
   return YT_PAGE.replace('</body>', () => SHIM('YouTube mẫu') + '<script>' + safe(files['common.js'] || '') + '<\/script><script>' + safe(content) + '<\/script></body>');
 }
+const SHOPEE_PAGE = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><script type="application/ld+json">{"@type":"Product","name":"Quần Jean Nam Dài Ống suông 03 màu cơ bản vải jean cotton mềm mịn form chuẩn đẹp-Jean002","offers":{"price":"89000"}}<\/script><title>Quần Jean Nam Dài Ống suông 03 màu cơ bản vải jean cotton mềm mịn form chuẩn đẹp-Jean002 | Shopee Việt Nam</title>
+<style>body{font:14px Roboto,Arial,sans-serif;background:#f5f5f5;margin:0}.hd{background:#ee4d2d;color:#fff;padding:14px 60px}.box{background:#fff;margin:14px 60px;padding:18px}
+.badge{background:#d0011b;color:#fff;font-size:11px;padding:1px 4px;border-radius:2px;margin-right:6px}.row{display:flex;gap:18px;color:#555;margin:10px 0}.row u{color:#d0011b}.price{color:#ee4d2d;font-size:30px;background:#fafafa;padding:14px}
+.st{display:grid;grid-template-columns:repeat(3,auto auto);gap:6px 12px;width:520px;color:#555}.st span:nth-child(even){color:#d0011b}.f{display:flex;gap:8px;flex-wrap:wrap}.f div{border:1px solid #ddd;padding:4px 10px}.rv{border-bottom:1px solid #eee;padding:10px 0}</style></head>
+<body><div class="hd">Kênh Người Bán | Tải ứng dụng | Kết nối<br><b>Shopee</b> Siêu rẻ - Chỉ từ 1.000Đ</div>
+<div class="box"><div>Shopee &gt; Thời Trang Nam &gt; Quần Jeans &gt; Quần Jean Nam Dài Ống suông 03 màu cơ bản vải jean cotton mềm mịn form chuẩn đẹp-Jean002</div>
+<h1 style="font-size:20px;font-weight:400"><span class="badge">Yêu thích+</span>Quần Jean Nam Dài Ống suông 03 màu cơ bản vải jean cotton mềm mịn form chuẩn đẹp-Jean002</h1>
+<div class="row"><div><u>4.8</u> <span aria-hidden="true">★★★★★</span></div><div><u>16,1k</u> Đánh Giá</div><div>Đã Bán 60k+</div><div style="margin-left:auto">Tố cáo</div></div>
+<div class="price">₫89.000 <s style="font-size:13px;color:#999">109.000₫</s> -18%</div>
+<div class="row"><div>Vận Chuyển</div><div>2 Thg 10 - 3 Thg 10<br>Phí ship 0₫</div></div></div>
+<div class="box"><div style="display:flex;gap:30px"><div><b>SHOPTRUCQUYNH</b><div>Online 5 Phút Trước</div><button>Chat Ngay</button> <button>Xem Shop</button></div>
+<div class="st"><span>Đánh Giá</span><span>233,2k</span><span>Tỉ Lệ Phản Hồi</span><span>89%</span><span>Tham Gia</span><span>9 năm trước</span>
+<span>Sản Phẩm</span><span>152</span><span>Thời Gian Phản Hồi</span><span>trong vài giờ</span><span>Người Theo Dõi</span><span>154,2k</span></div></div></div>
+<div class="box"><h3>CHI TIẾT SẢN PHẨM</h3><div style="display:grid;grid-template-columns:160px 1fr;gap:8px"><div>Danh Mục</div><div>Shopee &gt; Thời Trang Nam</div><div>Kho</div><div>2000</div><div>Gửi từ</div><div>TP. Hồ Chí Minh</div></div></div>
+<div class="box"><h3>ĐÁNH GIÁ SẢN PHẨM</h3><div><b style="font-size:26px;color:#ee4d2d">4.8</b> trên 5</div>
+<div class="f"><div>Tất Cả</div><div>5 Sao (14,3k)</div><div>4 Sao (1,1k)</div><div>3 Sao (385)</div><div>2 Sao (146)</div><div>1 Sao (243)</div><div>Có Bình Luận (6,6k)</div><div>Có Hình Ảnh / Video (2,7k)</div></div>
+<div class="rv"><div>n*****6</div><div>2025-09-11 10:21 | Phân loại hàng: Xanh đậm, 30</div><div>Chất liệu: jean cotton</div><div>Đúng với mô tả: có</div><div>nhận hàng xong quá là ưng luôn, màu rất chuẩn vải đẹp mặc vừa lên form đẹp lắm nha</div><div>Hữu ích?</div></div><div class="rv"><div>n*****2</div><div>2025-09-16 10:21 | Phân loại hàng: Xanh đậm, 30</div><div>Chất liệu: jean cotton</div><div>Đúng với mô tả: có</div><div>Quần đẹp nha mn, shop giao hàng nhanh, giá hợp lý. Mua thử 1 cái xem size thế nào</div><div>Hữu ích?</div></div></div></body></html>`;
+function buildShopee() {
+  // Trang mẫu không nằm trên shopee.vn nên "giả" địa chỉ để HaoHao nhận ra đây là trang sản phẩm Shopee
+  const content = (files['content.js'] || '').replace('window.top !== window ||', 'false ||')
+    .replace('const isShopeeItem = () =>', 'const isShopeeItem = () => true ||')
+    .replace("const HOST = location.hostname.replace(/^www\\./, '');", "const HOST = 'shopee.vn';")
+    .split('cleanUrl(location.href)').join("'https://shopee.vn/quan-jean-nam-i.123.456'");
+  const common = files['common.js'] || '';
+  return SHOPEE_PAGE.replace('</body>', () => SHIM('Shopee mẫu') + '<script>' + safe(common) + '<\/script><script>' + safe(content) + '<\/script></body>');
+}
 function buildDesk() {
   let html = files['alert.html'] || '<p>Không có alert.html</p>';
   html = html.replace(/<script\s+src="([^"]+)"\s*><\/script>/g, (m, f) => files[f] != null ? `<script>${safe(files[f])}<\/script>` : m);
@@ -677,6 +713,7 @@ function run() {
   $('#fDemo').srcdoc = buildDemo();
   $('#fOptions').srcdoc = buildOptions();
   $('#fYt').srcdoc = buildYt();
+  $('#fShopee').srcdoc = buildShopee();
   store.session.deskQueue = [];
   $('#fDesk').srcdoc = buildDesk();
   log('info', 'Đã chạy lại với code mới.');
@@ -685,7 +722,7 @@ $('#run').addEventListener('click', () => { saveDrafts(); renderList(); run(); }
 
 function showPv(which) {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.pv === which));
-  $('#fDemo').hidden = which !== 'demo'; $('#fOptions').hidden = which !== 'options'; $('#fYt').hidden = which !== 'yt'; $('#deskWrap').hidden = which !== 'desk';
+  $('#fDemo').hidden = which !== 'demo'; $('#fOptions').hidden = which !== 'options'; $('#fYt').hidden = which !== 'yt'; $('#fShopee').hidden = which !== 'shopee'; $('#deskWrap').hidden = which !== 'desk';
 }
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showPv(b.dataset.pv)));
 
