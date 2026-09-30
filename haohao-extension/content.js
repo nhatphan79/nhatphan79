@@ -78,19 +78,26 @@
 
   // 4 nhánh theo sơ đồ: Todolist, Nhắc nhở, Crypto, Lọc (góc tính như hình vẽ, tự lật khi HaoHao nằm ở cạnh khác)
   const BRANCHES = [
-    { id: 'bell', label: 'Nhắc', color: '#E85D5D', angle: -90,
+    { id: 'bell', label: 'Nhắc', color: '#F0455A', angle: -90,
+      menuIcon: '<path fill="#fff" d="M12 2.6c-.9 0-1.6.7-1.6 1.6v.5A6.1 6.1 0 006 10.7v3.5l-1.7 2.7c-.3.6.1 1.3.8 1.3h13.8c.7 0 1.1-.7.8-1.3L18 14.2v-3.5a6.1 6.1 0 00-4.4-6v-.5c0-.9-.7-1.6-1.6-1.6z"/><path fill="#fff" d="M9.5 19.5h5a2.5 2.5 0 01-5 0z"/>',
       icon: '<path d="M12 3.5a5.5 5.5 0 00-5.5 5.5v3.2L5 15.5h14l-1.5-3.3V9A5.5 5.5 0 0012 3.5zM10 18.5a2 2 0 004 0" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" fill="none"/>' },
-    { id: 'todo', label: 'Todo', color: '#2F9E7E', angle: -75,
+    { id: 'todo', label: 'Todo', color: '#1DB394', angle: -75,
+      menuIcon: '<rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4.5" fill="#fff"/><path d="M7.8 12.4l2.9 2.9 5.6-6.1" style="stroke:var(--c)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
       icon: '<rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12.5l2.7 2.7L16.5 9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' },
-    { id: 'idea', label: 'Note', color: '#C0A000', angle: -60,
+    { id: 'idea', label: 'Note', color: '#F5A524', angle: -60,
+      menuIcon: '<path fill="#fff" d="M6.6 2.6h7.7l5 5v12a1.8 1.8 0 01-1.8 1.8H6.6a1.8 1.8 0 01-1.8-1.8V4.4a1.8 1.8 0 011.8-1.8z"/><path d="M14.3 2.6v3.6c0 .8.6 1.4 1.4 1.4h3.6z" fill="#000" opacity=".13"/><path d="M8.3 11.6h7.4M8.3 14.6h7.4M8.3 17.6h4.4" style="stroke:var(--c)" stroke-width="1.8" stroke-linecap="round"/>',
       icon: '<path d="M6 3.5h9l3.5 3.5V20.5H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/><path d="M9 11h6M9 15h6M14.5 3.5V7.5h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>' },
-    { id: 'focus', label: 'Pomodoro', color: '#E4572E', angle: -45,
+    { id: 'focus', label: 'Pomodoro', color: '#F0472D', angle: -45,
+      menuIcon: '<circle cx="12" cy="13.6" r="7.6" fill="#fff"/><path d="M12 6V3.2M9.4 4.3L12 5.8l2.6-1.5" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 9.8v4.1l2.7 1.8" style="stroke:var(--c)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
       icon: '<path d="M12 7.5c-4.4 0-7.5 2.7-7.5 6.3S7.8 20.5 12 20.5s7.5-3.1 7.5-6.7S16.4 7.5 12 7.5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7.5V4.5M9 5.5c1 1.2 2 1.8 3 2 1-.2 2-.8 3-2M12 7.5c-1.3.6-2.6 1.6-3.2 2.8M12 7.5c1.3.6 2.6 1.6 3.2 2.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' },
-    { id: 'info', label: 'Thông tin', color: '#6D4BEA', angle: -30,
+    { id: 'info', label: 'Thông tin', color: '#6A48F0', angle: -30,
+      menuIcon: '<path d="M12 2.8a6.5 6.5 0 00-3.9 11.7c.6.5 1 1.2 1 2v.6h5.8v-.6c0-.8.4-1.5 1-2A6.5 6.5 0 0012 2.8z" fill="none" stroke="#fff" stroke-width="2.3" stroke-linejoin="round"/><path d="M9.3 19.2h5.4M10.2 21.6h3.6" stroke="#fff" stroke-width="2.3" stroke-linecap="round"/><circle cx="14.1" cy="7.3" r="1.3" fill="#fff"/>',
       icon: '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0012 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>' },
-    { id: 'shop', label: 'Mua sắm', color: '#EE4D2D', angle: -15,
+    { id: 'shop', label: 'Mua sắm', color: '#EC4A68', angle: -15,
+      menuIcon: '<path d="M8.6 8.4V6.9a3.4 3.4 0 016.8 0v1.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/><path fill="#fff" d="M5 7.6h14l-.9 12.1a1.9 1.9 0 01-1.9 1.8H7.8a1.9 1.9 0 01-1.9-1.8z"/><circle cx="9" cy="10.6" r="1" style="fill:var(--c)"/><circle cx="15" cy="10.6" r="1" style="fill:var(--c)"/><path d="M9.3 16.4h5.4" style="stroke:var(--c)" stroke-width="1.8" stroke-linecap="round"/>',
       icon: '<path d="M5 8h14l-1.2 11.5H6.2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/><path d="M9 10V7a3 3 0 016 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>' },
-    { id: 'tools', label: 'Tiện ích', color: '#D98E1F', angle: 0,
+    { id: 'tools', label: 'Tiện ích', color: '#F2A71B', angle: 0,
+      menuIcon: '<rect x="3.4" y="3.4" width="7.4" height="8.2" rx="2.2" fill="#fff"/><rect x="13.2" y="3.4" width="7.4" height="10.4" rx="2.2" fill="#fff"/><rect x="3.4" y="14" width="7.4" height="6.6" rx="2.2" fill="#fff"/><rect x="13.2" y="16.2" width="7.4" height="4.4" rx="2.2" fill="#fff"/>',
       icon: '<rect x="4" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="4" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="13" width="7" height="7" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16.5 13v7M13 16.5h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }
   ];
   // Tiện ích con của nhánh 🧰 Tiện ích. Thêm tiện ích mới: thêm 1 dòng ở đây và 1 hàm render.
@@ -101,7 +108,7 @@
       icon: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M9.5 8h4a2 2 0 010 4h-4h4.5a2 2 0 010 4H9.5V8M11 6v2M11 16v2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' }
   ];
   const TOOLS_SOON = ['🧮 Tính chi phí xây nhà', '💱 Đổi tỷ giá', '📏 Đổi đơn vị', '🔐 Tạo mật khẩu'];
-  const DIST = 218, SAT = 52, C = 38, SUB = 44, SUBD = 76; // khoảng cách nhánh, cỡ vòng tròn nhánh, tâm HaoHao
+  const DIST = 244, SAT = 58, C = 38, SUB = 46, SUBD = 92, STAG = 46; // STAG: vòng xen kẽ đẩy ra xa hơn cho nhãn khỏi chồng nhau // khoảng cách nhánh, cỡ vòng tròn nhánh, tâm HaoHao
 
   const CSS = `
   :host { all: initial; }
@@ -142,24 +149,32 @@
   .todo .tx { cursor: text; }
 
   /* các nhánh */
-  .links { position: absolute; left: -${DIST + SAT}px; top: -${DIST + SAT}px; width: ${2 * (DIST + SAT) + 76}px; height: ${2 * (DIST + SAT) + 76}px; pointer-events: none; overflow: visible; z-index: 1; }
-  .links line { stroke: #6D4BEA; stroke-width: 2; stroke-dasharray: 230; stroke-dashoffset: 230; transition: stroke-dashoffset .28s ease; }
+  .links { position: absolute; left: -${DIST + STAG + SAT}px; top: -${DIST + STAG + SAT}px; width: ${2 * (DIST + STAG + SAT) + 76}px; height: ${2 * (DIST + STAG + SAT) + 76}px; pointer-events: none; overflow: visible; z-index: 1; }
+  .links line { stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 420; stroke-dashoffset: 420; transition: stroke-dashoffset .3s ease; }
+  .links circle { r: 3.6px; opacity: 0; transition: opacity .2s .15s; }
   .menu-open .links line { stroke-dashoffset: 0; }
-  .sat { all: unset; position: absolute; width: ${SAT}px; height: ${SAT}px; border-radius: 50%; cursor: pointer; z-index: 2;
-    background: #FFFDF6; border: 2.5px solid var(--c); color: var(--c); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-    box-shadow: 0 4px 10px rgba(35,48,94,.22); transform: scale(0); opacity: 0; transition: transform .25s cubic-bezier(.3,1.5,.6,1), opacity .2s; }
-  .sat svg { width: 22px; height: 22px; }
-  .sat b { font-size: 11.5px; font-weight: 800; color: #23305E; }
+  .menu-open .links circle:not(.sub) { opacity: 1; }
+  .sat { all: unset; position: absolute; width: ${SAT}px; height: ${SAT}px; border-radius: 50%; cursor: pointer; z-index: 2; color: #fff;
+    background: radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--c) 55%, #fff) 0%, var(--c) 58%, color-mix(in srgb, var(--c) 82%, #000) 100%);
+    border: 3px solid #fff; display: grid; place-items: center;
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, transparent), 0 0 18px color-mix(in srgb, var(--c) 45%, transparent), 0 6px 14px rgba(35,48,94,.18);
+    transform: scale(0); opacity: 0; transition: transform .25s cubic-bezier(.3,1.5,.6,1), opacity .2s, box-shadow .2s; }
+  .sat svg { width: 28px; height: 28px; margin-top: -8px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
+  .sat b { position: absolute; left: 50%; top: calc(100% - 15px); transform: translateX(-50%); white-space: nowrap;
+    background: #fff; color: #23305E; font-size: 11px; font-weight: 800; letter-spacing: -.01em; line-height: 1; padding: 5px 10px; border-radius: 999px;
+    border: 1.5px solid color-mix(in srgb, var(--c) 50%, transparent); box-shadow: 0 2px 10px color-mix(in srgb, var(--c) 30%, transparent); }
   .menu-open .sat { transform: scale(1); opacity: 1; }
   .menu-open .sat:nth-of-type(2) { transition-delay: .04s; } .menu-open .sat:nth-of-type(3) { transition-delay: .08s; } .menu-open .sat:nth-of-type(4) { transition-delay: .12s; }
-  .sat b { white-space: nowrap; font-size: 10px; letter-spacing: -.01em; }
   .menu-open .sat:nth-of-type(7) { transition-delay: .24s; }
-  .sat.child { width: ${SUB}px; height: ${SUB}px; border-style: dashed; }
-  .sat.child svg { width: 17px; height: 17px; } .sat.child b { font-size: 9.5px; }
+  .fy .sat svg { margin-top: 8px; } .fy .sat b { top: auto; bottom: calc(100% - 15px); }
+  .fy .sat .n { top: auto; bottom: -7px; }
+  .fy .sat.child svg { margin-top: 6px; } .fy .sat.child b { top: auto; bottom: calc(100% - 12px); }
+  .sat.child { width: ${SUB}px; height: ${SUB}px; border-width: 2.5px; }
+  .sat.child svg { width: 20px; height: 20px; margin-top: -6px; } .sat.child b { font-size: 9.5px; padding: 4px 8px; top: calc(100% - 12px); }
   .menu-open .sat.child { transform: scale(0); opacity: 0; transition-delay: 0s; }
   .menu-open.sub-open .sat.child { transform: scale(1); opacity: 1; }
-  .links line.sub { stroke-dasharray: 4 4; stroke-dashoffset: 0; opacity: 0; transition: opacity .2s; }
-  .sub-open .links line.sub { opacity: 1; }
+  .links line.sub { stroke-dasharray: 4 5; stroke-dashoffset: 0; opacity: 0; transition: opacity .2s; }
+  .sub-open .links line.sub, .sub-open .links circle.sub { opacity: 1; }
   .up-row { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; align-items: center; padding: 5px 2px; border-bottom: 1px solid #F0F2F7; font-size: 13px; }
   .up-row .ut { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .up-row .uw { font-size: 11.5px; color: #6B7394; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -221,9 +236,9 @@
   .tool.soon { cursor: default; opacity: .55; border-style: dashed; }
   .tool:focus-visible { outline: 2px solid #D98E1F; outline-offset: 2px; }
   .menu-open .sat:nth-of-type(5) { transition-delay: .16s; } .menu-open .sat:nth-of-type(6) { transition-delay: .2s; }
-  .sat:hover { background: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent), 0 4px 10px rgba(35,48,94,.22); }
+  .menu-open .sat:hover { transform: scale(1.08); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, transparent), 0 0 26px color-mix(in srgb, var(--c) 60%, transparent), 0 8px 18px rgba(35,48,94,.22); }
   .sat:focus-visible { outline: 3px solid #23305E; outline-offset: 2px; }
-  .sat .n { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #E85D5D; color: #fff; font: 700 11px/20px "Segoe UI", system-ui, sans-serif; text-align: center; padding: 0 5px; border: 2px solid #fff; }
+  .sat .n { position: absolute; top: -7px; right: -7px; z-index: 1; min-width: 24px; height: 24px; border-radius: 12px; background: #F0293E; color: #fff; font: 800 12.5px/20px "Segoe UI", system-ui, sans-serif; text-align: center; padding: 0 6px; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(240,41,62,.4); }
   .sat .n[hidden] { display: none; }
 
   .bubble { position: absolute; width: 270px; padding: 12px 14px; background: #fff; color: #23305E; border: 2px solid #23305E;
@@ -400,11 +415,11 @@
     const host = document.createElement('div'); host.id = 'hattieu-host';
     const root = host.attachShadow({ mode: 'open' });
     const sats = BRANCHES.map(b => `<button class="sat" data-b="${b.id}" style="--c:${b.color}" aria-label="Mở ${b.label}" tabindex="-1">
-        <svg viewBox="0 0 24 24" aria-hidden="true">${b.icon}</svg><b>${b.label}</b><span class="n" hidden></span></button>`).join('');
+        <svg viewBox="0 0 24 24" aria-hidden="true">${b.menuIcon || b.icon}</svg><b>${b.label}</b><span class="n" hidden></span></button>`).join('');
     const tabs = BRANCHES.map(b => `<button role="tab" data-t="${b.id}" style="--c:${b.color}" title="${b.label}" aria-label="${b.label}"><svg viewBox="0 0 24 24" aria-hidden="true">${b.icon}</svg><span>${b.label}</span></button>`).join('');
     root.innerHTML = `<style>${CSS}</style>
       <div class="wrap">
-        <svg class="links" aria-hidden="true">${BRANCHES.map(() => '<line/>').join('')}${TOOLS.map(() => '<line class="sub"/>').join('')}</svg>
+        <svg class="links" aria-hidden="true">${BRANCHES.map(b => `<line style="stroke:${b.color}"/>`).join('')}${TOOLS.map(t => `<line class="sub" style="stroke:${t.color}"/>`).join('')}${BRANCHES.map(b => `<circle class="d0" style="fill:${b.color}"/><circle class="d1" style="fill:${b.color}"/>`).join('')}</svg>
         ${TOOLS.map(t => `<button class="sat child" data-tool="${t.id}" style="--c:${t.color}" aria-label="Mở tiện ích ${t.label}" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg><b>${t.label}</b></button>`).join('')}
         ${sats}
         <form class="msearch" role="search"><input type="search" placeholder="Tìm Todo, Note, web…" aria-label="Tìm kiếm chung" tabindex="-1"><button aria-label="Tìm" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M15 15l5 5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></button></form>
@@ -466,36 +481,43 @@
     }
     // Nhánh: như hình vẽ là toả sang phải và lên trên; lật lại cho vừa màn hình.
     const flipX = !lefter, flipY = upper;
-    const O = DIST + SAT; // gốc của lớp đường nối
-    const lines = ui.root.querySelectorAll('.links line');
-    // ô tìm: nằm ngoài cùng, phía trên vòng cao nhất (hoặc phía dưới khi HaoHao ở nửa trên màn hình), trải về phía có chỗ
-    const ms = ui.root.querySelector('.msearch'), MSW = 230, MSH = 42;
-    ms.style.left = (flipX ? C + SAT / 2 - MSW : C - SAT / 2) + 'px';
-    ms.style.top = (flipY ? C + DIST + SAT / 2 + 12 : C - DIST - SAT / 2 - 12 - MSH) + 'px';
-    ms.style.transformOrigin = `${flipX ? 'right' : 'left'} ${flipY ? 'top' : 'bottom'}`;
+    ui.wrap.classList.toggle('fy', flipY);
+    const O = DIST + STAG + SAT; // gốc của lớp đường nối
+    const lines = ui.root.querySelectorAll('.links line'), dots = ui.root.querySelectorAll('.links circle');
+    let minY = 0, maxY = 0;
     BRANCHES.forEach((br, i) => {
       let a = br.angle; if (flipX) a = 180 - a; if (flipY) a = -a;
       const rad = a * Math.PI / 180, dx = Math.cos(rad), dy = Math.sin(rad);
+      const R = DIST + (i % 2 ? STAG : 0);   // xen kẽ gần/xa như hình mẫu
+      const sx = C + R * dx, sy = C + R * dy;
+      minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
       const sat = ui.root.querySelector(`.sat[data-b="${br.id}"]`);
-      sat.style.left = (C + DIST * dx - SAT / 2) + 'px';
-      sat.style.top = (C + DIST * dy - SAT / 2) + 'px';
-      const L = lines[i];
-      L.setAttribute('x1', O + C + 34 * dx); L.setAttribute('y1', O + C + 34 * dy);
-      L.setAttribute('x2', O + C + (DIST - SAT / 2) * dx); L.setAttribute('y2', O + C + (DIST - SAT / 2) * dy);
+      sat.style.left = (sx - SAT / 2) + 'px';
+      sat.style.top = (sy - SAT / 2) + 'px';
+      const L = lines[i], r0 = 44, r1 = R - SAT / 2 - 8;
+      L.setAttribute('x1', O + C + r0 * dx); L.setAttribute('y1', O + C + r0 * dy);
+      L.setAttribute('x2', O + C + r1 * dx); L.setAttribute('y2', O + C + r1 * dy);
+      dots[2 * i].setAttribute('cx', O + C + r0 * dx); dots[2 * i].setAttribute('cy', O + C + r0 * dy);
+      dots[2 * i + 1].setAttribute('cx', O + C + r1 * dx); dots[2 * i + 1].setAttribute('cy', O + C + r1 * dy);
       if (br.id === 'tools') {
         // tiện ích con: tiếp tục toả ra ngoài từ vòng Tiện ích, xoè dần về phía có chỗ
-        const px = C + DIST * dx, py = C + DIST * dy, subLines = ui.root.querySelectorAll('.links line.sub');
+        const subLines = ui.root.querySelectorAll('.links line.sub');
         TOOLS.forEach((t, j) => {
-          let ca = br.angle - 20 * j; if (flipX) ca = 180 - ca; if (flipY) ca = -ca;
-          const cr = ca * Math.PI / 180, cx = Math.cos(cr), cy = Math.sin(cr);
+          // xếp thẳng hàng ra ngoài theo hướng của vòng Tiện ích, nối tiếp nhau
+          const d = SUBD + j * (SUB + 46), pd = j ? SUBD + (j - 1) * (SUB + 46) : 0, pr = j ? SUB / 2 : SAT / 2;
           const ch = ui.root.querySelector(`.sat.child[data-tool="${t.id}"]`);
-          ch.style.left = (px + SUBD * cx - SUB / 2) + 'px'; ch.style.top = (py + SUBD * cy - SUB / 2) + 'px';
+          ch.style.left = (sx + d * dx - SUB / 2) + 'px'; ch.style.top = (sy + d * dy - SUB / 2) + 'px';
           const l2 = subLines[j];
-          l2.setAttribute('x1', O + px + (SAT / 2) * cx); l2.setAttribute('y1', O + py + (SAT / 2) * cy);
-          l2.setAttribute('x2', O + px + (SUBD - SUB / 2) * cx); l2.setAttribute('y2', O + py + (SUBD - SUB / 2) * cy);
+          l2.setAttribute('x1', O + sx + (pd + pr + 4) * dx); l2.setAttribute('y1', O + sy + (pd + pr + 4) * dy);
+          l2.setAttribute('x2', O + sx + (d - SUB / 2 - 4) * dx); l2.setAttribute('y2', O + sy + (d - SUB / 2 - 4) * dy);
         });
       }
     });
+    // ô tìm: nằm ngoài cùng, phía trên vòng cao nhất (hoặc phía dưới khi HaoHao ở nửa trên màn hình), trải về phía có chỗ
+    const ms = ui.root.querySelector('.msearch'), MSW = 230, MSH = 42;
+    ms.style.left = (flipX ? C + SAT / 2 - MSW : C - SAT / 2) + 'px';
+    ms.style.top = (flipY ? maxY + SAT / 2 + 16 : minY - SAT / 2 - 16 - MSH) + 'px';
+    ms.style.transformOrigin = `${flipX ? 'right' : 'left'} ${flipY ? 'top' : 'bottom'}`;
   }
 
   function setupDrag() {
