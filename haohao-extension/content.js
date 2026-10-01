@@ -3511,6 +3511,12 @@
     if (!active()) return;
     buildUI();
     setTimeout(greet, 1500);
+    // Tab mới: chào xong thì tự mở Todolist để người dùng ghi việc trong ngày
+    if (location.protocol === 'chrome-extension:' && /\/newtab\.html$/.test(location.pathname)) setTimeout(() => {
+      if (!ui || !ui.panel.hidden) return;
+      const greeted = !ui.bubble.hidden;
+      setTimeout(() => { if (!ui.panel.hidden) return; clearTimeout(bubbleTimer); hideBubble(); openTab('todo'); }, greeted ? 3500 : 0);
+    }, 2200);
     setTimeout(focusNudge, 2000);
     setTimeout(trackPrice, 3000);
     let lastHref = location.href;
