@@ -3333,6 +3333,9 @@
   }
 
   // ---------- lời chào + việc đang chờ ----------
+  // mẹo xoay vòng mỗi lần chào, để lời chào không lặp lại y hệt
+  const GREET_TIPS = ['💡 Bôi đen chữ bất kỳ để tôi dịch hoặc giải thích.', '🛍️ Mở sản phẩm Shopee, TikTok: tôi tìm shop rẻ hơn cho bạn.', '📝 Có việc cần nhớ? Bấm vào tôi để thêm vào Todolist.',
+    '🍅 Cần tập trung? Thử chế độ Tập trung 25 phút nhé.', '🔎 Bấm vào tôi, chọn Mua sắm để tìm hàng uy tín trên Shopee.', '⏰ Bấm vào tôi để đặt nhắc nhở uống nước, nghỉ mắt.'];
   async function greet() {
     if (!ui || !active() || settings.greet === false || !ui.panel.hidden || menuOpen || trust) return;
     const { greetAt = 0 } = await chrome.storage.local.get('greetAt');
@@ -3341,8 +3344,9 @@
     const late = pend.filter(t => t.due && new Date(t.due).getTime() <= now);
     const soon = pend.filter(t => t.due && new Date(t.due).getTime() > now && new Date(t.due).getTime() - now <= 3600e3);
     const urgent = late.length || soon.length;
-    // chào tối đa 3 tiếng/lần; nếu có việc gấp thì nhắc lại sau mỗi 30 phút
-    if (now - greetAt < 3 * 3600e3 && !(urgent && now - greetAt > 30 * 60e3)) return;
+    // chào lại theo cài đặt (mặc định 15 phút/lần) để người dùng khỏi quên HaoHao; có việc gấp thì nhắc ít nhất 30 phút/lần
+    const gap = Math.max(5, +settings.greetMin || 15) * 60e3;
+    if (now - greetAt < (urgent ? Math.min(gap, 30 * 60e3) : gap)) return;
     await chrome.storage.local.set({ greetAt: now });
     const hr = new Date().getHours();
     const hi = hr < 5 ? 'Khuya rồi' : hr < 11 ? 'Chào buổi sáng' : hr < 14 ? 'Chào buổi trưa' : hr < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
@@ -3350,6 +3354,7 @@
     if (late.length) { note = `⚠ ${late.length} việc quá hạn chưa xử lý: ${late[0].text}`; cls = 'late'; }
     else if (soon.length) note = `⏰ Sắp tới giờ: ${soon[0].text} (${new Date(soon[0].due).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})` + (soon.length > 1 ? ` và ${soon.length - 1} việc khác` : '');
     else if (pend.length) note = `📝 Bạn có ${pend.length} việc đang chờ trong Todolist`;
+    else { note = GREET_TIPS[Math.floor(now / 60e3) % GREET_TIPS.length]; cls = 'tip'; }
     lastBubble = now;
     ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = 'todo'; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb');
     ui.bubble.append(el('span', 't', `Xin chào, tôi là trợ lý HaoHao 👋`));
@@ -3449,5 +3454,5 @@
     }, 2500);
   });
   // có việc sắp tới giờ trong lúc đang mở trang thì cũng nhắc nhẹ
-  setInterval(() => { if (document.visibilityState === 'visible') greet(); }, 5 * 60e3);
+  setInterval(() => { if (document.visibilityState === 'visible') greet(); }, 60e3);
 })();

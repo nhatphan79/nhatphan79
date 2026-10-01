@@ -153,6 +153,7 @@ function renderSettings() {
   $('#lang').value = settings.lang === 'en' ? 'en' : 'vi';
   $('#mascotEnabled').checked = settings.mascotEnabled !== false;
   $('#greet').checked = settings.greet !== false;
+  $('#greetMin').value = String(settings.greetMin || 15);
   $('#desktop').checked = settings.desktop !== false;
   $('#sound').checked = settings.sound !== false;
   $('#shopTrust').checked = settings.shopTrust !== false;
@@ -180,6 +181,7 @@ chrome.runtime.sendMessage({ type: 'app-status' }).then(r => {
     : 'App HaoHao 3D chưa chạy: đang dùng cửa sổ nhắc nhỏ. Bấm đúp biểu tượng HaoHao trên Desktop để bật con hamster 3D.';
 }).catch(() => {});
 $('#greet').addEventListener('change', e => { settings.greet = e.target.checked; saveSettings(); });
+$('#greetMin').addEventListener('change', e => { settings.greetMin = +e.target.value; saveSettings(); });
 $('#resetPos').addEventListener('click', () => { delete settings.pos; saveSettings(); });
 
 $('#export').addEventListener('click', () => {
