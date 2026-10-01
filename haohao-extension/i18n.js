@@ -4,6 +4,21 @@
 (() => {
   const HT = self.HT; if (!HT) return;
   const D = {
+"Trời quang": "Clear sky",
+"Ít mây": "Mostly clear",
+"Có mây": "Partly cloudy",
+"Nhiều mây": "Cloudy",
+"Sương mù": "Fog",
+"Mưa phùn": "Drizzle",
+"Có mưa": "Rain",
+"Có tuyết": "Snow",
+"Có dông": "Thunderstorm",
+"Nắng nóng, nhớ uống nước": "Very hot, stay hydrated",
+"Có dông, cẩn thận nhé": "Thunderstorms, take care",
+"Nhớ mang ô nhé": "Don't forget an umbrella",
+"Trời lạnh, mặc ấm nhé": "Cold out, dress warmly",
+"Trời đẹp hôm nay": "Nice weather today",
+"Chúc bạn ngày tốt lành": "Have a great day",
 "Hình ảnh": "Images",
 "Ứng dụng Google": "Google apps",
 "Tìm trên Google hoặc gõ địa chỉ": "Search Google or type a URL",

@@ -112,6 +112,41 @@
     draw();
   }).catch(draw);
 
+  // ---------- ⛅ thời tiết: vị trí máy (hoặc đoán theo mạng) → Open-Meteo, lưu 30 phút ----------
+  const WX = [[[0], '☀️', 'Trời quang'], [[1], '🌤️', 'Ít mây'], [[2], '⛅', 'Có mây'], [[3], '☁️', 'Nhiều mây'], [[45, 48], '🌫️', 'Sương mù'],
+    [[51, 53, 55, 56, 57], '🌦️', 'Mưa phùn'], [[61, 63, 65, 66, 67, 80, 81, 82], '🌧️', 'Có mưa'], [[71, 73, 75, 77, 85, 86], '🌨️', 'Có tuyết'], [[95, 96, 99], '⛈️', 'Có dông']];
+  const wxOf = c => WX.find(w => w[0].includes(c)) || [[], '🌡️', ''];
+  const tip = (c, t) => t >= 35 ? 'Nắng nóng, nhớ uống nước' : c >= 95 ? 'Có dông, cẩn thận nhé' : (c >= 51 && c <= 67) || (c >= 80 && c <= 82) ? 'Nhớ mang ô nhé' : t <= 15 ? 'Trời lạnh, mặc ấm nhé' : c <= 2 ? 'Trời đẹp hôm nay' : 'Chúc bạn ngày tốt lành';
+  const where = () => new Promise(res => {
+    const byIp = () => fetch('https://ipwho.is/?fields=city,latitude,longitude,success').then(r => r.json())
+      .then(j => res(j && j.success !== false && j.latitude ? { lat: j.latitude, lon: j.longitude, city: j.city || '' } : null)).catch(() => res(null));
+    if (!navigator.geolocation) return byIp();
+    navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lon: p.coords.longitude, city: '' }), byIp, { timeout: 8000, maximumAge: 3 * 3600e3 });
+  });
+  function showWx(w) {
+    if (!w || w.temp == null) return;
+    const [, ic, desc] = wxOf(w.code), a = $('#weather');
+    a.textContent = `${ic} ${w.city ? w.city + ' · ' : ''}${Math.round(w.temp)}°C | ${HT.tr(tip(w.code, w.temp))}`;
+    a.title = HT.tr(desc) + (w.city ? ' · ' + w.city : '');
+    a.href = 'https://www.google.com/search?q=' + encodeURIComponent((HT.lang === 'en' ? 'weather ' : 'thời tiết ') + (w.city || ''));
+    a.hidden = false;
+  }
+  (async () => {
+    try {
+      const { ntWeather: c } = await chrome.storage.local.get('ntWeather');
+      if (c) showWx(c);
+      if (c && Date.now() - c.at < 30 * 60e3) return;
+      const loc = await where(); if (!loc) return;
+      const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat.toFixed(3)}&longitude=${loc.lon.toFixed(3)}&current=temperature_2m,weather_code&timezone=auto`)).json();
+      let city = loc.city;
+      if (!city) try { const g = await (await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${loc.lat}&longitude=${loc.lon}&localityLanguage=${HT.lang === 'en' ? 'en' : 'vi'}`)).json(); city = g.city || g.locality || g.principalSubdivision || ''; } catch {}
+      city = String(city).replace(/^(Thành phố|Tỉnh|City of)\s+/i, '');
+      const w = { at: Date.now(), city, temp: j.current && j.current.temperature_2m, code: j.current && j.current.weather_code };
+      if (w.temp == null) return;
+      chrome.storage.local.set({ ntWeather: w }).catch(() => {}); showWx(w);
+    } catch {}
+  })();
+
   // nút nhanh: mở đúng mục trong HaoHao (HaoHao chạy ngay trên trang này)
   document.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () =>
     window.dispatchEvent(new CustomEvent('hh-open', { detail: { tab: b.dataset.tab } }))));

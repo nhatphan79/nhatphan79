@@ -64,3 +64,6 @@ body {
 .sacts button { cursor: pointer; font: inherit; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid transparent; border-radius: 8px; padding: 10px 16px; }
 .sacts button:hover { border-color: var(--line); } .sacts button:focus-visible { outline: 3px solid var(--accent); }
 @media (max-width: 560px) { .aimode { display: none; } }
+.weather { margin-top: 6px; font-size: 14px; color: var(--soft); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+.weather:hover { background: var(--card); color: var(--ink); }
+.weather[hidden] { display: none; }
