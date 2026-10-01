@@ -231,6 +231,8 @@
 "Gmail dùng luôn tài khoản đang đăng nhập trên Chrome nên không cần đăng nhập lại. HaoHao chỉ báo thư đến SAU lúc bật, thư chưa đọc cũ không báo.": "Gmail uses the account already signed in to Chrome, so no extra sign-in is needed. HaoHao only alerts for mail that arrives AFTER you turn this on; older unread mail is not announced.",
 "Thư chưa đọc mới nhất:": "Latest unread mail:",
 "Đang báo email:": "Alerting for:",
+"Không báo thư không quan trọng: mã OTP, xác minh, mạng xã hội, khuyến mãi": "Skip unimportant mail: OTP and verification codes, social networks, promotions",
+"không báo · OTP": "no alert · OTP", "không báo · MXH": "no alert · social", "không báo · QC": "no alert · promo",
 "Gmail đang đăng nhập trên Chrome": "The Gmail signed in to Chrome",
 "🔔 Báo thử": "🔔 Test alert",
 "Xem HaoHao báo email mới trông thế nào": "See what a new-mail alert looks like",
@@ -793,7 +795,8 @@
 "Ghi chú": "Notes",
 "Mã giảm giá": "Vouchers"
 };
-  const P = [["^📝 Todolist của bạn \\((\\d+) việc\\)$", "📝 Your to-do list ({1} tasks)"],
+  const P = [["^🔕 Hôm nay đã bỏ qua (\\d+) thư không quan trọng \\(OTP, mạng xã hội, khuyến mãi\\)\\.$", "🔕 Skipped {1} unimportant emails today (OTP, social, promotions)."],
+["^📝 Todolist của bạn \\((\\d+) việc\\)$", "📝 Your to-do list ({1} tasks)"],
 ["^và (\\d+) việc khác$", "and {1} more"],
 ["^YouTube: đã bỏ qua (\\d+) quảng cáo video, ẩn (\\d+) ô quảng cáo$", "YouTube: skipped {1} video ads, hid {2} ad slots"],
 ["^(.+): không chặn \\(trang mua sắm của HaoHao\\)$", "{1}: not blocked (HaoHao shopping site)"],

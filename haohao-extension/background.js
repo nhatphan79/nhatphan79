@@ -393,6 +393,17 @@ function parseFeed(xml) {
   return { count, entries, account };
 }
 const normTxt = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+// Thư không quan trọng thì không báo: mã OTP / xác minh, thông báo mạng xã hội, quảng cáo khuyến mãi
+const JUNK_OTP = /\b(otp|2fa|ma xac (thuc|nhan|minh)|ma bao mat|ma dang nhap|ma kich hoat|verification code|verify your|security code|login code|sign[- ]?in code|one[- ]time (code|password|passcode)|confirmation code|your code|passcode|xac minh (tai khoan|email|danh tinh)|dat lai mat khau|reset (your )?password)\b/;
+const JUNK_SOCIAL = /(facebookmail|facebook\.com|instagram|tiktok|linkedin|twitter|(^|[@.])x\.com|pinterest|threads\.net|reddit|quora|discord|zalo|youtube\.com|snapchat|telegram)/;
+const JUNK_PROMO = /\b(khuyen mai|giam gia|flash ?sale|voucher|uu dai|sale off|mega sale|deal (soc|hot)|newsletter|ban tin|unsubscribe|huy dang ky|% off|freeship|mien phi van chuyen)\b/;
+function mailJunk(e) {
+  const who = normTxt(e.name + ' ' + e.email), txt = normTxt(e.title + ' ' + e.summary);
+  if (JUNK_OTP.test(txt)) return 'otp';
+  if (JUNK_SOCIAL.test(normTxt(e.email)) || /^(facebook|instagram|tiktok|linkedin|zalo|youtube|x|twitter)$/.test(normTxt(e.name).trim())) return 'social';
+  if (JUNK_PROMO.test(txt) || /(no-?reply|marketing|newsletter|promo|deals?)@/.test(who) && JUNK_PROMO.test(txt)) return 'promo';
+  return '';
+}
 function mailMatch(m, e) {
   if (m.mode !== 'filter') return true;
   const senders = (m.senders || []).map(normTxt).filter(Boolean), words = (m.words || []).map(normTxt).filter(Boolean);
@@ -462,7 +473,8 @@ async function fetchOutlook(m) {
 
 let mailBusy = false;
 async function checkMail(manual) {
-  const { settings = {}, mailSeen = null } = await chrome.storage.local.get(['settings', 'mailSeen']);
+  const { settings = {}, mailSeen = null, mailStatus: prevSt } = await chrome.storage.local.get(['settings', 'mailSeen', 'mailStatus']);
+  const prevSkip = prevSt && prevSt.ok && new Date(prevSt.at).toDateString() === new Date().toDateString() ? prevSt.skipped || 0 : 0;   // đếm thư bỏ qua trong ngày
   const m = settings.mail || {};
   if ((!m.enabled && !manual) || mailBusy) return null;
   mailBusy = true;
@@ -470,7 +482,7 @@ async function checkMail(manual) {
   try {
     const f = m.provider === 'outlook' ? await fetchOutlook(m) : await fetchGmail(m);
     status = { ok: true, count: f.count, at: Date.now(), provider: m.provider || 'gmail', account: f.account || '',
-      latest: f.entries.slice(0, 3).map(e => ({ name: e.name || e.email, title: e.title, url: e.url })) };
+      latest: f.entries.slice(0, 3).map(e => ({ name: e.name || e.email, title: e.title, url: e.url, junk: m.skipJunk === false ? '' : mailJunk(e) })), skipped: prevSkip };
     const first = !Array.isArray(mailSeen);
     const seen = new Set(first ? [] : mailSeen);
     const fresh = f.entries.filter(e => e.id && !seen.has(e.id));
@@ -478,7 +490,10 @@ async function checkMail(manual) {
     await chrome.storage.local.set({ mailSeen: [...seen].slice(-300) });
     // Lần đầu bật: chỉ ghi nhận thư đang có, không báo dồn dập
     if (!first && m.enabled) {
-      const hits = fresh.filter(e => mailMatch(m, e));
+      // thư khớp đúng người gửi bạn tự nhập thì vẫn báo; còn lại bỏ qua thư không quan trọng (tắt được trong cài đặt)
+      const mine = e => m.mode === 'filter' && (m.senders || []).map(normTxt).filter(Boolean).some(x => normTxt(e.name + ' ' + e.email).includes(x));
+      const hits = fresh.filter(e => mailMatch(m, e) && (m.skipJunk === false || mine(e) || !mailJunk(e)));
+      status.skipped = (prevSkip || 0) + fresh.filter(e => mailMatch(m, e)).length - hits.length;
       for (const e of hits.slice(0, 4)) {
         await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, `📧 ${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
       }
