@@ -4,6 +4,10 @@
 (() => {
   const HT = self.HT; if (!HT) return;
   const D = {
+"🧡 Cửa hàng HaoHao trên Shopee": "🧡 HaoHao store on Shopee",
+"Món đã chọn lọc, mua qua Shopee": "Hand-picked items, buy on Shopee",
+"Mở cửa hàng HaoHao trên Shopee": "Open the HaoHao store on Shopee",
+"Xem ›": "View ›",
 "Trời quang": "Clear sky",
 "Ít mây": "Mostly clear",
 "Có mây": "Partly cloudy",

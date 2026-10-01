@@ -478,6 +478,8 @@
   .ttcard:hover { filter: brightness(1.15); } .ttcard:focus-visible { outline: 3px solid #25F4EE; }
   .ttcard .ttx { flex: 1; display: flex; flex-direction: column; min-width: 0; } .ttcard b { font-size: 13px; } .ttcard small { font-size: 11px; color: #C9CEDF; }
   .ttcard .tth { font-size: 12px; font-weight: 800; color: #25F4EE; white-space: nowrap; }
+  .spcard { background: linear-gradient(90deg, #EE4D2D 0%, #FF7337 100%); margin-bottom: 0; } .spcard small { color: #FFE3D6 !important; } .spcard .tth { color: #fff; }
+  .spcard + .ttcard { margin-top: 8px; }
   .rpick { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #E3E6F0; border-radius: 12px; background: #fff; margin-bottom: 6px; font-size: 12.5px; color: #23305E; }
   .rpick .rimg { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; }
   .rpick span { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } .rpick i { font-style: normal; }
@@ -2128,6 +2130,7 @@
       else L.append(el('div', 'optwait', 'HaoHao đang đọc trang… kéo xuống một chút để Shopee tải thông tin shop và đánh giá.'));
       V.append(L);
       if (isTikTokItem() && !HT.ttLink(location.href)) { const tc = ttCard(); if (tc) V.append(tc); }
+      else if (!isTikTokItem()) { const sc = spCard(); if (sc) V.append(sc); }
       return;
     }
     // trang khác: 🔎 tìm sản phẩm, HaoHao lọc sẵn 3 món đáng mua ngay trong bảng
@@ -2181,6 +2184,15 @@
     const b = el('button', 'ttcard'); b.setAttribute('aria-label', 'Mở hàng HaoHao tuyển chọn trên TikTok');
     const tx = el('span', 'ttx'); tx.append(el('b', '', '🛍️ Hàng HaoHao tuyển chọn'), el('small', '', 'Món đã kiểm tra, bán trên TikTok Shop'));
     b.append(tx, el('span', 'tth', '@' + (HT.TT.creator || 'TikTok') + ' ›'));
+    b.addEventListener('click', () => openDeal(url));
+    return b;
+  }
+  // Lối vào trang trưng bày Shopee của bạn
+  function spCard() {
+    const url = HT.SP.showcase; if (!url) return null;
+    const b = el('button', 'ttcard spcard'); b.setAttribute('aria-label', 'Mở cửa hàng HaoHao trên Shopee');
+    const tx = el('span', 'ttx'); tx.append(el('b', '', '🧡 Cửa hàng HaoHao trên Shopee'), el('small', '', 'Món đã chọn lọc, mua qua Shopee'));
+    b.append(tx, el('span', 'tth', 'Xem ›'));
     b.addEventListener('click', () => openDeal(url));
     return b;
   }
@@ -2242,6 +2254,7 @@
       more.append(a1, a2); L.append(more);
     }
     if (L.children.length) V.append(L);
+    const sc = spCard(); if (sc) V.append(sc);
     const tc = ttCard(); if (tc) V.append(tc);
   }
 
@@ -3311,7 +3324,7 @@
       try { sessionStorage.setItem('hh-aff', j.key); if (j.sub) sessionStorage.setItem('hh-open', j.key + '|' + j.sub); } catch {}
       chrome.storage.local.remove('hhJump').catch(() => {});
     }
-    couponFeed = d.couponFeed || null; couponSeen = d.couponSeen || []; HT.setTikTok(couponFeed && couponFeed.tiktok);
+    couponFeed = d.couponFeed || null; couponSeen = d.couponSeen || []; HT.setTikTok(couponFeed && couponFeed.tiktok); HT.setShopee(couponFeed && couponFeed.shopee);
     products = d.products || [];
     pomo = d.pomo || null; pomoStats = d.pomoStats || {};
     ideas = d.ideas || [];
@@ -3324,7 +3337,7 @@
   chrome.storage.onChanged.addListener(async (ch, area) => {
     if (area !== 'local') return;
     if ((ch.couponFeed || ch.couponSeen) && !(ch.rules || ch.settings || ch.todos || ch.watch)) {
-      if (ch.couponFeed) { couponFeed = ch.couponFeed.newValue || null; HT.setTikTok(couponFeed && couponFeed.tiktok); }
+      if (ch.couponFeed) { couponFeed = ch.couponFeed.newValue || null; HT.setTikTok(couponFeed && couponFeed.tiktok); HT.setShopee(couponFeed && couponFeed.shopee); }
       if (ch.couponSeen) couponSeen = ch.couponSeen.newValue || [];
       updateBadge();
       if (ch.couponFeed && tab === 'shop' && ui && !ui.panel.hidden) renderPanel();

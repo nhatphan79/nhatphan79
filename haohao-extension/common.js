@@ -258,6 +258,9 @@ HT.AFF = {
 // Danh sách nằm trong coupons.json → "tiktok": { creator: tên TikTok, links: { mã sản phẩm: link } }
 HT.TT = { creator: '', links: {} };
 HT.setTikTok = t => { HT.TT = { creator: (t && t.creator) || '', links: (t && t.links) || {}, titles: (t && t.titles) || {}, images: (t && t.images) || {}, showcase: (t && t.showcase) || '' }; };
+// trang trưng bày Shopee của bạn (Shopee Affiliate: collshp.com/…)
+HT.SP = { showcase: '' };
+HT.setShopee = t => { HT.SP = { showcase: (t && t.showcase) || '' }; };
 // trang TikTok của bạn (phòng trưng bày) để giới thiệu hàng tuyển chọn
 HT.ttShowcase = () => HT.TT.showcase || (HT.TT.creator ? 'https://www.tiktok.com/@' + HT.TT.creator : '');
 HT.ttId = url => { const m = String(url || '').match(/\/product\/(\d{8,})|\/pdp\/(?:[^/?#]*\/)?(\d{8,})/); return m ? (m[1] || m[2]) : ''; };

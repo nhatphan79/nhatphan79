@@ -821,7 +821,8 @@ async function applyFeed(feed) {
   }
   const tiktok = { creator: /^[\w.]{2,40}$/.test(tt.creator || '') ? tt.creator : '', links, titles, images, showcase: /^https:\/\/(www\.|vt\.|vm\.)?tiktok\.com\//.test(tt.showcase || '') ? tt.showcase : '' };
   HT.setTikTok(tiktok);
-  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok } });
+  const sp = feed.shopee || {}, shopee = { showcase: /^https:\/\/(collshp\.com|shopee\.vn|s\.shopee\.vn)\//.test(sp.showcase || '') ? sp.showcase : '' };
+  await chrome.storage.local.set({ couponFeed: { at: Date.now(), updated: feed.updated || '', coupons, hubs, tiktok, shopee } });
   return { ok: true, n: coupons.length };
 }
 
