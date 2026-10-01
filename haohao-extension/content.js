@@ -3289,7 +3289,7 @@
     if (now - greetAt < 3 * 3600e3 && !(urgent && now - greetAt > 30 * 60e3)) return;
     await chrome.storage.local.set({ greetAt: now });
     const hr = new Date().getHours();
-    const hi = hr < 11 ? 'Chào buổi sáng' : hr < 14 ? 'Chào buổi trưa' : hr < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+    const hi = hr < 5 ? 'Khuya rồi' : hr < 11 ? 'Chào buổi sáng' : hr < 14 ? 'Chào buổi trưa' : hr < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
     let note = '', cls = '';
     if (late.length) { note = `⚠ ${late.length} việc quá hạn chưa xử lý: ${late[0].text}`; cls = 'late'; }
     else if (soon.length) note = `⏰ Sắp tới giờ: ${soon[0].text} (${new Date(soon[0].due).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})` + (soon.length > 1 ? ` và ${soon.length - 1} việc khác` : '');

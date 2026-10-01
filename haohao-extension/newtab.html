@@ -23,6 +23,12 @@
       <button data-tab="shop">🛍️ Mua sắm</button>
       <button data-tab="tools">₿ Crypto</button>
     </nav>
+    <section class="sites" id="sites" aria-label="Lối tắt"></section>
+    <form class="addsite" id="addsite" hidden>
+      <input id="as-title" placeholder="Tên (vd: Gmail)" aria-label="Tên lối tắt" maxlength="40">
+      <input id="as-url" placeholder="Địa chỉ (vd: mail.google.com)" aria-label="Địa chỉ lối tắt" required>
+      <button type="submit">Lưu</button><button type="button" id="as-cancel" class="ghost">Huỷ</button>
+    </form>
   </main>
   <footer class="copyr">© 2026 HaoHao · Bản quyền thuộc Phan Thanh Nhật · <a href="tel:0366159790">0366.159.790</a></footer>
   <script src="common.js"></script>

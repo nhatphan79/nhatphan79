@@ -4,6 +4,13 @@
 (() => {
   const HT = self.HT; if (!HT) return;
   const D = {
+"Lối tắt": "Shortcuts",
+"Tên (vd: Gmail)": "Name (e.g. Gmail)",
+"Địa chỉ (vd: mail.google.com)": "Address (e.g. mail.google.com)",
+"Tên lối tắt": "Shortcut name",
+"Địa chỉ lối tắt": "Shortcut address",
+"Xoá lối tắt": "Remove shortcut",
+"Thêm lối tắt": "Add shortcut",
 "đang bật": "on",
 "(Không có tiêu đề)": "(No title)",
 "(nhắc lại)": "(repeat)",
