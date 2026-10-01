@@ -230,6 +230,8 @@
 "⏱️ HaoHao chào lại sau mỗi": "⏱️ HaoHao greets again every",
 "Gmail dùng luôn tài khoản đang đăng nhập trên Chrome nên không cần đăng nhập lại. HaoHao chỉ báo thư đến SAU lúc bật, thư chưa đọc cũ không báo.": "Gmail uses the account already signed in to Chrome, so no extra sign-in is needed. HaoHao only alerts for mail that arrives AFTER you turn this on; older unread mail is not announced.",
 "Thư chưa đọc mới nhất:": "Latest unread mail:",
+"Đang báo email:": "Alerting for:",
+"Gmail đang đăng nhập trên Chrome": "The Gmail signed in to Chrome",
 "🔔 Báo thử": "🔔 Test alert",
 "Xem HaoHao báo email mới trông thế nào": "See what a new-mail alert looks like",
 "📧 Báo thử: khi có email mới, HaoHao sẽ báo như thế này": "📧 Test: this is how HaoHao alerts you to new mail",

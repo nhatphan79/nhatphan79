@@ -299,6 +299,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'ai-test') { gemini([{ role: 'user', parts: [{ text: 'Trả lời đúng một chữ: OK' }] }], 'Trả lời ngắn.').then(t => send({ ok: true, text: t })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'mail-check-now') { checkMail(true).then(send); return true; }
   if (msg.type === 'mail-test') { mailTest().then(send); return true; }
+  if (msg.type === 'mail-accounts') { mailAccounts().then(send).catch(() => send(null)); return true; }
   if (msg.type === 'ms-redirect') { send(msRedirect()); return; }
   if (msg.type === 'ms-login') {
     msAuth(true).then(async () => { await chrome.storage.local.set({ mailSeen: null }); const st = await checkMail(true); send({ ok: true, status: st }); })
@@ -489,6 +490,23 @@ async function checkMail(manual) {
   mailBusy = false;
   await chrome.storage.local.set({ mailStatus: status });
   return status;
+}
+// Dò các tài khoản Gmail đang đăng nhập trên Chrome (u/0..u/3) để hiện đúng địa chỉ email thay vì "Gmail thứ 1, 2…"
+async function mailAccounts() {
+  const list = [];
+  for (let i = 0; i < 4; i++) {
+    try {
+      const r = await fetch(`https://mail.google.com/mail/u/${i}/feed/atom`, { credentials: 'include', cache: 'no-store' });
+      const txt = await r.text(); if (!r.ok || !txt.includes('<feed')) break;
+      const email = parseFeed(txt).account;
+      // số thứ tự không có thật thì Gmail trả về tài khoản đầu → gặp lại email cũ là hết
+      if (!email || list.some(x => x.email === email)) break;
+      list.push({ i, email });
+    } catch { break; }
+  }
+  const res = { at: Date.now(), list };
+  await chrome.storage.local.set({ mailAccounts: res });
+  return res;
 }
 // 🔔 Báo thử: cho người dùng thấy HaoHao báo thư mới trông thế nào (dùng thư chưa đọc mới nhất nếu có)
 async function mailTest() {

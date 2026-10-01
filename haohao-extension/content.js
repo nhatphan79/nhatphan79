@@ -207,6 +207,7 @@
   .rule .ic { margin-left: auto; }
   .mail-hd { background: #EEF5FF !important; color: #1F5FAF !important; }
   .mail-hd:hover, .mail-hd.on { background: #DCEBFF !important; }
+  .mail-acc { font-size: 13px; color: #1F5FAF; word-break: break-all; }
   .mail-why { margin-top: 4px; font-size: 11.5px; color: #6B7393; line-height: 1.4; }
   .mail-list { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 6px; } .mail-list > b { font-size: 12px; color: #3A4470; }
   .mail-it { all: unset; cursor: pointer; display: flex; gap: 6px; padding: 5px 8px; border-radius: 8px; background: #F4F7FD; font-size: 12px; color: #23305E; min-width: 0; }
@@ -1121,6 +1122,11 @@
     V.append(list);
   }
 
+  let mailAccts = null, acctsBusy = false;
+  const refreshAccts = () => {
+    if (acctsBusy) return; acctsBusy = true;
+    chrome.runtime.sendMessage({ type: 'mail-accounts' }).then(r => { acctsBusy = false; if (r) { mailAccts = r; renderPanel(); } }).catch(() => { acctsBusy = false; });
+  };
   function mailBlock() {
     const m = settings.mail || {}, prov = m.provider || 'gmail', isMs = prov === 'outlook';
     const save = patch => { settings.mail = { ...(settings.mail || {}), ...patch }; return chrome.storage.local.set({ settings }); };
@@ -1128,10 +1134,11 @@
     const g = el('div', 'grp');
     // thu gọn: 1 dòng tóm tắt, bấm mới mở cài đặt
     const ms0 = mailStatus && (mailStatus.provider || 'gmail') === prov ? mailStatus : null;
-    const sum = !m.enabled ? 'đang tắt' : ms0 && ms0.ok ? `${isMs ? 'Outlook' : 'Gmail'} · ${ms0.count} chưa đọc` : ms0 ? `${isMs ? 'Outlook' : 'Gmail'} · ⚠ cần kiểm tra` : `${isMs ? 'Outlook' : 'Gmail'} · đang bật`;
+    const who0 = ms0 && ms0.ok ? (isMs ? msAccount : ms0.account) : '';
+    const sum = !m.enabled ? 'đang tắt' : ms0 && ms0.ok ? `${who0 || (isMs ? 'Outlook' : 'Gmail')} · ${ms0.count} chưa đọc` : ms0 ? `${isMs ? 'Outlook' : 'Gmail'} · ⚠ cần kiểm tra` : `${isMs ? 'Outlook' : 'Gmail'} · đang bật`;
     const hd = el('button', 'cry-hd mail-hd' + (mailOpen ? ' on' : ''), `📧 Canh email · ${sum} ${mailOpen ? '▴' : '▾'}`);
     hd.setAttribute('aria-expanded', mailOpen);
-    hd.addEventListener('click', () => { mailOpen = !mailOpen; renderPanel(); });
+    hd.addEventListener('click', () => { mailOpen = !mailOpen; if (mailOpen && mailAccts) mailAccts.at = 0; renderPanel(); });   // mở ra thì dò lại tài khoản
     g.append(hd);
     if (!mailOpen) return g;
     const inner = el('div', 'mail-in'); g.append(inner);
@@ -1194,11 +1201,18 @@
     if (!m.enabled) return g;
     const fm = el('div', 'fm'); fm.style.padding = '4px 0'; fm.style.gap = '8px';
     if (!isMs) {
-      const acc = h(`<div class="line"><span class="lb" style="margin:0">Tài khoản:</span>
-          <select aria-label="Tài khoản Gmail"><option value="0">Gmail thứ 1</option><option value="1">Gmail thứ 2</option><option value="2">Gmail thứ 3</option><option value="3">Gmail thứ 4</option></select></div>`);
-      const as = acc.querySelector('select'); as.value = String(m.account || 0);
-      as.addEventListener('change', async () => { await chrome.storage.local.set({ mailSeen: null }); await save({ account: Number(as.value) }); recheck(); });
+      // chỉ hiện các Gmail thật sự đang đăng nhập trên Chrome; 1 tài khoản thì chỉ ghi địa chỉ, nhiều tài khoản mới cho chọn
+      const accs = (mailAccts && mailAccts.list) || [], cur = Number(m.account) || 0;
+      const acc = el('div', 'line'); acc.append(el('span', 'lb', 'Đang báo email:')); acc.firstChild.style.margin = '0';
+      if (accs.length > 1) {
+        const as = document.createElement('select'); as.setAttribute('aria-label', 'Tài khoản Gmail');
+        accs.forEach(x => { const o = document.createElement('option'); o.value = String(x.i); o.textContent = x.email; as.append(o); });
+        as.value = String(cur);
+        as.addEventListener('change', async () => { await chrome.storage.local.set({ mailSeen: null }); await save({ account: Number(as.value) }); recheck(); });
+        acc.append(as);
+      } else acc.append(el('b', 'mail-acc', (accs[0] && accs[0].email) || (ms && ms.ok && ms.account) || 'Gmail đang đăng nhập trên Chrome'));
       fm.append(acc);
+      if (!mailAccts || Date.now() - mailAccts.at > 10 * 60e3) refreshAccts();
     }
     const pr = el('label', 'snd'); const pc = document.createElement('input'); pc.type = 'checkbox'; pc.checked = m.primary !== false;
     pc.addEventListener('change', async () => { await chrome.storage.local.set({ mailSeen: null }); await save({ primary: pc.checked }); });
