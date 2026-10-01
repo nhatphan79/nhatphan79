@@ -231,6 +231,9 @@
   .bubble .t { font-weight: 700; display: block; margin-bottom: 2px; }
   .bubble .note { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 10px; background: #FFF0C7; font-size: 12.5px; color: #3A4470; }
   .bubble .note.late { background: #FDE3E3; color: #9B2C2C; }
+  .bubble .note.todo { background: #EAF2FF; color: #23305E; } .bubble .note.todo.late { background: #FDE3E3; }
+  .bubble .note.todo b { display: block; margin-bottom: 3px; font-size: 12.5px; } .bubble .note.todo .ti { line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bubble .note.todo .ti.l { color: #9B2C2C; font-weight: 600; } .bubble .note.todo .ti.more { color: #6B7393; font-style: italic; }
   .bubble.tb { width: 272px; padding: 10px 12px; cursor: default; box-shadow: 4px 4px 0 var(--k); border-color: var(--k); }
   .tb-top { display: flex; align-items: center; gap: 10px; }
   .tb-sc { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--k); color: #fff; font: 800 15px/1 "Segoe UI", system-ui, sans-serif; }
@@ -3350,18 +3353,31 @@
     await chrome.storage.local.set({ greetAt: now });
     const hr = new Date().getHours();
     const hi = hr < 5 ? 'Khuya rồi' : hr < 11 ? 'Chào buổi sáng' : hr < 14 ? 'Chào buổi trưa' : hr < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
-    let note = '', cls = '';
-    if (late.length) { note = `⚠ ${late.length} việc quá hạn chưa xử lý: ${late[0].text}`; cls = 'late'; }
-    else if (soon.length) note = `⏰ Sắp tới giờ: ${soon[0].text} (${new Date(soon[0].due).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })})` + (soon.length > 1 ? ` và ${soon.length - 1} việc khác` : '');
-    else if (pend.length) note = `📝 Bạn có ${pend.length} việc đang chờ trong Todolist`;
-    else { note = GREET_TIPS[Math.floor(now / 60e3) % GREET_TIPS.length]; cls = 'tip'; }
+    // ưu tiên Todolist: hiện tên việc (quá hạn → sắp tới giờ → có hạn gần nhất → còn lại); không có việc mới hiện mẹo
+    const dueOf = t => t.due ? new Date(t.due).getTime() : Infinity;
+    const order = [...late, ...soon, ...pend.filter(t => !late.includes(t) && !soon.includes(t)).sort((a, b) => dueOf(a) - dueOf(b))];
+    let todoBox = null, note = '', cls = '';
+    if (order.length) {
+      todoBox = el('div', 'note todo' + (late.length ? ' late' : ''));
+      todoBox.append(el('b', '', `📝 Todolist của bạn (${pend.length} việc)`));
+      order.slice(0, 3).forEach(t => {
+        const d = t.due ? new Date(t.due) : null, today = d && d.toDateString() === new Date().toDateString();
+        const p2 = n => String(n).padStart(2, '0');
+        const when = d ? (today ? `${p2(d.getHours())}:${p2(d.getMinutes())}` : `${p2(d.getDate())}/${p2(d.getMonth() + 1)}`) + ' ' : '';
+        const mark = late.includes(t) ? '⚠' : soon.includes(t) ? '⏰' : '•';
+        const txt = String(t.text || ''); const r = el('div', 'ti' + (late.includes(t) ? ' l' : ''), `${mark} ${when}${txt.length > 60 ? txt.slice(0, 58) + '…' : txt}`); r.title = txt; todoBox.append(r);
+      });
+      if (order.length > 3) todoBox.append(el('div', 'ti more', `và ${order.length - 3} việc khác`));
+    } else { note = GREET_TIPS[Math.floor(now / 60e3) % GREET_TIPS.length]; cls = 'tip'; }
     lastBubble = now;
     ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = 'todo'; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb');
     ui.bubble.append(el('span', 't', `Xin chào, tôi là trợ lý HaoHao 👋`));
-    ui.bubble.append(document.createTextNode(`${hi}! Bấm vào tôi khi cần nhé.`));
-    if (note) { const n = el('span', 'note ' + cls, note); if (note.length > 90) n.textContent = note.slice(0, 88) + '…'; ui.bubble.append(n); }
+    // có việc trong Todolist thì đưa danh sách việc lên ngay dưới lời chào, bỏ câu chào chung cho gọn
+    if (todoBox) ui.bubble.append(todoBox);
+    else ui.bubble.append(document.createTextNode(`${hi}! Bấm vào tôi khi cần nhé.`));
+    if (!todoBox && note) ui.bubble.append(el('span', 'note ' + cls, note));
     ui.bubble.hidden = false; setMood(urgent ? 'alert' : 'happy');
-    clearTimeout(bubbleTimer); bubbleTimer = setTimeout(hideBubble, note ? 12000 : 7000);
+    clearTimeout(bubbleTimer); bubbleTimer = setTimeout(hideBubble, todoBox ? 15000 : 8000);
   }
 
   // ---------- khởi động ----------

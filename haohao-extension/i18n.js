@@ -786,7 +786,9 @@
 "Ghi chú": "Notes",
 "Mã giảm giá": "Vouchers"
 };
-  const P = [["^YouTube: đã bỏ qua (\\d+) quảng cáo video, ẩn (\\d+) ô quảng cáo$", "YouTube: skipped {1} video ads, hid {2} ad slots"],
+  const P = [["^📝 Todolist của bạn \\((\\d+) việc\\)$", "📝 Your to-do list ({1} tasks)"],
+["^và (\\d+) việc khác$", "and {1} more"],
+["^YouTube: đã bỏ qua (\\d+) quảng cáo video, ẩn (\\d+) ô quảng cáo$", "YouTube: skipped {1} video ads, hid {2} ad slots"],
 ["^(.+): không chặn \\(trang mua sắm của HaoHao\\)$", "{1}: not blocked (HaoHao shopping site)"],
 ["^(.+): đã tắt chặn$", "{1}: blocking off"],
 ["^(.+): đang chặn$", "{1}: blocking"],
