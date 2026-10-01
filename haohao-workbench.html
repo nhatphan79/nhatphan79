@@ -186,7 +186,8 @@ const SEED = {
     { id: 'r6', type: 'reminder', name: 'Cúng mùng 1 & rằm', icon: '🙏', enabled: true, kind: 'lunar', lunarDays: [1, 14, 15], times: ['06:00'], message: 'Thắp nhang, dâng cúng', prep: { on: true, time: '17:00' }, prepMessage: 'Mai là ngày cúng, nhớ mua hoa quả, nhang đèn' }
   ],
   settings: { mascotEnabled: true, hiddenSites: [], ai: { key: 'demo-key-gia-lap-1234567890', length: 'vua' }, mail: { enabled: true, account: 0, primary: true, mode: 'filter', senders: ['ngân hàng'], words: ['báo giá', 'hợp đồng'] } },
-  mailStatus: { ok: true, count: 3, at: Date.now() },
+  mailStatus: { ok: true, count: 3, at: Date.now(), provider: 'gmail', account: 'ban@gmail.com', latest: [{ name: 'Shopee Affiliate', title: 'Hoa hồng tháng 9 đã được duyệt', url: 'https://mail.google.com/mail/u/0/#inbox' }, { name: 'Anh Tùng', title: 'Báo giá xây nhà Hội An', url: 'https://mail.google.com/mail/u/0/#inbox' }, { name: 'Ngân hàng', title: 'Biến động số dư', url: 'https://mail.google.com/mail/u/0/#inbox' }] },
+  mailAccounts: { at: Date.now(), list: [{ i: 0, email: 'ban@gmail.com' }] },
   ideas: [{ id: 'i0', type: 'voice', title: 'Ghi chú giọng nói', text: 'Làm video so sánh chi phí xây nhà 3 tầng thô và trọn gói ở Đà Nẵng năm nay', url: '', sec: 0, at: Date.now() - 3600000,
     ai: { titles: ['Xây nhà 3 tầng: thô hay trọn gói rẻ hơn?', 'Bóc giá thật nhà 3 tầng ở Đà Nẵng', 'Đừng chọn gói xây nhà khi chưa xem video này'], caption: 'Xây thô hay trọn gói? 🤔 Mình bóc giá thật một căn 3 tầng ở Đà Nẵng để bạn dễ so. Bạn đang tính xây theo gói nào? Comment để mình tư vấn nhé 👇', hashtags: ['#xaynhatrongoi', '#danang', '#nhapho', '#baogiaxaynha', '#xaythodanang'] } }],
   watch: [{ source: 'coingecko', coin: 'bitcoin' }, { source: 'coingecko', coin: 'solana' }],
@@ -473,11 +474,13 @@ window.__ht = {
   emit(ch, area = 'local') { for (const f of [...store.listeners]) { try { f(ch, area); } catch (e) { store.listeners.delete(f); } } },
   msg(m, from) {
     if (m && m.type === 'mail-check-now') {
-      const st = { ok: true, count: 3, at: Date.now() };
+      const st = { ok: true, count: 3, at: Date.now(), provider: 'gmail', account: 'ban@gmail.com', latest: [{ name: 'Shopee Affiliate', title: 'Hoa hồng tháng 9 đã được duyệt', url: 'https://mail.google.com/mail/u/0/#inbox' }, { name: 'Anh Tùng', title: 'Báo giá xây nhà Hội An', url: 'https://mail.google.com/mail/u/0/#inbox' }, { name: 'Ngân hàng', title: 'Biến động số dư', url: 'https://mail.google.com/mail/u/0/#inbox' }] };
       store.data.mailStatus = st;
       log('info', `${from} kiểm tra Gmail (giả lập): 3 thư chưa đọc`);
       return st;
     }
+    if (m && m.type === 'mail-accounts') { log('info', `${from} dò tài khoản Gmail (giả lập): ban@gmail.com`); return store.data.mailAccounts; }
+    if (m && m.type === 'mail-test') { log('info', `${from} báo thử email (giả lập): 📧 Shopee Affiliate: Hoa hồng tháng 9 đã được duyệt`); return { ok: true }; }
     if (m && m.type === 'open-mail') { log('info', 'Mở thư: ' + m.url); return; }
     if (m && m.type === 'pomo-done') {
       const old = store.data.todos || []; store.data.todos = old.map(t => !t.done && t.text === m.task ? { ...t, done: true } : t);
