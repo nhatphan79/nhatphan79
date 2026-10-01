@@ -694,14 +694,16 @@
       if (br.id === 'tools') {
         // tiện ích con: tiếp tục toả ra ngoài từ vòng Tiện ích, xoè dần về phía có chỗ
         const subLines = ui.root.querySelectorAll('.links line.sub');
+        // toả nhánh từ vòng Tiện ích: món đầu đi thẳng ra, món sau rẽ ra phía ngoài các nhánh (menu toả lên thì rẽ xuống), rồi luân phiên hai bên
+        const FAN = [0, 58, -58, 112, -112];
+        const s0 = Math.sin((a + 58) * Math.PI / 180) > Math.sin((a - 58) * Math.PI / 180) ? 1 : -1, sgn = upper ? -s0 : s0;
         TOOLS.forEach((t, j) => {
-          // xếp thẳng hàng ra ngoài theo hướng của vòng Tiện ích, nối tiếp nhau
-          const d = SUBD + j * (SUB + 46), pd = j ? SUBD + (j - 1) * (SUB + 46) : 0, pr = j ? SUB / 2 : SAT / 2;
+          const ra = (a + sgn * FAN[j % FAN.length]) * Math.PI / 180, ex = Math.cos(ra), ey = Math.sin(ra), d = SUBD;
           const ch = ui.root.querySelector(`.sat.child[data-tool="${t.id}"]`);
-          ch.style.left = (sx + d * dx - SUB / 2) + 'px'; ch.style.top = (sy + d * dy - SUB / 2) + 'px';
-          const l2 = subLines[j];
-          l2.setAttribute('x1', O + sx + (pd + pr + 4) * dx); l2.setAttribute('y1', O + sy + (pd + pr + 4) * dy);
-          l2.setAttribute('x2', O + sx + (d - SUB / 2 - 4) * dx); l2.setAttribute('y2', O + sy + (d - SUB / 2 - 4) * dy);
+          ch.style.left = (sx + d * ex - SUB / 2) + 'px'; ch.style.top = (sy + d * ey - SUB / 2) + 'px';
+          const l2 = subLines[j], r0 = SAT / 2 + 4, r1 = d - SUB / 2 - 4;
+          l2.setAttribute('x1', O + sx + r0 * ex); l2.setAttribute('y1', O + sy + r0 * ey);
+          l2.setAttribute('x2', O + sx + r1 * ex); l2.setAttribute('y2', O + sy + r1 * ey);
         });
       }
     });
