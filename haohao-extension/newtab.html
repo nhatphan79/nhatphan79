@@ -7,14 +7,37 @@
 <link rel="stylesheet" href="newtab.css">
 </head>
 <body>
+  <header class="topbar">
+    <a href="https://mail.google.com/">Gmail</a>
+    <a href="https://images.google.com/">Hình ảnh</a>
+    <button class="appsbtn" id="appsbtn" aria-label="Ứng dụng Google" aria-expanded="false" title="Ứng dụng Google">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>
+    </button>
+    <div class="apps" id="apps" hidden></div>
+  </header>
   <main class="nt">
     <div class="clock" id="clock" aria-live="off">--:--</div>
     <div class="date" id="date"></div>
     <div class="lunar" id="lunar"></div>
     <h1 class="hello" id="hello">Chào bạn</h1>
     <form class="search" id="search" role="search">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-      <input id="q" type="search" placeholder="Tìm trên web hoặc gõ địa chỉ" aria-label="Tìm trên web" autocomplete="off" autofocus>
+      <svg class="mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Tìm trên Google hoặc gõ địa chỉ" aria-label="Tìm trên Google" autocomplete="off" autofocus>
+      <button type="button" class="sbtn" id="mic" title="Tìm bằng giọng nói" aria-label="Tìm bằng giọng nói">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button type="button" class="sbtn" id="lens" title="Tìm bằng hình ảnh (Google Lens)" aria-label="Tìm bằng hình ảnh">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3.5"/></svg></button>
+      <button type="button" class="aimode" id="aimode" title="Hỏi Google bằng Chế độ AI">✨ Chế độ AI</button>
+    </form>
+    <div class="sacts">
+      <button type="button" id="gsearch">Tìm trên Google</button>
+      <button type="button" id="glucky">Xem trang đầu tiên tìm được</button>
+    </div>
+    <section class="sites" id="sites" aria-label="Lối tắt"></section>
+    <form class="addsite" id="addsite" hidden>
+      <input id="as-title" placeholder="Tên (vd: Gmail)" aria-label="Tên lối tắt" maxlength="40">
+      <input id="as-url" placeholder="Địa chỉ (vd: mail.google.com)" aria-label="Địa chỉ lối tắt" required>
+      <button type="submit">Lưu</button><button type="button" id="as-cancel" class="ghost">Huỷ</button>
     </form>
     <nav class="quick" aria-label="HaoHao">
       <button data-tab="todo">☑️ Việc cần làm</button>
@@ -23,12 +46,6 @@
       <button data-tab="shop">🛍️ Mua sắm</button>
       <button data-tab="tools">₿ Crypto</button>
     </nav>
-    <section class="sites" id="sites" aria-label="Lối tắt"></section>
-    <form class="addsite" id="addsite" hidden>
-      <input id="as-title" placeholder="Tên (vd: Gmail)" aria-label="Tên lối tắt" maxlength="40">
-      <input id="as-url" placeholder="Địa chỉ (vd: mail.google.com)" aria-label="Địa chỉ lối tắt" required>
-      <button type="submit">Lưu</button><button type="button" id="as-cancel" class="ghost">Huỷ</button>
-    </form>
   </main>
   <footer class="copyr">© 2026 HaoHao · Bản quyền thuộc Phan Thanh Nhật · <a href="tel:0366159790">0366.159.790</a></footer>
   <script src="common.js"></script>
