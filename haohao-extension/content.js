@@ -3051,9 +3051,9 @@
       }
       L.append(row);
       const cnt = el('div', 'adcnt', '…'); L.append(cnt);
-      adCount().then(r => { cnt.textContent = r.on ? (r.n ? `Đã ẩn ${r.n} khung quảng cáo trên trang này` : 'Trang này không còn khung quảng cáo nào') : 'Tải lại trang (F5) để áp dụng'; });
+      adCount().then(r => { cnt.textContent = !r.on ? 'Tải lại trang (F5) để áp dụng' : r.yt ? `YouTube: đã bỏ qua ${r.skipped || 0} quảng cáo video, ẩn ${r.n} ô quảng cáo` : r.n ? `Đã ẩn ${r.n} khung quảng cáo trên trang này` : 'Trang này không còn khung quảng cáo nào'; });
     }
-    L.append(el('div', 'foot', 'Chặn tận gốc các mạng quảng cáo (Google Ads, Taboola, Admicro…) và ẩn khung quảng cáo còn sót. Trang nào bị lỗi thì bấm "Tắt trên trang này". Quảng cáo trong video YouTube và bài được tài trợ trên Facebook chưa chặn được. Bật/tắt xong nên tải lại trang (F5).'));
+    L.append(el('div', 'foot', 'Chặn tận gốc các mạng quảng cáo (Google Ads, Taboola, Admicro…) và ẩn khung quảng cáo còn sót. YouTube: tự bỏ qua quảng cáo video và ẩn ô quảng cáo. Trang nào bị lỗi thì bấm "Tắt trên trang này". Bật/tắt xong nên tải lại trang (F5).'));
     V.append(L);
   }
   function renderTools(V) {

@@ -12,7 +12,7 @@
 "Tắt trên trang này": "Turn off for this site",
 "Trang này không còn khung quảng cáo nào": "No ad boxes left on this page",
 "Tải lại trang (F5) để áp dụng": "Reload the page (F5) to apply",
-"Chặn tận gốc các mạng quảng cáo (Google Ads, Taboola, Admicro…) và ẩn khung quảng cáo còn sót. Trang nào bị lỗi thì bấm \"Tắt trên trang này\". Quảng cáo trong video YouTube và bài được tài trợ trên Facebook chưa chặn được. Bật/tắt xong nên tải lại trang (F5).": "Blocks ad networks at the source (Google Ads, Taboola, Admicro…) and hides leftover ad boxes. If a site breaks, click \"Turn off for this site\". YouTube video ads and Facebook sponsored posts are not blocked yet. Reload the page (F5) after switching.",
+"Chặn tận gốc các mạng quảng cáo (Google Ads, Taboola, Admicro…) và ẩn khung quảng cáo còn sót. YouTube: tự bỏ qua quảng cáo video và ẩn ô quảng cáo. Trang nào bị lỗi thì bấm \"Tắt trên trang này\". Bật/tắt xong nên tải lại trang (F5).": "Blocks ad networks at the source (Google Ads, Taboola, Admicro…) and hides leftover ad boxes. YouTube: skips video ads automatically and hides ad slots. If a site breaks, click \"Turn off for this site\". Reload the page (F5) after switching.",
 "🧡 Cửa hàng HaoHao trên Shopee": "🧡 HaoHao store on Shopee",
 "Món đã chọn lọc, mua qua Shopee": "Hand-picked items, buy on Shopee",
 "Mở cửa hàng HaoHao trên Shopee": "Open the HaoHao store on Shopee",
@@ -778,7 +778,8 @@
 "Ghi chú": "Notes",
 "Mã giảm giá": "Vouchers"
 };
-  const P = [["^(.+): không chặn \\(trang mua sắm của HaoHao\\)$", "{1}: not blocked (HaoHao shopping site)"],
+  const P = [["^YouTube: đã bỏ qua (\\d+) quảng cáo video, ẩn (\\d+) ô quảng cáo$", "YouTube: skipped {1} video ads, hid {2} ad slots"],
+["^(.+): không chặn \\(trang mua sắm của HaoHao\\)$", "{1}: not blocked (HaoHao shopping site)"],
 ["^(.+): đã tắt chặn$", "{1}: blocking off"],
 ["^(.+): đang chặn$", "{1}: blocking"],
 ["^Đã ẩn (\\d+) khung quảng cáo trên trang này$", "Hid {1} ad boxes on this page"],
