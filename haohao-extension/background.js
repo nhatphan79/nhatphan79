@@ -19,6 +19,25 @@ const DEFAULT_RULES = [
   { id: 'r4', type: 'reminder', name: 'Uống nước', icon: '💧', enabled: true, kind: 'interval', minutes: 60, from: '08:00', to: '21:00', message: 'Uống một ly nước nhé!' }
 ];
 
+// 🛡️ Chặn quảng cáo: bật/tắt bộ luật chặn mạng quảng cáo + danh sách trang được phép (tắt chặn)
+async function applyAdBlock() {
+  try {
+    const { settings = {} } = await chrome.storage.local.get('settings');
+    const on = settings.adBlock !== false;
+    await chrome.declarativeNetRequest.updateEnabledRulesets(on ? { enableRulesetIds: ['ads'] } : { disableRulesetIds: ['ads'] });
+    const allow = (settings.adAllow || []).filter(h => /^[\w.-]+$/.test(h)).slice(0, 300);
+    const old = await chrome.declarativeNetRequest.getDynamicRules();
+    await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map(r => r.id),
+      addRules: allow.map((h, i) => ({ id: 1000 + i, priority: 2, action: { type: 'allowAllRequests' }, condition: { requestDomains: [h], resourceTypes: ['main_frame', 'sub_frame'] } })) });
+  } catch (e) { console.warn('adblock', e); }
+}
+chrome.runtime.onStartup.addListener(applyAdBlock);
+chrome.storage.onChanged.addListener((ch, area) => {
+  if (area !== 'local' || !ch.settings) return;
+  const a = ch.settings.oldValue || {}, b = ch.settings.newValue || {};
+  if ((a.adBlock !== false) !== (b.adBlock !== false) || JSON.stringify(a.adAllow || []) !== JSON.stringify(b.adAllow || [])) applyAdBlock();
+});
+
 const DEFAULT_WATCH = [{ source: 'coingecko', coin: 'bitcoin' }, { source: 'coingecko', coin: 'solana' }];
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -36,7 +55,7 @@ chrome.runtime.onInstalled.addListener(async () => {
       log: [], priceState: {}
     });
   }
-  scheduleAll(); scheduleTodos(); makeMenus(); syncCoupons();
+  scheduleAll(); scheduleTodos(); makeMenus(); syncCoupons(); applyAdBlock();
 });
 chrome.runtime.onStartup.addListener(() => { scheduleAll(); scheduleTodos(); });
 chrome.storage.onChanged.addListener((ch, area) => {

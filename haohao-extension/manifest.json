@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – trợ lý ngay trên Chrome",
-  "version": "2.27.0",
+  "version": "2.28.0",
   "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, kiểm tra hàng & mã giảm giá Shopee, TikTok Shop, canh email.",
   "permissions": [
     "storage",
@@ -14,7 +14,8 @@
     "search",
     "topSites",
     "favicon",
-    "geolocation"
+    "geolocation",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "https://api.coingecko.com/*",
@@ -47,6 +48,16 @@
         "content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "adhide.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "chrome_url_overrides": {
@@ -60,5 +71,14 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ads",
+        "enabled": true,
+        "path": "rules/ads.json"
+      }
+    ]
   }
 }

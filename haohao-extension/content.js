@@ -103,7 +103,9 @@
   // Tiện ích con của nhánh 🧰 Tiện ích. Thêm tiện ích mới: thêm 1 dòng ở đây và 1 hàm render.
   const TOOLS = [
     { id: 'crypto', label: 'Crypto', emoji: '₿', color: '#D98E1F', desc: 'Theo dõi giá coin, cảnh báo giá',
-      icon: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M9.5 8h4a2 2 0 010 4h-4h4.5a2 2 0 010 4H9.5V8M11 6v2M11 16v2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' }
+      icon: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M9.5 8h4a2 2 0 010 4h-4h4.5a2 2 0 010 4H9.5V8M11 6v2M11 16v2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>' },
+    { id: 'adblock', label: 'Chặn quảng cáo', emoji: '🛡️', color: '#2E9E6B', desc: 'Ẩn quảng cáo, trang nhẹ hơn',
+      icon: '<path d="M12 3l7 3v5c0 4.4-3 8.3-7 10-4-1.7-7-5.6-7-10V6z" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round"/><path d="M8.5 8.5l7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }
   ];
   const DIST = 244, SAT = 58, C = 38, SUB = 46, SUBD = 92, STAG = 46; // STAG: vòng xen kẽ đẩy ra xa hơn cho nhãn khỏi chồng nhau // khoảng cách nhánh, cỡ vòng tròn nhánh, tâm HaoHao
 
@@ -486,6 +488,15 @@
   .oprog { font-size: 11.5px; color: #6B7394; background: #F1F4FA; border-radius: 8px; padding: 5px 9px; margin: 2px 0 6px; }
   .cry-err { font-size: 12px; color: #C62839; padding: 0 12px 8px; }
   .copyr { display: block; text-align: center; font-size: 11px; color: #8A91AD; padding: 8px 12px 10px; text-decoration: none; } .copyr:hover { color: #23305E; text-decoration: underline; }
+  .adb { padding: 10px 12px; }
+  .adsw { all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 12px; background: #F1F4FA; font-size: 14px; color: #23305E; }
+  .adsw .knob { width: 38px; height: 22px; border-radius: 999px; background: #C9CEDF; position: relative; flex: none; transition: background .2s; }
+  .adsw .knob::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; }
+  .adsw.on .knob { background: #2E9E6B; } .adsw.on .knob::after { left: 19px; }
+  .adsw:focus-visible { outline: 3px solid #23305E; }
+  .adsite { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 2px 4px; font-size: 12.5px; color: #23305E; flex-wrap: wrap; }
+  .adsite .chip { padding: 4px 10px; font-size: 12px; }
+  .adcnt { font-size: 12.5px; color: #2E9E6B; font-weight: 700; margin: 4px 2px 8px; }
   .osame { font-size: 11px; font-weight: 700; color: #0E9F6E; margin-top: 2px; }
   .otags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 0; grid-column: 1 / -1; }
   .ot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 7px; background: #EEF0F6; color: #5B648A; }
@@ -3014,7 +3025,37 @@
   }
 
   // ---------- 🧰 Tiện ích ----------
-  const TOOL_RENDER = { crypto: V => renderCrypto(V) };
+  const TOOL_RENDER = { crypto: V => renderCrypto(V), adblock: V => renderAdblock(V) };
+  // ---------- 🛡️ Chặn quảng cáo ----------
+  const adCount = () => new Promise(res => {
+    const on = e => { window.removeEventListener('hh-ad-count-reply', on); res(e.detail || { n: 0 }); };
+    window.addEventListener('hh-ad-count-reply', on); window.dispatchEvent(new Event('hh-ad-count'));
+    setTimeout(() => { window.removeEventListener('hh-ad-count-reply', on); res({ n: 0 }); }, 300);
+  });
+  const saveSet = patch => chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, ...patch } }));
+  function renderAdblock(V) {
+    const on = settings.adBlock !== false, allow = settings.adAllow || [], here = HOST, offHere = allow.includes(here);
+    const exempt = /(^|\.)(shopee\.vn|tiktok\.com|collshp\.com)$/.test(here);
+    const L = el('div', 'body-list adb');
+    const sw = el('button', 'adsw' + (on ? ' on' : '')); sw.setAttribute('aria-pressed', on);
+    sw.append(el('span', 'knob'), el('b', '', on ? 'Chặn quảng cáo: Đang bật' : 'Chặn quảng cáo: Đang tắt'));
+    sw.addEventListener('click', () => saveSet({ adBlock: !on }));
+    L.append(sw);
+    if (on && here) {
+      const row = el('div', 'adsite');
+      row.append(el('span', '', exempt ? `${here}: không chặn (trang mua sắm của HaoHao)` : offHere ? `${here}: đã tắt chặn` : `${here}: đang chặn`));
+      if (!exempt) {
+        const b = el('button', 'chip', offHere ? 'Bật lại trên trang này' : 'Tắt trên trang này');
+        b.addEventListener('click', () => saveSet({ adAllow: offHere ? allow.filter(x => x !== here) : [...allow, here] }));
+        row.append(b);
+      }
+      L.append(row);
+      const cnt = el('div', 'adcnt', '…'); L.append(cnt);
+      adCount().then(r => { cnt.textContent = r.on ? (r.n ? `Đã ẩn ${r.n} khung quảng cáo trên trang này` : 'Trang này không còn khung quảng cáo nào') : 'Tải lại trang (F5) để áp dụng'; });
+    }
+    L.append(el('div', 'foot', 'Chặn tận gốc các mạng quảng cáo (Google Ads, Taboola, Admicro…) và ẩn khung quảng cáo còn sót. Trang nào bị lỗi thì bấm "Tắt trên trang này". Quảng cáo trong video YouTube và bài được tài trợ trên Facebook chưa chặn được. Bật/tắt xong nên tải lại trang (F5).'));
+    V.append(L);
+  }
   function renderTools(V) {
     const cur = TOOLS.find(t => t.id === toolsSub);
     if (cur) {

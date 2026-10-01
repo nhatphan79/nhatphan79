@@ -4,6 +4,15 @@
 (() => {
   const HT = self.HT; if (!HT) return;
   const D = {
+"Chặn quảng cáo": "Ad blocker",
+"Ẩn quảng cáo, trang nhẹ hơn": "Hide ads, lighter pages",
+"Chặn quảng cáo: Đang bật": "Ad blocker: On",
+"Chặn quảng cáo: Đang tắt": "Ad blocker: Off",
+"Bật lại trên trang này": "Turn back on for this site",
+"Tắt trên trang này": "Turn off for this site",
+"Trang này không còn khung quảng cáo nào": "No ad boxes left on this page",
+"Tải lại trang (F5) để áp dụng": "Reload the page (F5) to apply",
+"Chặn tận gốc các mạng quảng cáo (Google Ads, Taboola, Admicro…) và ẩn khung quảng cáo còn sót. Trang nào bị lỗi thì bấm \"Tắt trên trang này\". Quảng cáo trong video YouTube và bài được tài trợ trên Facebook chưa chặn được. Bật/tắt xong nên tải lại trang (F5).": "Blocks ad networks at the source (Google Ads, Taboola, Admicro…) and hides leftover ad boxes. If a site breaks, click \"Turn off for this site\". YouTube video ads and Facebook sponsored posts are not blocked yet. Reload the page (F5) after switching.",
 "🧡 Cửa hàng HaoHao trên Shopee": "🧡 HaoHao store on Shopee",
 "Món đã chọn lọc, mua qua Shopee": "Hand-picked items, buy on Shopee",
 "Mở cửa hàng HaoHao trên Shopee": "Open the HaoHao store on Shopee",
@@ -769,7 +778,11 @@
 "Ghi chú": "Notes",
 "Mã giảm giá": "Vouchers"
 };
-  const P = [["^🌙 (\\d+)/(\\d+) ÂL · hôm nay rằm$", "🌙 {1}/{2} lunar · full moon today"],
+  const P = [["^(.+): không chặn \\(trang mua sắm của HaoHao\\)$", "{1}: not blocked (HaoHao shopping site)"],
+["^(.+): đã tắt chặn$", "{1}: blocking off"],
+["^(.+): đang chặn$", "{1}: blocking"],
+["^Đã ẩn (\\d+) khung quảng cáo trên trang này$", "Hid {1} ad boxes on this page"],
+["^🌙 (\\d+)/(\\d+) ÂL · hôm nay rằm$", "🌙 {1}/{2} lunar · full moon today"],
 ["^🌙 (\\d+)/(\\d+) ÂL · rằm còn (\\d+) ngày$", "🌙 {1}/{2} lunar · full moon in {3} days"],
 ["^(\\d+) đang bật$", "{1} on"],
 ["^Cứ (\\d+) phút, từ (.+) đến (.+)$", "Every {1} min, from {2} to {3}"],
