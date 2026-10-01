@@ -212,6 +212,7 @@
   .mail-list { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 6px; } .mail-list > b { font-size: 12px; color: #3A4470; }
   .mail-it { all: unset; cursor: pointer; display: flex; gap: 6px; padding: 5px 8px; border-radius: 8px; background: #F4F7FD; font-size: 12px; color: #23305E; min-width: 0; }
   .mail-it:hover { background: #E6EEFB; } .mail-it.junk { opacity: .6; }
+  .mail-it .mj.otp { background: #FDE3E3; color: #9B2C2C; font-weight: 700; }
   .mail-it .mj { flex: none; font-style: normal; font-size: 10.5px; color: #6B7393; background: #E8EAF2; border-radius: 6px; padding: 1px 5px; align-self: center; } .mail-it:focus-visible { outline: 2px solid #2E7DD7; }
   .mail-it .mn { font-weight: 700; flex: 0 0 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mail-it .mt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1175,10 +1176,10 @@
     // thư chưa đọc mới nhất: để thấy HaoHao đang đọc đúng hộp thư
     if (ms && ms.ok && (ms.latest || []).length) {
       const lt = el('div', 'mail-list'); lt.append(el('b', '', 'Thư chưa đọc mới nhất:'));
-      const JK = { otp: 'OTP', social: 'MXH', promo: 'QC' };
-      ms.latest.forEach(x => { const r = el('button', 'mail-it' + (x.junk ? ' junk' : '')); r.append(el('span', 'mn', x.name || ''), el('span', 'mt', x.title || '')); if (x.junk) { const t = el('em', 'mj', 'không báo · ' + JK[x.junk]); r.append(t); } r.title = (x.name || '') + ': ' + (x.title || '');
+      const JK = { social: 'MXH', promo: 'QC' };
+      ms.latest.forEach(x => { const r = el('button', 'mail-it' + (x.junk ? ' junk' : '')); r.append(el('span', 'mn', x.name || ''), el('span', 'mt', x.title || '')); if (x.junk) r.append(el('em', 'mj', 'không báo · ' + JK[x.junk])); else if (x.otp) r.append(el('em', 'mj otp', '🔐 OTP')); r.title = (x.name || '') + ': ' + (x.title || '');
         r.addEventListener('click', () => { if (/^https:\/\//.test(x.url || '')) window.open(x.url, '_blank'); }); lt.append(r); });
-      if (ms.skipped) lt.append(el('div', 'mail-why', `🔕 Hôm nay đã bỏ qua ${ms.skipped} thư không quan trọng (OTP, mạng xã hội, khuyến mãi).`));
+      if (ms.skipped) lt.append(el('div', 'mail-why', `🔕 Hôm nay đã bỏ qua ${ms.skipped} thư không quan trọng (mạng xã hội, khuyến mãi).`));
       inner.append(lt);
     }
     const acts = el('div', 'line');
@@ -1223,7 +1224,7 @@
     fm.append(pr);
     const jk = el('label', 'snd'); const jc = document.createElement('input'); jc.type = 'checkbox'; jc.checked = m.skipJunk !== false;
     jc.addEventListener('change', () => save({ skipJunk: jc.checked }));
-    jk.append(jc, 'Không báo thư không quan trọng: mã OTP, xác minh, mạng xã hội, khuyến mãi');
+    jk.append(jc, 'Không báo thư không quan trọng: mạng xã hội, khuyến mãi (mã OTP vẫn báo gấp)');
     fm.append(jk);
     const modes = el('div', 'line');
     [['all', 'Mọi thư mới'], ['filter', 'Chỉ thư khớp điều kiện']].forEach(([k, lb]) => {

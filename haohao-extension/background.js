@@ -393,16 +393,21 @@ function parseFeed(xml) {
   return { count, entries, account };
 }
 const normTxt = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
-// Thư không quan trọng thì không báo: mã OTP / xác minh, thông báo mạng xã hội, quảng cáo khuyến mãi
-const JUNK_OTP = /\b(otp|2fa|ma xac (thuc|nhan|minh)|ma bao mat|ma dang nhap|ma kich hoat|verification code|verify your|security code|login code|sign[- ]?in code|one[- ]time (code|password|passcode)|confirmation code|your code|passcode|xac minh (tai khoan|email|danh tinh)|dat lai mat khau|reset (your )?password)\b/;
+// Mã OTP / xác minh: luôn báo GẤP (kể cả đang lọc theo người gửi); mạng xã hội, quảng cáo khuyến mãi: không báo
+const MAIL_OTP = /\b(otp|2fa|ma xac (thuc|nhan|minh)|ma bao mat|ma dang nhap|ma kich hoat|verification code|verify your|security code|login code|sign[- ]?in code|one[- ]time (code|password|passcode)|confirmation code|your code|passcode|xac minh (tai khoan|email|danh tinh)|dat lai mat khau|reset (your )?password)\b/;
 const JUNK_SOCIAL = /(facebookmail|facebook\.com|instagram|tiktok|linkedin|twitter|(^|[@.])x\.com|pinterest|threads\.net|reddit|quora|discord|zalo|youtube\.com|snapchat|telegram)/;
 const JUNK_PROMO = /\b(khuyen mai|giam gia|flash ?sale|voucher|uu dai|sale off|mega sale|deal (soc|hot)|newsletter|ban tin|unsubscribe|huy dang ky|% off|freeship|mien phi van chuyen)\b/;
 function mailJunk(e) {
   const who = normTxt(e.name + ' ' + e.email), txt = normTxt(e.title + ' ' + e.summary);
-  if (JUNK_OTP.test(txt)) return 'otp';
   if (JUNK_SOCIAL.test(normTxt(e.email)) || /^(facebook|instagram|tiktok|linkedin|zalo|youtube|x|twitter)$/.test(normTxt(e.name).trim())) return 'social';
   if (JUNK_PROMO.test(txt) || /(no-?reply|marketing|newsletter|promo|deals?)@/.test(who) && JUNK_PROMO.test(txt)) return 'promo';
   return '';
+}
+function mailOtp(e) {
+  const raw = e.title + ' ' + e.summary;
+  if (!MAIL_OTP.test(normTxt(raw))) return null;
+  const c = raw.match(/\b(?:G-)?\d{4,8}\b/);
+  return { code: c ? c[0] : '' };
 }
 function mailMatch(m, e) {
   if (m.mode !== 'filter') return true;
@@ -412,11 +417,17 @@ function mailMatch(m, e) {
   return senders.some(x => who.includes(x)) || words.some(x => body.includes(x));
 }
 async function fetchGmail(m) {
-  const url = `https://mail.google.com/mail/u/${Number(m.account) || 0}/feed/atom${m.primary !== false ? '/%5Esmartlabel_personal' : ''}`;
-  const r = await fetch(url, { credentials: 'include', cache: 'no-store' });
-  const txt = await r.text();
-  if (!r.ok || !txt.includes('<feed')) throw new Error(r.status === 401 || r.status === 403 || /accounts\.google\.com/.test(r.url) ? 'login' : 'bad');
-  return parseFeed(txt);
+  const get = async label => {
+    const r = await fetch(`https://mail.google.com/mail/u/${Number(m.account) || 0}/feed/atom${label}`, { credentials: 'include', cache: 'no-store' });
+    const txt = await r.text();
+    if (!r.ok || !txt.includes('<feed')) throw new Error(r.status === 401 || r.status === 403 || /accounts\.google\.com/.test(r.url) ? 'login' : 'bad');
+    return parseFeed(txt);
+  };
+  // đọc cả hộp thư đến (mã OTP hay nằm ở tab Cập nhật) rồi đánh dấu thư thuộc tab Chính
+  const all = await get('');
+  if (m.primary === false) return all;
+  const pri = await get('/%5Esmartlabel_personal'), ids = new Set(pri.entries.map(e => e.id));
+  return { ...pri, entries: [...pri.entries, ...all.entries.filter(e => !ids.has(e.id)).map(e => ({ ...e, primary: false }))] };
 }
 
 // ---------- Outlook / Hotmail / Office 365 (đăng nhập Microsoft, đọc qua Microsoft Graph) ----------
@@ -482,7 +493,7 @@ async function checkMail(manual) {
   try {
     const f = m.provider === 'outlook' ? await fetchOutlook(m) : await fetchGmail(m);
     status = { ok: true, count: f.count, at: Date.now(), provider: m.provider || 'gmail', account: f.account || '',
-      latest: f.entries.slice(0, 3).map(e => ({ name: e.name || e.email, title: e.title, url: e.url, junk: m.skipJunk === false ? '' : mailJunk(e) })), skipped: prevSkip };
+      latest: f.entries.filter(e => e.primary !== false || mailOtp(e)).slice(0, 3).map(e => ({ name: e.name || e.email, title: e.title, url: e.url, otp: !!mailOtp(e), junk: m.skipJunk === false || mailOtp(e) ? '' : mailJunk(e) })), skipped: prevSkip };
     const first = !Array.isArray(mailSeen);
     const seen = new Set(first ? [] : mailSeen);
     const fresh = f.entries.filter(e => e.id && !seen.has(e.id));
@@ -492,8 +503,14 @@ async function checkMail(manual) {
     if (!first && m.enabled) {
       // thư khớp đúng người gửi bạn tự nhập thì vẫn báo; còn lại bỏ qua thư không quan trọng (tắt được trong cài đặt)
       const mine = e => m.mode === 'filter' && (m.senders || []).map(normTxt).filter(Boolean).some(x => normTxt(e.name + ' ' + e.email).includes(x));
-      const hits = fresh.filter(e => mailMatch(m, e) && (m.skipJunk === false || mine(e) || !mailJunk(e)));
-      status.skipped = (prevSkip || 0) + fresh.filter(e => mailMatch(m, e)).length - hits.length;
+      const otps = fresh.filter(e => mailOtp(e));
+      const hits = fresh.filter(e => !mailOtp(e) && e.primary !== false && mailMatch(m, e) && (m.skipJunk === false || mine(e) || !mailJunk(e)));
+      status.skipped = (prevSkip || 0) + fresh.filter(e => !mailOtp(e) && e.primary !== false && mailMatch(m, e)).length - hits.length;
+      // 🔐 báo mã OTP trước, ghi luôn mã để khỏi mở mail
+      for (const e of otps.slice(0, 3)) {
+        const o = mailOtp(e);
+        await fire({ name: 'Mã OTP', type: 'mail', id: 'mail' }, `🔐 ${o.code ? 'Mã ' + o.code + ' · ' : ''}${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
+      }
       for (const e of hits.slice(0, 4)) {
         await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, `📧 ${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
       }
