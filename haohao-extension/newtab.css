@@ -9,10 +9,10 @@ body {
   background: var(--bg); min-height: 100vh;
 }
 .nt { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 16px 120px; text-align: center; }
-.clock { font-size: clamp(64px, 12vw, 128px); font-weight: 300; color: #23305E; letter-spacing: -2px; line-height: 1; font-variant-numeric: tabular-nums; }
-.date { margin-top: 10px; font-size: 22px; font-weight: 600; }
-.lunar { margin-top: 4px; font-size: 16px; color: var(--soft); }
-.hello { margin: 28px 0 18px; font-size: 26px; font-weight: 700; }
+.clock { font-size: clamp(40px, 6vw, 64px); font-weight: 300; color: #23305E; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.date { margin-top: 6px; font-size: 16px; font-weight: 600; }
+.lunar { margin-top: 2px; font-size: 13px; color: var(--soft); }
+.hello { margin: 16px 0 16px; font-size: 18px; font-weight: 700; }
 .search { width: min(640px, 100%); display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 52px; border-radius: 999px; background: #fff; border: 1px solid var(--line); }
 .search:hover { box-shadow: 0 1px 6px rgba(32, 33, 36, .28); border-color: transparent; }
 .search:focus-within { box-shadow: 0 1px 6px rgba(32, 33, 36, .28); border-color: transparent; }
