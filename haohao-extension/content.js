@@ -179,6 +179,11 @@
   .up-row .uw { font-size: 11.5px; color: #6B7394; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .bell-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 10px 6px; border-bottom: 1px dashed #C9CEDF; }
   .bell-bar .moon { font-size: 12px; color: #6B7394; }
+  .snd-sw { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #6B7393; white-space: nowrap; margin-left: auto; }
+  .snd-sw .knob { position: relative; width: 34px; height: 20px; border-radius: 999px; background: #C9CEDF; transition: background .15s; flex: none; }
+  .snd-sw .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .15s; }
+  .snd-sw.on { color: #2F9E7E; } .snd-sw.on .knob { background: #2F9E7E; } .snd-sw.on .knob::after { left: 16px; }
+  .snd-sw:focus-visible { outline: 2px solid #2E7DD7; outline-offset: 2px; border-radius: 6px; }
   .pre-tg { all: unset; cursor: pointer; font-size: 12.5px; font-weight: 700; color: #E85D5D; padding: 4px 10px; border-radius: 999px; border: 1.5px solid #F4B4B4; white-space: nowrap; }
   .pre-tg:hover, .pre-tg.on { background: #FDE3E3; }
   .pre-tg:focus-visible, .pc:focus-visible { outline: 2px solid #23305E; outline-offset: 2px; }
@@ -1050,6 +1055,13 @@
     let toRam = 0; for (let i = 0; i < 31; i++) { const dd = L.of(L.addDays(today, i)).day; if (dd === 14 || dd === 15) { toRam = i; break; } }
     const bar = el('div', 'bell-bar');
     bar.append(el('span', 'moon', `🌙 ${lt.day}/${lt.month} ÂL · ${toRam === 0 ? 'hôm nay rằm' : `rằm còn ${toRam} ngày`}`));
+    // công tắc tiếng: gạt sang phải = có tiếng, gạt về = báo im lặng (vẫn hiện, chỉ không kêu)
+    const loud = settings.sound !== false;
+    const sw = el('button', 'snd-sw' + (loud ? ' on' : ''));
+    sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', loud); sw.title = loud ? 'Đang báo có tiếng. Gạt về để báo im lặng' : 'Đang báo im lặng. Gạt sang để có tiếng';
+    sw.append(el('span', 'knob'), el('span', 'lbl', loud ? 'Có tiếng' : 'Im lặng'));
+    sw.addEventListener('click', () => { settings.sound = !loud; chrome.storage.local.set({ settings }); if (settings.sound) chime(); renderPanel(); });
+    bar.append(sw);
     const tg = el('button', 'pre-tg' + (presetOpen ? ' on' : ''), presetOpen ? '✕ Đóng mẫu' : '＋ Mẫu có sẵn');
     tg.setAttribute('aria-expanded', presetOpen);
     tg.addEventListener('click', () => { presetOpen = !presetOpen; renderPanel(); });

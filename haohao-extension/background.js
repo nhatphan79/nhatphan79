@@ -9,7 +9,8 @@ chrome.storage.onChanged.addListener((ch, area) => {
 // thông báo của Chrome: dịch tiêu đề / nội dung / nút khi đang dùng tiếng Anh
 async function notifyTr(id, opt) {
   await loadLang();
-  const o = { ...opt, title: HT.tr(opt.title || ''), message: HT.tr(opt.message || '') };
+  const { settings = {} } = await chrome.storage.local.get('settings');
+  const o = { ...opt, title: HT.tr(opt.title || ''), message: HT.tr(opt.message || ''), silent: settings.sound === false };   // 🔕 im lặng: thông báo Windows không kêu
   if (opt.buttons) o.buttons = opt.buttons.map(b => ({ ...b, title: HT.tr(b.title) }));
   return chrome.notifications.create(id, o);
 }
@@ -507,14 +508,12 @@ async function checkMail(manual) {
       const hits = fresh.filter(e => !mailOtp(e) && e.primary !== false && mailMatch(m, e) && (m.skipJunk === false || mine(e) || !mailJunk(e)));
       status.skipped = (prevSkip || 0) + fresh.filter(e => !mailOtp(e) && e.primary !== false && mailMatch(m, e)).length - hits.length;
       // 🔐 báo mã OTP trước, ghi luôn mã để khỏi mở mail
-      for (const e of otps.slice(0, 3)) {
+      for (const e of otps) {
         const o = mailOtp(e);
         await fire({ name: 'Mã OTP', type: 'mail', id: 'mail' }, `🔐 ${o.code ? 'Mã ' + o.code + ' · ' : ''}${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
       }
-      for (const e of hits.slice(0, 4)) {
-        await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, `📧 ${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
-      }
-      if (hits.length > 4) await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, `📧 Và ${hits.length - 4} email mới nữa`, 'alert', { url: m.provider === 'outlook' ? hits[4].url : `https://mail.google.com/mail/u/${Number(m.account) || 0}/#inbox` });
+      // đã lọc rồi nên thư nào qua lọc cũng báo ngay, mỗi thư 1 dòng (không gộp)
+      for (const e of hits) await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, `📧 ${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
     }
   } catch (e) {
     status = { ok: false, error: ['login', 'noclient'].includes(e.message) ? e.message : 'net', at: Date.now(), provider: m.provider || 'gmail' };
