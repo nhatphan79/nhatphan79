@@ -893,8 +893,9 @@ async function ttRemove({ id }) {
 async function syncCoupons() {
   let feed = null;
   try { const r = await fetch(HT.COUPON_FEED + '?t=' + Math.floor(Date.now() / 3600e3), { cache: 'no-store' }); if (r.ok) feed = await r.json(); } catch {}
-  if (!feed) { const { couponFeed } = await chrome.storage.local.get('couponFeed'); if (couponFeed && couponFeed.coupons && couponFeed.tiktok) { HT.setTikTok(couponFeed.tiktok); return { ok: true, cached: true, n: couponFeed.coupons.length }; } }
-  if (!feed) { try { feed = await (await fetch(chrome.runtime.getURL('coupons.json'))).json(); } catch { return { ok: false }; } }
+  // GitHub chưa có / mất mạng: dùng bản đi kèm tiện ích (luôn mới theo phiên bản); hỏng nữa mới dùng bản đã lưu
+  if (!feed) { try { feed = await (await fetch(chrome.runtime.getURL('coupons.json'))).json(); } catch {} }
+  if (!feed) { const { couponFeed } = await chrome.storage.local.get('couponFeed'); if (couponFeed && couponFeed.coupons) { HT.setTikTok(couponFeed.tiktok); return { ok: true, cached: true, n: couponFeed.coupons.length }; } return { ok: false }; }
   return applyFeed(feed);
 }
 
