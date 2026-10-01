@@ -298,6 +298,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'ai-read') { aiRead(msg).then(text => send({ ok: true, text })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-test') { gemini([{ role: 'user', parts: [{ text: 'Trả lời đúng một chữ: OK' }] }], 'Trả lời ngắn.').then(t => send({ ok: true, text: t })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'mail-check-now') { checkMail(true).then(send); return true; }
+  if (msg.type === 'mail-test') { mailTest().then(send); return true; }
   if (msg.type === 'ms-redirect') { send(msRedirect()); return; }
   if (msg.type === 'ms-login') {
     msAuth(true).then(async () => { await chrome.storage.local.set({ mailSeen: null }); const st = await checkMail(true); send({ ok: true, status: st }); })
@@ -380,13 +381,15 @@ function parseFeed(xml) {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&amp;/g, '&');
   const tag = (x, t) => { const m = x.match(new RegExp('<' + t + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + t + '>')); return m ? dec(m[1]).trim() : ''; };
   const count = Number(tag(xml, 'fullcount')) || 0;
+  // tiêu đề feed có dạng "Gmail - Inbox for ten@gmail.com": lấy địa chỉ để người dùng biết đang đọc hộp thư nào
+  const account = (tag(xml.split('<entry>')[0], 'title').match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/) || [])[0] || '';
   const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => {
     const e = m[1], author = (e.match(/<author>([\s\S]*?)<\/author>/) || [])[1] || '';
     const href = (e.match(/<link[^>]*href="([^"]+)"/) || [])[1] || '';
     return { id: tag(e, 'id'), title: tag(e, 'title') || '(Không có tiêu đề)', summary: tag(e, 'summary'),
              name: tag(author, 'name'), email: tag(author, 'email'), url: dec(href) };
   });
-  return { count, entries };
+  return { count, entries, account };
 }
 const normTxt = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
 function mailMatch(m, e) {
@@ -465,7 +468,8 @@ async function checkMail(manual) {
   let status;
   try {
     const f = m.provider === 'outlook' ? await fetchOutlook(m) : await fetchGmail(m);
-    status = { ok: true, count: f.count, at: Date.now(), provider: m.provider || 'gmail' };
+    status = { ok: true, count: f.count, at: Date.now(), provider: m.provider || 'gmail', account: f.account || '',
+      latest: f.entries.slice(0, 3).map(e => ({ name: e.name || e.email, title: e.title, url: e.url })) };
     const first = !Array.isArray(mailSeen);
     const seen = new Set(first ? [] : mailSeen);
     const fresh = f.entries.filter(e => e.id && !seen.has(e.id));
@@ -485,6 +489,14 @@ async function checkMail(manual) {
   mailBusy = false;
   await chrome.storage.local.set({ mailStatus: status });
   return status;
+}
+// 🔔 Báo thử: cho người dùng thấy HaoHao báo thư mới trông thế nào (dùng thư chưa đọc mới nhất nếu có)
+async function mailTest() {
+  const { settings = {}, mailStatus } = await chrome.storage.local.get(['settings', 'mailStatus']);
+  const m = settings.mail || {}, e = mailStatus && mailStatus.ok && (mailStatus.latest || [])[0];
+  const url = e ? e.url : `https://mail.google.com/mail/u/${Number(m.account) || 0}/#inbox`;
+  await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, e ? `📧 ${e.name}: ${e.title}` : '📧 Báo thử: khi có email mới, HaoHao sẽ báo như thế này', 'alert', { url });
+  return { ok: true };
 }
 chrome.notifications.onClicked.addListener(async nid => {
   const { notifUrl = {} } = await chrome.storage.session.get('notifUrl');

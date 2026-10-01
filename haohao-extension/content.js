@@ -207,6 +207,12 @@
   .rule .ic { margin-left: auto; }
   .mail-hd { background: #EEF5FF !important; color: #1F5FAF !important; }
   .mail-hd:hover, .mail-hd.on { background: #DCEBFF !important; }
+  .mail-why { margin-top: 4px; font-size: 11.5px; color: #6B7393; line-height: 1.4; }
+  .mail-list { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 6px; } .mail-list > b { font-size: 12px; color: #3A4470; }
+  .mail-it { all: unset; cursor: pointer; display: flex; gap: 6px; padding: 5px 8px; border-radius: 8px; background: #F4F7FD; font-size: 12px; color: #23305E; min-width: 0; }
+  .mail-it:hover { background: #E6EEFB; } .mail-it:focus-visible { outline: 2px solid #2E7DD7; }
+  .mail-it .mn { font-weight: 700; flex: 0 0 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mail-it .mt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mail-in { padding: 6px 2px 2px; }
   .foot { font-size: 11px; color: #9AA1BE; text-align: center; margin-top: 10px; }
   .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; }
@@ -1149,11 +1155,22 @@
     const st = el('div', 'empty'), ms = mailStatus && (mailStatus.provider || 'gmail') === prov ? mailStatus : null;
     const hm = x => new Date(x).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     if (isMs && !m.msClientId) st.textContent = 'Outlook cần thiết lập 1 lần (khoảng 3 phút) trong trang Cài đặt.';
-    else if (ms && ms.ok) st.textContent = `✓ Đã kết nối${isMs && msAccount ? ' ' + msAccount : ''}: ${ms.count} thư chưa đọc (lúc ${hm(ms.at)}).`;
+    else if (ms && ms.ok) {
+      const who = isMs ? msAccount : ms.account;
+      st.textContent = `✓ Đã kết nối${who ? ' ' + who : ''}: ${ms.count} thư chưa đọc (lúc ${hm(ms.at)}).`;
+      if (!isMs) st.append(el('div', 'mail-why', 'Gmail dùng luôn tài khoản đang đăng nhập trên Chrome nên không cần đăng nhập lại. HaoHao chỉ báo thư đến SAU lúc bật, thư chưa đọc cũ không báo.'));
+    }
     else if (ms && ms.error === 'login') st.textContent = isMs ? '⚠ Chưa đăng nhập Outlook, hoặc phiên đã hết hạn.' : '⚠ Chưa đăng nhập Gmail trên Chrome này, hoặc sai số thứ tự tài khoản.';
     else if (ms) st.textContent = '⚠ Không lấy được hộp thư (mất mạng?). HaoHao sẽ thử lại sau 1 phút.';
     else st.textContent = isMs && !msAccount ? 'Chưa đăng nhập Outlook.' : 'Chưa kiểm tra lần nào.';
     inner.append(st);
+    // thư chưa đọc mới nhất: để thấy HaoHao đang đọc đúng hộp thư
+    if (ms && ms.ok && (ms.latest || []).length) {
+      const lt = el('div', 'mail-list'); lt.append(el('b', '', 'Thư chưa đọc mới nhất:'));
+      ms.latest.forEach(x => { const r = el('button', 'mail-it'); r.append(el('span', 'mn', x.name || ''), el('span', 'mt', x.title || '')); r.title = (x.name || '') + ': ' + (x.title || '');
+        r.addEventListener('click', () => { if (/^https:\/\//.test(x.url || '')) window.open(x.url, '_blank'); }); lt.append(r); });
+      inner.append(lt);
+    }
     const acts = el('div', 'line');
     if (isMs && !m.msClientId) {
       const b = el('button', 'b', 'Thiết lập Outlook');
@@ -1210,7 +1227,10 @@
       try { const r = await chrome.runtime.sendMessage({ type: 'mail-check-now' }); if (r) mailStatus = r; } catch {}
       renderPanel();
     });
-    const line = el('div', 'line'); line.append(chk); fm.append(line);
+    const tst = el('button', 'b ghost', '🔔 Báo thử');
+    tst.title = 'Xem HaoHao báo email mới trông thế nào';
+    tst.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'mail-test' }).catch(() => {}));
+    const line = el('div', 'line'); line.append(chk, tst); fm.append(line);
     inner.append(fm);
     return g;
   }
@@ -3353,21 +3373,22 @@
     await chrome.storage.local.set({ greetAt: now });
     const hr = new Date().getHours();
     const hi = hr < 5 ? 'Khuya rồi' : hr < 11 ? 'Chào buổi sáng' : hr < 14 ? 'Chào buổi trưa' : hr < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
-    // ưu tiên Todolist: hiện tên việc (quá hạn → sắp tới giờ → có hạn gần nhất → còn lại); không có việc mới hiện mẹo
+    // ưu tiên Todolist, gọn 2 dòng: 1 việc quá hạn gần nhất + 1 việc sắp tới giờ gần nhất; thiếu loại nào thì lấy việc kế tiếp bù vào
     const dueOf = t => t.due ? new Date(t.due).getTime() : Infinity;
-    const order = [...late, ...soon, ...pend.filter(t => !late.includes(t) && !soon.includes(t)).sort((a, b) => dueOf(a) - dueOf(b))];
+    const lateNear = [...late].sort((a, b) => dueOf(b) - dueOf(a));
+    const next = pend.filter(t => !late.includes(t)).sort((a, b) => dueOf(a) - dueOf(b));
+    const order = [...new Set([lateNear[0], next[0], ...lateNear.slice(1), ...next.slice(1)].filter(Boolean))].slice(0, 2);
     let todoBox = null, note = '', cls = '';
     if (order.length) {
       todoBox = el('div', 'note todo' + (late.length ? ' late' : ''));
       todoBox.append(el('b', '', `📝 Todolist của bạn (${pend.length} việc)`));
-      order.slice(0, 3).forEach(t => {
+      order.forEach(t => {
         const d = t.due ? new Date(t.due) : null, today = d && d.toDateString() === new Date().toDateString();
         const p2 = n => String(n).padStart(2, '0');
         const when = d ? (today ? `${p2(d.getHours())}:${p2(d.getMinutes())}` : `${p2(d.getDate())}/${p2(d.getMonth() + 1)}`) + ' ' : '';
-        const mark = late.includes(t) ? '⚠' : soon.includes(t) ? '⏰' : '•';
+        const mark = late.includes(t) ? '⚠' : t.due ? '⏰' : '•';
         const txt = String(t.text || ''); const r = el('div', 'ti' + (late.includes(t) ? ' l' : ''), `${mark} ${when}${txt.length > 60 ? txt.slice(0, 58) + '…' : txt}`); r.title = txt; todoBox.append(r);
       });
-      if (order.length > 3) todoBox.append(el('div', 'ti more', `và ${order.length - 3} việc khác`));
     } else { note = GREET_TIPS[Math.floor(now / 60e3) % GREET_TIPS.length]; cls = 'tip'; }
     lastBubble = now;
     ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = 'todo'; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb');
