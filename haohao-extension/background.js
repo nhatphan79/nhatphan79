@@ -930,6 +930,20 @@ function scanIn(tabId, url, type, ms) {
     chrome.tabs.update(tabId, { url });
   });
 }
+// Tab dò ngầm nằm trong 1 cửa sổ thu nhỏ riêng, không chen vào thanh tab của người dùng; xong việc thì đóng cửa sổ
+let scanWinP = null, scanUsers = 0;
+async function scanTab() {
+  scanUsers++;
+  if (scanWinP) { const id = await scanWinP.catch(() => null); if (id && await chrome.windows.get(id).then(() => 1, () => 0)) return chrome.tabs.create({ windowId: id, url: 'about:blank', active: false }); }
+  let first;
+  scanWinP = chrome.windows.create({ url: 'about:blank', state: 'minimized', focused: false }).then(w => { first = w.tabs[0]; return w.id; });
+  await scanWinP; return first;
+}
+function dropScanTab(tabId) {
+  if (--scanUsers > 0) return chrome.tabs.remove(tabId).catch(() => {});
+  scanUsers = 0; const p = scanWinP; scanWinP = null;
+  if (p) p.then(id => chrome.windows.remove(id)).catch(() => {});
+}
 let sameQueue = Promise.resolve();
 // báo tiến độ về trang đang hỏi: kết quả nhanh (từ trang tìm kiếm) rồi từng bước kiểm tra kỹ
 const tellTab = (sender, key, m) => { if (sender && sender.tab && sender.tab.id) chrome.tabs.sendMessage(sender.tab.id, { type: 'same-progress', key, ...m }).catch(() => {}); };
@@ -938,9 +952,8 @@ function sameFind(msg, sender) { const run = sameQueue.then(() => sameFindOne(ms
 async function sameFindOne({ q, key, title, price }, sender) {
   const ck = 'same3:' + key, cache = (await chrome.storage.session.get(ck))[ck];
   if (cache && Date.now() - cache.at < 20 * 60e3) return { ...cache, cached: true };
-  const opener = sender.tab || {};
   // tab trống trước, ghi nhận việc rồi mới tải trang (để trang không chạy trước khi kịp ghi nhận)
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
+  const tab = await scanTab();
   try {
     tellTab(sender, key, { step: 'search' });
     const list = await scanIn(tab.id, HT.shopeeSearchUrl(q), 'search', 25000);
@@ -950,7 +963,7 @@ async function sameFindOne({ q, key, title, price }, sender) {
     const cheaper = same.filter(x => x.price < price * 0.99).sort((a, b) => a.price - b.price);
     // ứng viên: 2 món rẻ nhất + 2 món có dấu hiệu uy tín nhất (Mall, Yêu thích, bán nhiều)
     const rep = x => (x.mall ? 3 : x.preferred ? 2 : 0) + (x.sold >= 1000 ? 1 : 0) + (x.rating >= 4.8 ? 1 : 0);
-    const cands = [...new Map([...cheaper.slice(0, 2), ...[...cheaper].sort((a, b) => rep(b) - rep(a) || a.price - b.price).slice(0, 2)].map(x => [x.key, x])).values()].slice(0, 3);
+    const cands = [...new Map([...cheaper.slice(0, 2), ...[...cheaper].sort((a, b) => rep(b) - rep(a) || a.price - b.price).slice(0, 2), ...cheaper.slice(2)].map(x => [x.key, x])).values()].slice(0, 3);
     tellTab(sender, key, { step: 'check', done: 0, of: cands.length, quick: { total: same.length, options: quickOpts(cheaper) } });
     const checked = [];
     for (const c of cands) { const x = await checkListing(tab.id, c, t => HT.sameProduct(title, t).same); if (x) checked.push(x); tellTab(sender, key, { step: 'check', done: checked.length, of: cands.length }); }
@@ -958,7 +971,7 @@ async function sameFindOne({ q, key, title, price }, sender) {
     const res = { ok: true, at: Date.now(), total: same.length, options: HT.pickOptions(checked) };
     await chrome.storage.session.set({ [ck]: res });
     return res;
-  } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
+  } finally { dropScanTab(tab.id); }
 }
 
 // Mở trang 1 sản phẩm trong tab ẩn để chấm điểm shop. verify(tênĐầyĐủ) = false thì bỏ món đó.
@@ -980,8 +993,7 @@ async function prodSearchOne({ q, range, mall }, sender) {
   q = String(q || '').trim().slice(0, 100); if (!q) return { ok: false, error: 'empty' };
   const ck = 'ps:' + HT.fold(q) + '|' + (range || '') + '|' + (mall ? 1 : 0), cache = (await chrome.storage.session.get(ck))[ck];
   if (cache && Date.now() - cache.at < 20 * 60e3) return { ...cache, cached: true };
-  const opener = sender.tab || {};
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, index: (opener.index ?? 0) + 1, windowId: opener.windowId });
+  const tab = await scanTab();
   try {
     const pk = 'ps:' + HT.fold(q);
     tellTab(sender, pk, { step: 'search' });
@@ -993,14 +1005,15 @@ async function prodSearchOne({ q, range, mall }, sender) {
     const safe = fit.filter(x => !x.overseas && !(x.sold != null && x.sold < 10) && !(x.rating && x.rating < 4.3)).map(x => ({ ...x, ...HT.listingScore(x) }));
     const top = [...safe].sort((a, b) => b.score - a.score || a.price - b.price);
     const cheap = [...safe].filter(x => x.score >= 70).sort((a, b) => a.price - b.price);
-    const cands = [...new Map([...top.slice(0, 2), ...cheap.slice(0, 1)].map(x => [x.key, x])).values()].slice(0, 3);
+    // trùng nhau (món điểm cao cũng là món rẻ) thì lấy thêm món kế tiếp cho đủ 3
+    const cands = [...new Map([...top.slice(0, 2), ...cheap.slice(0, 1), ...top.slice(2), ...cheap.slice(1)].map(x => [x.key, x])).values()].slice(0, 3);
     tellTab(sender, pk, { step: 'check', done: 0, of: cands.length, quick: { total: fit.length, safe: safe.length, options: quickOpts(safe) } });
     const checked = [];
     for (const c of cands) { const x = await checkListing(tab.id, c); if (x) checked.push(x); tellTab(sender, pk, { step: 'check', done: checked.length, of: cands.length }); }
     const res = { ok: true, at: Date.now(), total: fit.length, safe: safe.length, options: HT.pickOptions(checked) };
     await chrome.storage.session.set({ [ck]: res });
     return res;
-  } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
+  } finally { dropScanTab(tab.id); }
 }
 
 // Đọc toàn bộ đánh giá bằng tab ẩn (khi không lấy thẳng được): bấm lọc sao và lật từng trang
@@ -1010,11 +1023,11 @@ function reviewsScan(msg) { const run = rvQueue.then(() => reviewsScanOne(msg));
 async function reviewsScanOne({ url, key }) {
   const ck = 'rv:' + key, cache = (await chrome.storage.session.get(ck))[ck];
   if (cache && Date.now() - cache.at < 60 * 60e3) return cache;
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
+  const tab = await scanTab();
   try {
     const items = await scanIn(tab.id, url, 'reviews', 120000);
     const res = { at: Date.now(), items: items || [] };
     if (items && items.length) await chrome.storage.session.set({ [ck]: res });
     return res;
-  } finally { chrome.tabs.remove(tab.id).catch(() => {}); }
+  } finally { dropScanTab(tab.id); }
 }

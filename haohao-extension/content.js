@@ -2256,7 +2256,7 @@
     } else if (st) {
       if (!st.options.length) L.append(el('div', 'optwait', st.total ? `Có ${st.total} món nhưng đều là shop rủi ro (mới mở, bán ít, hàng nước ngoài). Xem trên Shopee để tự chọn.` : `Chưa thấy món nào đúng “${st.q}”${findRange || findMall ? ' với bộ lọc này' : ''}.`));
       else {
-        L.append(el('div', 'fhead', `3 lựa chọn cho “${st.q}”`));
+        L.append(el('div', 'fhead', `${st.options.length} lựa chọn cho “${st.q}”`));
         st.options.forEach(o => L.append(optRow(o, 0, true)));
         L.append(el('div', 'onote', `Lọc từ ${st.total} món: đã bỏ ${st.total - st.safe} shop rủi ro, kiểm tra kỹ các shop còn lại.`));
       }
