@@ -182,15 +182,26 @@ async function anh(env, b) {
     try { const r = await fetch(u.replace(/_tn$/, '') + '_tn'); if (!r.ok) continue; const ct = r.headers.get('content-type') || 'image/jpeg'; parts.push({ inline_data: { mime_type: ct.split(';')[0], data: b64(await r.arrayBuffer()) } }); } catch {}
   }
   if (parts.length < 4) return { ok: false, error: 'img' };
-  let out = null;
-  for (const m of [env.GEMINI_MODEL || 'gemini-flash-lite-latest', 'gemini-flash-latest']) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
-      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 200 } }) });
-    if (!r.ok) continue;
-    const j = await r.json().catch(() => null), t = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(x => x.text || '').join('');
-    try { const v = JSON.parse(t); if (/^(giong|hoi_khac|khac_xa|khong_ro)$/.test(v.muc)) { out = { muc: v.muc, diem: Math.max(0, Math.min(100, Math.round(+v.diem || 0))), y: String(v.y || '').slice(0, 120), n: real.length }; break; } } catch {}
+  let out = null, lastErr = '';
+  // mẫu Gemini: dò danh sách mẫu "flash" mà key dùng được (nhớ 1 ngày), lite trước
+  let gm = await getSt(env, 'gemModels');
+  if (!gm || Date.now() - gm.at > 864e5) {
+    try { const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': env.GEMINI_KEY } }); const j = await r.json();
+      const ver = n => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+      const list = (j.models || []).map(m => ({ n: String(m.name || '').replace(/^models\//, ''), g: m.supportedGenerationMethods || [] })).filter(m => m.g.includes('generateContent') && /^gemini-[\d.]+-flash(-lite)?$/.test(m.n)).map(m => m.n)
+        .sort((x, y) => (/-lite/.test(y) - /-lite/.test(x)) || ver(y) - ver(x));
+      gm = { at: Date.now(), list: list.slice(0, 4) }; if (list.length) await setSt(env, 'gemModels', gm); else lastErr = 'models: ' + (j.error && j.error.message || r.status);
+    } catch (e) { lastErr = 'models: ' + e.message; }
   }
-  if (!out) return { ok: false, error: 'ai' };
+  for (const m of [...new Set([env.GEMINI_MODEL, ...((gm && gm.list) || []), 'gemini-flash-lite-latest', 'gemini-flash-latest'].filter(Boolean))].slice(0, 5)) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 300 } }) });
+    if (!r.ok) { lastErr = m + ' ' + r.status + ' ' + String(((await r.json().catch(() => ({}))).error || {}).message || '').slice(0, 120); continue; }
+    const j = await r.json().catch(() => null), t = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(x => x.text || '').join('');
+    lastErr = m + ' trả lời lạ: ' + String(t || '').slice(0, 80);
+    try { const v = JSON.parse(String(t || '').replace(/^```(json)?|```$/g, '').trim()); if (/^(giong|hoi_khac|khac_xa|khong_ro)$/.test(v.muc)) { out = { muc: v.muc, diem: Math.max(0, Math.min(100, Math.round(+v.diem || 0))), y: String(v.y || '').slice(0, 120), n: real.length }; break; } } catch {}
+  }
+  if (!out) return { ok: false, error: 'ai', why: lastErr.replace(/key=[\w-]+/g, '') };
   await env.DB.prepare('INSERT INTO anh (k, v, at) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at').bind(k, JSON.stringify(out), Date.now()).run();
   return { ok: true, ...out };
 }
