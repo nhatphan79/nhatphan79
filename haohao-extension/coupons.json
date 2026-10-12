@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-11",
+  "updated": "2026-10-12",
   "_huong_dan": "Thêm mã vào 'coupons'. shop: shopee | tiktok. Dùng discount (số tiền) HOẶC percent (+ maxDiscount nếu có). minOrder = đơn tối thiểu. code để trống nếu là mã 'Lưu' trên trang. url = trang dùng mã (tự đi qua link tiếp thị). expires = hạn dùng. Chỉ đăng mã thật, còn hạn.",
   "hubs": [
     {
@@ -35,5 +35,12 @@
   "_huong_dan_deals": "🔥 Deal Shopee: mỗi mục { id, url, title, image, price, orig }. Chủ app gửi 'link | tên | giá | giá gốc' vào khung chat; Claude thêm vào đây.",
   "deals": [],
   "_huong_dan_news": "📣 Tin chủ app: mỗi mục { id, title, text, url, btn, until }. Mỗi tin hiện 1 lần (bong bóng HaoHao) trên máy khách, không hiện ở trang mua bán. id mới = tin mới. until = hạn (YYYY-MM-DD). url mở qua link tiếp thị.",
-  "news": []
+  "news": [
+    {
+      "id": "ban-moi-1-10-125",
+      "title": "🎉 HaoHao có bản mới",
+      "text": "Có bản mới rồi nhé cả nhà! 🔔 Canh giá giúp bạn, báo giá đáy và sale ảo, tìm shop rẻ hơn khi mua Shopee.",
+      "until": "2026-10-19"
+    }
+  ]
 }
