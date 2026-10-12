@@ -225,11 +225,11 @@ async function choVote(env, b) {
   return { ok: true };
 }
 
-// 🎟️ Mã hot tự động: 6 giờ/lần lấy mã Shopee từ AccessTrade (offers_informations), chọn mã giảm thật, còn hạn, sắp hết hạn trước
+// 🎟️ Mã hot tự động: 1 giờ/lần lấy mã Shopee từ AccessTrade (offers_informations), chọn mã giảm thật, còn hạn, sắp hết hạn trước
 const atMoney = s => { const m = String(s || '').match(/(\d+(?:[.,]\d+)?)\s*(k|K|tr|triệu|đ|₫|000)?/); if (!m) return 0; const n = parseFloat(m[1].replace(',', '.')); return Math.round(/k/i.test(m[2] || '') ? n * 1e3 : /tr/.test(m[2] || '') ? n * 1e6 : n >= 1000 ? n : 0); };
 async function hotRun(env, force) {
   if (!env.AT_KEY) return { ok: false, error: 'no AT_KEY' };
-  const old = await getSt(env, 'hot'); if (!force && old && Date.now() - old.at < 6 * 3600e3) return { ok: true, cache: true, n: old.items.length };
+  const old = await getSt(env, 'hot'); if (!force && old && Date.now() - old.at < 3300e3) return { ok: true, cache: true, n: old.items.length };
   const all = [];
   for (let page = 1; page <= 4; page++) {
     const r = await fetch(`https://api.accesstrade.vn/v1/offers_informations?merchant=shopee&status=1&limit=100&page=${page}`, { headers: { Authorization: 'Token ' + env.AT_KEY } });
