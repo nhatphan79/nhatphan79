@@ -142,6 +142,25 @@ async function feedTT(env) {
   return { ok: true, kw: st.ki, of: TT_KW.length, saved: sv.saved, n: st.n, err: st.err };
 }
 
+// 🎵 /tt?q= – tìm món TikTok cho mọi máy (so giá "TikTok rẻ hơn"), nhớ 6 giờ theo từ khoá, không lộ key
+async function ttSearch(env, q, ctx) {
+  q = normQ(q); if (!env.RH_KEY || q.length < 3) return json({ items: [] });
+  const ck = new Request('https://cache.haohao/tt?q=' + encodeURIComponent(q)), cache = caches.default;
+  const hit = await cache.match(ck); if (hit) return new Response(hit.body, { headers: { 'content-type': 'application/json; charset=utf-8', ...cors } });
+  const qs = new URLSearchParams({ creator_username: env.RH_CREATOR || 'nhanhimdaily', keyword: q, page_size: '30' });
+  let j = null;
+  for (const base of ['https://riohub.vn/api/v1', 'https://riohub.riokupon.com/api/v1', 'https://riohub.riokupon.me/api/v1']) {
+    try { const r = await fetch(`${base}/partner/tiktok/affiliate/products/search?${qs}`, { headers: { 'X-Riohub-Api-Key': env.RH_KEY } }); if (!r.ok) return json({ items: [], error: 'RioHub ' + r.status }); j = await r.json(); break; } catch {}
+  }
+  const items = ((j && j.products) || []).map(p => ({ id: String(p.id || ''), title: String(p.title || '').slice(0, 160), image: p.main_image_url || '', shop: (p.shop && p.shop.name) || p.seller_name || '',
+    price: rhNum(p.sales_price && p.sales_price.minimum_amount) || rhNum(p.price && (p.price.floor_price || p.price.amount)),
+    sold: (p.market_performance && +p.market_performance.historical_sold_quantity) || 0, rating: +(p.review && p.review.overall_score) || 0 })).filter(x => /^\d{8,22}$/.test(x.id) && x.price >= 1000);
+  const body = JSON.stringify({ items });
+  if (ctx) ctx.waitUntil(cache.put(ck, new Response(body, { headers: { 'content-type': 'application/json', 'cache-control': 'max-age=21600' } })));
+  if (items.length) ctx && ctx.waitUntil(save(env, items.map(x => ({ k: 'tt:' + x.id, p: x.price, b: 0 }))).catch(() => {}));   // góp luôn vào kho giá
+  return new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8', ...cors } });
+}
+
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
 async function feedSafe(env) {
   await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
@@ -230,7 +249,7 @@ ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchP
 
 export default {
   async scheduled(evt, env, ctx) { ctx.waitUntil(feedSafe(env)); },
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url);
     try {
@@ -239,6 +258,7 @@ export default {
         if (Number(req.headers.get('content-length') || 0) > 20000) return json({ error: 'too big' }, 413);
         return json(await put(env, await req.json().catch(() => null)));
       }
+      if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
