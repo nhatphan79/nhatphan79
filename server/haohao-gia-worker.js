@@ -26,6 +26,8 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS st (k TEXT PRIMARY KEY, v TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS tu (d INTEGER, q TEXT, src TEXT, n INTEGER, PRIMARY KEY (d, q, src))'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS cho (id INTEGER PRIMARY KEY AUTOINCREMENT, by TEXT, shop TEXT, code TEXT, label TEXT, url TEXT, until INTEGER, at INTEGER, ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, used INTEGER DEFAULT 0)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS chov (id INTEGER, by TEXT, v TEXT, PRIMARY KEY (id, by))'),
   ]);
   ready = true;
 }
@@ -193,9 +195,40 @@ async function anh(env, b) {
   return { ok: true, ...out };
 }
 
+// 🤝 Chợ voucher cộng đồng: khách tặng mã nhập tay mình không dùng; mã báo "hết" ≥ 3 lần tự ẩn. Link chỉ nhận shopee.vn / tiktok.com (không nhận link rút gọn để khỏi bị cướp hoa hồng)
+const CODE = /^[A-Z0-9]{4,24}$/;
+async function choList(env) {
+  const now = Date.now();
+  const { results = [] } = await env.DB.prepare('SELECT id, shop, code, label, url, until, at, ok, bad, used FROM cho WHERE until > ? AND bad < 3 AND bad <= ok + 2 ORDER BY (ok - bad) DESC, at DESC LIMIT 40').bind(now).all();
+  return { ok: true, items: results };
+}
+async function choAdd(env, b) {
+  const by = String(b && b.by || ''); if (!ID.test(by)) return { ok: false, error: 'id' };
+  const code = String(b.code || '').toUpperCase().replace(/\s+/g, ''), shop = b.shop === 'tiktok' ? 'tiktok' : 'shopee';
+  const label = String(b.label || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60), until = +b.until || 0;
+  let url = ''; try { const x = new URL(String(b.url || '')); if (/^(www\.)?shopee\.vn$|^(www\.|shop\.)?tiktok\.com$/.test(x.hostname) && x.protocol === 'https:') url = x.origin + x.pathname; } catch {}
+  if (!CODE.test(code) || label.length < 4 || !(until > Date.now()) || until > Date.now() + 120 * 864e5) return { ok: false, error: 'bad' };
+  if (/http|www|\.com|zalo|fb\.|0\d{9}/i.test(label)) return { ok: false, error: 'bad' };
+  const d0 = Date.now() - 864e5, cnt = await env.DB.prepare('SELECT COUNT(*) n FROM cho WHERE by = ? AND at > ?').bind(by, d0).first();
+  if (cnt && cnt.n >= 10) return { ok: false, error: 'limit' };
+  const dup = await env.DB.prepare('SELECT id FROM cho WHERE code = ? AND shop = ? AND until > ?').bind(code, shop, Date.now()).first();
+  if (dup) return { ok: false, error: 'dup' };
+  await env.DB.prepare('INSERT INTO cho (by, shop, code, label, url, until, at) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(by, shop, code, label, url, until, Date.now()).run();
+  return { ok: true };
+}
+async function choVote(env, b) {
+  const by = String(b && b.by || ''), id = +b.id, v = b.v; if (!ID.test(by) || !(id > 0) || !/^(ok|bad|used)$/.test(v)) return { ok: false };
+  if (v === 'used') { await env.DB.prepare('UPDATE cho SET used = used + 1 WHERE id = ?').bind(id).run(); return { ok: true }; }
+  const r = await env.DB.prepare('INSERT OR IGNORE INTO chov (id, by, v) VALUES (?, ?, ?)').bind(id, by, v).run();
+  if (r && r.meta && r.meta.changes === 0) return { ok: true, again: true };
+  await env.DB.prepare(`UPDATE cho SET ${v} = ${v} + 1 WHERE id = ?`).bind(id).run();
+  return { ok: true };
+}
+
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
 async function feedSafe(env) {
   await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
+  await env.DB.prepare('DELETE FROM cho WHERE until < ?').bind(Date.now() - 864e5).run().catch(() => {});
   const tt = await feedTT(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   if (!tt.ok && tt.error !== 'no RH_KEY') await setSt(env, 'feedErr', { e: 'TikTok: ' + tt.error, at: Date.now() }).catch(() => {});
   try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return { ...r, tiktok: tt }; }
@@ -291,6 +324,8 @@ export default {
         return json(await put(env, await req.json().catch(() => null)));
       }
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
+      if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env));
+      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
