@@ -24,6 +24,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS may (id TEXT PRIMARY KEY, v TEXT, d0 INTEGER, d1 INTEGER, gone INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS go (d INTEGER, id TEXT, v TEXT, why TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS st (k TEXT PRIMARY KEY, v TEXT)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS tu (d INTEGER, q TEXT, src TEXT, n INTEGER, PRIMARY KEY (d, q, src))'),
   ]);
   ready = true;
 }
@@ -143,10 +144,30 @@ async function feedTT(env) {
 
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
 async function feedSafe(env) {
+  await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
   const tt = await feedTT(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   if (!tt.ok && tt.error !== 'no RH_KEY') await setSt(env, 'feedErr', { e: 'TikTok: ' + tt.error, at: Date.now() }).catch(() => {});
   try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return { ...r, tiktok: tt }; }
   catch (e) { await setSt(env, 'feedErr', { e: String(e && e.message || e).slice(0, 200), at: Date.now() }).catch(() => {}); return { ok: false, error: String(e) }; }
+}
+
+// ---------- 🔎 từ khoá mọi người tìm (chỉ chữ tìm kiếm, không mã máy) ----------
+const SRC = { hh: 'HaoHao', sp: 'Shopee', tt: 'TikTok' };
+const normQ = q => String(q || '').normalize('NFC').toLowerCase().replace(/[\s_+]+/g, ' ').replace(/[^\p{L}\p{N} .,&%\-/]/gu, '').trim().slice(0, 60);
+async function kw(env, b) {
+  const q = normQ(b && b.q), src = SRC[b && b.src] ? b.src : 'hh';
+  if (q.length < 2 || /https?|www\.|@|\d{7,}/.test(q)) return { ok: false };   // bỏ link, email, số điện thoại
+  await env.DB.prepare('INSERT INTO tu (d, q, src, n) VALUES (?, ?, ?, 1) ON CONFLICT(d, q, src) DO UPDATE SET n = n + 1').bind(today(), q, src).run();
+  return { ok: true };
+}
+async function kwBox(env, days) {
+  const d = today();
+  const { results: rows = [] } = await env.DB.prepare('SELECT q, SUM(n) n, SUM(CASE WHEN src = \'hh\' THEN n ELSE 0 END) hh, SUM(CASE WHEN src = \'sp\' THEN n ELSE 0 END) sp, SUM(CASE WHEN src = \'tt\' THEN n ELSE 0 END) tt FROM tu WHERE d > ? GROUP BY q ORDER BY n DESC LIMIT 50').bind(d - days).all();
+  const tabs = [1, 7, 30].map(x => x === days ? `<b>${x === 1 ? 'Hôm nay' : x + ' ngày'}</b>` : `<a href="?ngay=${x}#tu">${x === 1 ? 'Hôm nay' : x + ' ngày'}</a>`).join(' · ');
+  const src = r => [['hh', 'HH'], ['sp', 'SP'], ['tt', 'TT']].filter(([k]) => r[k]).map(([k, l]) => `<span class="s ${k}">${l} ${r[k]}</span>`).join('');
+  return `<div class="box" id="tu"><b>🔑 Kho key – từ khoá mọi người tìm</b> <span class="l">(${tabs})</span>
+<p class="l" style="margin:4px 0 8px">Bấm Shopee / TikTok để tìm món có hoa hồng rồi đưa vào cửa hàng. HH = ô tìm HaoHao, SP = trang tìm Shopee, TT = trang tìm TikTok.</p>
+<table>${rows.map((r, i) => `<tr><td>${i + 1}. ${esc(r.q)} ${src(r)}</td><td><a href="https://affiliate.shopee.vn/offer/product_offer?query=${encodeURIComponent(r.q)}" target="_blank">Shopee</a> · <a href="https://www.tiktok.com/search?q=${encodeURIComponent(r.q)}" target="_blank">TikTok</a> · <b>${r.n}</b></td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>`;
 }
 
 // ---------- 👥 đếm người dùng ----------
@@ -163,6 +184,7 @@ const page = (title, body) => new Response(`<!doctype html><html lang="vi"><head
 <style>body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:#f6f7f9;color:#1f2a44}main{max-width:560px;margin:0 auto;padding:28px 16px}h1{font-size:22px;margin:0 0 6px}p{color:#5b6475}
 .box{background:#fff;border:1px solid #e3e6ec;border-radius:12px;padding:16px;margin:14px 0}.n{font:800 30px/1.1 system-ui;color:#1f2a44}.l{font-size:12px;color:#7a8394}
 .g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}table{width:100%;border-collapse:collapse;font-size:14px}td{padding:6px 4px;border-bottom:1px solid #eef0f4}td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.s{display:inline-block;font-size:11px;padding:0 5px;margin-left:4px;border-radius:6px;background:#eef0f4;color:#5b6475}.s.sp{background:#fff1ea;color:#ee4d2d}.s.tt{background:#eef;color:#333}a{color:#ec4a68;text-decoration:none}
 button{display:block;width:100%;text-align:left;margin:8px 0;padding:11px 14px;border:1px solid #d7dbe3;border-radius:10px;background:#fff;font:inherit;cursor:pointer}button:hover{border-color:#ec4a68}</style></head><body><main>${body}</main></body></html>`,
   { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 async function bye(env, u) {
@@ -202,7 +224,8 @@ async function stats(env, u) {
 <div class="box g">${tile(n(all), 'Tổng máy đã cài')}${tile(n(nw7), 'Cài mới 7 ngày')}${tile(n(gAll), 'Đã gỡ (7 ngày: ' + n(g7) + ')')}</div>
 <div class="box"><b>Phiên bản đang chạy (30 ngày)</b><table>${vers.map(r => `<tr><td>${esc(r.v)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
 <div class="box"><b>Lý do gỡ</b><table>${whys.map(r => `<tr><td>${esc(r.why)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
-<p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi${feed.err ? ' · lỗi ' + esc(feed.err) : ''}.` : ''}${ft ? ` TikTok hôm nay: ${ft.ki >= TT_KW.length ? 'xong' : 'từ khoá ' + ft.ki + '/' + TT_KW.length} · ${(ft.n || 0).toLocaleString('vi-VN')} lượt ghi${ft.err ? ' · lỗi ' + esc(ft.err) : ''}.` : ''}${fe && (!feed || fe.at > Math.max(feed.at || 0, ft && ft.at || 0)) ? ` ⚠️ Tự nạp lỗi: ${esc(fe.e)}` : ''}</p>`);
+<p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi${feed.err ? ' · lỗi ' + esc(feed.err) : ''}.` : ''}${ft ? ` TikTok hôm nay: ${ft.ki >= TT_KW.length ? 'xong' : 'từ khoá ' + ft.ki + '/' + TT_KW.length} · ${(ft.n || 0).toLocaleString('vi-VN')} lượt ghi${ft.err ? ' · lỗi ' + esc(ft.err) : ''}.` : ''}${fe && (!feed || fe.at > Math.max(feed.at || 0, ft && ft.at || 0)) ? ` ⚠️ Tự nạp lỗi: ${esc(fe.e)}` : ''}</p>
+${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchParams.get('ngay') : 7)}`);
 }
 
 export default {
@@ -216,6 +239,7 @@ export default {
         if (Number(req.headers.get('content-length') || 0) > 20000) return json({ error: 'too big' }, 413);
         return json(await put(env, await req.json().catch(() => null)));
       }
+      if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
       if (u.pathname === '/thongke') return await stats(env, u);
