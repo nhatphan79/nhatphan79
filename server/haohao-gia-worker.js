@@ -255,7 +255,7 @@ async function hotRun(env, force) {
       let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.href; } catch {}
       const code = /^[A-Z0-9]{4,24}$/.test(String(c.coupon_code || '').trim().toUpperCase()) ? String(c.coupon_code).trim().toUpperCase() : '';
       items.push({ id: 'at' + (o.id || '') + (code ? '-' + code : ''), shop: 'shopee', title: nice, code, url: link, expires: new Date(end).toISOString(), percent, discount, maxDiscount: atMoney(cap), minOrder, auto: 1,
-        score: discount || Math.min(atMoney(cap) || Infinity, percent * 3000), brand: /official|mall|chính hãng|flagship|thương hiệu/i.test(String(o.name || '')) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
+        score: discount || Math.min(atMoney(cap) || Infinity, percent * 3000), brand: /official|(?<![a-z])mall(?![a-z])|chính hãng|flagship|thương hiệu/i.test(String(o.name || '')) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
     }
   }
   const seen = new Set(), uniq = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; });
@@ -372,11 +372,11 @@ export default {
         const f = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
         const words = f(u.searchParams.get('q')).split(/\s+/).filter(w => w.length > 1).slice(0, 5), all = (await getSt(env, 'hotall')) || [], now = Date.now();
         // nhóm hàng → các chữ hay có trong tên shop (tên mã AccessTrade chỉ có tên shop + mức giảm)
-        const GROUPS = { 'thoi trang': ['thoi trang', 'fashion', 'clothing', 'local brand', 'ao ', 'quan ', 'vay', 'dam ', 'giay', 'dep ', 'tui ', 'balo', 'hoodie', 'jean', 'routine', 'yody', 'coolmate', 'canifa', 'owen', 'aristino', 'biti', 'juno', 'vascara', 'adidas', 'nike', 'puma', 'mlb', 'uniqlo'],
-          'me be': ['me va be', 'baby', 'kids', 'kid ', 'tre em', 'be ', 'sua', 'bim', 'ta ', 'huggies', 'bobby', 'merries', 'pampers', 'moony', 'abbott', 'nan ', 'enfa', 'vinamilk', 'friso', 'aptamil', 'pigeon', 'mamamy', 'kodomo'],
-          'gia dung': ['gia dung', 'home', 'house', 'nha cua', 'bep', 'kitchen', 'noi', 'chao', 'lock&lock', 'locknlock', 'sunhouse', 'philips', 'panasonic', 'electrolux', 'xiaomi', 'tefal', 'elmich', 'kangaroo', 'sharp', 'toshiba', 'dreame', 'ecovacs', 'roborock', 'wmf', 'bear'],
-          'my pham': ['my pham', 'beauty', 'cosmetic', 'skin', 'makeup', 'son ', 'loreal', "l'oreal", 'cocoon', 'la roche', 'maybelline', 'innisfree', 'cerave', 'simple', 'garnier', 'judydoll', 'moody', 'some by mi', 'bioderma', 'vichy', 'hada labo', 'senka', 'anessa'],
-          'dien thoai': ['dien thoai', 'phone', 'mobile', 'samsung', 'xiaomi', 'oppo', 'vivo', 'realme', 'apple', 'tai nghe', 'sac ', 'anker', 'baseus', 'ugreen', 'jbl', 'sony'] };
+        const GROUPS = { 'thoi trang': ['thoi trang', 'fashion', 'clothing', 'local brand', ' ao ', ' quan ', ' vay ', ' dam ', 'giay', ' dep ', ' tui ', 'balo', 'hoodie', 'jean', 'routine', 'yody', 'coolmate', 'canifa', 'owen', 'aristino', 'biti', 'juno', 'vascara', 'adidas', 'nike', 'puma', 'mlb', 'uniqlo'],
+          'me be': ['me va be', 'baby', 'kids', ' kid ', 'tre em', ' be ', ' sua ', ' bim ', ' ta ', 'huggies', 'bobby', 'merries', 'pampers', 'moony', 'abbott', ' nan ', 'enfa', 'vinamilk', 'friso', 'aptamil', 'pigeon', 'mamamy', 'kodomo'],
+          'gia dung': ['gia dung', 'home', 'house', 'nha cua', ' bep ', 'kitchen', ' noi ', ' chao ', 'lock&lock', 'locknlock', 'sunhouse', 'philips', 'panasonic', 'electrolux', 'xiaomi', 'tefal', 'elmich', 'kangaroo', 'sharp', 'toshiba', 'dreame', 'ecovacs', 'roborock', 'wmf', 'bear'],
+          'my pham': ['my pham', 'beauty', 'cosmetic', 'skin', 'makeup', ' son ', 'loreal', "l'oreal", 'cocoon', 'la roche', 'maybelline', 'innisfree', 'cerave', 'simple', 'garnier', 'judydoll', 'moody', 'some by mi', 'bioderma', 'vichy', 'hada labo', 'senka', 'anessa'],
+          'dien thoai': ['dien thoai', 'phone', 'mobile', 'samsung', 'xiaomi', 'oppo', 'vivo', 'realme', 'apple', 'tai nghe', ' sac ', 'anker', 'baseus', 'ugreen', 'jbl', 'sony'] };
         const alias = { 'quan ao': 'thoi trang', 'mevabe': 'me be', 'me va be': 'me be', 'tre em': 'me be', 'do gia dung': 'gia dung', 'nha bep': 'gia dung', 'lam dep': 'my pham', 'cong nghe': 'dien thoai' };
         const qf = f(u.searchParams.get('q')).trim(), grp = GROUPS[alias[qf] || qf];
         const hit = x => { const t = ' ' + f(x.title) + ' '; return grp ? grp.some(w => t.includes(w)) : words.every(w => t.includes(w)); };
