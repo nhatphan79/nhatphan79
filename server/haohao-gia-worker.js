@@ -25,6 +25,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS go (d INTEGER, id TEXT, v TEXT, why TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS st (k TEXT PRIMARY KEY, v TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS tu (d INTEGER, q TEXT, src TEXT, n INTEGER, PRIMARY KEY (d, q, src))'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
   ]);
   ready = true;
 }
@@ -161,6 +162,37 @@ async function ttSearch(env, q, ctx) {
   return new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8', ...cors } });
 }
 
+// 📸 /anh – so ảnh khách chụp (đánh giá) với ảnh shop đăng bằng Gemini (Secret GEMINI_KEY). Mỗi món chấm 1 lần, nhớ 14 ngày cho mọi máy.
+const IMG_OK = /^https:\/\/(down-[a-z0-9-]+\.img\.susercontent\.com|cf\.shopee\.vn)\/file\/[\w-]+(_tn)?$/;
+const b64 = buf => { let s = ''; const a = new Uint8Array(buf); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+async function anh(env, b) {
+  const k = String(b && b.k || ''); if (!/^sp:\d{3,12}\.\d{3,16}$/.test(k)) return { ok: false };
+  const old = await env.DB.prepare('SELECT v, at FROM anh WHERE k = ?').bind(k).first();
+  if (old && Date.now() - old.at < 14 * 864e5) return { ok: true, cache: true, ...JSON.parse(old.v) };
+  if (!env.GEMINI_KEY) return { ok: false, error: 'off' };
+  const shop = (b.shop || []).filter(u => IMG_OK.test(u)).slice(0, 3), real = (b.real || []).filter(u => IMG_OK.test(u)).slice(0, 5);
+  if (shop.length < 1 || real.length < 2) return { ok: false, error: 'few' };
+  const d = today(), lim = (await getSt(env, 'anhDay')) || {}; if (lim.d !== d) { lim.d = d; lim.n = 0; }
+  if (lim.n >= +(env.ANH_MAX || 1200)) return { ok: false, error: 'limit' };
+  lim.n++; await setSt(env, 'anhDay', lim);
+  const parts = [{ text: `Ảnh 1–${shop.length}: ảnh SHOP đăng bán. Ảnh ${shop.length + 1}–${shop.length + real.length}: ảnh NGƯỜI MUA chụp khi nhận hàng (đánh giá). So sánh sản phẩm thật với ảnh mẫu: màu sắc, chất liệu, hình dáng, kích thước, độ hoàn thiện. Bỏ qua khác biệt do ánh sáng, góc chụp, người mặc. Nếu ảnh người mua không chụp sản phẩm thì bỏ qua ảnh đó. Trả JSON: {"muc":"giong"|"hoi_khac"|"khac_xa"|"khong_ro","diem":0-100 (100 = giống hệt),"y":"1 câu tiếng Việt ≤ 90 ký tự nói điểm khác chính hoặc giống ở chỗ nào"}` }];
+  for (const u of [...shop, ...real]) {
+    try { const r = await fetch(u.replace(/_tn$/, '') + '_tn'); if (!r.ok) continue; const ct = r.headers.get('content-type') || 'image/jpeg'; parts.push({ inline_data: { mime_type: ct.split(';')[0], data: b64(await r.arrayBuffer()) } }); } catch {}
+  }
+  if (parts.length < 4) return { ok: false, error: 'img' };
+  let out = null;
+  for (const m of [env.GEMINI_MODEL || 'gemini-flash-lite-latest', 'gemini-flash-latest']) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 200 } }) });
+    if (!r.ok) continue;
+    const j = await r.json().catch(() => null), t = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(x => x.text || '').join('');
+    try { const v = JSON.parse(t); if (/^(giong|hoi_khac|khac_xa|khong_ro)$/.test(v.muc)) { out = { muc: v.muc, diem: Math.max(0, Math.min(100, Math.round(+v.diem || 0))), y: String(v.y || '').slice(0, 120), n: real.length }; break; } } catch {}
+  }
+  if (!out) return { ok: false, error: 'ai' };
+  await env.DB.prepare('INSERT INTO anh (k, v, at) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at').bind(k, JSON.stringify(out), Date.now()).run();
+  return { ok: true, ...out };
+}
+
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
 async function feedSafe(env) {
   await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
@@ -258,6 +290,7 @@ export default {
         if (Number(req.headers.get('content-length') || 0) > 20000) return json({ error: 'too big' }, 413);
         return json(await put(env, await req.json().catch(() => null)));
       }
+      if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
