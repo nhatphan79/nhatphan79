@@ -225,8 +225,44 @@ async function choVote(env, b) {
   return { ok: true };
 }
 
+// 🎟️ Mã hot tự động: 6 giờ/lần lấy mã Shopee từ AccessTrade (offers_informations), chọn mã giảm thật, còn hạn, sắp hết hạn trước
+const atMoney = s => { const m = String(s || '').match(/(\d+(?:[.,]\d+)?)\s*(k|K|tr|triệu|đ|₫|000)?/); if (!m) return 0; const n = parseFloat(m[1].replace(',', '.')); return Math.round(/k/i.test(m[2] || '') ? n * 1e3 : /tr/.test(m[2] || '') ? n * 1e6 : n >= 1000 ? n : 0); };
+async function hotRun(env, force) {
+  if (!env.AT_KEY) return { ok: false, error: 'no AT_KEY' };
+  const old = await getSt(env, 'hot'); if (!force && old && Date.now() - old.at < 6 * 3600e3) return { ok: true, cache: true, n: old.items.length };
+  const all = [];
+  for (let page = 1; page <= 4; page++) {
+    const r = await fetch(`https://api.accesstrade.vn/v1/offers_informations?merchant=shopee&status=1&limit=100&page=${page}`, { headers: { Authorization: 'Token ' + env.AT_KEY } });
+    if (!r.ok) { if (page === 1) return { ok: false, error: 'AT ' + r.status }; break; }
+    let j; try { j = JSON.parse((await r.text()).replace(/:\s*-?(NaN|Infinity)\b/g, ': null')); } catch { break; }
+    const data = j.data || []; all.push(...data); if (data.length < 100) break;
+  }
+  const now = Date.now(), items = [];
+  for (const o of all) {
+    const end = Date.parse(String(o.end_time || o.end_date || '').replace(' ', 'T') + (/[zZ+]/.test(String(o.end_time || '')) ? '' : '+07:00'));
+    if (!(end > now) || end - now > 30 * 864e5) continue;
+    const start = Date.parse(String(o.start_time || '').replace(' ', 'T') + '+07:00'); if (start > now + 864e5) continue;
+    const cps = Array.isArray(o.coupons) && o.coupons.length ? o.coupons : [{}];
+    for (const c of cps.slice(0, 2)) {
+      const title = String(c.coupon_desc || o.name || '').replace(/\s+/g, ' ').trim().slice(0, 80); if (title.length < 6) continue;
+      const pm = title.match(/(\d{1,2})\s*%/), percent = pm ? +pm[1] : 0, dm = title.match(/giảm\s*(?:ngay\s*)?₫?\s*(\d+(?:[.,]\d+)?\s*(?:k|K|tr|000)?)/i), discount = percent ? 0 : atMoney(dm && dm[1]);
+      const mm = title.match(/(?:đơn|tối thiểu|từ)\s*(?:tối thiểu\s*)?₫?\s*(\d+(?:[.,]\d+)?\s*(?:k|K|tr|000)?)/i), minOrder = atMoney(mm && mm[1]);
+      const cap = (title.match(/tối đa\s*₫?\s*(\d+(?:[.,]\d+)?\s*(?:k|K|tr|000)?)/i) || [])[1];
+      if (!percent && !discount && !/freeship|miễn phí vận chuyển|hoàn xu/i.test(title)) continue;
+      let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.origin + x.pathname; } catch {}
+      const code = /^[A-Z0-9]{4,24}$/.test(String(c.coupon_code || '').trim().toUpperCase()) ? String(c.coupon_code).trim().toUpperCase() : '';
+      items.push({ id: 'at' + (o.id || '') + (code ? '-' + code : ''), shop: 'shopee', title, code, url: link, expires: new Date(end).toISOString(), percent, discount, maxDiscount: atMoney(cap), minOrder, auto: 1,
+        score: (discount || percent * 2000) / Math.max(1, minOrder / 1000 + 50) - (end - now) / 864e5 * 0.2 });
+    }
+  }
+  const seen = new Set(), pick = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 30).map(({ score, ...x }) => x);
+  await setSt(env, 'hot', { at: now, items: pick, raw: all.length });
+  return { ok: true, n: pick.length, raw: all.length };
+}
+
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
 async function feedSafe(env) {
+  await hotRun(env).catch(e => setSt(env, 'feedErr', { e: 'Mã hot: ' + (e && e.message || e), at: Date.now() }).catch(() => {}));
   await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
   await env.DB.prepare('DELETE FROM cho WHERE until < ?').bind(Date.now() - 864e5).run().catch(() => {});
   const tt = await feedTT(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
@@ -326,6 +362,7 @@ export default {
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env));
       if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
+      if (u.pathname === '/hot') { if (u.searchParams.get('run')) return json(await hotRun(env, true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
