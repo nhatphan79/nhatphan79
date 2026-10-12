@@ -71,7 +71,10 @@ async function get(env, ks) {
 // ---------- 🛒 Tự nạp kho giá từ AccessTrade (tài khoản phụ) – mỗi ngày tải lại toàn bộ kho Shopee của AccessTrade ----------
 // Cần Secret AT_KEY trên Cloudflare + Cron Trigger (vd */15 * * * *). Mỗi lần chạy tải tối đa FEED_PAGES trang × 200 món, ưu tiên ghi
 // trước đồ trẻ em / gia dụng; hết kho thì đánh dấu xong ngày, hôm sau làm lại.
-const FEED_PAGES = 5, PRIO = /(trẻ em|bé trai|bé gái|em bé|cho bé|baby|kid|mẹ và bé|nhà cửa|gia dụng|nhà bếp|đồ bếp|phòng tắm|giặt|chăn|gối|nồi|chảo)/i;
+// Chỉ nhận 3 nhóm anh Nhật chọn: Thời trang · Gia dụng (nhà cửa & đời sống) · Mẹ và bé
+const FEED_PAGES = 5;
+const KEEP = /(?<!\p{L})(thời trang|fashion|áo|quần|váy|đầm|giày|dép|sandal|túi xách|balo|ví nữ|ví nam|phụ kiện thời trang|đồ lót|nội y|đồ ngủ|đồ bộ|nhà cửa|đời sống|gia dụng|nhà bếp|đồ bếp|phòng tắm|phòng ngủ|chăn|ga gối|gối|nệm|rèm|thảm|nồi|chảo|bát|chén|cốc|hộp đựng|kệ|móc treo|chổi|cây lau nhà|mẹ và bé|mẹ & bé|mẹ bé|trẻ em|trẻ sơ sinh|em bé|cho bé|bé trai|bé gái|baby|kids?|tã|bỉm|sữa bột|bình sữa|đồ chơi)(?!\p{L})/iu;
+const PRIO = /(?<!\p{L})(trẻ em|bé trai|bé gái|em bé|cho bé|baby|kids?|mẹ và bé|mẹ & bé|sơ sinh|nhà cửa|gia dụng|nhà bếp)(?!\p{L})/iu;
 const getSt = async (env, k) => { const r = await env.DB.prepare('SELECT v FROM st WHERE k = ?').bind(k).first(); try { return r ? JSON.parse(r.v) : null; } catch { return null; } };
 const setSt = (env, k, v) => env.DB.prepare('INSERT INTO st (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind(k, JSON.stringify(v)).run();
 async function feedRun(env) {
@@ -90,7 +93,9 @@ async function feedRun(env) {
       const m = String(p.url || '').match(/-i\.(\d{3,12})\.(\d{3,16})/) || String(p.url || '').match(/product\/(\d{3,12})\/(\d{3,16})/); if (!m) continue;
       const a = Math.round(Number(p.price) || 0), b = Math.round(Number(p.discount) || 0);
       const price = b > 1000 && a > 1000 ? Math.min(a, b) : (a || b), before = Math.max(a, b);
-      if (price >= 1000) items.push({ k: `sp:${m[1]}.${m[2]}`, p: price, b: before > price ? before : 0, prio: PRIO.test((p.cate || '') + ' ' + (p.name || '')) });
+      const tx = (p.cate || '') + ' ' + (p.name || '');
+      if (!KEEP.test(tx)) continue;   // ngoài 3 nhóm → bỏ
+      if (price >= 1000) items.push({ k: `sp:${m[1]}.${m[2]}`, p: price, b: before > price ? before : 0, prio: PRIO.test(tx) });
     }
     st.page++; if (data.length < 200) st.done = true;
   }
