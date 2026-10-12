@@ -226,7 +226,8 @@ async function choVote(env, b) {
 }
 
 // 🎟️ Mã hot tự động: 1 giờ/lần lấy mã Shopee từ AccessTrade (offers_informations), chọn mã giảm thật, còn hạn, sắp hết hạn trước
-const atMoney = s => { const m = String(s || '').match(/(\d+(?:[.,]\d+)?)\s*(k|K|tr|triệu|đ|₫|000)?/); if (!m) return 0; const n = parseFloat(m[1].replace(',', '.')); return Math.round(/k/i.test(m[2] || '') ? n * 1e3 : /tr/.test(m[2] || '') ? n * 1e6 : n >= 1000 ? n : 0); };
+const atMoney = s => { const m = String(s || '').match(/(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(k|K|tr|triệu)?/); if (!m) return 0; const raw = m[1], grp = /^\d{1,3}([.,]\d{3})+$/.test(raw); const n = grp ? +raw.replace(/[.,]/g, '') : parseFloat(raw.replace(',', '.')); return Math.round(/k/i.test(m[2] || '') ? n * 1e3 : /tr/.test(m[2] || '') ? n * 1e6 : n >= 1000 ? n : 0); };
+const atTime = (t, endOfDay) => { t = String(t || '').trim(); if (!t) return NaN; if (/^\d{4}-\d{2}-\d{2}$/.test(t)) t += endOfDay ? 'T23:59:59' : 'T00:00:00'; t = t.replace(' ', 'T'); return Date.parse(/[zZ]|[+-]\d{2}:\d{2}$/.test(t) ? t : t + '+07:00'); };
 async function hotRun(env, force) {
   if (!env.AT_KEY) return { ok: false, error: 'no AT_KEY' };
   const old = await getSt(env, 'hot'); if (!force && old && Date.now() - old.at < 3300e3) return { ok: true, cache: true, n: old.items.length };
@@ -239,20 +240,22 @@ async function hotRun(env, force) {
   }
   const now = Date.now(), items = [];
   for (const o of all) {
-    const end = Date.parse(String(o.end_time || o.end_date || '').replace(' ', 'T') + (/[zZ+]/.test(String(o.end_time || '')) ? '' : '+07:00'));
+    const end = atTime(o.end_time || o.end_date, true);
     if (!(end > now) || end - now > 30 * 864e5) continue;
-    const start = Date.parse(String(o.start_time || '').replace(' ', 'T') + '+07:00'); if (start > now + 864e5) continue;
+    const start = atTime(o.start_time); if (start > now) continue;
     const cps = Array.isArray(o.coupons) && o.coupons.length ? o.coupons : [{}];
     for (const c of cps.slice(0, 2)) {
-      const title = String(c.coupon_desc || o.name || '').replace(/\s+/g, ' ').trim().slice(0, 80); if (title.length < 6) continue;
-      const pm = title.match(/(\d{1,2})\s*%/), percent = pm ? +pm[1] : 0, dm = title.match(/giảm\s*(?:ngay\s*)?₫?\s*(\d+(?:[.,]\d+)?\s*(?:k|K|tr|000)?)/i), discount = percent ? 0 : atMoney(dm && dm[1]);
-      const mm = title.match(/(?:đơn|tối thiểu|từ)\s*(?:tối thiểu\s*)?₫?\s*(\d+(?:[.,]\d+)?\s*(?:k|K|tr|000)?)/i), minOrder = atMoney(mm && mm[1]);
-      const cap = (title.match(/tối đa\s*₫?\s*(\d+(?:[.,]\d+)?\s*(?:k|K|tr|000)?)/i) || [])[1];
+      const title = String(o.name || c.coupon_desc || '').replace(/^(\[[^\]]+\]\s*-?\s*)+/, m => m.replace(/\]\s*-?\s*\[.*$/, ']').trim() + ' ').replace(/-/g, ' ').replace(/\s+/g, ' ').replace(/ VNĐ/g, 'đ').trim().slice(0, 90); if (title.length < 6) continue;
+      const pm = title.match(/(\d{1,2})\s*%/), percent = pm ? +pm[1] : 0, dm = title.match(/giảm\s*(?:ngay\s*)?₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i), discount = percent ? 0 : atMoney(dm && dm[1]);
+      const mm = title.match(/(?:đơn|tối thiểu|từ)\s*(?:tối thiểu\s*)?₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i), minOrder = atMoney(mm && mm[1]);
+      const cap = (title.match(/tối đa\s*₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i) || [])[1];
       if (!percent && !discount && !/freeship|miễn phí vận chuyển|hoàn xu/i.test(title)) continue;
-      let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.origin + x.pathname; } catch {}
+      const kfmt = n => n >= 1e6 ? (n / 1e6 + 'tr').replace('.', ',') : Math.round(n / 1000) + 'k';
+      const nice = title.replace(/\s*tối đa 0đ/i, '').replace(/\s*cho đơn tối thiểu 0đ/i, '').replace(/(\d{1,3}(?:[.,]\d{3})+)đ/g, (m, x) => kfmt(+x.replace(/[.,]/g, ''))).replace(/cho đơn tối thiểu/i, 'đơn từ');
+      let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.href; } catch {}
       const code = /^[A-Z0-9]{4,24}$/.test(String(c.coupon_code || '').trim().toUpperCase()) ? String(c.coupon_code).trim().toUpperCase() : '';
-      items.push({ id: 'at' + (o.id || '') + (code ? '-' + code : ''), shop: 'shopee', title, code, url: link, expires: new Date(end).toISOString(), percent, discount, maxDiscount: atMoney(cap), minOrder, auto: 1,
-        score: discount || (atMoney(cap) || percent * 3000) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
+      items.push({ id: 'at' + (o.id || '') + (code ? '-' + code : ''), shop: 'shopee', title: nice, code, url: link, expires: new Date(end).toISOString(), percent, discount, maxDiscount: atMoney(cap), minOrder, auto: 1,
+        score: discount || Math.min(atMoney(cap) || Infinity, percent * 3000) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
     }
   }
   const seen = new Set(), pick = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10).map(({ score, ...x }) => x);
