@@ -232,7 +232,7 @@ async function hotRun(env, force) {
   if (!env.AT_KEY) return { ok: false, error: 'no AT_KEY' };
   const old = await getSt(env, 'hot'); if (!force && old && Date.now() - old.at < 3300e3) return { ok: true, cache: true, n: old.items.length };
   const all = [];
-  for (let page = 1; page <= 4; page++) {
+  for (let page = 1; page <= 10; page++) {
     const r = await fetch(`https://api.accesstrade.vn/v1/offers_informations?merchant=shopee&status=1&limit=100&page=${page}`, { headers: { Authorization: 'Token ' + env.AT_KEY } });
     if (!r.ok) { if (page === 1) return { ok: false, error: 'AT ' + r.status }; break; }
     let j; try { j = JSON.parse((await r.text()).replace(/:\s*-?(NaN|Infinity)\b/g, ': null')); } catch { break; }
@@ -250,17 +250,18 @@ async function hotRun(env, force) {
       const mm = title.match(/(?:đơn|tối thiểu|từ)\s*(?:tối thiểu\s*)?₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i), minOrder = atMoney(mm && mm[1]);
       const cap = (title.match(/tối đa\s*₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i) || [])[1];
       if (!percent && !discount && !/freeship|miễn phí vận chuyển|hoàn xu/i.test(title)) continue;
-      if (!/official|mall|chính hãng|flagship|thương hiệu/i.test(String(o.name || ''))) continue;   // chỉ shop thương hiệu (Official / Mall)
       const kfmt = n => n >= 1e6 ? (n / 1e6 + 'tr').replace('.', ',') : Math.round(n / 1000) + 'k';
       const nice = title.replace(/\s*tối đa 0đ/i, '').replace(/\s*cho đơn tối thiểu 0đ/i, '').replace(/(\d{1,3}(?:[.,]\d{3})+)đ/g, (m, x) => kfmt(+x.replace(/[.,]/g, ''))).replace(/cho đơn tối thiểu/i, 'đơn từ');
       let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.href; } catch {}
       const code = /^[A-Z0-9]{4,24}$/.test(String(c.coupon_code || '').trim().toUpperCase()) ? String(c.coupon_code).trim().toUpperCase() : '';
       items.push({ id: 'at' + (o.id || '') + (code ? '-' + code : ''), shop: 'shopee', title: nice, code, url: link, expires: new Date(end).toISOString(), percent, discount, maxDiscount: atMoney(cap), minOrder, auto: 1,
-        score: discount || Math.min(atMoney(cap) || Infinity, percent * 3000) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
+        score: discount || Math.min(atMoney(cap) || Infinity, percent * 3000), brand: /official|mall|chính hãng|flagship|thương hiệu/i.test(String(o.name || '')) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
     }
   }
-  const seen = new Set(), pick = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10).map(({ score, ...x }) => x);
+  const seen = new Set(), uniq = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; });
+  const pick = uniq.filter(x => x.brand).slice(0, 10).map(({ score, brand, ...x }) => x);   // mặc định: 10 mã giảm cao nhất của shop thương hiệu
   await setSt(env, 'hot', { at: now, items: pick, raw: all.length });
+  await setSt(env, 'hotall', uniq.slice(0, 1000).map(({ score, ...x }) => x));   // để tìm theo từ khoá
   if (force === 'raw') return { ok: true, n: pick.length, raw: all.length, sample: all.slice(0, 3).map(o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'string' ? v.slice(0, 120) : Array.isArray(v) ? v.slice(0, 2) : v]))) };
   return { ok: true, n: pick.length, raw: all.length };
 }
@@ -367,6 +368,21 @@ export default {
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env));
       if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
+      if (u.pathname === '/hot' && u.searchParams.get('q')) {   // 🔎 tìm mã theo từ khoá (vd "thời trang", "sữa")
+        const f = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+        const words = f(u.searchParams.get('q')).split(/\s+/).filter(w => w.length > 1).slice(0, 5), all = (await getSt(env, 'hotall')) || [], now = Date.now();
+        // nhóm hàng → các chữ hay có trong tên shop (tên mã AccessTrade chỉ có tên shop + mức giảm)
+        const GROUPS = { 'thoi trang': ['thoi trang', 'fashion', 'clothing', 'local brand', 'ao ', 'quan ', 'vay', 'dam ', 'giay', 'dep ', 'tui ', 'balo', 'hoodie', 'jean', 'routine', 'yody', 'coolmate', 'canifa', 'owen', 'aristino', 'biti', 'juno', 'vascara', 'adidas', 'nike', 'puma', 'mlb', 'uniqlo'],
+          'me be': ['me va be', 'baby', 'kids', 'kid ', 'tre em', 'be ', 'sua', 'bim', 'ta ', 'huggies', 'bobby', 'merries', 'pampers', 'moony', 'abbott', 'nan ', 'enfa', 'vinamilk', 'friso', 'aptamil', 'pigeon', 'mamamy', 'kodomo'],
+          'gia dung': ['gia dung', 'home', 'house', 'nha cua', 'bep', 'kitchen', 'noi', 'chao', 'lock&lock', 'locknlock', 'sunhouse', 'philips', 'panasonic', 'electrolux', 'xiaomi', 'tefal', 'elmich', 'kangaroo', 'sharp', 'toshiba', 'dreame', 'ecovacs', 'roborock', 'wmf', 'bear'],
+          'my pham': ['my pham', 'beauty', 'cosmetic', 'skin', 'makeup', 'son ', 'loreal', "l'oreal", 'cocoon', 'la roche', 'maybelline', 'innisfree', 'cerave', 'simple', 'garnier', 'judydoll', 'moody', 'some by mi', 'bioderma', 'vichy', 'hada labo', 'senka', 'anessa'],
+          'dien thoai': ['dien thoai', 'phone', 'mobile', 'samsung', 'xiaomi', 'oppo', 'vivo', 'realme', 'apple', 'tai nghe', 'sac ', 'anker', 'baseus', 'ugreen', 'jbl', 'sony'] };
+        const alias = { 'quan ao': 'thoi trang', 'mevabe': 'me be', 'me va be': 'me be', 'tre em': 'me be', 'do gia dung': 'gia dung', 'nha bep': 'gia dung', 'lam dep': 'my pham', 'cong nghe': 'dien thoai' };
+        const qf = f(u.searchParams.get('q')).trim(), grp = GROUPS[alias[qf] || qf];
+        const hit = x => { const t = ' ' + f(x.title) + ' '; return grp ? grp.some(w => t.includes(w)) : words.every(w => t.includes(w)); };
+        const items = words.length ? all.filter(x => Date.parse(x.expires) > now && hit(x)).slice(0, 20) : [];
+        return json({ ok: true, q: u.searchParams.get('q'), items: items.map(({ brand, ...x }) => x) });
+      }
       if (u.pathname === '/hot') { if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
