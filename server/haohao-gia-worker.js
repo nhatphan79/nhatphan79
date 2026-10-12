@@ -182,6 +182,18 @@ export default {
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
       if (u.pathname === '/thongke') return await stats(env, u);
+      if (u.pathname === '/thu' && env.AT_KEY) {   // dò AccessTrade có nguồn nào (chỉ trả số lượng + mẫu, không lộ key)
+        const out = {};
+        for (const d of ['tiktok.com', 'shop.tiktok.com', 'vt.tiktok.com', 'tiktokshop.vn']) {
+          const r = await fetch(`https://api.accesstrade.vn/v1/datafeeds?domain=${d}&limit=3&page=1`, { headers: { Authorization: 'Token ' + env.AT_KEY } });
+          let j = null; try { j = JSON.parse((await r.text()).replace(/:\s*-?(NaN|Infinity)\b/g, ': null')); } catch {}
+          out[d] = { st: r.status, total: j && (j.total || (j.data || []).length), mau: (j && j.data || []).slice(0, 2).map(x => ({ name: x.name, price: x.price, url: String(x.url || '').slice(0, 90), cate: x.cate })) };
+        }
+        const c = await fetch('https://api.accesstrade.vn/v1/campaigns?approval=successful', { headers: { Authorization: 'Token ' + env.AT_KEY } });
+        let cj = null; try { cj = await c.json(); } catch {}
+        out.campaigns = (cj && cj.data || []).map(x => x.name + ' | ' + (x.url || '')).filter(x => /tiktok|shopee|lazada/i.test(x)).slice(0, 15);
+        return json(out);
+      }
       if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
         const f = await getSt(env, 'feed'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
         return json(await feedSafe(env));
