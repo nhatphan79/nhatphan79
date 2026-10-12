@@ -252,10 +252,10 @@ async function hotRun(env, force) {
       let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.origin + x.pathname; } catch {}
       const code = /^[A-Z0-9]{4,24}$/.test(String(c.coupon_code || '').trim().toUpperCase()) ? String(c.coupon_code).trim().toUpperCase() : '';
       items.push({ id: 'at' + (o.id || '') + (code ? '-' + code : ''), shop: 'shopee', title, code, url: link, expires: new Date(end).toISOString(), percent, discount, maxDiscount: atMoney(cap), minOrder, auto: 1,
-        score: (discount || percent * 2000) / Math.max(1, minOrder / 1000 + 50) - (end - now) / 864e5 * 0.2 });
+        score: discount || (atMoney(cap) || percent * 3000) });   // 10 mã giảm cao nhất (mã % tính theo mức tối đa)
     }
   }
-  const seen = new Set(), pick = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 30).map(({ score, ...x }) => x);
+  const seen = new Set(), pick = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10).map(({ score, ...x }) => x);
   await setSt(env, 'hot', { at: now, items: pick, raw: all.length });
   return { ok: true, n: pick.length, raw: all.length };
 }
