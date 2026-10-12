@@ -106,9 +106,46 @@ async function feedRun(env) {
   return { ok: true, page: st.page, done: st.done, saved: r.saved, n: st.n, err: st.err };
 }
 
+// ---------- 🎵 Tự nạp giá TikTok từ RioHub (Secret RH_KEY) – cùng 3 nhóm, tìm theo từ khoá ----------
+const TT_KW = ['áo bé gái', 'áo bé trai', 'quần bé trai', 'quần bé gái', 'váy bé gái', 'đầm bé gái', 'đồ bộ trẻ em', 'đồ ngủ trẻ em', 'đồ sơ sinh', 'body sơ sinh', 'giày trẻ em', 'dép trẻ em',
+  'tã quần', 'bỉm', 'bình sữa', 'đồ chơi trẻ em', 'balo trẻ em',
+  'nồi', 'chảo chống dính', 'hộp đựng thực phẩm', 'kệ nhà bếp', 'đồ dùng nhà bếp', 'chăn ga gối', 'gối', 'rèm cửa', 'thảm', 'móc treo quần áo', 'cây lau nhà', 'đồ gia dụng',
+  'áo thun nữ', 'áo sơ mi nữ', 'váy nữ', 'đầm nữ', 'quần jean nữ', 'áo thun nam', 'áo polo nam', 'quần short nam', 'đồ bộ nữ', 'túi xách nữ', 'dép nữ', 'giày nữ'];
+const TT_PAGES = 3, TT_PER_RUN = 4;
+const rhNum = x => { const n = Number(String(x == null ? '' : x).replace(/[^\d.]/g, '')); return isFinite(n) ? Math.round(n) : 0; };
+async function feedTT(env) {
+  if (!env.RH_KEY) return { ok: false, error: 'no RH_KEY' };
+  await init(env);
+  const d = today(); let st = (await getSt(env, 'feedtt')) || {};
+  if (st.day !== d) st = { day: d, ki: 0, pg: 0, tok: '', n: 0 };
+  if (st.ki >= TT_KW.length) return { ok: true, done: true, n: st.n };
+  const items = []; delete st.err;
+  for (let i = 0; i < TT_PER_RUN && st.ki < TT_KW.length; i++) {
+    const qs = new URLSearchParams({ creator_username: env.RH_CREATOR || 'nhanhimdaily', keyword: TT_KW[st.ki], page_size: '50' }); if (st.tok) qs.set('page_token', st.tok);
+    let r, j;
+    for (const base of ['https://riohub.vn/api/v1', 'https://riohub.riokupon.com/api/v1', 'https://riohub.riokupon.me/api/v1']) {
+      try { r = await fetch(`${base}/partner/tiktok/affiliate/products/search?${qs}`, { headers: { 'X-Riohub-Api-Key': env.RH_KEY } }); j = await r.json().catch(() => ({})); break; } catch (e) { r = null; }
+    }
+    if (!r || !r.ok) { st.err = 'RioHub ' + (r ? r.status : 'mạng'); break; }
+    for (const p of j.products || []) {
+      const id = String(p.id || ''); if (!/^\d{8,22}$/.test(id)) continue;
+      const price = rhNum(p.sales_price && p.sales_price.minimum_amount) || rhNum(p.price && (p.price.floor_price || p.price.amount));
+      if (price >= 1000) items.push({ k: 'tt:' + id, p: price, b: 0 });
+    }
+    st.pg++; st.tok = j.next_page_token || '';
+    if (!st.tok || st.pg >= TT_PAGES) { st.ki++; st.pg = 0; st.tok = ''; }
+  }
+  const sv = await save(env, items);
+  st.n = (st.n || 0) + sv.saved; st.at = Date.now();
+  await setSt(env, 'feedtt', st);
+  return { ok: true, kw: st.ki, of: TT_KW.length, saved: sv.saved, n: st.n, err: st.err };
+}
+
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
 async function feedSafe(env) {
-  try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return r; }
+  const tt = await feedTT(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  if (!tt.ok && tt.error !== 'no RH_KEY') await setSt(env, 'feedErr', { e: 'TikTok: ' + tt.error, at: Date.now() }).catch(() => {});
+  try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return { ...r, tiktok: tt }; }
   catch (e) { await setSt(env, 'feedErr', { e: String(e && e.message || e).slice(0, 200), at: Date.now() }).catch(() => {}); return { ok: false, error: String(e) }; }
 }
 
@@ -158,14 +195,14 @@ async function stats(env, u) {
     q('SELECT COUNT(*) n FROM go WHERE d >= ?', d - 6), q('SELECT COUNT(*) n FROM go'), q('SELECT COUNT(*) n FROM gia')]);
   const { results: vers = [] } = await env.DB.prepare('SELECT v, COUNT(*) n FROM may WHERE d1 >= ? AND gone IS NULL GROUP BY v ORDER BY n DESC LIMIT 12').bind(d - 29).all();
   const { results: whys = [] } = await env.DB.prepare('SELECT why, COUNT(*) n FROM go WHERE why IS NOT NULL GROUP BY why ORDER BY n DESC').all();
-  const n = x => (x && x.n || 0).toLocaleString('vi-VN'), feed = await getSt(env, 'feed').catch(() => null), fe = await getSt(env, 'feedErr').catch(() => null);
+  const n = x => (x && x.n || 0).toLocaleString('vi-VN'), feed = await getSt(env, 'feed').catch(() => null), fe = await getSt(env, 'feedErr').catch(() => null), ft = await getSt(env, 'feedtt').catch(() => null);
   const tile = (v, l) => `<div><div class="n">${v}</div><div class="l">${l}</div></div>`;
   return page('HaoHao – Thống kê', `<h1>🐹 HaoHao – Thống kê</h1><p>Mỗi máy chỉ tính 1 lần (mã ngẫu nhiên, không thông tin cá nhân).</p>
 <div class="box g">${tile(n(d1), 'Dùng hôm nay')}${tile(n(d7), 'Dùng 7 ngày')}${tile(n(d30), 'Dùng 30 ngày')}</div>
 <div class="box g">${tile(n(all), 'Tổng máy đã cài')}${tile(n(nw7), 'Cài mới 7 ngày')}${tile(n(gAll), 'Đã gỡ (7 ngày: ' + n(g7) + ')')}</div>
 <div class="box"><b>Phiên bản đang chạy (30 ngày)</b><table>${vers.map(r => `<tr><td>${esc(r.v)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
 <div class="box"><b>Lý do gỡ</b><table>${whys.map(r => `<tr><td>${esc(r.why)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
-<p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi${feed.err ? ' · lỗi ' + esc(feed.err) : ''}.` : ''}${fe && (!feed || fe.at > (feed.at || 0)) ? ` ⚠️ Tự nạp lỗi: ${esc(fe.e)}` : ''}</p>`);
+<p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi${feed.err ? ' · lỗi ' + esc(feed.err) : ''}.` : ''}${ft ? ` TikTok hôm nay: ${ft.ki >= TT_KW.length ? 'xong' : 'từ khoá ' + ft.ki + '/' + TT_KW.length} · ${(ft.n || 0).toLocaleString('vi-VN')} lượt ghi${ft.err ? ' · lỗi ' + esc(ft.err) : ''}.` : ''}${fe && (!feed || fe.at > Math.max(feed.at || 0, ft && ft.at || 0)) ? ` ⚠️ Tự nạp lỗi: ${esc(fe.e)}` : ''}</p>`);
 }
 
 export default {
@@ -182,18 +219,6 @@ export default {
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
       if (u.pathname === '/thongke') return await stats(env, u);
-      if (u.pathname === '/thu' && env.AT_KEY) {   // dò AccessTrade có nguồn nào (chỉ trả số lượng + mẫu, không lộ key)
-        const out = {};
-        for (const d of ['tiktok.com', 'shop.tiktok.com', 'vt.tiktok.com', 'tiktokshop.vn']) {
-          const r = await fetch(`https://api.accesstrade.vn/v1/datafeeds?domain=${d}&limit=3&page=1`, { headers: { Authorization: 'Token ' + env.AT_KEY } });
-          let j = null; try { j = JSON.parse((await r.text()).replace(/:\s*-?(NaN|Infinity)\b/g, ': null')); } catch {}
-          out[d] = { st: r.status, total: j && (j.total || (j.data || []).length), mau: (j && j.data || []).slice(0, 2).map(x => ({ name: x.name, price: x.price, url: String(x.url || '').slice(0, 90), cate: x.cate })) };
-        }
-        const c = await fetch('https://api.accesstrade.vn/v1/campaigns?approval=successful', { headers: { Authorization: 'Token ' + env.AT_KEY } });
-        let cj = null; try { cj = await c.json(); } catch {}
-        out.campaigns = (cj && cj.data || []).map(x => x.name + ' | ' + (x.url || '')).filter(x => /tiktok|shopee|lazada/i.test(x)).slice(0, 15);
-        return json(out);
-      }
       if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
         const f = await getSt(env, 'feed'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
         return json(await feedSafe(env));
