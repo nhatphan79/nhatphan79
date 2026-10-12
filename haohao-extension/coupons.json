@@ -33,5 +33,7 @@
   "_huong_dan_music": "Nhạc gợi ý cho Pomodoro: mỗi mục { id, name, url } (YouTube hoặc .mp3 https). Chủ app gửi 'link | tên' vào khung chat; Claude thêm vào đây.",
   "music": [],
   "_huong_dan_deals": "🔥 Deal Shopee: mỗi mục { id, url, title, image, price, orig }. Chủ app gửi 'link | tên | giá | giá gốc' vào khung chat; Claude thêm vào đây.",
-  "deals": []
+  "deals": [],
+  "_huong_dan_news": "📣 Tin chủ app: mỗi mục { id, title, text, url, btn, until }. Mỗi tin hiện 1 lần (bong bóng HaoHao) trên máy khách, không hiện ở trang mua bán. id mới = tin mới. until = hạn (YYYY-MM-DD). url mở qua link tiếp thị.",
+  "news": []
 }
