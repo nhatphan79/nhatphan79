@@ -257,6 +257,7 @@ async function hotRun(env, force) {
   }
   const seen = new Set(), pick = items.sort((a, b) => b.score - a.score).filter(x => { const k = x.code || x.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10).map(({ score, ...x }) => x);
   await setSt(env, 'hot', { at: now, items: pick, raw: all.length });
+  if (force === 'raw') return { ok: true, n: pick.length, raw: all.length, sample: all.slice(0, 3).map(o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'string' ? v.slice(0, 120) : Array.isArray(v) ? v.slice(0, 2) : v]))) };
   return { ok: true, n: pick.length, raw: all.length };
 }
 
@@ -362,7 +363,7 @@ export default {
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env));
       if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
-      if (u.pathname === '/hot') { if (u.searchParams.get('run')) return json(await hotRun(env, true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
+      if (u.pathname === '/hot') { if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
