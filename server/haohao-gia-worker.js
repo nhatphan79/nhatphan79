@@ -106,6 +106,12 @@ async function feedRun(env) {
   return { ok: true, page: st.page, done: st.done, saved: r.saved, n: st.n, err: st.err };
 }
 
+// chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
+async function feedSafe(env) {
+  try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return r; }
+  catch (e) { await setSt(env, 'feedErr', { e: String(e && e.message || e).slice(0, 200), at: Date.now() }).catch(() => {}); return { ok: false, error: String(e) }; }
+}
+
 // ---------- 👥 đếm người dùng ----------
 const ID = /^[a-z0-9]{16,40}$/, VER = /^\d{1,3}(\.\d{1,4}){1,3}$/;
 async function ping(env, b) {
@@ -152,18 +158,18 @@ async function stats(env, u) {
     q('SELECT COUNT(*) n FROM go WHERE d >= ?', d - 6), q('SELECT COUNT(*) n FROM go'), q('SELECT COUNT(*) n FROM gia')]);
   const { results: vers = [] } = await env.DB.prepare('SELECT v, COUNT(*) n FROM may WHERE d1 >= ? AND gone IS NULL GROUP BY v ORDER BY n DESC LIMIT 12').bind(d - 29).all();
   const { results: whys = [] } = await env.DB.prepare('SELECT why, COUNT(*) n FROM go WHERE why IS NOT NULL GROUP BY why ORDER BY n DESC').all();
-  const n = x => (x && x.n || 0).toLocaleString('vi-VN'), feed = await getSt(env, 'feed').catch(() => null);
+  const n = x => (x && x.n || 0).toLocaleString('vi-VN'), feed = await getSt(env, 'feed').catch(() => null), fe = await getSt(env, 'feedErr').catch(() => null);
   const tile = (v, l) => `<div><div class="n">${v}</div><div class="l">${l}</div></div>`;
   return page('HaoHao – Thống kê', `<h1>🐹 HaoHao – Thống kê</h1><p>Mỗi máy chỉ tính 1 lần (mã ngẫu nhiên, không thông tin cá nhân).</p>
 <div class="box g">${tile(n(d1), 'Dùng hôm nay')}${tile(n(d7), 'Dùng 7 ngày')}${tile(n(d30), 'Dùng 30 ngày')}</div>
 <div class="box g">${tile(n(all), 'Tổng máy đã cài')}${tile(n(nw7), 'Cài mới 7 ngày')}${tile(n(gAll), 'Đã gỡ (7 ngày: ' + n(g7) + ')')}</div>
 <div class="box"><b>Phiên bản đang chạy (30 ngày)</b><table>${vers.map(r => `<tr><td>${esc(r.v)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
 <div class="box"><b>Lý do gỡ</b><table>${whys.map(r => `<tr><td>${esc(r.why)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
-<p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi.` : ''}</p>`);
+<p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi${feed.err ? ' · lỗi ' + esc(feed.err) : ''}.` : ''}${fe && (!feed || fe.at > (feed.at || 0)) ? ` ⚠️ Tự nạp lỗi: ${esc(fe.e)}` : ''}</p>`);
 }
 
 export default {
-  async scheduled(evt, env, ctx) { ctx.waitUntil(feedRun(env).catch(() => {})); },
+  async scheduled(evt, env, ctx) { ctx.waitUntil(feedSafe(env)); },
   async fetch(req, env) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url);
@@ -176,6 +182,10 @@ export default {
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
       if (u.pathname === '/thongke') return await stats(env, u);
+      if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
+        const f = await getSt(env, 'feed'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
+        return json(await feedSafe(env));
+      }
       if (u.pathname === '/h') return json(await get(env, u.searchParams.get('k')), 200, { 'cache-control': 'public, max-age=600' });
       if (u.pathname === '/') {
         const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM gia').first();
