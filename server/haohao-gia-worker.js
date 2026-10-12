@@ -250,6 +250,7 @@ async function hotRun(env, force) {
       const mm = title.match(/(?:đơn|tối thiểu|từ)\s*(?:tối thiểu\s*)?₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i), minOrder = atMoney(mm && mm[1]);
       const cap = (title.match(/tối đa\s*₫?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?\s*(?:k|K|tr)?)/i) || [])[1];
       if (!percent && !discount && !/freeship|miễn phí vận chuyển|hoàn xu/i.test(title)) continue;
+      if (!/official|mall|chính hãng|flagship|thương hiệu/i.test(String(o.name || ''))) continue;   // chỉ shop thương hiệu (Official / Mall)
       const kfmt = n => n >= 1e6 ? (n / 1e6 + 'tr').replace('.', ',') : Math.round(n / 1000) + 'k';
       const nice = title.replace(/\s*tối đa 0đ/i, '').replace(/\s*cho đơn tối thiểu 0đ/i, '').replace(/(\d{1,3}(?:[.,]\d{3})+)đ/g, (m, x) => kfmt(+x.replace(/[.,]/g, ''))).replace(/cho đơn tối thiểu/i, 'đơn từ');
       let link = ''; try { const x = new URL(String(o.link || '')); if (/^(www\.)?shopee\.vn$/.test(x.hostname)) link = x.href; } catch {}
