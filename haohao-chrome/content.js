@@ -499,7 +499,8 @@
   .lay-sw { display: flex; background: #E7E9F0; border-radius: 999px; padding: 2px; }
   .lay-sw button { all: unset; cursor: pointer; padding: 4px 8px; white-space: nowrap; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #5B6478; }
   .lay-sw button.on { background: #1F2A44; color: #fff; }
-  .lay-sel { flex: 1; min-width: 0; margin-left: 10px; padding: 6px 10px; border: 1.5px solid #E3E6F0; border-radius: 10px; font: 700 12.5px system-ui; color: #23305E; background: #fff; cursor: pointer; }
+  .lay-2 { justify-content: flex-start; gap: 6px; } .lay-2 > span { flex: none; }
+  .lay-sel { flex: 1; min-width: 0; margin-left: 0; padding: 6px 10px; border: 1.5px solid #E3E6F0; border-radius: 10px; font: 700 12.5px system-ui; color: #23305E; background: #fff; cursor: pointer; }
   .lay-n { font-size: 11px; color: #8A92A6; margin-top: 4px; }
   .inf { font-size: 12.5px; display: flex; flex-direction: column; min-height: 0; }   /* 1.10.37: khung kết quả tự cuộn bên trong, không cuộn trang web */
   .itabs { display: flex; gap: 14px; padding: 2px 12px 0; border-bottom: 1px solid #ECEEF4; margin-bottom: 8px; }
@@ -6949,16 +6950,18 @@
     const S = slots(), box = el('div', 'lay');
     box.append(el('div', 'lay-h', '📌 Thay đổi giao diện tuỳ chọn'));
     const NAMES = { focus: '🍅 Pomodoro', info: '💡 Thông tin', market: '📊 Thị trường', adblock: '🛡️ Chặn quảng cáo', transfer: '📲 HaoHao Transfer' };
+    const r = el('div', 'lay-r lay-2');   // 1.10.254: Ô 1 + Ô 2 chung 1 hàng
     [0, 1].forEach(k => {   // 1.10.253: chọn bằng danh sách thả xuống, đủ app trong Tiện ích
-      const r = el('div', 'lay-r'), sel = document.createElement('select'); r.append(el('span', '', `Ô ${k + 1}`)); sel.className = 'lay-sel'; sel.setAttribute('aria-label', `Ô ${k + 1}`);
+      const sel = document.createElement('select'); r.append(el('span', '', `Ô ${k + 1}`)); sel.className = 'lay-sel'; sel.setAttribute('aria-label', `Ô ${k + 1}`);
       LAYOUT_OPT.forEach(id => { const o = document.createElement('option'); o.value = id; o.textContent = NAMES[id]; o.selected = S[k] === id; sel.append(o); });
       sel.addEventListener('change', () => {
         const id = sel.value; if (S[k] === id) return;
         const ns = [...S]; if (ns[1 - k] === id) ns[1 - k] = S[k];   // chọn trùng ô kia thì đổi chỗ cho nhau
         ns[k] = id; settings.slots = ns; saveSet({ slots: ns }); placeWrap(); renderPanel();
       });
-      r.append(sel); box.append(r);
+      r.append(sel);
     });
+    box.append(r);
     box.append(el('div', 'lay-n', 'Nhắc, Todo, Note, Mua sắm, Tiện ích cố định. App không chọn nằm trong Tiện ích.'));
     V.append(box);
     const cp = el('a', 'copyr', HT.COPYRIGHT); cp.href = HT.OWNER.tel; cp.title = 'Liên hệ ' + HT.OWNER.name;
