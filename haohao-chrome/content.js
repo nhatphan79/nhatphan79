@@ -686,6 +686,7 @@
   .tb-lv small { display: block; font-weight: 600; font-size: 11px; color: #6B7394; margin-top: 2px; }
   .tb-x { all: unset; cursor: pointer; margin-left: auto; align-self: flex-start; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #9AA1BE; font-size: 13px; }
   .tb-x:hover, .tb-x:focus-visible { background: #EEF0F6; color: #23305E; }
+  .tb-resp { margin-top: 5px; font-size: 12px; font-weight: 700; } .tb-resp.ok { color: #15803D; } .tb-resp.mid { color: #B45309; } .tb-resp.bad { color: #B91C1C; }
   .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; } .tb-wl { padding: 1px 0; } .tb-why > button, .tb-why > .tb-go2 { margin-top: 5px; }
   .tb-cp { margin-top: 6px; font-size: 12px; font-weight: 800; color: #D0391B; background: #FFF1EE; border-radius: 8px; padding: 4px 8px; }
   .tb-rv { margin-top: 7px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.4; }
@@ -6472,7 +6473,7 @@
     if (settings.shopAsk === false && trust.score >= 60) return;
     const bad = trust.score < 60, shopOnly = !!trust.info.shopOnly;
     const all = [...trust.shop, ...trust.product];
-    const minor = x => /^Shop mới có .*lượt đánh giá|người theo dõi/i.test(x.t);   // 1.10.237: để trong Kiểm tra chi tiết, không hiện ở bong bóng
+    const minor = x => /^Shop mới có .*lượt đánh giá|người theo dõi|phản hồi/i.test(x.t);   // 1.10.237: để trong Kiểm tra chi tiết, không hiện ở bong bóng
     const pick = (bad ? all.filter(x => x.s === 'bad').concat(all.filter(x => x.s === 'warn')) : all.filter(x => x.s === 'ok')).filter(x => !minor(x)).slice(0, 5);   // 1.10.214: hiện tới 5 điểm kiểm tra (trước chỉ 2)
     const B = ui.bubble;
     B.innerHTML = ''; B.dataset.tab = 'shop'; B.dataset.kind = 'trust'; B.classList.add('tb'); B.style.setProperty('--k', { good: '#1E9E6F', ok: '#2E7DD7', warn: '#E08A00', bad: '#E0344B' }[trust.cls]);
@@ -6501,6 +6502,8 @@
     top.append(x); B.append(top);
     if (pS && pS.price && isItemPage()) B.append(ptBox(pS, true));
     { const sl = soldLine(trust.info); if (sl) B.append(sl); }
+    { const ri = trust.info, rr = ri.responseRate; if (rr > 0) {   // 1.10.238: phản hồi của shop đưa ra ngoài bong bóng
+      const d = el('div', 'tb-resp ' + (rr >= 90 ? 'ok' : rr < 70 ? 'bad' : 'mid'), `💬 Shop phản hồi ${rr}%${ri.responseTime ? ' · ' + ri.responseTime : ''}`); B.append(d); } }
     // dòng đánh giá nổi bật: có lời chê thì hiện ngay; không thì 1 đánh giá khen tiêu biểu
     const rv = trust.info.reviews, quote = (q, w) => {
       const d = el('span', 'tb-q'); const i = w ? q.toLowerCase().indexOf(w) : -1;
