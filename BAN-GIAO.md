@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.230)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.231)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.230)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.231 | Khung giá gọn: bỏ "Xem cách tính giá chi tiết", "Nhập giá app thật", "Bấm Mua Với Voucher…". Web: giá + "+ phí ship" + nút Tìm voucher. App: giá + "có mã vận chuyển · ship giảm" + nút Mở trên app. |
 | 1.10.230 | Nút "🎟️ Tìm voucher" = săn **1 mã Freeship tốt nhất** (mỗi đơn chỉ 1 mã vận chuyển) + ngày sale thêm mã đợt sale (link trong coupons.json / trang sự kiện). KHÔNG săn mã shop / Shopee Voucher (web Shopee đã tự tối ưu). Báo: "🚚 Đã lưu mã Freeship…", "🚚 Ví đã có mã Freeship tốt nhất", "🎉 Ngày sale: đã lưu N mã". |
 | 1.10.229 | Nút Tìm voucher LUÔN báo kết quả (đã lưu N mã / không có mã mới / lỗi). Giá app = ước tính Voucher Shopee −15% tối đa 60k (mã app hằng ngày, web không đọc được – đã kiểm: ví web của anh không có mã này); nút "✏️ Nhập giá app thật" lưu theo món 3 ngày. TẮT tự mở cửa sổ đọc ví (1.10.228). |
 | 1.10.228 | TỰ ĐỌC VÍ VOUCHER 1 lần/ngày: cửa sổ nhỏ mở shopee.vn/cart#hh-wallet, bấm "Chọn hoặc nhập mã", đọc bảng "Chọn Shopee Voucher" (mã web + mã có dòng "mua hàng trên ứng dụng"), bấm Trở lại, đóng – không chọn mã. Bỏ mã Đơn đầu tiên/Khách mới. Giá web/app tự trừ Voucher Shopee từ ví. Nút "🎟️ Tìm voucher" bấm là săn + lưu mã ngay (vh-hunt), không chuyển trang. Bản lưu: ../content.1.10.227.bak.js, ../background.1.10.227.bak.js |

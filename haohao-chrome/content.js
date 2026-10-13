@@ -6036,12 +6036,11 @@
       if (kind === 'web' && D.main && D.main.varies) det.append(el('div', 'dcn', `Tính cho phân loại ${D.main.model || 'đang hiện'}; màu/size khác có giá khác (${vnd(D.main.minModel)} – ${vnd(D.main.maxModel)})`));
       const lb = '💡 Xem cách tính giá chi tiết ▾';
       const tg = el('button', 'dtog', lb); tg.addEventListener('click', e => { e.stopPropagation(); det.hidden = !det.hidden; tg.textContent = det.hidden ? lb : 'Thu gọn ▴'; });
-      w.append(r); if (tip) w.append(el('div', 'dtip', tip)); w.append(tg, det); box.append(w);
+      w.append(r); box.append(w);   // 1.10.231: bỏ gợi ý + "Xem cách tính giá chi tiết" cho gọn
     };
     if (P.appBetter) {
       const a = el('button', 'b dbtn', P.webAll - P.app >= 1000 ? `📱 Mở app rẻ hơn ${kShort(P.webAll - P.app)}` : '📱 Mở trên app'); a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
-      row('📱', 'Mua trên app', P.app, P.man ? 'giá app bạn đã xem' : P.est ? 'ước tính · Voucher Shopee −15% trên app' : P.wv ? `≈ dùng mã ví ${P.wv.pct ? P.wv.pct + '%' : kShort(P.wv.off)}${P.wv.kol ? ' (KOL/Video)' : ''} · kiểm tra lại trong app` : 'hoặc rẻ hơn · app tự áp mã + freeship', a, '', 'app');
-      box.append(appPriceInput());
+      row('📱', 'Mua trên app', P.app, P.man ? 'giá app bạn đã xem' : 'có mã vận chuyển · ship giảm', a, '', 'app');
     }
     let w = null;
     w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Săn 1 mã Freeship tốt nhất cho đơn này (ngày sale: thêm mã đợt sale)'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const saleNow = ((HT.saleDays(new Date(), 1)[0] || {}).days === 0), ck = saleNow ? codeClock() : null; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey(), ship: true, sale: saleNow, extra: ck && ck.evUrl ? [ck.evUrl] : [] }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
@@ -6052,7 +6051,7 @@
       const a2 = el('button', 'b dbtn', '📱 Mở trên app'); a2.title = 'Hiện mã QR to, mở Camera điện thoại quét'; a2.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
       // 1.10.213: tự tính giá app khi đã đọc được mã riêng của app; chưa có thì chỉ cách để HaoHao tự tính
       const known = walletApp && Date.now() - walletApp.at <= 4 * 864e5;
-      row('📱', 'Mua trên app', Math.min(P.app || P.webAll, P.webAll), known ? 'Đã tính mã ví app · thường miễn ship' : 'Rẻ hơn web: miễn ship + mã riêng app', a2,
+      row('📱', 'Mua trên app', Math.min(P.app || P.webAll, P.webAll), 'có mã vận chuyển · ship giảm', a2,
         known ? '💡 Quét mã QR bằng Camera điện thoại để mở đúng món' : '💡 Vào giỏ → bấm "Chọn Voucher" 1 lần, HaoHao tự tính giá app rẻ hơn', 'app');
     }
     return box;
@@ -6063,7 +6062,7 @@
     const row = (icon, label, price, sub, btn, tip) => {
       const w = el('div', 'dwrap'), r = el('div', 'drow'), l = el('div', 'dl');
       l.append(el('span', 'dlb', `${icon} ${label}`), el('b', '', `≈ ${vnd(price)}`), el('small', '', sub)); r.append(l); if (btn) r.append(btn);
-      w.append(r); if (tip) w.append(el('div', 'dtip', tip)); box.append(w);
+      w.append(r); box.append(w);   // 1.10.231: gọn, không gợi ý
     };
     let w = null;
     w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Săn 1 mã Freeship tốt nhất cho đơn này (ngày sale: thêm mã đợt sale)'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const saleNow = ((HT.saleDays(new Date(), 1)[0] || {}).days === 0), ck = saleNow ? codeClock() : null; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey(), ship: true, sale: saleNow, extra: ck && ck.evUrl ? [ck.evUrl] : [] }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
@@ -6071,13 +6070,12 @@
     const webP = rr && rr.best.v ? rr.best.final : p.price, webSub = fs ? 'Flash Sale · mã shop không áp' : rr && rr.best.v ? `đã trừ mã shop −${kShort(rr.best.shopOff)}` : 'chưa có mã áp được';
     // (giá web trừ thêm Voucher Shopee trong ví khách, nếu đọc được)
     const wwb = walletWebBest(webP);
-    row('💻', 'Mua trên web', webP - (wwb ? wwb.v : 0) + (ship || 0), (wwb ? `Voucher Shopee −${kShort(wwb.v)} · ` : '') + webSub + (ship == null ? ' · + phí ship' : ship ? ` · gồm ship ${kShort(ship)}` : ' · miễn ship'), w, `💡 Bấm "${buyLabel()}" để áp sẵn mã`);
+    row('💻', 'Mua trên web', webP - (wwb ? wwb.v : 0) + (ship || 0), (ship == null ? '+ phí ship' : ship ? `gồm ship ${kShort(ship)}` : 'miễn ship'), w, `💡 Bấm "${buyLabel()}" để áp sẵn mã`);
     const a = el('button', 'b dbtn', '📱 Mở trên app'); a.title = 'Hiện mã QR to, mở Camera điện thoại quét'; a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
     const ww = walletWebBest(webP), wa0 = walletAppBest(webP), wa = wa0 && (!ww || wa0.v > ww.v) ? wa0 : ww;   // 1.10.228: app dùng được cả mã web lẫn mã chỉ-app
     const man = appMan(), offA = wa ? wa.v : appEst(webP);
-    row('📱', 'Mua trên app', man || webP - offA, man ? 'giá app bạn đã xem' : wa ? `Voucher Shopee −${kShort(wa.v)} (ví của bạn) · thường miễn ship` : `ước tính · Voucher Shopee −${kShort(offA)} trên app · thường miễn ship`, a,
-      '💡 Quét mã QR bằng Camera điện thoại để mở đúng món');
-    box.append(appPriceInput());
+    row('📱', 'Mua trên app', man || webP - offA, man ? 'giá app bạn đã xem' : 'có mã vận chuyển · ship giảm', a,
+      '');
     return box;
   }
   // 📱 mã QR mở đúng món trên app Shopee (qua link tiếp thị) – 1.10.191: tách riêng, món nào (cả Flash Sale) cũng có
