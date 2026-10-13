@@ -3975,9 +3975,10 @@
   chrome.runtime.onMessage.addListener(m => {
     if (!m || (m.type !== 'vh-progress' && m.type !== 'vh-done')) return;
     if (m.type === 'vh-progress') vhRun = m; else { vhRun = null; vhRes[m.key] = m.res; if (m.key === itemKey() && m.res) { const ns = (m.res.saved || []).length, nh = (m.res.have || []).length;   // 1.10.229: luôn báo kết quả
-      if (ns) { say(`Đã lưu ${ns} mã mới${nh ? ` (đã có sẵn ${nh} mã)` : ''}. HaoHao tải lại trang để tính giá mới…`, 'happy', '🎟️ Voucher', 'shop', [{ label: 'OK', fn: () => {} }]); setTimeout(() => location.reload(), 2200); }
-      else if (m.res.err) say(VH_ERR[m.res.err] || 'Chưa tìm được mã, thử lại sau nhé.', 'think', '🎟️ Voucher', 'shop', [{ label: 'OK', fn: () => {} }]);
-      else say(nh ? `Không có mã mới cho món này · ví của bạn đã có đủ ${nh} mã.` : 'Không có mã nào dùng được cho món này lúc này.', 'happy', '🎟️ Voucher', 'shop', [{ label: 'OK', fn: () => {} }]); } }
+      const sv = m.res.saved || [], hv = m.res.have || [], shipS = sv.find(x => x.kind === 'ship'), shipH = hv.find(x => x.kind === 'ship'), saleN = sv.filter(x => x.kind !== 'ship').length, OKA = [{ label: 'OK', fn: () => {} }];   // 1.10.230
+      if (m.res.err) say(VH_ERR[m.res.err] || 'Chưa tìm được mã, thử lại sau nhé.', 'think', '🎟️ Voucher', 'shop', OKA);
+      else if (ns || nh) say([shipS ? `🚚 Đã lưu mã Freeship ${shipS.label}` : shipH ? `🚚 Ví đã có mã Freeship tốt nhất (${shipH.label})` : '🚚 Chưa có mã Freeship dùng được cho món này', saleN ? `🎉 Ngày sale: đã lưu ${saleN} mã đợt sale` : ''].filter(Boolean).join(' · '), 'happy', '🎟️ Voucher', 'shop', OKA);
+      else say('🚚 Chưa có mã Freeship dùng được cho món này lúc này.', 'happy', '🎟️ Voucher', 'shop', OKA); } }
     if (ui && tab === 'shop' && !ui.panel.hidden) renderPanel();
   });
   const VH_ERR = { login: '🔑 Cần đăng nhập Shopee. Đăng nhập trong cửa sổ HaoHao vừa mở rồi bấm "Tìm mã" lại.', captcha: '🧩 Shopee hỏi xác minh. Bạn làm giúp trong cửa sổ đó rồi bấm "Tìm mã" lại.', stop: '■ Bạn đã dừng giữa chừng.', closed: 'Cửa sổ săn mã đã bị đóng giữa chừng.' };
@@ -5579,7 +5580,7 @@
     const item = c => ({ id: c.id, kind: c.kind, label: vLabel(c), min: c.minOrder || 0, v: valOf(c) || 0, until: c.until || '', src: d.kind, live: /live|video/i.test(c.txt) });
     const cards = voucherCards().filter(c => !OUT.test(c.txt) && !PAY.test(c.txt) && (d.kind !== 'shop' || c.kind === 'off'));
     const have = [], todo = [];
-    const LIM = d.hot ? { off: 8, ship: 4, coin: 2 } : { off: d.kind === 'shop' ? 3 : 2, ship: 2, coin: 1 };
+    const LIM = d.ship ? { off: 0, ship: 1, coin: 0 } : d.sale ? { off: 3, ship: 1, coin: 1 } : d.hot ? { off: 8, ship: 4, coin: 2 } : { off: d.kind === 'shop' ? 3 : 2, ship: 2, coin: 1 };   // 1.10.230: Freeship chỉ 1 mã/đơn
     for (const kind of ['off', 'ship', 'coin']) {
       const list = cards.filter(c => c.kind === kind && valOf(c)).sort((a, b) => valOf(b) - valOf(a)).slice(0, LIM[kind]);
       for (const c of list) (c.saved ? have : todo).push(c);
@@ -6043,7 +6044,7 @@
       box.append(appPriceInput());
     }
     let w = null;
-    w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Mở danh sách mã giảm giá dùng được cho món này'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey() }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
+    w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Săn 1 mã Freeship tốt nhất cho đơn này (ngày sale: thêm mã đợt sale)'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const saleNow = ((HT.saleDays(new Date(), 1)[0] || {}).days === 0), ck = saleNow ? codeClock() : null; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey(), ship: true, sale: saleNow, extra: ck && ck.evUrl ? [ck.evUrl] : [] }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
     row('💻', 'Mua trên web', P.webAll, P.ship == null ? '+ phí ship' : P.ship ? `đã gồm ship ${kShort(P.ship)}` : 'miễn phí ship', w, `💡 Bấm "${buyLabel()}" để áp sẵn mã`, 'web');
     // 1.10.164: mã QR mở app hiện sẵn ngay trong khung (quét luôn, không phải bấm) · bấm để phóng to
     // 1.10.212: luôn có dòng 'Mua trên app' giống 'Mua trên web' (giá + nút mở app hiện mã QR)
@@ -6065,7 +6066,7 @@
       w.append(r); if (tip) w.append(el('div', 'dtip', tip)); box.append(w);
     };
     let w = null;
-    w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Mở danh sách mã giảm giá dùng được cho món này'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey() }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
+    w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Săn 1 mã Freeship tốt nhất cho đơn này (ngày sale: thêm mã đợt sale)'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const saleNow = ((HT.saleDays(new Date(), 1)[0] || {}).days === 0), ck = saleNow ? codeClock() : null; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey(), ship: true, sale: saleNow, extra: ck && ck.evUrl ? [ck.evUrl] : [] }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
     const fs = flashSale(), pv = fs ? [] : pageVouchers(), rr = pv.length ? HT.bestDeal({ base: p.price, vouchers: pv }) : null;   // 1.10.227: tự áp mã shop đọc được trên trang
     const webP = rr && rr.best.v ? rr.best.final : p.price, webSub = fs ? 'Flash Sale · mã shop không áp' : rr && rr.best.v ? `đã trừ mã shop −${kShort(rr.best.shopOff)}` : 'chưa có mã áp được';
     // (giá web trừ thêm Voucher Shopee trong ví khách, nếu đọc được)

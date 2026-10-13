@@ -1817,7 +1817,7 @@ function huntStop(why) {
   const job = scanJobs.get(hunt.tab); if (job) job.done({ err: hunt.stop });
 }
 chrome.windows.onRemoved.addListener(id => { if (hunt && hunt.win === id) { hunt.closed = true; huntStop('closed'); } });
-async function voucherHunt({ url, price, key, cart, hot, extra }, sender) {
+async function voucherHunt({ url, price, key, cart, hot, extra, ship, sale }, sender) {
   if (hunt) { if (hunt.win) chrome.windows.update(hunt.win, { focused: true }).catch(() => {}); return { ok: false, error: 'busy' }; }
   if (hot) { url = 'https://shopee.vn/'; price = 1e8; key = 'hot'; }   // 1.10.168: lưu hết mã hot (chủ app chọn) vào ví khách – khách bấm 1 nút
   if (!/^https:\/\/(www\.)?shopee\.vn\//.test(url || '') || !(price > 0)) return { ok: false, error: 'bad' };
@@ -1825,7 +1825,11 @@ async function voucherHunt({ url, price, key, cart, hot, extra }, sender) {
   const { couponFeed } = await chrome.storage.local.get('couponFeed');
   const hubs = ((couponFeed && couponFeed.hubs) || []).filter(h => h.shop === 'shopee' && /^https:\/\/(www\.)?shopee\.vn\//.test(h.url)).map(h => h.url);
   const hotUrls = [...new Set(((couponFeed && couponFeed.coupons) || []).filter(c => c.shop === 'shopee' && !c.code && /^https:\/\/(www\.)?shopee\.vn\//.test(c.url || '')).map(c => c.url))];
-  const steps = hot ? [...new Set(['https://shopee.vn/m/ma-giam-gia', ...(extra || []).filter(u => /^https:\/\/(www\.)?shopee\.vn\/m\//.test(u)), ...hotUrls])].slice(0, 5).map(u => ({ kind: 'hub', hot: true, url: u, label: 'Mã hot HaoHao' })) : [...(cart ? [] : [{ kind: 'shop', url: url.split('?')[0], shopId, label: 'Mã của shop' }]),
+  // 1.10.230: nút "Tìm voucher" = săn 1 mã Freeship tốt nhất (+ mã đợt sale vào ngày sale). Mã shop / Shopee Voucher web đã tự tối ưu → không săn
+  const shipSteps = ship ? [
+    ...[...new Set(['https://shopee.vn/m/ma-giam-gia', ...hubs])].slice(0, 2).map(u => ({ kind: 'hub', ship: true, url: u, label: 'Mã Freeship' })),
+    ...(sale ? [...new Set([...(extra || []).filter(u => /^https:\/\/(www\.)?shopee\.vn\//.test(u)), ...hotUrls])].slice(0, 3).map(u => ({ kind: 'hub', sale: true, url: u, label: 'Mã đợt sale' })) : [])] : null;
+  const steps = shipSteps ? shipSteps : hot ? [...new Set(['https://shopee.vn/m/ma-giam-gia', ...(extra || []).filter(u => /^https:\/\/(www\.)?shopee\.vn\/m\//.test(u)), ...hotUrls])].slice(0, 5).map(u => ({ kind: 'hub', hot: true, url: u, label: 'Mã hot HaoHao' })) : [...(cart ? [] : [{ kind: 'shop', url: url.split('?')[0], shopId, label: 'Mã của shop' }]),
     ...(hubs.length ? hubs : ['https://shopee.vn/m/ma-giam-gia']).slice(0, 3).map(u => ({ kind: 'hub', url: u, label: 'Kho mã Shopee' }))];
   // cửa sổ nhỏ ở góc phải cửa sổ khách đang dùng
   let left, top;
