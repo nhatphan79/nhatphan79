@@ -4524,12 +4524,12 @@
     const mine = (walletMine && walletMine.list || []).map(v => ({ v, exp: walletExp(v) })).filter(x => x.exp > Date.now());
     const soon = mine.filter(x => x.exp - Date.now() < 36 * 3600e3);
     const clk = codeClock();
-    if (inTab && !list.length && !ev) { const box = el('div', 'hotv'); box.append(el('div', 'hvh', '🏷️ Top 10 mã shop thương hiệu')); box.append(el('small', '', Date.now() - hotAsk < 15e3 ? '⏳ Đang tải mã hot…' : 'Chưa tải được mã hot, mở lại tab sau ít phút nhé.')); return box; }
+    if (inTab && !list.length && !ev) { const box = el('div', 'hotv'); box.append(el('div', 'hvh', '🏷️ Ưu đãi')); box.append(el('small', '', Date.now() - hotAsk < 15e3 ? '⏳ Đang tải mã hot…' : 'Chưa tải được mã hot, mở lại tab sau ít phút nhé.')); return box; }
     if (!list.length && !ev && !mine.length) {
       const box = el('div', 'hotv'); const w = el('button', 'hvw', '📒 Mở Ví voucher Shopee để HaoHao nhắc mã sắp hết hạn ›');
       w.addEventListener('click', () => openDeal('https://shopee.vn/user/voucher-wallet')); box.append(w); return box;
     }
-    const box = el('div', 'hotv'), hd = el('div', 'hvh', inTab ? '🏷️ Top 10 mã shop thương hiệu' : '🎟️ Mã hot'); if (ev) hd.append(el('em', '', ev.name || 'Sale'));
+    const box = el('div', 'hotv'), hd = el('div', 'hvh', inTab ? '🏷️ Ưu đãi' : '🎟️ Mã hot'); if (ev) hd.append(el('em', '', ev.name || 'Sale'));
     box.append(hd);
 
     if (ev && ev.text) box.append(el('small', '', ev.text));
