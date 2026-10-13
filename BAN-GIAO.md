@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.254)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.255)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.254)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.255 | Mô tả app trong Tiện ích: Thị trường "Bật theo dõi giá vàng, chứng khoán, crypto"; Chặn quảng cáo "Ẩn quảng cáo phim, kể cả YouTube"; Transfer "iPhone hết dung lượng, chuyển ảnh, video lên PC"; chữ mô tả nhỏ lại (11px) |
 | 1.10.254 | "Thay đổi giao diện tuỳ chọn": Ô 1 và Ô 2 nằm chung 1 hàng |
 | 1.10.253 | Cài đặt Tiện ích: "📌 2 ô tuỳ chọn trên mục chính" đổi tên "📌 Thay đổi giao diện tuỳ chọn", mỗi ô là danh sách thả xuống chọn đủ app: Pomodoro, Thông tin, Thị trường, Chặn quảng cáo, HaoHao Transfer (2 app mới thành nhánh/tab riêng khi được chọn, vẫn cần mở khoá như Thị trường) |
 | 1.10.252 | Tab ❤️ Đã lưu gọn 1 kiểu: 2 phần "❤️ Món đã lưu" và "⭐ Shop theo dõi" bấm Ẩn/Hiện được. Shop là thẻ giống món (🏪 tên · "N mã · tốt nhất …" · nút Mở shop · ⋯ bỏ theo dõi), hiện 2 mã, còn lại "Xem thêm". Bấm mã = chép mã + mở shop qua link HaoHao (link tiếp thị) |

@@ -106,15 +106,15 @@
   ];
   // Tiện ích con của nhánh 🧰 Tiện ích. Thêm tiện ích mới: thêm 1 dòng ở đây và 1 hàm render.
   const TOOLS = [
-    { id: 'crypto', label: 'Thị trường', emoji: '📊', color: '#D98E1F', desc: 'Crypto, giá vàng, chứng khoán',
+    { id: 'crypto', label: 'Thị trường', emoji: '📊', color: '#D98E1F', desc: 'Bật theo dõi giá vàng, chứng khoán, crypto',
       icon: '<path d="M4 4v16h16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="12" width="3" height="5" rx="1" fill="currentColor"/><rect x="12" y="9" width="3" height="8" rx="1" fill="currentColor"/><rect x="17" y="6" width="3" height="11" rx="1" fill="currentColor"/>' },
-    { id: 'adblock', label: 'Chặn quảng cáo', emoji: '🛡️', color: '#2E9E6B', desc: 'Ẩn quảng cáo, trang nhẹ hơn',
+    { id: 'adblock', label: 'Chặn quảng cáo', emoji: '🛡️', color: '#2E9E6B', desc: 'Ẩn quảng cáo phim, kể cả YouTube',
       icon: '<path d="M12 3l7 3v5c0 4.4-3 8.3-7 10-4-1.7-7-5.6-7-10V6z" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linejoin="round"/><path d="M8.5 8.5l7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }
   ];
   { const fb = BRANCHES.find(b => b.id === 'focus'), ib = BRANCHES.find(b => b.id === 'info');
     TOOLS.push({ id: 'focus', label: 'Pomodoro', emoji: '🍅', color: fb.color, desc: 'Tập trung, nghỉ giải lao, nhạc nền', icon: fb.icon },
                { id: 'info', label: 'Thông tin', emoji: '💡', color: ib.color, desc: 'Dịch, tóm tắt, giải thích', icon: ib.icon },
-               { id: 'transfer', label: 'HaoHao Transfer', emoji: '📲', color: '#2E7DD7', desc: 'Chuyển ảnh, video iPhone sang máy tính',
+               { id: 'transfer', label: 'HaoHao Transfer', emoji: '📲', color: '#2E7DD7', desc: 'iPhone hết dung lượng, chuyển ảnh, video lên PC',
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
@@ -640,7 +640,7 @@
     box-shadow: 0 4px 12px color-mix(in srgb, var(--c) 40%, transparent); }
   .tool .ti svg { width: 24px; height: 24px; }
   .tool b { display: block; font-size: 15.5px; font-weight: 800; color: #23305E; line-height: 1.25; }
-  .tool span.td { display: block; font-size: 12.5px; color: #6B7394; line-height: 1.4; margin-top: 3px; }
+  .tool span.td { display: block; font-size: 11px; color: #6B7394; line-height: 1.4; margin-top: 3px; }
   .tool:focus-visible { outline: 2px solid #D98E1F; outline-offset: 2px; }
   .menu-open .sat:nth-of-type(5) { transition-delay: .16s; } .menu-open .sat:nth-of-type(6) { transition-delay: .2s; }
   .menu-open .sat:hover { transform: scale(1.08); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, transparent), 0 0 26px color-mix(in srgb, var(--c) 60%, transparent), 0 8px 18px rgba(35,48,94,.22); }
