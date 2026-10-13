@@ -6125,10 +6125,10 @@
       if (!combo || save / c.n > combo.save / combo.n) combo = { ...c, save, unit: (tot - save) / c.n };
     }
     let head = '', sub = '';
-    if (fill && fill.need - fill.val <= 5000) { head = `➕ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = fill.val >= fill.need ? 'có thêm món mà gần như không tốn thêm' : `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
-    else if (combo) { head = `➕ Mua ${combo.n} ${combo.pct ? 'giảm ' + combo.pct + '%' : 'giảm ' + k1(combo.off)} → còn ${k1(combo.unit)}/cái`; sub = 'Combo Khuyến Mãi của shop'; }
-    else if (fill) { head = `➕ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
-    else if (/Mua Kèm Deal Sốc/i.test(document.body.innerText || '')) { head = '➕ Có Mua Kèm Deal Sốc'; sub = 'món mua kèm được giá sốc · xem ngay dưới giá'; }
+    if (fill && fill.need - fill.val <= 5000) { head = `✅ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = fill.val >= fill.need ? 'có thêm món mà gần như không tốn thêm' : `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
+    else if (combo) { head = `✅ Mua ${combo.n} ${combo.pct ? 'giảm ' + combo.pct + '%' : 'giảm ' + k1(combo.off)} → còn ${k1(combo.unit)}/cái`; sub = 'Combo Khuyến Mãi của shop'; }
+    else if (fill) { head = `✅ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
+    else if (/Mua Kèm Deal Sốc/i.test(document.body.innerText || '')) { head = '✅ Có Mua Kèm Deal Sốc'; sub = 'món mua kèm được giá sốc · xem ngay dưới giá'; }
     if (!head) return null;
     const b = el('div', 'tb-hook ok'); b.append(el('b', '', head), el('span', '', sub)); return b;
   }
@@ -6144,7 +6144,7 @@
     }
     if (!best) return null;
     const b = el('div', 'tb-hook ok');
-    b.append(el('b', '', `➕ Thêm ${kShort(best.need)} nữa là dùng được mã ${best.v.label}`), el('span', '', `Giảm ${kShort(best.val)} · tăng số lượng hoặc mua thêm món nhỏ cùng shop`));
+    b.append(el('b', '', `✅ Thêm ${kShort(best.need)} nữa là dùng được mã ${best.v.label}`), el('span', '', `Giảm ${kShort(best.val)} · tăng số lượng hoặc mua thêm món nhỏ cùng shop`));
     return b;
   }
   // 🎵 So với TikTok Shop (chỉ khi có khoá soi sản phẩm): cùng món mà TikTok rẻ hơn → báo, bấm mở (qua link @haohaomall nếu có)
