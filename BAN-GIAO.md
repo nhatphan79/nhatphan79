@@ -28,7 +28,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.255)
 
 ## Luật làm việc với anh
 1. **Trước khi sửa: gợi ý ngắn sẽ làm gì → anh đồng ý mới làm.** Anh nói thẳng "làm X" thì làm đúng X, không bày thêm.
-2. **Mỗi lần sửa xong:** tăng số phiên bản, đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
+2. **Mỗi lần sửa xong:** tăng tên bản (`version_name`) thêm 1: V1.0 → V1.1 → V1.2 … → V1.9 → V1.10 → … V1.100 (luôn giữ "V1.", số sau 1–3 chữ số, KHÔNG lên V2) và tăng số kỹ thuật `version` (chạy ngầm cho tự nạp lại); báo cáo / bảng Đã làm ghi theo tên V1.x; đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
 3. **Tin nhắn anh chưa rõ: nói lại ý mình hiểu + hỏi "đúng chưa anh Nhật?" trước khi làm.**
 4. Trả lời ngắn, báo ✅ / ⚠️ / ❌. Cần anh làm gì thì nói đúng 1 dòng.
 5. Anh nói "dừng" là dừng hết.
@@ -39,6 +39,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.255)
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.0 = 1.10.255 (13/10) | Mốc tên bản: từ lần sửa tới đặt V1.1, V1.2… |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
 | 1.10.255 | Mô tả app trong Tiện ích: Thị trường "Bật theo dõi giá vàng, chứng khoán, crypto"; Chặn quảng cáo "Ẩn quảng cáo phim, kể cả YouTube"; Transfer "iPhone hết dung lượng, chuyển ảnh, video lên PC"; chữ mô tả nhỏ lại (11px) |
 | 1.10.254 | "Thay đổi giao diện tuỳ chọn": Ô 1 và Ô 2 nằm chung 1 hàng |
