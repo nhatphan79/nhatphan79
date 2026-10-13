@@ -1364,6 +1364,7 @@
   .hotv .hvh { display: flex; align-items: center; gap: 6px; font: 800 12.5px system-ui; color: #C2410C; } .hotv .hvh em { font-style: normal; font-size: 10.5px; background: #EE4D2D; color: #fff; border-radius: 6px; padding: 1px 6px; }
   .hotv .hvr { display: flex; align-items: center; gap: 8px; margin-top: 6px; } .hotv .hvr span { flex: 1; min-width: 0; font-size: 12px; color: #1F2A44; } .hotv .hvr small { display: block; color: #94A3B8; font-size: 10.5px; }
   .hotv .hvr button { all: unset; cursor: pointer; font: 800 11px system-ui; padding: 4px 10px; border-radius: 999px; background: #EE4D2D; color: #fff; white-space: nowrap; } .hotv .hvr button.tt { background: #111; }
+  .hotv .hvlive { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 7px 10px; border-radius: 10px; background: #FEE2E2; border: 1.5px solid #F87171; color: #B91C1C; font: 700 12px/1.35 system-ui; } .hotv .hvlive span { flex: 1; } .hotv .hvlive b { flex: none; padding: 4px 10px; border-radius: 999px; background: #EE4D2D; color: #fff; font: 800 11.5px system-ui; } .hotv .hvlive:hover { filter: brightness(.98); }
   .hotv .hvgo { all: unset; cursor: pointer; display: inline-block; margin-top: 7px; padding: 5px 12px; border-radius: 999px; background: #EE4D2D; color: #fff; font: 800 12px system-ui; } .hotv .hvgo:hover { filter: brightness(1.07); }
   .hotv .hvm, .hotv .hvw { all: unset; cursor: pointer; display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #64748B; } .hotv .hvw.soon { color: #DC2626; }
   .hotv > small { display: block; margin-top: 3px; font-size: 11.5px; color: #64748B; line-height: 1.4; }
@@ -4705,8 +4706,11 @@
   let calMore = false;
   function saleCalBox() {
     const clk = codeClock(), box = el('div', 'hotv'); box.append(el('div', 'hvh', '🗓️ Lịch săn mã Shopee'));
-    for (const t of clk.lines) { const s0 = el('small', '', t); if (clk.live && /^(🔥|💥)/.test(t)) s0.style.cssText = 'color:#DC2626;font-weight:700'; box.append(s0); }
-    { const g = el('button', 'hvgo', clk.live ? '🎟️ Săn mã ngay ›' : '🎟️ Mở trang săn mã Shopee ›'); g.title = 'Mở trang Mã Giảm Giá Shopee để lưu mã'; g.addEventListener('click', () => openDeal('https://shopee.vn/m/ma-giam-gia')); box.append(g); }   // 1.10.242: nút săn mã
+    for (const t of clk.lines) {
+      if (clk.live && /^(🔥|💥)/.test(t)) {   // 1.10.243: đang tung mã → cả dòng là nút, khách bấm lưu luôn
+        const b = el('button', 'hvlive'); b.append(el('span', '', t.replace(/ · lưu và dùng ngay| · mở ví lưu ngay/, '')), el('b', '', 'Lưu ngay ›')); b.addEventListener('click', () => openDeal(/^💥/.test(t) ? 'https://shopee.vn/user/voucher-wallet' : 'https://shopee.vn/m/ma-giam-gia')); box.append(b);
+      } else box.append(el('small', '', t));
+    }
     if (clk.evUrl) { const m = el('button', 'hvm', `🎉 Trang ưu đãi ${clk.sale.name} của Shopee ›`); m.addEventListener('click', () => openDeal(clk.evUrl)); box.append(m); }
     return box;
   }
