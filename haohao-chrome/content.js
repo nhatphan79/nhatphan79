@@ -925,7 +925,7 @@
   .tb-2 { all: unset; cursor: pointer; display: block; width: 100%; box-sizing: border-box; text-align: center; margin-top: 6px; padding: 6px; border-radius: 10px; border: 1.5px solid #2E7DD7; color: #2E7DD7; font-weight: 800; font-size: 12.5px; }
   .tb-2:hover { background: #EEF5FF; }
   .stabs { display: flex; gap: 3px; margin: 8px 10px 0; padding: 3px; background: #F1EEF4; border-radius: 10px; }
-  .stabs button { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 5px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 800; color: #5B648A; }
+  .stabs button { all: unset; cursor: pointer; flex: 1 1 auto; text-align: center; padding: 5px 4px; border-radius: 8px; font-size: 12px; font-weight: 800; color: #5B648A; white-space: nowrap; }   /* V1.5: 1 hàng, không xuống dòng */
   .stabs button.on { background: #fff; color: #EE4D2D; box-shadow: 0 1px 4px rgba(35,48,94,.15); }
   .stabs button:focus-visible { outline: 2px solid #EE4D2D; }
   .optwait { text-align: center; padding: 22px 12px; font-size: 13px; color: #3A4470; display: flex; flex-direction: column; align-items: center; gap: 8px; }

@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.4** (số kỹ thuật 1.10.259)
+Cập nhật: 13/10/2026 · **Bản V1.5** (số kỹ thuật 1.10.260)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -43,6 +43,7 @@ Sau MỖI lần sửa xong: nén thư mục HaoHao đang chạy (bỏ `server-cl
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.5 (1.10.260) | Thanh mục con Mua sắm (Kiểm tra · Rẻ hơn · Voucher · Đã lưu (N)) luôn 1 hàng, không xuống dòng |
 | V1.4 (1.10.259) | Lưu & theo dõi giá tối đa 10 món (trước 5). Bỏ chữ "Bản miễn phí" ở mọi chỗ báo giới hạn |
 | V1.3 (1.10.258) | Chặn quảng cáo: phần tự đoán quảng cáo (adhide.js) KHÔNG chạy trên Facebook, Messenger, Instagram, Zalo, Telegram – trước đó ẩn nhầm hình anh gửi trong tin nhắn (hình quảng cáo nail) |
 | V1.2 (1.10.257) | Hướng dẫn 15 phút đầu (chỉ máy cài mới): bấm biểu tượng nào thì đầu bảng hiện 1 dòng gợi ý mục đó (Nhắc, Todo, Note, Pomodoro, Thông tin, Thị trường, Mua sắm, Tiện ích, Chặn quảng cáo, Transfer), có ✕; hết 15 phút không hiện nữa. Máy cập nhật từ bản cũ không hiện |
