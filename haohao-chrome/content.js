@@ -4003,7 +4003,7 @@
       else row('🏷️', 'Mã của shop', false, '✗ Chưa có mã áp được');
     }
     row('🚚', 'Freeship', false, '✗ Chưa tính (giá web chưa gồm ship)');
-    L.append(box);
+    // 1.10.240: bỏ khung "Giá đang báo đã gồm" khỏi tab Voucher
     // 2) đăng nhập + nút săn mã
     const res = vhRes[key], run = vhRun && vhRun.key === key ? vhRun : null;
     const act = el('div', 'cbox');
@@ -4023,7 +4023,7 @@
       });
       act.append(b);
     }
-    L.append(act);
+    // 1.10.240: bỏ khung "Gộp thêm mã cho món này" (nút Tìm voucher ở bong bóng đã làm việc này)
     // 3) kết quả lần săn gần nhất
     if (res && !run) {
       const rb = el('div', 'cbox');
