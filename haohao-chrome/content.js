@@ -4839,7 +4839,7 @@
       send.addEventListener('click', async () => {
         send.disabled = true;
         const r = await chrome.runtime.sendMessage({ type: 'cho', op: 'add', data: { code: code.value, label: label.value, shop: shop.value, url: url.value, until: new Date(until.value + 'T23:59:00').getTime() } }).catch(() => null);
-        cho.msg = r && r.ok ? '✓ Cảm ơn bạn! Mã đã lên chợ.' : r && r.error === 'dup' ? 'Mã này đã có trên chợ rồi.' : r && r.error === 'limit' ? 'Mỗi ngày tặng tối đa 10 mã nhé.' : 'Kiểm tra lại: mã 4–24 chữ/số, có mô tả, hạn dùng trong 120 ngày tới.';
+        cho.msg = r && r.ok ? '✓ Cảm ơn bạn! Mã đã lên chợ.' : r && r.error === 'dup' ? 'Mã này đã có trên chợ rồi.' : r && r.error === 'limit' ? 'Mỗi ngày mỗi mạng chỉ tặng tối đa 2 mã nhé.' : 'Kiểm tra lại: mã 4–24 chữ/số, có mô tả, hạn dùng trong 120 ngày tới.';
         if (r && r.ok) { cho.form = false; choLoad(true); } else send.disabled = false;
         renderPanel();
       });

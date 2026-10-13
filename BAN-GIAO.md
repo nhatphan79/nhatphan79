@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.5** (số kỹ thuật 1.10.260)
+Cập nhật: 13/10/2026 · **Bản V1.6** (số kỹ thuật 1.10.261)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -43,6 +43,7 @@ Sau MỖI lần sửa xong: nén thư mục HaoHao đang chạy (bỏ `server-cl
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.6 (1.10.261) | BẢO MẬT. App Transfer: mã ghép nối ngẫu nhiên mỗi lần bật app, nằm trong QR (`/?k=…` → cookie `hk`); `/up` không có mã → từ chối; lệnh điều khiển (`/info /tt /mo /noi-luu /chon-thu-muc /thoat /capnhat`) phải có header `x-haohao: 1` (trang web lạ không gửi được). HaoHao gửi header (TFH trong background.js). Máy chủ: Chợ voucher mỗi IP tối đa 2 mã/ngày (bảng `choip`, IP băm), báo hỏng tính theo IP (2 IP khác nhau → xoá), `/nap` và `/hot?run` cần `?key=STATS_KEY` |
 | V1.5 (1.10.260) | Thanh mục con Mua sắm (Kiểm tra · Rẻ hơn · Voucher · Đã lưu (N)) luôn 1 hàng, không xuống dòng |
 | V1.4 (1.10.259) | Lưu & theo dõi giá tối đa 10 món (trước 5). Bỏ chữ "Bản miễn phí" ở mọi chỗ báo giới hạn |
 | V1.3 (1.10.258) | Chặn quảng cáo: phần tự đoán quảng cáo (adhide.js) KHÔNG chạy trên Facebook, Messenger, Instagram, Zalo, Telegram – trước đó ẩn nhầm hình anh gửi trong tin nhắn (hình quảng cáo nail) |

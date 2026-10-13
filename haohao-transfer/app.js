@@ -73,7 +73,8 @@ function lanIPs() {
 }
 const IPS = lanIPs();
 const IP = IPS.length ? IPS[0].ip : '127.0.0.1';
-const URL_PHONE = `http://${IP}:${PORT}/`;
+const TK = require('crypto').randomBytes(8).toString('hex');   // mã ghép nối: mỗi lần bật app 1 mã mới, nằm trong QR
+const URL_PHONE = `http://${IP}:${PORT}/?k=${TK}`;
 
 //
 let INDEX = path.join(ROOT, '.da-nhan.json');
@@ -267,12 +268,12 @@ table{width:100%;margin-top:16px;border-collapse:collapse;font-size:13px;text-al
 <div id="s" class="mu" style="margin-top:14px"></div>
 <div id="lv" style="display:none;margin-top:10px;text-align:left"><div style="display:flex;justify-content:space-between;font-size:14px"><b id="lp">0%</b><span class="mu" id="lt"></span></div><div class="bar"><i id="lb"></i></div><div class="mu" id="ln" style="word-break:break-all"></div></div>
 <div class="cur" title="${esc(ROOT)}">Lưu tại: <b>${esc(ROOT)}</b></div>
-<button onclick="fetch('/mo')">📂 Mở thư mục ảnh</button>
+<button onclick="fetch('/mo',{headers:{'x-haohao':'1'}})">📂 Mở thư mục ảnh</button>
 <button id="khac">🔁 Đổi thư mục lưu</button>
 <table id="t"></table>
 
 </div><script>
-async function r(){try{const j=await (await fetch('/tt')).json();
+async function r(){try{const j=await (await fetch('/tt',{headers:{'x-haohao':'1'}})).json();
 const lv=document.getElementById('lv');
 if(j.live){lv.style.display='block';const a=j.live.all!=null?j.live.all:j.live.file;
  document.getElementById('lp').textContent=j.live.done?'✓ Xong đợt này':a+'%';
@@ -282,20 +283,22 @@ if(j.live){lv.style.display='block';const a=j.live.all!=null?j.live.all:j.live.f
 document.getElementById('s').textContent=j.files?('Đã nhận '+j.files+' file · '+j.size):'Đang chờ iPhone…';
 document.getElementById('t').innerHTML=j.recent.map(x=>'<tr><td>'+x.sub+' / '+x.name.replace(/</g,'')+'</td><td>'+x.size+'</td></tr>').join('');}catch(e){}}
 r();setInterval(r,1000);
-async function dat(p){const j=await (await fetch('/noi-luu?path='+encodeURIComponent(p),{method:'POST'})).json();if(j.error)alert(j.error);else location.reload();}
+async function dat(p){const j=await (await fetch('/noi-luu?path='+encodeURIComponent(p),{method:'POST',headers:{'x-haohao':'1'}})).json();if(j.error)alert(j.error);else location.reload();}
 document.getElementById('khac').onclick=async e=>{e.target.textContent='Đang mở hộp chọn thư mục…';
- const j=await (await fetch('/chon-thu-muc',{method:'POST'})).json();if(j.path)dat(j.path);else e.target.textContent='🔁 Đổi thư mục lưu';};
+ const j=await (await fetch('/chon-thu-muc',{method:'POST',headers:{'x-haohao':'1'}})).json();if(j.path)dat(j.path);else e.target.textContent='🔁 Đổi thư mục lưu';};
 </script></body></html>`;
 }
 
 const server = http.createServer(async (req, res) => {
   const p = req.url.split('?')[0];
-  if (req.method === 'POST' && p === '/up') return handleUpload(req, res);
+  const ck = (req.headers.cookie || '').match(/(?:^|;\s*)hk=([0-9a-f]+)/), kq = new URL(req.url, 'http://x').searchParams.get('k'), paired = (ck && ck[1] === TK) || kq === TK;
+  if (req.method === 'POST' && p === '/up') { if (!paired) { res.writeHead(403); return res.end('{"error":"Quét lại mã QR trên máy tính"}'); } return handleUpload(req, res); }
   const isLocal = /^(::ffff:)?127\.0\.0\.1$|^::1$/.test(req.socket.remoteAddress)
     && (!req.headers.origin || req.headers.origin === `http://127.0.0.1:${PORT}` || /^chrome-extension:\/\//.test(req.headers.origin));
+  const ctl = isLocal && req.headers['x-haohao'] === '1';   // lệnh điều khiển: chỉ HaoHao / trang /pc (trang web lạ không gửi được header này)
   if (p === '/pc' && isLocal) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(await pcHtml()); }
-  if (p === '/info') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ url: URL_PHONE, host: os.hostname(), up: 1 })); }
-  if (p === '/tt') {
+  if (p === '/info' && ctl) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ url: URL_PHONE, host: os.hostname(), up: 1 })); }
+  if (p === '/tt' && ctl) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     let lv = null;
     if (live && Date.now() - live.t < 20000) {
@@ -307,22 +310,22 @@ const server = http.createServer(async (req, res) => {
     }
     return res.end(JSON.stringify({ root: ROOT, live: lv, files: stats.files, size: fmt(stats.bytes), recent: stats.recent.map(x => ({ ...x, size: fmt(x.size) })) }));
   }
-  if (p === '/noi-luu' && req.method === 'POST' && isLocal) {
+  if (p === '/noi-luu' && req.method === 'POST' && ctl) {
     const np = new URL(req.url, 'http://x').searchParams.get('path') || '';
     res.writeHead(200, { 'Content-Type': 'application/json' });
     if (!np || !path.isAbsolute(np)) return res.end(JSON.stringify({ error: 'Đường dẫn không hợp lệ' }));
     try { setRoot(np); return res.end(JSON.stringify({ ok: true })); }
     catch (e) { return res.end(JSON.stringify({ error: 'Không ghi được vào thư mục này: ' + e.message })); }
   }
-  if (p === '/chon-thu-muc' && req.method === 'POST' && isLocal) {
+  if (p === '/chon-thu-muc' && req.method === 'POST' && ctl) {
     const r = await pickFolder();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ path: r }));
   }
-  if (p === '/capnhat' && isLocal) { let r; try { r = await capNhat(new URL(req.url, 'http://x').searchParams.get('id') || ''); } catch (e) { r = { error: String(e && e.message || e) }; } res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(r)); }
-  if (p === '/thoat' && isLocal) { res.writeHead(200); res.end('{}'); setTimeout(() => process.exit(0), 200); return; }
-  if (p === '/mo' && isLocal) { exec(`explorer "${ROOT}"`); res.writeHead(204); return res.end(); }
-  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(PHONE_HTML); }
+  if (p === '/capnhat' && ctl) { let r; try { r = await capNhat(new URL(req.url, 'http://x').searchParams.get('id') || ''); } catch (e) { r = { error: String(e && e.message || e) }; } res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(r)); }
+  if (p === '/thoat' && ctl) { res.writeHead(200); res.end('{}'); setTimeout(() => process.exit(0), 200); return; }
+  if (p === '/mo' && ctl) { exec(`explorer "${ROOT}"`); res.writeHead(204); return res.end(); }
+  if (p === '/') { if (!paired) { res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<meta name=viewport content="width=device-width"><h3 style="font-family:system-ui;text-align:center;margin-top:40vh">🔒 Quét lại mã QR trên máy tính nhé</h3>'); } res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': `hk=${TK}; Path=/; HttpOnly; SameSite=Strict` }); return res.end(PHONE_HTML); }
   res.writeHead(404); res.end();
 });
 server.requestTimeout = 0; server.timeout = 0; // video lớn không bị cắt

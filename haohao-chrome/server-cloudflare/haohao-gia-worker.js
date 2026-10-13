@@ -28,6 +28,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS cho (id INTEGER PRIMARY KEY AUTOINCREMENT, by TEXT, shop TEXT, code TEXT, label TEXT, url TEXT, until INTEGER, at INTEGER, ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, used INTEGER DEFAULT 0)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS chov (id INTEGER, by TEXT, v TEXT, PRIMARY KEY (id, by))'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS choip (d INTEGER, ip TEXT, n INTEGER, PRIMARY KEY (d, ip))'),   // 13/10: giới hạn đăng chợ theo IP
     env.DB.prepare('CREATE TABLE IF NOT EXISTS sp (k TEXT PRIMARY KEY, t TEXT, f TEXT, img TEXT, p INTEGER, o INTEGER, dc INTEGER, shop TEXT, url TEXT, d INTEGER)'),   // 13/10: kho tìm sản phẩm Shopee cho khách
   ]);
   ready = true;
@@ -251,13 +252,20 @@ async function choList(env, by = '') {
   const { results = [] } = await env.DB.prepare('SELECT id, by, shop, code, label, url, until, at, ok, bad, used FROM cho WHERE until > ? AND bad < 2 ORDER BY (ok - bad) DESC, at DESC LIMIT 40').bind(now).all();
   return { ok: true, items: results.map(({ by: b, ...x }) => ({ ...x, mine: !!by && b === by })) };
 }
+// 13/10: địa chỉ IP người gửi (Cloudflare cấp, khó giả) → băm, không lưu IP thật
+async function ipHash(req) {
+  const ip = req.headers.get('CF-Connecting-IP') || ''; if (!ip) return '';
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('haohao|' + ip));
+  return [...new Uint8Array(h)].slice(0, 12).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const isAdmin = (env, u) => !!(env.STATS_KEY && u.searchParams.get('key') === env.STATS_KEY);
 async function choDel(env, b) {   // 13/10: người đăng tự xoá mã của mình
   const by = String(b && b.by || ''), id = +b.id; if (!ID.test(by) || !(id > 0)) return { ok: false };
   const r = await env.DB.prepare('DELETE FROM cho WHERE id = ? AND by = ?').bind(id, by).run();
   await env.DB.prepare('DELETE FROM chov WHERE id = ?').bind(id).run().catch(() => {});
   return { ok: !!(r && r.meta && r.meta.changes) };
 }
-async function choAdd(env, b) {
+async function choAdd(env, b, ipx) {
   const by = String(b && b.by || ''); if (!ID.test(by)) return { ok: false, error: 'id' };
   const code = String(b.code || '').toUpperCase().replace(/\s+/g, ''), shop = b.shop === 'tiktok' ? 'tiktok' : 'shopee';
   const label = String(b.label || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60), until = +b.until || 0;
@@ -266,18 +274,22 @@ async function choAdd(env, b) {
   if (/http|www|\.com|zalo|fb\.|0\d{9}/i.test(label)) return { ok: false, error: 'bad' };
   const d0 = Date.now() - 864e5, cnt = await env.DB.prepare('SELECT COUNT(*) n FROM cho WHERE by = ? AND at > ?').bind(by, d0).first();
   if (cnt && cnt.n >= 10) return { ok: false, error: 'limit' };
+  const ipn = ipx ? await env.DB.prepare('SELECT n FROM choip WHERE d = ? AND ip = ?').bind(today(), ipx).first() : null;   // 13/10: mỗi IP tối đa 2 mã/ngày
+  if (!ipx || (ipn && ipn.n >= 2)) return { ok: false, error: 'limit' };
   const dup = await env.DB.prepare('SELECT id FROM cho WHERE code = ? AND shop = ? AND until > ?').bind(code, shop, Date.now()).first();
   if (dup) return { ok: false, error: 'dup' };
   await env.DB.prepare('INSERT INTO cho (by, shop, code, label, url, until, at) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(by, shop, code, label, url, until, Date.now()).run();
+  await env.DB.prepare('INSERT INTO choip (d, ip, n) VALUES (?, ?, 1) ON CONFLICT(d, ip) DO UPDATE SET n = n + 1').bind(today(), ipx).run();
   return { ok: true };
 }
-async function choVote(env, b) {
+async function choVote(env, b, ipx) {
   const by = String(b && b.by || ''), id = +b.id, v = b.v; if (!ID.test(by) || !(id > 0) || !/^(ok|bad|used)$/.test(v)) return { ok: false };
   if (v === 'used') { await env.DB.prepare('UPDATE cho SET used = used + 1 WHERE id = ?').bind(id).run(); return { ok: true }; }
-  const r = await env.DB.prepare('INSERT OR IGNORE INTO chov (id, by, v) VALUES (?, ?, ?)').bind(id, by, v).run();
+  if (!ipx) return { ok: false };
+  const r = await env.DB.prepare('INSERT OR IGNORE INTO chov (id, by, v) VALUES (?, ?, ?)').bind(id, 'ip:' + ipx, v).run();   // 13/10: tính theo IP – 1 IP báo nhiều lần chỉ tính 1
   if (r && r.meta && r.meta.changes === 0) return { ok: true, again: true };
   await env.DB.prepare(`UPDATE cho SET ${v} = ${v} + 1 WHERE id = ?`).bind(id).run();
-  if (v === 'bad') await env.DB.prepare('DELETE FROM cho WHERE id = ? AND bad >= 2').bind(id).run();   // 13/10: 2 máy báo hỏng → tự xoá
+  if (v === 'bad') await env.DB.prepare('DELETE FROM cho WHERE id = ? AND bad >= 2').bind(id).run();   // 13/10: 2 IP khác nhau báo hỏng → tự xoá
   return { ok: true };
 }
 
@@ -423,7 +435,7 @@ export default {
       }
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env, String(u.searchParams.get('by') || '')));
-      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.del ? await choDel(env, b) : b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
+      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null), ipx = await ipHash(req); return json(b && b.del ? await choDel(env, b) : b && b.vote ? await choVote(env, b, ipx) : await choAdd(env, b, ipx)); }
       if (u.pathname === '/hot' && u.searchParams.get('q')) {   // 🔎 tìm mã theo từ khoá (vd "thời trang", "sữa")
         const f = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
         const words = f(u.searchParams.get('q')).split(/\s+/).filter(w => w.length > 1).slice(0, 5), all = (await getSt(env, 'hotall')) || [], now = Date.now();
@@ -439,7 +451,7 @@ export default {
         const items = words.length ? all.filter(x => Date.parse(x.expires) > now && hit(x)).slice(0, 20) : [];
         return json({ ok: true, q: u.searchParams.get('q'), items: items.map(({ brand, ...x }) => x) });
       }
-      if (u.pathname === '/hot') { if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
+      if (u.pathname === '/hot') { if (u.searchParams.get('run') && !isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/search') return json(await spySearch(env, u), 200, { 'cache-control': 'public, max-age=300' });
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
@@ -447,6 +459,7 @@ export default {
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
       if (u.pathname === '/thongke') return await stats(env, u);
       if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
+        if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403);   // 13/10: chỉ chủ app (?key=STATS_KEY); lịch tự nạp vẫn chạy
         const f = await getSt(env, 'feed2'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
         return json(await feedSafe(env));
       }

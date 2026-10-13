@@ -425,10 +425,10 @@ async function applyAction(it, action, minutes = 10, appSnooze = false) {
 chrome.runtime.onMessage.addListener((msg, sender, send) => {
   // 📲 HaoHao Transfer: hỏi app ChuyenAnh-iPhone đang chạy trên máy (cổng 8686)
   // ⬆️ V1.1: tự cập nhật – xem có bản mới không (+ app Transfer có hỗ trợ tự cài không), chạy cập nhật qua app Transfer
-  if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
-  if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
+  if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
+  if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
   if (msg.type === 'tf-st') {
-    const T = 'http://127.0.0.1:8686', g = p => fetch(T + p, { cache: 'no-store', signal: AbortSignal.timeout(2500) }).then(r => r.json());
+    const T = 'http://127.0.0.1:8686', g = p => fetch(T + p, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2500) }).then(r => r.json());
     Promise.all([g('/info'), g('/tt')]).then(([info, tt]) => send({ ok: true, info, tt })).catch(() => send({ ok: false }));
     return true;
   }
@@ -445,13 +445,13 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     if (id && id === self.__hhWalletWin) { self.__hhWalletWin = null; setTimeout(() => chrome.windows.remove(id).catch(() => {}), 800); }
     return;
   }
-  if (msg.type === 'tf-mo') { fetch('http://127.0.0.1:8686/mo').catch(() => {}); return; }
-  if (msg.type === 'tf-thoat') { fetch('http://127.0.0.1:8686/thoat').catch(() => {}).finally(() => send({})); return true; }
+  if (msg.type === 'tf-mo') { fetch('http://127.0.0.1:8686/mo', { headers: TFH }).catch(() => {}); return; }
+  if (msg.type === 'tf-thoat') { fetch('http://127.0.0.1:8686/thoat', { headers: TFH }).catch(() => {}).finally(() => send({})); return true; }
   if (msg.type === 'tf-doi') {
     const T = 'http://127.0.0.1:8686';
-    fetch(T + '/chon-thu-muc', { method: 'POST' }).then(r => r.json()).then(j => {
+    fetch(T + '/chon-thu-muc', { method: 'POST', headers: TFH }).then(r => r.json()).then(j => {
       if (!j.path) return send({});
-      return fetch(T + '/noi-luu?path=' + encodeURIComponent(j.path), { method: 'POST' }).then(r => r.json()).then(x => send(x));
+      return fetch(T + '/noi-luu?path=' + encodeURIComponent(j.path), { method: 'POST', headers: TFH }).then(r => r.json()).then(x => send(x));
     }).catch(() => send({ error: 'Không gọi được app' }));
     return true;
   }
@@ -2069,3 +2069,5 @@ async function updCheck(force) {
     return { ...info, avail: !!(info.version && verGt(info.version, chrome.runtime.getManifest().version)) };
   } catch { return updInfo || null; }
 }
+
+const TFH = { 'x-haohao': '1' };   // V1.6: app Transfer chỉ nhận lệnh có header này (trang web lạ không gửi được)
