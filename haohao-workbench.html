@@ -474,6 +474,8 @@ window.__ht = {
   store,
   emit(ch, area = 'local') { for (const f of [...store.listeners]) { try { f(ch, area); } catch (e) { store.listeners.delete(f); } } },
   msg(m, from) {
+    if (m && m.type === 'upd-st') { log('info', `${from} xem bản mới (giả lập): có V1.6`); return { tf: true, info: { avail: true, name: 'V1.6', version: '9.9.9', notes: 'giả lập – thêm tính năng mới', url: '#' } }; }
+    if (m && m.type === 'upd-run') { log('info', `${from} cập nhật qua app Transfer (giả lập): xong`); return new Promise(ok => setTimeout(() => ok({ ok: true, v: 'V1.6' }), 1500)); }
     if (m && m.type === 'mail-check-now') {
       const st = { ok: true, count: 3, at: Date.now(), provider: 'gmail', account: 'ban@gmail.com', latest: [{ name: 'Shopee Affiliate', title: 'Hoa hồng tháng 9 đã được duyệt', url: 'https://mail.google.com/mail/u/0/#inbox' }, { name: 'Vietcombank', title: 'Mã OTP của bạn là 482913', url: 'https://mail.google.com/mail/u/0/#inbox', otp: true }, { name: 'Facebook', title: 'Có 3 thông báo mới', url: 'https://mail.google.com/mail/u/0/#inbox', junk: 'social' }], skipped: 5 };
       store.data.mailStatus = st;
