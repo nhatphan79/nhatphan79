@@ -3722,7 +3722,7 @@
     if (!p || !p.price) return;
     const { products: ps = [] } = await chrome.storage.local.get('products');
     if (ps.some(x => x.url === p.url)) return;
-    if (ps.length >= HT.SAVE_MAX) { if (quiet) return 'full'; say(`Bản miễn phí theo dõi tối đa ${HT.SAVE_MAX} món. Bỏ bớt 1 món trong ❤️ Đã lưu để lưu món này nhé.`, 'remind', '❤️ Đã đủ ' + HT.SAVE_MAX + ' món', 'shop'); return; }
+    if (ps.length >= HT.SAVE_MAX) { if (quiet) return 'full'; say(`Theo dõi tối đa ${HT.SAVE_MAX} món. Bỏ bớt 1 món trong ❤️ Đã lưu để lưu món này nhé.`, 'remind', '❤️ Đã đủ ' + HT.SAVE_MAX + ' món', 'shop'); return; }
     ps.unshift({ id: 'p' + Date.now().toString(36), url: p.url, title: p.title.slice(0, 150), image: pageImg() || '', shop: isTikTokItem() ? 'tiktok' : 'shopee',
       price: p.price, saved: p.price, low: p.price, target: 0, at: Date.now(), checked: Date.now(), history: [{ t: Date.now(), p: p.price }] });
     products = ps.slice(0, 100);
@@ -3948,7 +3948,7 @@
       L.append(card);
     }
     L.append(followBox());   // ⭐ Shop theo dõi (1.10.251)
-    if (list.length && !svHide.p) L.append(el('div', 'tnote2', `Bản miễn phí: theo dõi tối đa ${HT.SAVE_MAX} món. Bấm 🔄 để mở trang món đó và cập nhật giá mới. Nút Mua / Xem deal: Link tiếp thị · Giá không đổi.`));
+    if (list.length && !svHide.p) L.append(el('div', 'tnote2', `Theo dõi tối đa ${HT.SAVE_MAX} món. Bấm 🔄 để mở trang món đó và cập nhật giá mới. Nút Mua / Xem deal: Link tiếp thị · Giá không đổi.`));
   }
   async function seenDeal(id) {
     const { products: ps = [] } = await chrome.storage.local.get('products');
@@ -6688,7 +6688,7 @@
         const it = savedOf(pS);
         if (it) { await unsaveProduct(it.id); paint(); return; }
         const r = await saveProduct(pS, true);
-        if (r === 'full') { sv.textContent = `Đủ ${HT.SAVE_MAX} món`; sv.classList.add('full'); sv.title = `Bản miễn phí theo dõi tối đa ${HT.SAVE_MAX} món. Bỏ bớt 1 món trong ❤️ Đã lưu nhé.`; setTimeout(() => { sv.classList.remove('full'); paint(); }, 2500); return; }
+        if (r === 'full') { sv.textContent = `Đủ ${HT.SAVE_MAX} món`; sv.classList.add('full'); sv.title = `Theo dõi tối đa ${HT.SAVE_MAX} món. Bỏ bớt 1 món trong ❤️ Đã lưu nhé.`; setTimeout(() => { sv.classList.remove('full'); paint(); }, 2500); return; }
         paint(); sv.classList.add('pop'); setTimeout(() => sv.classList.remove('pop'), 400);
       });
       top.append(sv);

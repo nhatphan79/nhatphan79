@@ -559,7 +559,7 @@ HT.saleDays = (from = new Date(), n = 4) => {
 // ---------- 📉 Nhận xét giá từ lịch sử 30 ngày ----------
 // ❤️ Đã lưu: ghi giá mới cho 1 món, trả về sự kiện nếu đáng báo
 // 'target' = chạm giá khách đặt; 'deal' = rẻ hơn lúc lưu ≥5% và là giá thấp nhất từ lúc lưu (mỗi mức giá chỉ báo 1 lần)
-HT.SAVE_MAX = 5;
+HT.SAVE_MAX = 10;   // V1.4: 5 → 10 món
 // 🎵 nhạc nền đóng gói sẵn trong tiện ích (thư mục music/, tự lặp lại khi phát)
 HT.BUILTIN_MUSIC = [
   { id: 'piano', name: 'Piano nhẹ', url: 'music/piano.ogg' },
