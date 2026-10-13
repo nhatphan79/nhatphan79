@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.238)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.239)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.238)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.239 | Món rủi ro: dòng "💬 Shop phản hồi X%" nằm cuối danh sách cảnh báo (dòng thứ 4) |
 | 1.10.238 | Bong bóng có dòng "💬 Shop phản hồi X% · trong vài giờ" ngay dưới dòng Đã bán (xanh ≥90%, cam, đỏ <70%); không lặp trong cảnh báo |
 | 1.10.237 | Bong bóng không hiện "Shop mới có N lượt đánh giá" và "Chỉ N người theo dõi shop" (vẫn có trong Kiểm tra chi tiết) |
 | 1.10.236 | Cảnh báo ⚠ trong bong bóng (món rủi ro) mỗi ý 1 dòng; nút Kiểm tra chi tiết xuống dòng riêng |

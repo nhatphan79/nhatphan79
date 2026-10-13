@@ -6502,7 +6502,8 @@
     top.append(x); B.append(top);
     if (pS && pS.price && isItemPage()) B.append(ptBox(pS, true));
     { const sl = soldLine(trust.info); if (sl) B.append(sl); }
-    { const ri = trust.info, rr = ri.responseRate; if (rr > 0) {   // 1.10.238: phản hồi của shop đưa ra ngoài bong bóng
+    const respLine = () => { const ri = trust.info, rr = ri.responseRate; return rr > 0 ? el('div', 'tb-resp ' + (rr >= 90 ? 'ok' : rr < 70 ? 'bad' : 'mid'), `💬 Shop phản hồi ${rr}%${ri.responseTime ? ' · ' + ri.responseTime : ''}`) : null; };
+    { const ri = trust.info, rr = ri.responseRate; if (rr > 0 && !bad) {   // 1.10.238: phản hồi của shop đưa ra ngoài bong bóng (món rủi ro: nằm cuối danh sách cảnh báo)
       const d = el('div', 'tb-resp ' + (rr >= 90 ? 'ok' : rr < 70 ? 'bad' : 'mid'), `💬 Shop phản hồi ${rr}%${ri.responseTime ? ' · ' + ri.responseTime : ''}`); B.append(d); } }
     // dòng đánh giá nổi bật: có lời chê thì hiện ngay; không thì 1 đánh giá khen tiêu biểu
     const rv = trust.info.reviews, quote = (q, w) => {
@@ -6524,11 +6525,12 @@
       if (q0) { const row = el('div', 'tb-rl'); row.append(quote(q0.slice(0, 90), (top.words || []).find(w => q0.toLowerCase().includes(w)))); box.append(row); }
       B.append(box);
     } else if (trust.info.reviewsReading) B.append(el('div', 'tb-hook wait', '💬 Đang đọc toàn bộ đánh giá…'));
-    else if (bad && pick.length) { const wy = el('div', 'tb-why'); pick.forEach(i => wy.append(el('div', 'tb-wl', '⚠ ' + i.t.split(':')[0]))); B.append(wy); }   // 1.10.236: mỗi cảnh báo 1 dòng
+    else if (bad && pick.length) { const wy = el('div', 'tb-why'); pick.forEach(i => wy.append(el('div', 'tb-wl', '⚠ ' + i.t.split(':')[0]))); const rl = respLine(); if (rl) wy.append(rl); B.append(wy); }   // 1.10.239: dòng thứ 4 = phản hồi shop   // 1.10.236: mỗi cảnh báo 1 dòng
     else if (trust.info.goodReview) {
       const box = el('div', 'tb-rv good'); box.append(el('b', '', `💬 Đánh giá nổi bật · ${rv ? rv.read : 0} đánh giá không thấy lời chê`), quote(trust.info.goodReview));
       B.append(box);
     }
+    if (!B.querySelector('.tb-resp')) { const rl = respLine(); if (rl) B.append(rl); }   // món rủi ro có khung lời chê: vẫn có dòng phản hồi
     { const a = trust.info.anh; if (a) {   // 📸 ảnh thật vs ảnh mẫu
       const bx = el('div', 'tb-rv ' + (a.muc === 'giong' ? 'good' : 'bad'));
       bx.append(el('b', '', a.muc === 'khac_xa' ? '📸 Ảnh thật khác xa ảnh mẫu · cân nhắc kỹ' : a.muc === 'hoi_khac' ? '📸 Ảnh thật hơi khác ảnh mẫu' : '📸 Ảnh thật giống ảnh mẫu ✓'));
