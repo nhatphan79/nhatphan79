@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.241)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.242)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.241)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.242 | Khung Lịch săn mã Shopee có nút cam "🎟️ Săn mã ngay ›" (giờ tung mã) / "Mở trang săn mã Shopee ›" → shopee.vn/m/ma-giam-gia qua link HaoHao. Lịch vẫn là lịch cố định (chưa tự quét) |
 | 1.10.241 | Tab Voucher: bỏ luôn khung "Kết quả" tìm mã |
 | 1.10.240 | Tab Voucher ở trang sản phẩm: bỏ khung "Giá đang báo đã gồm" và "Gộp thêm mã cho món này" |
 | 1.10.239 | Món rủi ro: dòng "💬 Shop phản hồi X%" nằm cuối danh sách cảnh báo (dòng thứ 4) |
