@@ -5444,6 +5444,22 @@
   // ---------- 🎟️ Mã giảm giá ----------
   let couponFeed = null, couponSeen = [];
   // 📣 tin chủ app gửi (coupons.json → news): hiện 1 lần bằng bong bóng HaoHao, không hiện trên trang mua bán (để bong bóng kiểm tra)
+  // ⬆️ V1.1: có bản HaoHao mới → báo (bấm "Để sau" thì 1 ngày sau mới báo lại). Máy có app Transfer bản mới: bấm Cập nhật ngay là tự cài
+  async function updBubble() {
+    if (!ui || SHOP_SITE || (ui.panel && !ui.panel.hidden)) return;
+    const r = await chrome.runtime.sendMessage({ type: 'upd-st' }).catch(() => null), u = r && r.info;
+    if (!u || !u.avail) return;
+    const { updSnooze = {} } = await chrome.storage.local.get('updSnooze'); if (updSnooze.v === u.version && Date.now() - updSnooze.at < 864e5) return;
+    const later = { label: 'Để sau', ghost: true, fn: () => chrome.storage.local.set({ updSnooze: { v: u.version, at: Date.now() } }).catch(() => {}) };
+    const dl = { label: '⬇️ Tải về', fn: () => window.open(u.url, '_blank') };
+    const run = { label: '⚡ Cập nhật ngay', fn: async () => {
+      say(`Đang tải và cài bản ${u.name}…`, 'think', '⬆️ Cập nhật HaoHao', 'tools');
+      const x = await chrome.runtime.sendMessage({ type: 'upd-run' }).catch(() => null);
+      if (x && x.ok) say(`Đã cài xong ${u.name}! HaoHao tự khởi động lại, bạn F5 trang là dùng bản mới.`, 'happy', '⬆️ Cập nhật HaoHao', 'tools', [{ label: 'OK', fn: () => {} }]);
+      else say(`Chưa tự cài được${x && x.error ? ' (' + x.error + ')' : ''}. Bấm Tải về, giải nén đè vào thư mục HaoHao cũ rồi F5 trang nhé.`, 'think', '⬆️ Cập nhật HaoHao', 'tools', u.url ? [dl, later] : null);
+    } };
+    say(`🎉 HaoHao có bản mới ${u.name}${u.notes ? ': ' + u.notes : ''}. ${r.tf ? 'Bấm Cập nhật ngay, HaoHao tự cài.' : 'Tải về, giải nén đè vào thư mục HaoHao cũ rồi F5 trang.'}`, 'happy', '⬆️ Bản mới', 'tools', r.tf ? [run, later] : u.url ? [dl, later] : null);
+  }
   async function newsBubble() {
     if (!ui || !couponFeed || !(couponFeed.news || []).length || SHOP_SITE || (ui.panel && !ui.panel.hidden)) return;
     const { newsSeen = [] } = await chrome.storage.local.get('newsSeen');
@@ -7859,7 +7875,7 @@
     const isNewtab = location.protocol === 'chrome-extension:' && /\/newtab\.html$/.test(location.pathname);
     setTimeout(isNewtab ? thinkBubble : greet, isNewtab ? 900 : 1500);
     setTimeout(focusNudge, 2000);
-    setTimeout(newsBubble, 4500);
+    setTimeout(newsBubble, 4500); setTimeout(updBubble, 9000);   // V1.1
     setTimeout(voucherExpiryNudge, 12000);
     setTimeout(readVoucherWallet, 2500);
     // setInterval(liveWatch, 2500);   // 1.10.249: bỏ Săn live

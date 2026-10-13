@@ -220,7 +220,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name === 'pomo') return pomoTick();
   if (a.name === 'mail-check') return checkMail(false);
   if (a.name === 'todo-clean') return cleanDoneTodos();
-  if (a.name === 'coupon-sync') return syncCoupons();
+  if (a.name === 'coupon-sync') { updCheck(); return syncCoupons(); }
   if (a.name === 'prod-auto') return autoCheckPrices();
   if (a.name === 'live-chk') return chrome.alarms.clear('live-chk');
   if (a.name === 'price-flush') return priceFlush();
@@ -423,6 +423,9 @@ async function applyAction(it, action, minutes = 10, appSnooze = false) {
 
 chrome.runtime.onMessage.addListener((msg, sender, send) => {
   // 📲 HaoHao Transfer: hỏi app ChuyenAnh-iPhone đang chạy trên máy (cổng 8686)
+  // ⬆️ V1.1: tự cập nhật – xem có bản mới không (+ app Transfer có hỗ trợ tự cài không), chạy cập nhật qua app Transfer
+  if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
+  if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
   if (msg.type === 'tf-st') {
     const T = 'http://127.0.0.1:8686', g = p => fetch(T + p, { cache: 'no-store', signal: AbortSignal.timeout(2500) }).then(r => r.json());
     Promise.all([g('/info'), g('/tt')]).then(([info, tt]) => send({ ok: true, info, tt })).catch(() => send({ ok: false }));
@@ -2050,3 +2053,18 @@ async function reviewsScanOne({ url, key }) {
   chrome.alarms.create('hh-dev-reload', { periodInMinutes: 0.5 });
   chrome.alarms.onAlarm.addListener(a => { if (a.name === 'hh-dev-reload') check(); });
 })();
+
+// ⬆️ V1.1: bản cài giải nén không được Chrome tự cập nhật → tự xem bản mới trên GitHub (downloads/haohao-latest.json), 6 giờ/lần
+const UPD_BASE = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/';
+const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0; } return false; };
+async function updCheck(force) {
+  if ('update_url' in chrome.runtime.getManifest()) return null;   // bản trên Chrome Web Store: Chrome tự cập nhật
+  const { updInfo } = await chrome.storage.local.get('updInfo');
+  if (!force && updInfo && Date.now() - updInfo.at < 6 * 3600e3) return { ...updInfo, avail: !!(updInfo.version && verGt(updInfo.version, chrome.runtime.getManifest().version)) };
+  try {
+    const j = await fetch(UPD_BASE + 'haohao-latest.json', { cache: 'no-store' }).then(r => r.json());
+    const info = { at: Date.now(), name: String(j.name || '').slice(0, 20), version: String(j.version || ''), notes: String(j.notes || '').slice(0, 200), url: /^[\w.-]+\.zip$/.test(j.file || '') ? UPD_BASE + j.file : '' };
+    await chrome.storage.local.set({ updInfo: info });
+    return { ...info, avail: !!(info.version && verGt(info.version, chrome.runtime.getManifest().version)) };
+  } catch { return updInfo || null; }
+}
