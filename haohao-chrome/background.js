@@ -428,6 +428,19 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     Promise.all([g('/info'), g('/tt')]).then(([info, tt]) => send({ ok: true, info, tt })).catch(() => send({ ok: false }));
     return true;
   }
+  // 1.10.228: tự đọc ví voucher – cửa sổ nhỏ mở giỏ hàng, content.js đọc bảng mã rồi báo xong
+  if (msg.type === 'wallet-auto') {
+    if (self.__hhWalletWin) return;
+    chrome.windows.create({ url: 'https://shopee.vn/cart#hh-wallet', type: 'popup', width: 420, height: 640, focused: false }).then(w => {
+      self.__hhWalletWin = w.id; setTimeout(() => { if (self.__hhWalletWin === w.id) { chrome.windows.remove(w.id).catch(() => {}); self.__hhWalletWin = null; } }, 60000);
+    }).catch(() => {});
+    return;
+  }
+  if (msg.type === 'wallet-auto-done') {
+    const id = sender && sender.tab && sender.tab.windowId;
+    if (id && id === self.__hhWalletWin) { self.__hhWalletWin = null; setTimeout(() => chrome.windows.remove(id).catch(() => {}), 800); }
+    return;
+  }
   if (msg.type === 'tf-mo') { fetch('http://127.0.0.1:8686/mo').catch(() => {}); return; }
   if (msg.type === 'tf-thoat') { fetch('http://127.0.0.1:8686/thoat').catch(() => {}).finally(() => send({})); return true; }
   if (msg.type === 'tf-doi') {
