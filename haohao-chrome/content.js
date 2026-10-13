@@ -1365,10 +1365,13 @@
   .hotv .hvr { display: flex; align-items: center; gap: 8px; margin-top: 6px; } .hotv .hvr span { flex: 1; min-width: 0; font-size: 12px; color: #1F2A44; } .hotv .hvr small { display: block; color: #94A3B8; font-size: 10.5px; }
   .hotv .hvr button { all: unset; cursor: pointer; font: 800 11px system-ui; padding: 4px 10px; border-radius: 999px; background: #EE4D2D; color: #fff; white-space: nowrap; } .hotv .hvr button.tt { background: #111; }
   .hotv .hvlive { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 7px 10px; border-radius: 10px; background: #FEE2E2; border: 1.5px solid #F87171; color: #B91C1C; font: 700 12px/1.35 system-ui; } .hotv .hvlive span { flex: 1; } .hotv .hvlive b { flex: none; padding: 4px 10px; border-radius: 999px; background: #EE4D2D; color: #fff; font: 800 11.5px system-ui; } .hotv .hvlive:hover { filter: brightness(.98); }
-  .flwb .flwi { flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #FBD5C8; border-radius: 8px; font: 12px system-ui; background: #fff; color: #1F2A44; } .flwb .hvr button + button { margin-left: -4px; }
-  .flwb .flw { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #FBD5C8; } .flwb .flw > small { display: block; margin-top: 3px; font-size: 11px; color: #64748B; }
-  .flwb .flc { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; color: #15803D; font-weight: 600; } .flwb .flc span { flex: 1; min-width: 0; }
+  .svsec { all: unset; cursor: pointer; display: flex; align-items: center; gap: 6px; width: 100%; box-sizing: border-box; margin: 8px 0 2px; padding: 6px 4px; border-bottom: 1px solid #E3E6F0; font: 800 13px system-ui; color: #23305E; }
+  .svsec em { font-style: normal; font-size: 11px; color: #6B7394; font-weight: 700; } .svsec span { flex: none; } .svsec b { margin-left: auto; font-size: 11px; color: #2E7DD7; }
+  .flwb .flwadd { display: flex; align-items: center; gap: 6px; margin: 6px 0; } .flwb .flwcur { flex: 1; min-width: 0; font: 700 12px system-ui; color: #23305E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .flwb .flwi { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid #E3E6F0; border-radius: 8px; font: 12px system-ui; background: #fff; color: #1F2A44; }
+  .flwb .flc { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 12px; color: #15803D; font-weight: 600; } .flwb .flc span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .flwb .flc button { all: unset; cursor: pointer; font: 800 10.5px system-ui; padding: 2px 8px; border-radius: 999px; background: #EE4D2D; color: #fff; white-space: nowrap; }
+  .flwb .flmore { all: unset; cursor: pointer; display: block; margin-top: 5px; font: 700 11.5px system-ui; color: #2E7DD7; }
   .hotv .hvgo { all: unset; cursor: pointer; display: inline-block; margin-top: 7px; padding: 5px 12px; border-radius: 999px; background: #EE4D2D; color: #fff; font: 800 12px system-ui; } .hotv .hvgo:hover { filter: brightness(1.07); }
   .hotv .hvm, .hotv .hvw { all: unset; cursor: pointer; display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #64748B; } .hotv .hvw.soon { color: #DC2626; }
   .hotv > small { display: block; margin-top: 3px; font-size: 11.5px; color: #64748B; line-height: 1.4; }
@@ -3819,50 +3822,70 @@
     followSave();
   }
   const vTxt = v => `Giảm ${v.percent ? v.percent + '%' : kShort(v.discount)}${v.maxDiscount ? ' tối đa ' + kShort(v.maxDiscount) : ''}${v.minOrder ? ' · đơn từ ' + kShort(v.minOrder) : ''}`;
+  // 1.10.252: Đã lưu gọn 1 kiểu – mỗi phần (Món / Shop) thu gọn được; shop là thẻ giống món, hiện 2 mã, còn lại "Xem thêm"
+  let svHide = { p: false, s: false }; const flMore = new Set(), flDet = new Set();
+  chrome.storage.local.get('svHide').then(d => { if (d.svHide) svHide = d.svHide; }).catch(() => {});
+  function svSec(k, title, n) {
+    const b = el('button', 'svsec' + (svHide[k] ? ' off' : '')); b.setAttribute('aria-expanded', !svHide[k]);
+    b.append(el('span', '', title), el('em', '', n || ''), el('b', '', svHide[k] ? 'Hiện ▾' : 'Ẩn ▴'));
+    b.addEventListener('click', () => { svHide = { ...svHide, [k]: !svHide[k] }; chrome.storage.local.set({ svHide }).catch(() => {}); renderPanel(); });
+    return b;
+  }
+  const hotTxt = c => String(c.title || '').replace(/^\[[^\]]+\]\s*/, '');
   function followBox() {
-    const box = el('div', 'hotv flwb'); box.append(el('div', 'hvh', '⭐ Theo dõi shop'));
+    const W = el('div', 'flwb');
+    W.append(svSec('s', '⭐ Shop theo dõi', follow.length ? String(follow.length) : ''));
+    if (svHide.s) return W;
     const cs = curShop();
     if (cs && !follow.some(x => sameShop(x, cs))) {
-      const r = el('div', 'hvr'), b = el('button', '', '⭐ Theo dõi'); r.append(el('span', '', '🏪 ' + cs.name), b);
-      b.addEventListener('click', () => { followAdd(cs); followPageRead(); renderPanel(); }); box.append(r);
+      const r = el('div', 'flwadd'), b = el('button', 'b sm', '⭐ Theo dõi'); r.append(el('span', 'flwcur', '🏪 ' + cs.name), b);
+      b.addEventListener('click', () => { followAdd(cs); followPageRead(); renderPanel(); }); W.append(r);
     } else if (cs) { const f = follow.find(x => sameShop(x, cs)); if (f && (!f.page || Date.now() - f.page.at > 60e3)) followPageRead(); }
-    const r2 = el('div', 'hvr'), inp = document.createElement('input'), ab = el('button', '', 'Thêm');
+    const r2 = el('div', 'flwadd'), inp = document.createElement('input'), ab = el('button', 'b sm', 'Thêm');
     inp.placeholder = 'Dán link shop hoặc sản phẩm Shopee'; inp.value = followIn; inp.className = 'flwi';
     inp.addEventListener('input', () => { followIn = inp.value; });
     const add = () => { const s = followParse(inp.value); if (!s) { followMsg = 'Link chưa đúng – dán link shop hoặc sản phẩm Shopee nhé.'; renderPanel(); return; } followAdd(s); followIn = ''; followMsg = ''; renderPanel(); };
     ab.addEventListener('click', add); inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') add(); });
-    r2.append(inp, ab); box.append(r2);
-    if (followMsg) box.append(el('small', '', followMsg));
+    r2.append(inp, ab); W.append(r2);
+    if (followMsg) W.append(el('div', 'svmsg', followMsg));
     for (const s of follow) {
-      const card = el('div', 'flw'), hd = el('div', 'hvr');
-      const ob = el('button', 'tt', 'Mở shop ›'); ob.addEventListener('click', () => openDeal(shopUrl(s)));
-      const xb = el('button', 'tt', '✕'); xb.title = 'Bỏ theo dõi'; xb.addEventListener('click', () => { follow = follow.filter(x => x !== s); followSave(); renderPanel(); });
-      hd.append(el('span', '', '🏪 ' + s.name), ob, xb); card.append(hd);
-      const hs = followHot(s), pg = s.page && Date.now() - s.page.at < 7 * 864e5 ? s.page.list : [];
-      for (const c of hs) {
-        const r = el('div', 'flc'); r.append(el('span', '', '✅ ' + c.title.replace(/^\[[^\]]+\]\s*/, '')));
-        if (c.code) { const cb = el('button', '', '📋 ' + c.code); cb.addEventListener('click', () => copyText(c.code, cb)); r.append(cb); }
-        else if (c.url) { const lb = el('button', '', 'Lấy mã ›'); lb.addEventListener('click', () => openDeal(c.url)); r.append(lb); }
-        card.append(r);
+      const k = s.id || s.user, hs = followHot(s), pg = s.page && Date.now() - s.page.at < 7 * 864e5 ? s.page.list : [];
+      const all = [...hs.map(c => ({ c })), ...pg.map(v => ({ v }))], open = flMore.has(k), det = flDet.has(k);
+      const card = el('div', 'svc c'), top = el('div', 'svl'), mid = el('div', 'svm');
+      top.append(el('div', 'noimg', '🏪'));
+      const t = el('button', 'svt', s.name); t.title = 'Mở shop (link HaoHao)'; t.addEventListener('click', () => openDeal(shopUrl(s))); mid.append(t);
+      mid.append(el('div', 'svag', all.length ? `${all.length} mã · tốt nhất ${all[0].c ? hotTxt(all[0].c) : vTxt(all[0].v)}` : s.hot ? 'Chưa thấy mã – mở shop để HaoHao đọc thêm' : 'Đang tìm mã…'));
+      top.append(mid);
+      const btns = el('div', 'svbt'), ob = el('button', 'b sm', '🏪 Mở shop'), mo = el('button', 'svu', '⋯');
+      ob.addEventListener('click', () => openDeal(shopUrl(s)));
+      mo.title = det ? 'Thu gọn' : 'Chi tiết'; mo.setAttribute('aria-expanded', det); mo.addEventListener('click', () => { det ? flDet.delete(k) : flDet.add(k); renderPanel(); });
+      btns.append(ob, mo); top.append(btns); card.append(top);
+      for (const x of (open ? all : all.slice(0, 2))) {
+        const r = el('div', 'flc'), b = el('button', '', x.c && x.c.code ? '📋 ' + x.c.code : 'Lấy mã ›');
+        r.append(el('span', '', '✅ ' + (x.c ? hotTxt(x.c) : 'Mã shop: ' + vTxt(x.v))));
+        b.title = 'Chép mã + mở shop qua link HaoHao';
+        b.addEventListener('click', () => { if (x.c && x.c.code) copyText(x.c.code, b); openDeal(x.c && !x.c.code && x.c.url ? x.c.url : shopUrl(s)); });
+        r.append(b); card.append(r);
       }
-      for (const v of pg) card.append(el('div', 'flc', '🏷️ Mã shop: ' + vTxt(v)));
-      if (!hs.length && !pg.length) card.append(el('small', '', s.hot ? 'Chưa thấy mã. Mở trang shop là HaoHao đọc thêm mã shop.' : 'Đang tìm mã…'));
-      else if (pg.length) card.append(el('small', '', 'Mã shop đọc trên trang ' + agoTxt(s.page.at)));
-      box.append(card);
+      if (all.length > 2) { const mb = el('button', 'flmore', open ? 'Thu gọn ▴' : `Xem thêm ${all.length - 2} mã ▾`); mb.addEventListener('click', () => { open ? flMore.delete(k) : flMore.add(k); renderPanel(); }); card.append(mb); }
+      if (det) {
+        const d = el('div', 'svd'), row = el('div', 'svr'), rm = el('button', 'svx', '🗑 Bỏ theo dõi');
+        d.append(el('div', 'svag', `Theo dõi ${agoTxt(s.at)}` + (pg.length ? ` · mã shop đọc trên trang ${agoTxt(s.page.at)}` : ' · mở trang shop để HaoHao đọc thêm mã shop')));
+        rm.addEventListener('click', () => { if (rm.dataset.sure !== '1') { rm.dataset.sure = '1'; rm.textContent = 'Bỏ thật?'; return; } flDet.delete(k); follow = follow.filter(x => x !== s); followSave(); renderPanel(); });
+        row.append(rm); d.append(row); card.append(d);
+      }
+      W.append(card);
     }
-    if (!follow.length) box.append(el('small', '', 'Dán link shop Shopee, hoặc mở trang shop / sản phẩm rồi bấm ⭐ Theo dõi. Shop có mã mới là HaoHao báo.'));
+    if (!follow.length) W.append(el('div', 'empty', 'Dán link shop Shopee, hoặc mở trang shop / sản phẩm rồi bấm ⭐ Theo dõi. Shop có mã mới là HaoHao báo.'));
     else if (Date.now() - followTry > 60e3 && follow.some(s => !s.hot || Date.now() - s.hot.at > 3600e3)) setTimeout(() => followRefresh(), 300);
-    return box;
+    return W;
   }
   function renderSaved(L) {
     const list = products;
-    const hd = el('div', 'svhd');
-    hd.append(el('span', '', list.length ? `${list.length}/${HT.SAVE_MAX} món` : ''));
-    L.append(hd);
+    L.append(svSec('p', '❤️ Món đã lưu', list.length ? `${list.length}/${HT.SAVE_MAX}` : ''));   // 1.10.252
     if (prodMsg) L.append(el('div', 'svmsg', prodMsg));
-    L.append(followBox());   // 1.10.251
-    if (!list.length) { L.append(el('div', 'empty', `Chưa lưu món nào. Mở 1 sản phẩm Shopee hoặc TikTok Shop, bấm 🤍 Lưu & theo dõi giá (tối đa ${HT.SAVE_MAX} món).`)); return; }
-    for (const it of list) {
+    if (!svHide.p && !list.length) L.append(el('div', 'empty', `Chưa lưu món nào. Mở 1 sản phẩm Shopee hoặc TikTok Shop, bấm 🤍 Lưu & theo dõi giá (tối đa ${HT.SAVE_MAX} món).`));
+    for (const it of (svHide.p ? [] : list)) {
       const pct = HT.dropPct(it), deal = it.dealNew && pct >= 5, more = svMore.has(it.id);
       const card = el('div', 'svc c' + (it.target && it.price <= it.target ? ' hit' : '') + (deal ? ' deal' : ''));
       const top = el('div', 'svl');
@@ -3901,7 +3924,8 @@
       }
       L.append(card);
     }
-    L.append(el('div', 'tnote2', `Bản miễn phí: theo dõi tối đa ${HT.SAVE_MAX} món. Bấm 🔄 để mở trang món đó và cập nhật giá mới. Nút Mua / Xem deal: Link tiếp thị · Giá không đổi.`));
+    L.append(followBox());   // ⭐ Shop theo dõi (1.10.251)
+    if (list.length && !svHide.p) L.append(el('div', 'tnote2', `Bản miễn phí: theo dõi tối đa ${HT.SAVE_MAX} món. Bấm 🔄 để mở trang món đó và cập nhật giá mới. Nút Mua / Xem deal: Link tiếp thị · Giá không đổi.`));
   }
   async function seenDeal(id) {
     const { products: ps = [] } = await chrome.storage.local.get('products');

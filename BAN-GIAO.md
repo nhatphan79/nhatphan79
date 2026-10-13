@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.251)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.252)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.251)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.252 | Tab ❤️ Đã lưu gọn 1 kiểu: 2 phần "❤️ Món đã lưu" và "⭐ Shop theo dõi" bấm Ẩn/Hiện được. Shop là thẻ giống món (🏪 tên · "N mã · tốt nhất …" · nút Mở shop · ⋯ bỏ theo dõi), hiện 2 mã, còn lại "Xem thêm". Bấm mã = chép mã + mở shop qua link HaoHao (link tiếp thị) |
 | 1.10.251 | Tab ❤️ Đã lưu có khung "⭐ Theo dõi shop": dán link shop/sản phẩm Shopee hoặc bấm ⭐ Theo dõi ở trang shop/sản phẩm. Mã của shop lấy từ kho Ưu đãi máy chủ (/hot?q=tên shop, 1 giờ/lần) – có mã mới thì báo; mở trang shop/sản phẩm của shop đó thì đọc thêm "Mã giảm giá của shop" (lưu 7 ngày). Tối đa 30 shop |
 | 1.10.250 | Soi sản phẩm mặc định cho mọi khách: ô 🔎 Tìm gọi máy chủ `/search` (Shopee: kho `sp` máy chủ nạp từ AccessTrade, chỉ 3 nhóm Thời trang · Gia dụng · Mẹ và bé; TikTok: RioHub). Khoá chỉ trên máy chủ, bỏ khung 🔑 nhập khoá. Máy chủ mới phải Deploy |
 | 1.10.249 | BỎ chế độ Săn live: không còn khung "📺 Săn live" ở tab Voucher, tắt canh mã trên trang live, tắt kiểm tra shop TikTok 10 phút/lần (Shopee Live chỉ xem trên app) |
