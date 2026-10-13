@@ -6124,13 +6124,17 @@
       const tot = c.n * price, save = c.pct ? Math.round(tot * c.pct / 100) : c.off; if (!(save > 0)) continue;
       if (!combo || save / c.n > combo.save / combo.n) combo = { ...c, save, unit: (tot - save) / c.n };
     }
-    let head = '', sub = '';
-    if (fill && fill.need - fill.val <= 5000) { head = `✅ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = fill.val >= fill.need ? 'có thêm món mà gần như không tốn thêm' : `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
-    else if (combo) { head = `✅ Mua ${combo.n} ${combo.pct ? 'giảm ' + combo.pct + '%' : 'giảm ' + k1(combo.off)} → còn ${k1(combo.unit)}/cái`; sub = 'Combo Khuyến Mãi của shop'; }
-    else if (fill) { head = `✅ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
-    else if (/Mua Kèm Deal Sốc/i.test(document.body.innerText || '')) { head = '✅ Có Mua Kèm Deal Sốc'; sub = 'món mua kèm được giá sốc · xem ngay dưới giá'; }
-    if (!head) return null;
-    const b = el('div', 'tb-hook ok'); b.append(el('b', '', head), el('span', '', sub)); return b;
+    // 1.10.235: hiện tối đa 3 ưu đãi, lời nhất trước
+    const items = [];
+    const fillItem = () => fill && [`✅ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`, fill.val >= fill.need ? 'có thêm món mà gần như không tốn thêm' : `chỉ tốn thêm ${k1(fill.need - fill.val)}`];
+    if (fill && fill.need - fill.val <= 5000) items.push(fillItem());
+    if (combo) items.push([`✅ Mua ${combo.n} ${combo.pct ? 'giảm ' + combo.pct + '%' : 'giảm ' + k1(combo.off)} → còn ${k1(combo.unit)}/cái`, 'Combo Khuyến Mãi của shop']);
+    if (fill && fill.need - fill.val > 5000) items.push(fillItem());
+    if (/Mua Kèm Deal Sốc/i.test(document.body.innerText || '')) items.push(['✅ Có Mua Kèm Deal Sốc', 'món mua kèm được giá sốc · xem ngay dưới giá']);
+    if (!items.length) return null;
+    const box = el('div', 'tb-more');
+    for (const [h, sb] of items.slice(0, 3)) { const b = el('div', 'tb-hook ok'); b.append(el('b', '', h), el('span', '', sb)); box.append(b); }
+    return box;
   }
   function needMoreHook(D) {
     const r = D && D.res; if (!r || !D.vouchers) return null;
