@@ -387,6 +387,9 @@ async function capNhat(id) {
   const tmp = path.join(os.tmpdir(), 'haohao-up'), z = tmp + '.zip';
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
   await dl(UPD + j.file, z);
+  // chữ ký số: chỉ cài gói do chủ app ký (khoá riêng nằm trên máy chủ app, không có trên GitHub)
+  const crypto = require('crypto'), PUB = crypto.createPublicKey({ key: Buffer.from('MCowBQYDK2VwAyEAvmkfSaXXZjW5QtfkhMfELl9V8ikDkTGfXL4Qkm5mSb8=', 'base64'), format: 'der', type: 'spki' });
+  if (!j.sig || !crypto.verify(null, fs.readFileSync(z), PUB, Buffer.from(String(j.sig), 'base64'))) return { error: 'Chữ ký gói không đúng – không cài' };
   const q = x => "'" + x.replace(/'/g, "''") + "'";
   await new Promise((ok, no) => exec(`powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Force -LiteralPath ${q(z)} -DestinationPath ${q(tmp)}; Copy-Item -Recurse -Force -Path (Join-Path ${q(tmp)} '*') -Destination ${q(dir)}"`, { windowsHide: true }, e => e ? no(e) : ok()));
   return { ok: true, dir, v: j.name };
