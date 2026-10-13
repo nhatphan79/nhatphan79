@@ -499,6 +499,7 @@
   .lay-sw { display: flex; background: #E7E9F0; border-radius: 999px; padding: 2px; }
   .lay-sw button { all: unset; cursor: pointer; padding: 4px 8px; white-space: nowrap; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #5B6478; }
   .lay-sw button.on { background: #1F2A44; color: #fff; }
+  .hh-tip { position: relative; margin: 6px 10px 4px; padding: 7px 28px 7px 10px; border-radius: 10px; background: #FFF8E1; border: 1px solid #F5D78E; font: 600 12px/1.45 system-ui; color: #5B4A12; } .hh-tip button { all: unset; cursor: pointer; position: absolute; top: 5px; right: 8px; font-size: 12px; color: #8A7430; }
   .lay-2 { justify-content: flex-start; gap: 6px; } .lay-2 > span { flex: none; }
   .lay-sel { flex: 1; min-width: 0; margin-left: 0; padding: 6px 10px; border: 1.5px solid #E3E6F0; border-radius: 10px; font: 700 12.5px system-ui; color: #23305E; background: #fff; cursor: pointer; }
   .lay-n { font-size: 11px; color: #8A92A6; margin-top: 4px; }
@@ -1896,12 +1897,29 @@
     V.append(box);
   }
 
+  // 💡 V1.2: hướng dẫn trong 15 phút đầu dùng HaoHao (máy cài mới): bấm biểu tượng nào hiện 1 dòng gợi ý mục đó; hết 15 phút không hiện nữa
+  let tipStart = 1; const tipHide = new Set();
+  chrome.storage.local.get('tipStart').then(d => { if (d.tipStart != null) tipStart = d.tipStart; }).catch(() => {});
+  const TIPS = { bell: '🔔 Cần nhớ giờ uống thuốc, họp, trả tiền… đặt ở đây, tới giờ HaoHao nhắc.', todo: '✅ Việc cần làm hôm nay ghi vào đây, xong thì bấm tick.',
+    idea: '📝 Bạn có ý tưởng gì cần lưu thì vào mục Note này.', focus: '🍅 Bấm bắt đầu để tập trung 25 phút, HaoHao báo giờ nghỉ.',
+    info: '💡 Bôi đen chữ trên web để dịch, tóm tắt hoặc giải thích.', market: '📊 Theo dõi giá vàng, chứng khoán, crypto, đặt báo khi giá chạm mức.',
+    shop: '🛍️ Mở sản phẩm Shopee hoặc TikTok, HaoHao kiểm tra shop, so giá, tìm mã giảm.', tools: '🧰 Thêm app hay: chặn quảng cáo, chuyển ảnh iPhone, thị trường…',
+    adblock: '🛡️ Bật là quảng cáo phim, kể cả YouTube, tự ẩn.', transfer: '📲 iPhone hết dung lượng? Quét mã QR để chuyển ảnh, video lên PC.' };
+  function tipEl() {
+    if (tipStart === -1) { tipStart = Date.now(); chrome.storage.local.set({ tipStart }).catch(() => {}); }
+    if (!(tipStart > 1e12) || Date.now() - tipStart > 15 * 6e4) return null;
+    const k = tab === 'tools' && toolsSub ? (toolsSub === 'crypto' ? 'market' : toolsSub) : tab;
+    if (!TIPS[k] || tipHide.has(k)) return null;
+    const d = el('div', 'hh-tip', TIPS[k]), x = el('button', '', '✕'); x.title = 'Ẩn gợi ý'; x.setAttribute('aria-label', 'Ẩn gợi ý');
+    x.addEventListener('click', () => { tipHide.add(k); d.remove(); }); d.append(x); return d;
+  }
   function renderPanel() {
     if (!ui || ui.panel.hidden) { updateBadge(); return; }
     const V = ui.view; V.innerHTML = '';
     if (helloMode) { renderHello(V); updateBadge(); return; }
     if (((tab === 'market' || tab === 'tools' || tab === 'adblock' || tab === 'transfer') && !isUnlocked()) || (tab === 'tools' && toolsSub === 'unl')) { renderUnlock(V); updateBadge(); return; }   // 1.10.127: Thị trường (vàng, chứng khoán, crypto) mở khoá bằng 3 bước
     ({ todo: renderTodo, idea: renderIdea, bell: renderBell, focus: renderFocus, info: renderInfo, shop: renderShop, tools: renderTools, market: renderCrypto, adblock: renderAdblock, transfer: renderTransfer }[tab] || renderTodo)(V);
+    { const tp = tipEl(); if (tp) V.prepend(tp); }
     updateBadge();
   }
 

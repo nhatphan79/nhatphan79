@@ -92,6 +92,7 @@ const DEFAULT_WATCH = [{ source: 'coingecko', coin: 'bitcoin', sym: 'BTC' }, { s
 
 chrome.runtime.onInstalled.addListener(async details => {
   if (details && details.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('options.html#about') }).catch(() => {});   // cài lần đầu: mở trang Giới thiệu
+  { const { tipStart } = await chrome.storage.local.get('tipStart'); if (tipStart == null) await chrome.storage.local.set({ tipStart: details && details.reason === 'install' ? -1 : 1 }); }   // V1.2: hướng dẫn 15 phút đầu – chỉ máy cài mới (-1 = chờ lần mở đầu tiên)
   const { rules, watch, todos } = await chrome.storage.local.get(['rules', 'watch', 'todos']);
   // mặc định BTC, ETH, SOL, BNB; ai còn danh sách mặc định cũ (BTC, SOL) thì nâng lên danh sách mới
   // mặc định BTC, ETH, SOL; ai còn nguyên danh sách mặc định cũ thì đổi sang danh sách mới
