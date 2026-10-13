@@ -4719,7 +4719,7 @@
     L.append(liveBox());
     L.append(saleCalBox());
     L.append(hotVouchers(true));
-    L.append(hotSearchBox());   // 1.10.183: gọn 2 hàng, bấm Xem thêm
+    // 1.10.244: bỏ "Tìm mã theo nhu cầu" (không ra mã giảm)   // 1.10.183: gọn 2 hàng, bấm Xem thêm
     const mine = (walletMine && walletMine.list || []).map(v => ({ v, exp: walletExp(v) })).filter(x => !x.exp || x.exp > Date.now()).sort((a, b) => (a.exp || 9e15) - (b.exp || 9e15));
     const box = el('div', 'hotv'); box.append(el('div', 'hvh', '📒 Ví voucher của bạn'));
     if (!mine.length) box.append(el('small', '', 'Mở trang Ví voucher Shopee (đã đăng nhập) một lần, HaoHao ghi lại mã và hạn dùng để nhắc trước khi hết hạn.'));
