@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.247)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.248)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.247)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.248 | Tab Voucher ở trang sản phẩm: khung "📺 Săn live" hiện lại, nằm cuối cùng |
 | 1.10.247 | Chợ voucher: mã mình đăng có nút 🗑️ Xoá; HaoHao tự đọc thông báo Shopee khi dán mã chép từ Chợ ở giỏ/thanh toán (sai → báo hỏng, áp được → 👍); 2 lần báo hỏng → máy chủ tự xoá. Cần dán `server/haohao-gia-worker.js` mới lên Cloudflare |
 | 1.10.246 | Bỏ khung "📒 Ví voucher của bạn" (sửa do một phiên Claude khác trên cùng máy ghi vào) |
 | 1.10.245 | Đổi tên "🏷️ Top 10 mã shop thương hiệu" → "🏷️ Ưu đãi" |

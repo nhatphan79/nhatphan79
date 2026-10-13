@@ -4059,7 +4059,7 @@
       L.append(ob);
     }
     // 1.10.221: trang sản phẩm cũng hiện đủ Top 10 mã, Ví voucher, Lịch săn mã, Tìm mã, Chợ voucher (bỏ khung Săn live)
-    { const tmp = el('div'); renderHotVoucher(tmp); const kids = [...tmp.children]; kids.shift(); kids.forEach(x => L.append(x)); }
+    { const tmp = el('div'); renderHotVoucher(tmp); const kids = [...tmp.children]; const lv = kids.shift(); kids.forEach(x => L.append(x)); if (lv) L.append(lv); }   // 1.10.248: Săn live xuống cuối
   }
   // ---------- 🎟️ Voucher ở giỏ hàng (1.9.62): đọc số Shopee đang hiện, ghi rõ cách tính + gợi ý ----------
   function readCart() {
