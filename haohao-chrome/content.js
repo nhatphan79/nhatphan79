@@ -118,7 +118,8 @@
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
-  const LAYOUT_OPT = ['market', 'focus', 'info'];
+  const LAYOUT_OPT = ['focus', 'info', 'market', 'adblock', 'transfer'];   // 1.10.253: thêm Chặn quảng cáo, HaoHao Transfer
+  for (const id of ['adblock', 'transfer']) { const t = TOOLS.find(x => x.id === id); if (t && !BRANCHES.some(b => b.id === id)) BRANCHES.splice(BRANCHES.findIndex(b => b.id === 'shop'), 0, { id, label: id === 'transfer' ? 'Transfer' : 'Chặn QC', color: t.color, angle: -18, icon: t.icon, menuIcon: t.icon.replace(/currentColor/g, '#fff') }); }
   const slots = () => { const s = settings && settings.slots; return Array.isArray(s) && s.length === 2 && s[0] !== s[1] && s.every(x => LAYOUT_OPT.includes(x)) ? s : ['focus', 'info']; };
   const lay = () => { const S = slots(), o = {}; LAYOUT_OPT.forEach(id => { o[id] = S.includes(id) ? 'out' : 'in'; }); return o; };
   const toolKey = id => id === 'crypto' ? 'market' : id;
@@ -498,6 +499,7 @@
   .lay-sw { display: flex; background: #E7E9F0; border-radius: 999px; padding: 2px; }
   .lay-sw button { all: unset; cursor: pointer; padding: 4px 8px; white-space: nowrap; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #5B6478; }
   .lay-sw button.on { background: #1F2A44; color: #fff; }
+  .lay-sel { flex: 1; min-width: 0; margin-left: 10px; padding: 6px 10px; border: 1.5px solid #E3E6F0; border-radius: 10px; font: 700 12.5px system-ui; color: #23305E; background: #fff; cursor: pointer; }
   .lay-n { font-size: 11px; color: #8A92A6; margin-top: 4px; }
   .inf { font-size: 12.5px; display: flex; flex-direction: column; min-height: 0; }   /* 1.10.37: khung kết quả tự cuộn bên trong, không cuộn trang web */
   .itabs { display: flex; gap: 14px; padding: 2px 12px 0; border-bottom: 1px solid #ECEEF4; margin-bottom: 8px; }
@@ -1719,6 +1721,8 @@
     if (t === 'read' || t === 'dich' || t === 'explain') { infoSub = t; t = 'info'; }
     if (t === 'crypto' || t === 'market') { if (lay().market === 'out') t = 'market'; else { t = 'tools'; toolsSub = 'crypto'; } }
     if (t === 'tools' && toolsSub === 'crypto' && lay().market === 'out') t = 'market';
+    if (t === 'tools' && (toolsSub === 'adblock' || toolsSub === 'transfer') && lay()[toolsSub] === 'out') t = toolsSub;   // 1.10.253
+    if ((t === 'adblock' || t === 'transfer') && lay()[t] !== 'out') { toolsSub = t; t = 'tools'; }
     setMini(mini === true || (mini === undefined && miniMode && (t === 'todo' || t === 'bell')));
     tab = t; toggleMenu(false); hideBubble();
     if (t === 'info' && infoSub === 'read') readReady = false;
@@ -1895,8 +1899,8 @@
     if (!ui || ui.panel.hidden) { updateBadge(); return; }
     const V = ui.view; V.innerHTML = '';
     if (helloMode) { renderHello(V); updateBadge(); return; }
-    if (((tab === 'market' || tab === 'tools') && !isUnlocked()) || (tab === 'tools' && toolsSub === 'unl')) { renderUnlock(V); updateBadge(); return; }   // 1.10.127: Thị trường (vàng, chứng khoán, crypto) mở khoá bằng 3 bước
-    ({ todo: renderTodo, idea: renderIdea, bell: renderBell, focus: renderFocus, info: renderInfo, shop: renderShop, tools: renderTools, market: renderCrypto }[tab] || renderTodo)(V);
+    if (((tab === 'market' || tab === 'tools' || tab === 'adblock' || tab === 'transfer') && !isUnlocked()) || (tab === 'tools' && toolsSub === 'unl')) { renderUnlock(V); updateBadge(); return; }   // 1.10.127: Thị trường (vàng, chứng khoán, crypto) mở khoá bằng 3 bước
+    ({ todo: renderTodo, idea: renderIdea, bell: renderBell, focus: renderFocus, info: renderInfo, shop: renderShop, tools: renderTools, market: renderCrypto, adblock: renderAdblock, transfer: renderTransfer }[tab] || renderTodo)(V);
     updateBadge();
   }
 
@@ -6943,23 +6947,19 @@
     V.append(g);
     // 📌 2 ô tuỳ chọn trên mục chính
     const S = slots(), box = el('div', 'lay');
-    box.append(el('div', 'lay-h', '📌 2 ô tuỳ chọn trên mục chính'));
-    const NAMES = { focus: '🍅 Pomodoro', info: '💡 Thông tin', market: '📊 Thị trường' };
-    [0, 1].forEach(k => {
-      const r = el('div', 'lay-r'); r.append(el('span', '', `Ô ${k + 1}`));
-      const sw = el('div', 'lay-sw');
-      LAYOUT_OPT.slice().sort((a, b) => ['focus', 'info', 'market'].indexOf(a) - ['focus', 'info', 'market'].indexOf(b)).forEach(id => {
-        const b = el('button', S[k] === id ? 'on' : '', NAMES[id]); b.setAttribute('aria-pressed', S[k] === id);
-        b.addEventListener('click', () => {
-          if (S[k] === id) return;
-          const ns = [...S]; if (ns[1 - k] === id) ns[1 - k] = S[k];   // chọn trùng ô kia thì đổi chỗ cho nhau
-          ns[k] = id; settings.slots = ns; saveSet({ slots: ns }); placeWrap(); renderPanel();
-        });
-        sw.append(b);
+    box.append(el('div', 'lay-h', '📌 Thay đổi giao diện tuỳ chọn'));
+    const NAMES = { focus: '🍅 Pomodoro', info: '💡 Thông tin', market: '📊 Thị trường', adblock: '🛡️ Chặn quảng cáo', transfer: '📲 HaoHao Transfer' };
+    [0, 1].forEach(k => {   // 1.10.253: chọn bằng danh sách thả xuống, đủ app trong Tiện ích
+      const r = el('div', 'lay-r'), sel = document.createElement('select'); r.append(el('span', '', `Ô ${k + 1}`)); sel.className = 'lay-sel'; sel.setAttribute('aria-label', `Ô ${k + 1}`);
+      LAYOUT_OPT.forEach(id => { const o = document.createElement('option'); o.value = id; o.textContent = NAMES[id]; o.selected = S[k] === id; sel.append(o); });
+      sel.addEventListener('change', () => {
+        const id = sel.value; if (S[k] === id) return;
+        const ns = [...S]; if (ns[1 - k] === id) ns[1 - k] = S[k];   // chọn trùng ô kia thì đổi chỗ cho nhau
+        ns[k] = id; settings.slots = ns; saveSet({ slots: ns }); placeWrap(); renderPanel();
       });
-      r.append(sw); box.append(r);
+      r.append(sel); box.append(r);
     });
-    box.append(el('div', 'lay-n', 'Nhắc, Todo, Note, Mua sắm, Tiện ích cố định. Mục không chọn nằm trong Tiện ích.'));
+    box.append(el('div', 'lay-n', 'Nhắc, Todo, Note, Mua sắm, Tiện ích cố định. App không chọn nằm trong Tiện ích.'));
     V.append(box);
     const cp = el('a', 'copyr', HT.COPYRIGHT); cp.href = HT.OWNER.tel; cp.title = 'Liên hệ ' + HT.OWNER.name;
     V.append(cp);
