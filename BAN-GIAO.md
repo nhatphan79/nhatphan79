@@ -30,6 +30,12 @@ Cập nhật: 13/10/2026 · **Bản V1.6** (số kỹ thuật 1.10.261)
 Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (trong thư mục HaoHao-V1-1.9.58: nén + KÝ), đưa `HaoHao-V1.zip` và chữ ký `HaoHao-V1.sig` vào `haohao-latest.json` (`sig`). Cách cũ: nén thư mục HaoHao đang chạy (bỏ `server-cloudflare`, file `.bak`) thành `downloads/HaoHao-V1.zip` (file nằm ngay gốc zip), sửa `downloads/haohao-latest.json` (`name` = V1.x, `version` = số kỹ thuật, `notes` ngắn) rồi đẩy lên. Máy khách tự thấy trong ≤ 6 giờ.
 - App HaoHao Transfer: mã nguồn `haohao-transfer/app.js`. Exe là bản pkg, mã nhúng dài đúng 21840 byte ở vị trí 57444352 (bắt đầu `//\n//\n`). Sửa app: minify bằng esbuild, đệm bằng comment cho đủ 21840 byte (xem `haohao-transfer/app.nhung-exe.js`) rồi ghi đè đúng chỗ đó.
 
+## Bảo mật (13/10)
+- GitHub `nhatphan79`: đã bật passkey + xác minh 2 bước (anh tự làm 13/10). Mã khôi phục anh giữ.
+- Khoá ký gói cập nhật: `_release/khoa-ky/rieng.pem` trên máy anh (anh sao lưu). Không bao giờ đưa lên GitHub.
+- Máy chủ: `/nap`, `/hot?run` cần `?key=STATS_KEY`; Chợ voucher giới hạn theo IP.
+- App Transfer: mã ghép nối trong QR + lệnh điều khiển cần header `x-haohao`.
+
 ## Luật làm việc với anh
 1. **Trước khi sửa: gợi ý ngắn sẽ làm gì → anh đồng ý mới làm.** Anh nói thẳng "làm X" thì làm đúng X, không bày thêm.
 2. **Mỗi lần sửa xong:** tăng tên bản (`version_name`) thêm 1: V1.0 → V1.1 → V1.2 … → V1.9 → V1.10 → … V1.100 (luôn giữ "V1.", số sau 1–3 chữ số, KHÔNG lên V2) và tăng số kỹ thuật `version` (chạy ngầm cho tự nạp lại); báo cáo / bảng Đã làm ghi theo tên V1.x; đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
