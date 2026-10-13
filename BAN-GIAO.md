@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.232)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.233)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.232)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.233 | Combo chỉ xét mua tối đa 3 cái; sửa dứt điểm chữ dính trong khung ➕ |
 | 1.10.232 | Khung ➕ mua nhiều: tự đọc Combo Khuyến Mãi ("Mua 2 giảm 5%"), mã shop có đơn tối thiểu (mã giảm ≥70% số tiền mua thêm, bỏ khi Flash Sale), Mua Kèm Deal Sốc → chọn 1 ưu đãi lời nhất. Ưu tiên "Thêm món ~Xk → giảm Yk" khi gần như không tốn thêm; không có thì ẩn. Hiện cả khi không đọc được bảng giá. Sửa chữ dính 2 dòng. |
 | 1.10.231 | Khung giá gọn: bỏ "Xem cách tính giá chi tiết", "Nhập giá app thật", "Bấm Mua Với Voucher…". Web: giá + "+ phí ship" + nút Tìm voucher. App: giá + "có mã vận chuyển · ship giảm" + nút Mở trên app. |
 | 1.10.230 | Nút "🎟️ Tìm voucher" = săn **1 mã Freeship tốt nhất** (mỗi đơn chỉ 1 mã vận chuyển) + ngày sale thêm mã đợt sale (link trong coupons.json / trang sự kiện). KHÔNG săn mã shop / Shopee Voucher (web Shopee đã tự tối ưu). Báo: "🚚 Đã lưu mã Freeship…", "🚚 Ví đã có mã Freeship tốt nhất", "🎉 Ngày sale: đã lưu N mã". |

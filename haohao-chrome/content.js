@@ -698,7 +698,7 @@
   .tb-hook { all: unset; display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.35; }
   .tb-hook.wait { background: #F1F4FA; color: #6B7394; }
   .tb-hook.ok { background: #E8F7F1; color: #1E7A5F; font-weight: 700; }
-  .tb-hook > b, .tb-hook > span { display: block; } .tb-hook > span { font-weight: 500; font-size: 11.5px; opacity: .9; margin-top: 1px; }   /* 1.10.232: 2 dòng, không dính chữ */
+  .tb-hook > b, .tb-hook > span, .tb .tb-hook > b, .tb .tb-hook > span { display: block !important; } .tb-hook > span { font-weight: 500; font-size: 11.5px; opacity: .9; margin-top: 1px; }   /* 1.10.232: 2 dòng, không dính chữ */
   .tb-hook.hot { cursor: pointer; background: linear-gradient(135deg, #FFF1EE, #FFE3D6); border: 1.5px solid #F7A48F; color: #3A4470; }
   .tb-hook.hot b { display: block; color: #D0391B; font-size: 13px; } .tb-hook.hot span { font-size: 11.5px; }
   .tb-hook.hot:hover { border-color: #EE4D2D; } .tb-hook.hot:focus-visible { outline: 2px solid #EE4D2D; }
@@ -6107,7 +6107,7 @@
     for (const m of t.matchAll(/Mua\s*(\d+)\s*(?:&|và|sản phẩm)?\s*(?:được\s*)?giảm\s*(\d{1,2})\s*%/gi)) out.push({ n: +m[1], pct: +m[2] });
     for (const m of t.matchAll(/Mua\s*(\d+)\s*(?:&|và|sản phẩm)?\s*(?:được\s*)?giảm\s*₫\s*([\d.,]+\s*k?)/gi)) out.push({ n: +m[1], off: HT.money(m[2]) });
     for (const m of t.matchAll(/Buy\s*(\d+)\s*(?:&|and)?\s*(?:get\s*)?(\d{1,2})\s*%\s*off/gi)) out.push({ n: +m[1], pct: +m[2] });
-    return out.filter(x => x.n >= 2 && x.n <= 10 && (x.pct > 0 || x.off > 0));
+    return out.filter(x => x.n >= 2 && x.n <= 3 && (x.pct > 0 || x.off > 0));   // 1.10.233: tối đa mua 3 cái
   }
   function moreHook(price, D) {
     if (!(price > 0)) return null;
