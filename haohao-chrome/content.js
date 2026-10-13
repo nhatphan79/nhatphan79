@@ -3974,7 +3974,10 @@
   let vhRun = null; const vhRes = {}; let vhLoaded = false, cartSeen = false;
   chrome.runtime.onMessage.addListener(m => {
     if (!m || (m.type !== 'vh-progress' && m.type !== 'vh-done')) return;
-    if (m.type === 'vh-progress') vhRun = m; else { vhRun = null; vhRes[m.key] = m.res; if (m.key === itemKey() && m.res && (m.res.saved || []).length) { say('Đã lưu mã xong, HaoHao tải lại trang để tính giá mới…', 'happy', '🎟️ Voucher', 'shop'); setTimeout(() => location.reload(), 1800); } }
+    if (m.type === 'vh-progress') vhRun = m; else { vhRun = null; vhRes[m.key] = m.res; if (m.key === itemKey() && m.res) { const ns = (m.res.saved || []).length, nh = (m.res.have || []).length;   // 1.10.229: luôn báo kết quả
+      if (ns) { say(`Đã lưu ${ns} mã mới${nh ? ` (đã có sẵn ${nh} mã)` : ''}. HaoHao tải lại trang để tính giá mới…`, 'happy', '🎟️ Voucher', 'shop', [{ label: 'OK', fn: () => {} }]); setTimeout(() => location.reload(), 2200); }
+      else if (m.res.err) say(VH_ERR[m.res.err] || 'Chưa tìm được mã, thử lại sau nhé.', 'think', '🎟️ Voucher', 'shop', [{ label: 'OK', fn: () => {} }]);
+      else say(nh ? `Không có mã mới cho món này · ví của bạn đã có đủ ${nh} mã.` : 'Không có mã nào dùng được cho món này lúc này.', 'happy', '🎟️ Voucher', 'shop', [{ label: 'OK', fn: () => {} }]); } }
     if (ui && tab === 'shop' && !ui.panel.hidden) renderPanel();
   });
   const VH_ERR = { login: '🔑 Cần đăng nhập Shopee. Đăng nhập trong cửa sổ HaoHao vừa mở rồi bấm "Tìm mã" lại.', captcha: '🧩 Shopee hỏi xác minh. Bạn làm giúp trong cửa sổ đó rồi bấm "Tìm mã" lại.', stop: '■ Bạn đã dừng giữa chừng.', closed: 'Cửa sổ săn mã đã bị đóng giữa chừng.' };
@@ -4101,7 +4104,7 @@
       chrome.runtime.sendMessage({ type: 'wallet-auto' }).catch(() => {});
     } catch {}
   }
-  setTimeout(autoWalletAsk, 8000);
+  // 1.10.229: tắt tự đọc ví (ví web không có mã 15% của app) – giữ hàm để dùng sau
   if (/(^|\.)shopee\.vn$/.test(location.hostname) && /^\/cart/.test(location.pathname) && /hh-wallet/.test(location.hash)) setTimeout(async () => {   // chạy sau khi cả file nạp xong (wait/cartTotal khai báo phía dưới)
     const done = () => chrome.runtime.sendMessage({ type: 'wallet-auto-done' }).catch(() => {});
     try {
@@ -5945,6 +5948,25 @@
     return b;
   }
   const flashSale = () => !!findText(/^FLASH ?SALE$/i) || /KẾT THÚC TRONG/i.test((document.body.innerText || '').slice(0, 8000));
+  // 1.10.229: giá app – mã Voucher Shopee hằng ngày trên app (≈15%, tối đa 60k) web không thấy được → ước tính; khách gõ giá app thật thì dùng số đó
+  let appManual = {};
+  chrome.storage.local.get('appPriceMap').then(d => { appManual = d.appPriceMap || {}; }).catch(() => {});
+  const appEst = a => Math.min(Math.round(a * 0.15), 60000);
+  const appMan = () => { const x = appManual[itemKey()]; return x && Date.now() - x.at < 3 * 864e5 ? x.v : 0; };
+  function appPriceInput() {
+    const wrap = el('div', 'dtip'), b = el('button', 'dtog', '✏️ Nhập giá app thật'); wrap.append(b);
+    b.addEventListener('click', e => {
+      e.stopPropagation(); b.remove();
+      const inp = document.createElement('input'); inp.type = 'number'; inp.placeholder = 'vd 166600'; inp.value = appMan() || '';
+      inp.style.cssText = 'width:110px;padding:3px 6px;border:1px solid #F6D58A;border-radius:8px;font:700 12px system-ui';
+      const ok = el('button', 'dtog', 'Lưu'); ok.style.marginLeft = '6px';
+      const save = () => { const v = Math.round(+inp.value || 0); if (v > 0) appManual[itemKey()] = { v, at: Date.now() }; else delete appManual[itemKey()]; chrome.storage.local.set({ appPriceMap: appManual }).catch(() => {}); showTrustBubble(); };
+      ok.addEventListener('click', ev => { ev.stopPropagation(); save(); }); inp.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') save(); });
+      inp.addEventListener('click', ev => ev.stopPropagation());
+      wrap.append(inp, ok); inp.focus();
+    });
+    return wrap;
+  }
   function dealPrices(D) {
     const r = D.res, web = (D.main && D.main.total) || (D.detail && D.detail.total) || r.current;
     const fs = flashSale();   // 1.10.159: Flash Sale – mã shop hay không áp, chỉ tính mã trong ví (nếu có)
@@ -5952,7 +5974,9 @@
     const a = fs ? web : r.base - r.best.shopOff, w = walletAppBest(a);
     if (w && a - w.v < app) { app = a - w.v; wv = w; }
     const ship = shipFee(), webAll = web + (ship || 0);   // 1.10.154: giá về tay trên web = giá sau mã + phí ship
-    return { app, web, ship, webAll, v: r.best.v, wv, appBetter: app < webAll - 1000 };
+    let est = false, man = appMan();
+    if (man) app = man; else if (!wv && a - appEst(a) < app) { app = a - appEst(a); est = true; }
+    return { app, web, ship, webAll, v: r.best.v, wv, est, man: !!man, appBetter: app < webAll - 1000 };
   }
   function dealLines(D) {
     const P = dealPrices(D), out = [];
@@ -6015,7 +6039,8 @@
     };
     if (P.appBetter) {
       const a = el('button', 'b dbtn', P.webAll - P.app >= 1000 ? `📱 Mở app rẻ hơn ${kShort(P.webAll - P.app)}` : '📱 Mở trên app'); a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
-      row('📱', 'Mua trên app', P.app, P.wv ? `≈ dùng mã ví ${P.wv.pct ? P.wv.pct + '%' : kShort(P.wv.off)}${P.wv.kol ? ' (KOL/Video)' : ''} · kiểm tra lại trong app` : 'hoặc rẻ hơn · app tự áp mã + freeship', a, '', 'app');
+      row('📱', 'Mua trên app', P.app, P.man ? 'giá app bạn đã xem' : P.est ? 'ước tính · Voucher Shopee −15% trên app' : P.wv ? `≈ dùng mã ví ${P.wv.pct ? P.wv.pct + '%' : kShort(P.wv.off)}${P.wv.kol ? ' (KOL/Video)' : ''} · kiểm tra lại trong app` : 'hoặc rẻ hơn · app tự áp mã + freeship', a, '', 'app');
+      box.append(appPriceInput());
     }
     let w = null;
     w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Mở danh sách mã giảm giá dùng được cho món này'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey() }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
@@ -6048,8 +6073,10 @@
     row('💻', 'Mua trên web', webP - (wwb ? wwb.v : 0) + (ship || 0), (wwb ? `Voucher Shopee −${kShort(wwb.v)} · ` : '') + webSub + (ship == null ? ' · + phí ship' : ship ? ` · gồm ship ${kShort(ship)}` : ' · miễn ship'), w, `💡 Bấm "${buyLabel()}" để áp sẵn mã`);
     const a = el('button', 'b dbtn', '📱 Mở trên app'); a.title = 'Hiện mã QR to, mở Camera điện thoại quét'; a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
     const ww = walletWebBest(webP), wa0 = walletAppBest(webP), wa = wa0 && (!ww || wa0.v > ww.v) ? wa0 : ww;   // 1.10.228: app dùng được cả mã web lẫn mã chỉ-app
-    row('📱', 'Mua trên app', webP - (wa ? wa.v : 0), wa ? `Voucher Shopee −${kShort(wa.v)} (ví của bạn) · thường miễn ship` : 'thường miễn ship · HaoHao đang đọc ví voucher của bạn', a,
+    const man = appMan(), offA = wa ? wa.v : appEst(webP);
+    row('📱', 'Mua trên app', man || webP - offA, man ? 'giá app bạn đã xem' : wa ? `Voucher Shopee −${kShort(wa.v)} (ví của bạn) · thường miễn ship` : `ước tính · Voucher Shopee −${kShort(offA)} trên app · thường miễn ship`, a,
       '💡 Quét mã QR bằng Camera điện thoại để mở đúng món');
+    box.append(appPriceInput());
     return box;
   }
   // 📱 mã QR mở đúng món trên app Shopee (qua link tiếp thị) – 1.10.191: tách riêng, món nào (cả Flash Sale) cũng có
