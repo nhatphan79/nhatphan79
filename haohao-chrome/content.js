@@ -3990,7 +3990,12 @@
       row('🏷️', 'Mã của shop', !!det.shopOff, det.shopOff ? `✓ −${kShort(det.shopOff)}` : '✗ Chưa có');
       const sp = det.shopee;
       row('🛍️', 'Voucher Shopee', !!sp, sp ? `✓ ${sp.pct ? sp.pct + '%' : '−' + kShort(sp.off || 0)}` : '✗ Chưa có');
-    } else row('⏳', 'Mã đang áp', null, 'đang đọc…');
+    } else {   // 1.10.227: không đọc được bảng giá → tự tính từ mã shop trên trang, không treo "đang đọc…"
+      const pv = flashSale() ? [] : pageVouchers(), rr = pv.length ? HT.bestDeal({ base: p.price, vouchers: pv }) : null;
+      if (flashSale()) row('⚡', 'Flash Sale', false, 'mã shop không áp');
+      else if (rr && rr.best.v) row('🏷️', 'Mã của shop', true, `✓ −${kShort(rr.best.shopOff)} → ${vnd(rr.best.final)}`);
+      else row('🏷️', 'Mã của shop', false, '✗ Chưa có mã áp được');
+    }
     row('🚚', 'Freeship', false, '✗ Chưa tính (giá web chưa gồm ship)');
     L.append(box);
     // 2) đăng nhập + nút săn mã
@@ -5243,7 +5248,7 @@
   function pageVouchers() {
     if (!isShopeeItem()) return [];
     const t = (document.body.innerText || '').replace(/\s+/g, ' ');
-    const i = t.search(/Mã Giảm Giá (?:Của )?Shop/i);
+    const i = t.search(/Mã Giảm Giá (?:Của )?Shop|Shop Vouchers?/i);
     return i < 0 ? [] : HT.parseVouchers(t.slice(i, i + 600));
   }
   // Trang đang xem đã được mở lại qua link HaoHao chưa (để khỏi chuyển trang lần nữa)
@@ -5989,10 +5994,12 @@
     };
     let w = null;
     w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Mở danh sách mã giảm giá dùng được cho món này'; w.addEventListener('click', e => { e.stopPropagation(); goCheck('voucher'); });   // 1.10.218: thay nút Mua trên web qua HaoHao
-    row('💻', 'Mua trên web', p.price + (ship || 0), ship == null ? '+ phí ship' : ship ? `đã gồm ship ${kShort(ship)}` : 'miễn phí ship', w, `💡 Bấm "${buyLabel()}" để áp sẵn mã`);
+    const fs = flashSale(), pv = fs ? [] : pageVouchers(), rr = pv.length ? HT.bestDeal({ base: p.price, vouchers: pv }) : null;   // 1.10.227: tự áp mã shop đọc được trên trang
+    const webP = rr && rr.best.v ? rr.best.final : p.price, webSub = fs ? 'Flash Sale · mã shop không áp' : rr && rr.best.v ? `đã trừ mã shop −${kShort(rr.best.shopOff)}` : 'chưa có mã áp được';
+    row('💻', 'Mua trên web', webP + (ship || 0), webSub + (ship == null ? ' · + phí ship' : ship ? ` · gồm ship ${kShort(ship)}` : ' · miễn ship'), w, `💡 Bấm "${buyLabel()}" để áp sẵn mã`);
     const a = el('button', 'b dbtn', '📱 Mở trên app'); a.title = 'Hiện mã QR to, mở Camera điện thoại quét'; a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
-    const known = walletApp && Date.now() - walletApp.at <= 4 * 864e5, wa = known ? walletAppBest(p.price) : null;
-    row('📱', 'Mua trên app', p.price - (wa ? wa.v : 0), wa ? `Đã trừ mã ví app ${kShort(wa.v)} · thường miễn ship` : 'Rẻ hơn web: miễn ship + mã riêng app', a,
+    const known = walletApp && Date.now() - walletApp.at <= 4 * 864e5, wa = known ? walletAppBest(webP) : null;
+    row('📱', 'Mua trên app', webP - (wa ? wa.v : 0), wa ? `đã trừ thêm mã ví app −${kShort(wa.v)} · thường miễn ship` : 'thường miễn ship · app có thể có mã riêng', a,
       wa ? '💡 Quét mã QR bằng Camera điện thoại để mở đúng món' : '💡 Vào giỏ → bấm "Chọn Voucher" 1 lần, HaoHao tự tính giá app rẻ hơn');
     return box;
   }

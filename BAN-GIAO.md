@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.226)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.227)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -35,6 +35,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.226)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.227 | Không đọc được bảng giá (vd Flash Sale): tự trừ mã shop đọc trên trang ("Mã Giảm Giá Của Shop" / "Shop Vouchers") ở khung web/app; Flash Sale ghi "mã shop không áp"; dòng "Mã đang áp" không treo "đang đọc…" |
 | 1.10.226 | Trả phần đánh giá về như 1.10.223 (anh không muốn nút "Đọc đánh giá 1–2★"); giữ tên V1.0 |
 | 1.10.223 | Đọc đánh giá Shopee tiếng Anh: PRODUCT RATINGS, "5 Star (…)", out of 5, With Media |
 | 1.10.222 | Nút "🎟️ Tìm voucher" cùng kiểu nút "📱 Mở trên app" |
