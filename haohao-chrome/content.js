@@ -1365,6 +1365,10 @@
   .hotv .hvr { display: flex; align-items: center; gap: 8px; margin-top: 6px; } .hotv .hvr span { flex: 1; min-width: 0; font-size: 12px; color: #1F2A44; } .hotv .hvr small { display: block; color: #94A3B8; font-size: 10.5px; }
   .hotv .hvr button { all: unset; cursor: pointer; font: 800 11px system-ui; padding: 4px 10px; border-radius: 999px; background: #EE4D2D; color: #fff; white-space: nowrap; } .hotv .hvr button.tt { background: #111; }
   .hotv .hvlive { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 7px 10px; border-radius: 10px; background: #FEE2E2; border: 1.5px solid #F87171; color: #B91C1C; font: 700 12px/1.35 system-ui; } .hotv .hvlive span { flex: 1; } .hotv .hvlive b { flex: none; padding: 4px 10px; border-radius: 999px; background: #EE4D2D; color: #fff; font: 800 11.5px system-ui; } .hotv .hvlive:hover { filter: brightness(.98); }
+  .flwb .flwi { flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #FBD5C8; border-radius: 8px; font: 12px system-ui; background: #fff; color: #1F2A44; } .flwb .hvr button + button { margin-left: -4px; }
+  .flwb .flw { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #FBD5C8; } .flwb .flw > small { display: block; margin-top: 3px; font-size: 11px; color: #64748B; }
+  .flwb .flc { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; color: #15803D; font-weight: 600; } .flwb .flc span { flex: 1; min-width: 0; }
+  .flwb .flc button { all: unset; cursor: pointer; font: 800 10.5px system-ui; padding: 2px 8px; border-radius: 999px; background: #EE4D2D; color: #fff; white-space: nowrap; }
   .hotv .hvgo { all: unset; cursor: pointer; display: inline-block; margin-top: 7px; padding: 5px 12px; border-radius: 999px; background: #EE4D2D; color: #fff; font: 800 12px system-ui; } .hotv .hvgo:hover { filter: brightness(1.07); }
   .hotv .hvm, .hotv .hvw { all: unset; cursor: pointer; display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #64748B; } .hotv .hvw.soon { color: #DC2626; }
   .hotv > small { display: block; margin-top: 3px; font-size: 11.5px; color: #64748B; line-height: 1.4; }
@@ -3747,12 +3751,116 @@
     if (deals) chime();
     renderPanel();
   }
+  // ⭐ 1.10.251: Theo dõi shop (tab ❤️ Đã lưu) – mã của shop trong kho Ưu đãi (AccessTrade, máy chủ /hot?q=tên shop) + mã shop đọc trên trang khi mở shop/sản phẩm của shop đó
+  let follow = [], followIn = '', followMsg = '', followBusy = false, followTry = 0;
+  chrome.storage.local.get('followShops').then(d => { follow = d.followShops || []; if (/(^|\.)shopee\.vn$/.test(location.hostname)) { setTimeout(followPageRead, 5000); setTimeout(followRefresh, 7000); } }).catch(() => {});
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.followShops) follow = ch.followShops.newValue || []; });
+  const followSave = () => chrome.storage.local.set({ followShops: follow }).catch(() => {});
+  const sameShop = (a, b) => !!((a.id && b.id && a.id === b.id) || (a.user && b.user && a.user.toLowerCase() === b.user.toLowerCase()));
+  const shopUrl = s => s.user ? 'https://shopee.vn/' + s.user : 'https://shopee.vn/shop/' + s.id;
+  const rawName = s => !s.name || /^Shop \d+$/.test(s.name) || s.name === s.user;
+  function curShop() {
+    if (!/(^|\.)shopee\.vn$/.test(location.hostname)) return null;
+    if (isShopeeItem()) {
+      const m = itemKey().match(/^(\d+)[./]/); if (!m) return null;
+      const a = [...document.querySelectorAll('a[href]')].find(x => /^(Xem Shop|View Shop)$/i.test((x.innerText || '').trim()));
+      let user = ''; try { const u = a && new URL(a.href); if (u && /^\/[\w.-]+\/?$/.test(u.pathname)) user = u.pathname.replace(/\//g, ''); } catch {}
+      const lines = (document.body.innerText || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const oi = lines.findIndex(l => /^(Online|Đang hoạt động|Hoạt động|Active)\b/i.test(l));
+      let name = oi > 0 ? lines[oi - 1] : ''; if (/^(Mall|Yêu thích\+?|Preferred\+?)$/i.test(name) && oi > 1) name = lines[oi - 2];
+      return { id: m[1], user, name: (name || user || 'Shop ' + m[1]).slice(0, 40) };
+    }
+    if (isShopeeShop()) { const user = location.pathname.replace(/\//g, ''), nm = (document.querySelector('h1') || {}).innerText; return { id: '', user, name: String(nm || user).trim().slice(0, 40) }; }
+    return null;
+  }
+  function followParse(s) {
+    s = String(s || '').trim(); let u; try { u = new URL(/^https?:/i.test(s) ? s : 'https://' + s); } catch { return null; }
+    if (!/(^|\.)shopee\.vn$/.test(u.hostname)) return null;
+    let m = u.pathname.match(/-i\.(\d+)\.\d+/) || u.pathname.match(/^\/product\/(\d+)\/\d+/) || u.pathname.match(/^\/shop\/(\d+)/);
+    if (m) return { id: m[1], user: '', name: 'Shop ' + m[1] };
+    m = u.pathname.match(/^\/([\w.-]{2,40})\/?$/);
+    if (m && !/^(cart|checkout|search|user|m|mall|daily_discover|flash_sale|buyer|verify|product|shop)$/i.test(m[1])) return { id: '', user: m[1], name: m[1] };
+    return null;
+  }
+  function followAdd(s) {
+    let f = follow.find(x => sameShop(x, s));
+    if (f) { if (!f.id && s.id) f.id = s.id; if (!f.user && s.user) f.user = s.user; if (rawName(f) && !rawName(s)) f.name = s.name; }
+    else { f = { id: s.id || '', user: s.user || '', name: s.name, at: Date.now() }; follow = [...follow, f].slice(-30); }
+    followSave(); followRefresh(f); return f;
+  }
+  // mã của shop trong kho Ưu đãi máy chủ (tên mã AccessTrade có dạng "[Tên shop] Giảm …")
+  const followHot = s => ((s.hot && s.hot.items) || []).filter(c => !c.expires || Date.parse(c.expires) > Date.now());
+  async function followRefresh(only) {
+    if (followBusy || !HT.PRICE_API) return; followBusy = true; followTry = Date.now(); let news = null;
+    try {
+      for (const s of (only ? [only] : follow)) {
+        if (!only && s.hot && Date.now() - s.hot.at < 3600e3) continue;
+        const q = rawName(s) ? String(s.user || '').replace(/[._-]+/g, ' ') : s.name; if (!q || q.length < 3) { s.hot = { at: Date.now(), items: [] }; continue; }
+        const j = await fetch(HT.PRICE_API.replace(/\/$/, '') + '/hot?q=' + encodeURIComponent(q.slice(0, 50))).then(r => r.json()).catch(() => null); if (!j) continue;
+        const nf = HT.fold(q).replace(/\s+/g, ' ').trim();
+        const items = (j.items || []).filter(c => { const b = (String(c.title || '').match(/^\[([^\]]+)\]/) || [])[1]; return b ? HT.fold(b).includes(nf) || nf.includes(HT.fold(b)) : true; }).slice(0, 6);
+        const first = !s.hot; s.hot = { at: Date.now(), items };
+        const nw = items.filter(c => !(s.seen || []).includes(c.id)); s.seen = [...(s.seen || []), ...nw.map(c => c.id)].slice(-60);
+        if (!first && nw.length && !news) news = { s, c: nw[0], n: nw.length };
+      }
+    } finally { followBusy = false; }
+    followSave();
+    if (news && ui) say(`⭐ ${news.s.name} có mã mới: ${news.c.title.replace(/^\[[^\]]+\]\s*/, '')}${news.c.code ? ' · mã ' + news.c.code : ''}${news.n > 1 ? ` (và ${news.n - 1} mã khác)` : ''}`, 'happy', '⭐ Theo dõi shop', 'shop',
+      [{ label: '🏪 Mở shop', fn: () => openDeal(shopUrl(news.s)) }, { label: 'OK', ghost: true, fn: () => {} }]);
+    if (tab === 'shop' && ui && !ui.panel.hidden && shopSub === 'saved') renderPanel();
+  }
+  // mở trang shop / sản phẩm của shop đang theo dõi → đọc "Mã giảm giá của shop" trên trang
+  function followPageRead() {
+    const cs = curShop(); if (!cs) return; const f = follow.find(x => sameShop(x, cs)); if (!f) return;
+    if (!f.id && cs.id) f.id = cs.id; if (!f.user && cs.user) f.user = cs.user; if (rawName(f) && !rawName(cs)) f.name = cs.name;
+    let vs = []; if (isShopeeItem()) vs = pageVouchers();
+    else { const t = (document.body.innerText || '').replace(/\s+/g, ' '), i = t.search(/Mã Giảm Giá (?:Của )?Shop|Shop Vouchers?|Voucher/i); vs = i < 0 ? [] : HT.parseVouchers(t.slice(i, i + 800)); }
+    if (vs.length || !f.page) f.page = { at: Date.now(), list: vs.slice(0, 6) };
+    followSave();
+  }
+  const vTxt = v => `Giảm ${v.percent ? v.percent + '%' : kShort(v.discount)}${v.maxDiscount ? ' tối đa ' + kShort(v.maxDiscount) : ''}${v.minOrder ? ' · đơn từ ' + kShort(v.minOrder) : ''}`;
+  function followBox() {
+    const box = el('div', 'hotv flwb'); box.append(el('div', 'hvh', '⭐ Theo dõi shop'));
+    const cs = curShop();
+    if (cs && !follow.some(x => sameShop(x, cs))) {
+      const r = el('div', 'hvr'), b = el('button', '', '⭐ Theo dõi'); r.append(el('span', '', '🏪 ' + cs.name), b);
+      b.addEventListener('click', () => { followAdd(cs); followPageRead(); renderPanel(); }); box.append(r);
+    } else if (cs) { const f = follow.find(x => sameShop(x, cs)); if (f && (!f.page || Date.now() - f.page.at > 60e3)) followPageRead(); }
+    const r2 = el('div', 'hvr'), inp = document.createElement('input'), ab = el('button', '', 'Thêm');
+    inp.placeholder = 'Dán link shop hoặc sản phẩm Shopee'; inp.value = followIn; inp.className = 'flwi';
+    inp.addEventListener('input', () => { followIn = inp.value; });
+    const add = () => { const s = followParse(inp.value); if (!s) { followMsg = 'Link chưa đúng – dán link shop hoặc sản phẩm Shopee nhé.'; renderPanel(); return; } followAdd(s); followIn = ''; followMsg = ''; renderPanel(); };
+    ab.addEventListener('click', add); inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') add(); });
+    r2.append(inp, ab); box.append(r2);
+    if (followMsg) box.append(el('small', '', followMsg));
+    for (const s of follow) {
+      const card = el('div', 'flw'), hd = el('div', 'hvr');
+      const ob = el('button', 'tt', 'Mở shop ›'); ob.addEventListener('click', () => openDeal(shopUrl(s)));
+      const xb = el('button', 'tt', '✕'); xb.title = 'Bỏ theo dõi'; xb.addEventListener('click', () => { follow = follow.filter(x => x !== s); followSave(); renderPanel(); });
+      hd.append(el('span', '', '🏪 ' + s.name), ob, xb); card.append(hd);
+      const hs = followHot(s), pg = s.page && Date.now() - s.page.at < 7 * 864e5 ? s.page.list : [];
+      for (const c of hs) {
+        const r = el('div', 'flc'); r.append(el('span', '', '✅ ' + c.title.replace(/^\[[^\]]+\]\s*/, '')));
+        if (c.code) { const cb = el('button', '', '📋 ' + c.code); cb.addEventListener('click', () => copyText(c.code, cb)); r.append(cb); }
+        else if (c.url) { const lb = el('button', '', 'Lấy mã ›'); lb.addEventListener('click', () => openDeal(c.url)); r.append(lb); }
+        card.append(r);
+      }
+      for (const v of pg) card.append(el('div', 'flc', '🏷️ Mã shop: ' + vTxt(v)));
+      if (!hs.length && !pg.length) card.append(el('small', '', s.hot ? 'Chưa thấy mã. Mở trang shop là HaoHao đọc thêm mã shop.' : 'Đang tìm mã…'));
+      else if (pg.length) card.append(el('small', '', 'Mã shop đọc trên trang ' + agoTxt(s.page.at)));
+      box.append(card);
+    }
+    if (!follow.length) box.append(el('small', '', 'Dán link shop Shopee, hoặc mở trang shop / sản phẩm rồi bấm ⭐ Theo dõi. Shop có mã mới là HaoHao báo.'));
+    else if (Date.now() - followTry > 60e3 && follow.some(s => !s.hot || Date.now() - s.hot.at > 3600e3)) setTimeout(() => followRefresh(), 300);
+    return box;
+  }
   function renderSaved(L) {
     const list = products;
     const hd = el('div', 'svhd');
     hd.append(el('span', '', list.length ? `${list.length}/${HT.SAVE_MAX} món` : ''));
     L.append(hd);
     if (prodMsg) L.append(el('div', 'svmsg', prodMsg));
+    L.append(followBox());   // 1.10.251
     if (!list.length) { L.append(el('div', 'empty', `Chưa lưu món nào. Mở 1 sản phẩm Shopee hoặc TikTok Shop, bấm 🤍 Lưu & theo dõi giá (tối đa ${HT.SAVE_MAX} món).`)); return; }
     for (const it of list) {
       const pct = HT.dropPct(it), deal = it.dealNew && pct >= 5, more = svMore.has(it.id);
