@@ -4743,7 +4743,7 @@
     row.append(el('span', '', walletMine ? `Cập nhật ${new Date(walletMine.at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}` : ''), a, c); box.append(row);
     { const hr = vhRes.hot; if (hr) box.append(el('small', '', hr.err ? (VH_ERR[hr.err] || 'Chưa lưu được, thử lại sau nhé.') : `✓ Đã lưu thêm ${hr.saved.length} mã${hr.have.length ? `, ${hr.have.length} mã bạn đã có sẵn` : ''}.`)); }
     { const u = el('button', 'hvm', '🔄 Cập nhật ví (đọc lại Ví voucher Shopee) ›'); u.addEventListener('click', () => openDeal('https://shopee.vn/user/voucher-wallet')); box.append(u); }
-    L.append(box);
+    // 1.10.246: bỏ khung "📒 Ví voucher của bạn" (mã đã có trong ví, không cần hiện)
     L.append(choBox());   // 1.10.177: chợ voucher xuống cuối, ví của bạn lên trên
   }
   // Ví voucher (khách tự mở, đã đăng nhập): đọc các mã + hạn dùng, lưu trong máy để nhắc

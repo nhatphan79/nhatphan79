@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.245)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.246)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.245)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.246 | Bỏ khung "📒 Ví voucher của bạn" (sửa do một phiên Claude khác trên cùng máy ghi vào) |
 | 1.10.245 | Đổi tên "🏷️ Top 10 mã shop thương hiệu" → "🏷️ Ưu đãi" |
 | 1.10.244 | Bỏ khung "🔎 Tìm mã theo nhu cầu" (không ra mã giảm) |
 | 1.10.243 | Lịch săn mã: đang tung mã → cả dòng thành nút đỏ "🔥 … [Lưu ngay ›]" (Extra → trang Mã giảm giá, thứ 4 → Ví voucher); chưa tới giờ → chỉ hiện giờ tiếp theo, không nút. Bỏ nút chung của 1.10.242. Lịch vẫn cố định – tự quét: chờ anh duyệt |
