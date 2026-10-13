@@ -6472,7 +6472,8 @@
     if (settings.shopAsk === false && trust.score >= 60) return;
     const bad = trust.score < 60, shopOnly = !!trust.info.shopOnly;
     const all = [...trust.shop, ...trust.product];
-    const pick = (bad ? all.filter(x => x.s === 'bad').concat(all.filter(x => x.s === 'warn')) : all.filter(x => x.s === 'ok')).slice(0, 5);   // 1.10.214: hiện tới 5 điểm kiểm tra (trước chỉ 2)
+    const minor = x => /^Shop mới có .*lượt đánh giá|người theo dõi/i.test(x.t);   // 1.10.237: để trong Kiểm tra chi tiết, không hiện ở bong bóng
+    const pick = (bad ? all.filter(x => x.s === 'bad').concat(all.filter(x => x.s === 'warn')) : all.filter(x => x.s === 'ok')).filter(x => !minor(x)).slice(0, 5);   // 1.10.214: hiện tới 5 điểm kiểm tra (trước chỉ 2)
     const B = ui.bubble;
     B.innerHTML = ''; B.dataset.tab = 'shop'; B.dataset.kind = 'trust'; B.classList.add('tb'); B.style.setProperty('--k', { good: '#1E9E6F', ok: '#2E7DD7', warn: '#E08A00', bad: '#E0344B' }[trust.cls]);
     const top = el('div', 'tb-top');
