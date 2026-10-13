@@ -20,8 +20,9 @@
 (() => {
   const host = location.hostname.replace(/^www\./, '');
   const AFF = /(^|\.)(shopee\.vn|shope\.ee|tiktok\.com|collshp\.com)$/;
+  // V1.3: không đụng Facebook, Messenger, Instagram, Zalo, Telegram (ẩn nhầm hình trong tin nhắn)
   // 1.10.174: không đụng trang làm việc (AI Studio, Cloudflare, GitHub, tài khoản Google…): ẩn nhầm làm hỏng nút / hộp thoại
-  if (AFF.test(host) || /(^|\.)(mail|docs|drive|calendar|aistudio|accounts|myaccount|gemini|cloud|console\.cloud)\.google\.com$|(^|\.)(youtube\.com|dash\.cloudflare\.com|github\.com|claude\.ai|chatgpt\.com|notion\.so|figma\.com|canva\.com|microsoft\.com|live\.com|office\.com|apple\.com|zalo\.me|accesstrade\.vn|riohub\.vn)$/.test(host)) return;
+  if (AFF.test(host) || /(^|\.)(mail|docs|drive|calendar|aistudio|accounts|myaccount|gemini|cloud|console\.cloud)\.google\.com$|(^|\.)(facebook\.com|messenger\.com|instagram\.com|zalo\.me|telegram\.org|youtube\.com|dash\.cloudflare\.com|github\.com|claude\.ai|chatgpt\.com|notion\.so|figma\.com|canva\.com|microsoft\.com|live\.com|office\.com|apple\.com|zalo\.me|accesstrade\.vn|riohub\.vn)$/.test(host)) return;
   const TOP = window.top === window;
   const SEL = [
     'ins.adsbygoogle', '.adsbygoogle', '[id^="google_ads_iframe"]', '[id^="div-gpt-ad"]', '[data-google-query-id]', '[data-ad-slot]',
