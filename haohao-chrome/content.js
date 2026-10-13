@@ -4025,7 +4025,7 @@
     }
     // 1.10.240: bỏ khung "Gộp thêm mã cho món này" (nút Tìm voucher ở bong bóng đã làm việc này)
     // 3) kết quả lần săn gần nhất
-    if (res && !run) {
+    if (false && res && !run) {   // 1.10.241: bỏ khung "Kết quả" tìm mã khỏi tab Voucher
       const rb = el('div', 'cbox');
       const when = Math.round((Date.now() - res.at) / 60000);
       rb.append(el('div', 'ct', `🎟️ Kết quả (${when < 1 ? 'vừa xong' : when < 60 ? when + ' phút trước' : Math.round(when / 60) + ' giờ trước'})`));
