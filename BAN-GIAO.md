@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.249)
+Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.250)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -40,6 +40,7 @@ Cập nhật: 13/10/2026 · **Bản V1.0** (số kỹ thuật 1.10.249)
 | Bản | Đã sửa |
 | --- | --- |
 | V1.0 (1.10.225) | Đặt tên hiển thị "V1.0" (version_name), số kỹ thuật vẫn tăng để HaoHao tự nạp lại |
+| 1.10.250 | Soi sản phẩm mặc định cho mọi khách: ô 🔎 Tìm gọi máy chủ `/search` (Shopee: kho `sp` máy chủ nạp từ AccessTrade, chỉ 3 nhóm Thời trang · Gia dụng · Mẹ và bé; TikTok: RioHub). Khoá chỉ trên máy chủ, bỏ khung 🔑 nhập khoá. Máy chủ mới phải Deploy |
 | 1.10.249 | BỎ chế độ Săn live: không còn khung "📺 Săn live" ở tab Voucher, tắt canh mã trên trang live, tắt kiểm tra shop TikTok 10 phút/lần (Shopee Live chỉ xem trên app) |
 | 1.10.248 | Tab Voucher ở trang sản phẩm: khung "📺 Săn live" hiện lại, nằm cuối cùng |
 | 1.10.247 | Chợ voucher: mã mình đăng có nút 🗑️ Xoá; HaoHao tự đọc thông báo Shopee khi dán mã chép từ Chợ ở giỏ/thanh toán (sai → báo hỏng, áp được → 👍); 2 lần báo hỏng → máy chủ tự xoá. Cần dán `server/haohao-gia-worker.js` mới lên Cloudflare |

@@ -28,6 +28,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS cho (id INTEGER PRIMARY KEY AUTOINCREMENT, by TEXT, shop TEXT, code TEXT, label TEXT, url TEXT, until INTEGER, at INTEGER, ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, used INTEGER DEFAULT 0)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS chov (id INTEGER, by TEXT, v TEXT, PRIMARY KEY (id, by))'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sp (k TEXT PRIMARY KEY, t TEXT, f TEXT, img TEXT, p INTEGER, o INTEGER, dc INTEGER, shop TEXT, url TEXT, d INTEGER)'),   // 13/10: kho tìm sản phẩm Shopee cho khách
   ]);
   ready = true;
 }
@@ -84,10 +85,10 @@ const setSt = (env, k, v) => env.DB.prepare('INSERT INTO st (k, v) VALUES (?, ?)
 async function feedRun(env) {
   if (!env.AT_KEY) return { ok: false, error: 'no AT_KEY' };
   await init(env);
-  const d = today(); let st = (await getSt(env, 'feed')) || {};
+  const d = today(); let st = (await getSt(env, 'feed2')) || {};
   if (st.day !== d) st = { day: d, page: 1, done: false, n: 0 };
   if (st.done) return { ok: true, done: true, n: st.n };
-  const items = [];
+  const items = [], rows = [];
   for (let i = 0; i < FEED_PAGES && !st.done; i++) {
     const r = await fetch(`https://api.accesstrade.vn/v1/datafeeds?domain=shopee.vn&limit=200&page=${st.page}`, { headers: { Authorization: 'Token ' + env.AT_KEY } });
     if (!r.ok) { st.err = 'AT ' + r.status; break; }
@@ -100,13 +101,17 @@ async function feedRun(env) {
       const tx = (p.cate || '') + ' ' + (p.name || '');
       if (!KEEP.test(tx)) continue;   // ngoài 3 nhóm → bỏ
       if (price >= 1000) items.push({ k: `sp:${m[1]}.${m[2]}`, p: price, b: before > price ? before : 0, prio: PRIO.test(tx) });
+      if (price >= 1000 && p.name && p.url) rows.push([`sp:${m[1]}.${m[2]}`, String(p.name).slice(0, 200), fold(p.name + ' ' + (p.shop_name || '') + ' ' + (p.cate || '')).slice(0, 400), String(p.image || '').slice(0, 300), price, before > price ? before : 0,
+        Math.round(Number(p.discount_rate) || 0) || (before > price ? Math.round((1 - price / before) * 100) : 0), String(p.shop_name || '').slice(0, 80), String(p.url).slice(0, 400), d]);
     }
     st.page++; if (data.length < 200) st.done = true;
   }
   items.sort((x, y) => (y.prio ? 1 : 0) - (x.prio ? 1 : 0));
+  for (let i = 0; i < rows.length; i += 100) await env.DB.batch(rows.slice(i, i + 100).map(r => env.DB.prepare('INSERT INTO sp (k, t, f, img, p, o, dc, shop, url, d) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(k) DO UPDATE SET t = excluded.t, f = excluded.f, img = excluded.img, p = excluded.p, o = excluded.o, dc = excluded.dc, shop = excluded.shop, url = excluded.url, d = excluded.d').bind(...r))).catch(() => {});
   const r = await save(env, items);
   st.n = (st.n || 0) + r.saved; st.at = Date.now();
-  await setSt(env, 'feed', st);
+  await setSt(env, 'feed2', st);
+  if (st.done) await env.DB.prepare('DELETE FROM sp WHERE d < ?').bind(d - 2).run().catch(() => {});
   return { ok: true, page: st.page, done: st.done, saved: r.saved, n: st.n, err: st.err };
 }
 
@@ -143,6 +148,38 @@ async function feedTT(env) {
   st.n = (st.n || 0) + sv.saved; st.at = Date.now();
   await setSt(env, 'feedtt', st);
   return { ok: true, kw: st.ki, of: TT_KW.length, saved: sv.saved, n: st.n, err: st.err };
+}
+
+// 🔎 /search?q=&src=all|shopee|tiktok&page=&cursor= – Soi sản phẩm cho mọi máy (13/10). Shopee: kho sp (AccessTrade nạp sẵn); TikTok: RioHub. Khoá chỉ nằm trên máy chủ.
+const fold = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+async function spySearch(env, u) {
+  const q = normQ(u.searchParams.get('q')), src = u.searchParams.get('src') || 'all', page = Math.max(1, Math.min(20, +u.searchParams.get('page') || 1)), cursor = String(u.searchParams.get('cursor') || '').slice(0, 300);
+  if (q.length < 2) return { q, shopee: { items: [], total: 0 }, tiktok: { items: [] } };
+  await init(env);
+  const shopee = src === 'tiktok' ? null : await (async () => {
+    const w = fold(q).split(/\s+/).filter(Boolean).slice(0, 6); if (!w.length) return { items: [], total: 0 };
+    const where = w.map(() => 'f LIKE ?').join(' AND '), args = w.map(t => '%' + t.replace(/[%_]/g, '') + '%');
+    const r = await env.DB.prepare(`SELECT k, t, img, p, o, dc, shop, url FROM sp WHERE ${where} ORDER BY dc DESC LIMIT 20 OFFSET ?`).bind(...args, (page - 1) * 20).all();
+    const items = (r.results || []).map(x => ({ src: 'shopee', id: x.k.slice(3), title: x.t, image: x.img, price: x.p, oldPrice: x.o, discount: x.dc, shop: x.shop, url: x.url }));
+    return { items, total: items.length < 20 ? (page - 1) * 20 + items.length : (page * 20) + 1 };
+  })().catch(e => ({ items: [], error: String(e && e.message || e) }));
+  const tiktok = src === 'shopee' || !env.RH_KEY ? null : await (async () => {
+    const qs = new URLSearchParams({ creator_username: env.RH_CREATOR || 'nhanhimdaily', keyword: q, page_size: '20' }); if (cursor) qs.set('page_token', cursor);
+    for (const base of ['https://riohub.vn/api/v1', 'https://riohub.riokupon.com/api/v1', 'https://riohub.riokupon.me/api/v1']) {
+      try {
+        const r = await fetch(`${base}/partner/tiktok/affiliate/products/search?${qs}`, { headers: { 'X-Riohub-Api-Key': env.RH_KEY } }); const j = await r.json().catch(() => ({}));
+        if (!r.ok) return { items: [], error: 'RioHub ' + r.status };
+        return { next: j.next_page_token || '', items: (j.products || []).map(p => {
+          const price = rhNum(p.sales_price && p.sales_price.minimum_amount) || rhNum(p.price && (p.price.floor_price || p.price.amount));
+          return { src: 'tiktok', id: String(p.id), title: p.title || '', image: p.main_image_url || '', price, oldPrice: 0, discount: 0,
+            sold: (p.market_performance && +p.market_performance.historical_sold_quantity) || 0, rating: +(p.review && p.review.overall_score) || 0,
+            shop: (p.shop && p.shop.name) || p.seller_name || '', url: `https://www.tiktok.com/view/product/${p.id}` };
+        }).filter(x => /^\d{8,22}$/.test(x.id)) };
+      } catch {}
+    }
+    return { items: [], error: 'RioHub lỗi' };
+  })();
+  return { q, shopee, tiktok };
 }
 
 // 🎵 /tt?q= – tìm món TikTok cho mọi máy (so giá "TikTok rẻ hơn"), nhớ 6 giờ theo từ khoá, không lộ key
@@ -404,12 +441,13 @@ export default {
       }
       if (u.pathname === '/hot') { if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
+      if (u.pathname === '/search') return json(await spySearch(env, u), 200, { 'cache-control': 'public, max-age=300' });
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
       if (u.pathname === '/ping' && req.method === 'POST') return json(await ping(env, await req.json().catch(() => null)));
       if (u.pathname === '/bye') return req.method === 'POST' ? json(await byeWhy(env, await req.json().catch(() => null))) : await bye(env, u);
       if (u.pathname === '/thongke') return await stats(env, u);
       if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
-        const f = await getSt(env, 'feed'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
+        const f = await getSt(env, 'feed2'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
         return json(await feedSafe(env));
       }
       if (u.pathname === '/h') return json(await get(env, u.searchParams.get('k')), 200, { 'cache-control': 'public, max-age=600' });
