@@ -686,7 +686,7 @@
   .tb-lv small { display: block; font-weight: 600; font-size: 11px; color: #6B7394; margin-top: 2px; }
   .tb-x { all: unset; cursor: pointer; margin-left: auto; align-self: flex-start; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #9AA1BE; font-size: 13px; }
   .tb-x:hover, .tb-x:focus-visible { background: #EEF0F6; color: #23305E; }
-  .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; }
+  .tb-why { font-size: 12px; color: #3A4470; margin-top: 7px; line-height: 1.4; } .tb-wl { padding: 1px 0; } .tb-why > button, .tb-why > .tb-go2 { margin-top: 5px; }
   .tb-cp { margin-top: 6px; font-size: 12px; font-weight: 800; color: #D0391B; background: #FFF1EE; border-radius: 8px; padding: 4px 8px; }
   .tb-rv { margin-top: 7px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.4; }
   .tb-rv > b { display: block; font-size: 11.5px; margin-bottom: 2px; }
@@ -6520,7 +6520,7 @@
       if (q0) { const row = el('div', 'tb-rl'); row.append(quote(q0.slice(0, 90), (top.words || []).find(w => q0.toLowerCase().includes(w)))); box.append(row); }
       B.append(box);
     } else if (trust.info.reviewsReading) B.append(el('div', 'tb-hook wait', '💬 Đang đọc toàn bộ đánh giá…'));
-    else if (bad && pick.length) B.append(el('div', 'tb-why', pick.map(i => '⚠ ' + i.t.split(':')[0]).join(' · ')));
+    else if (bad && pick.length) { const wy = el('div', 'tb-why'); pick.forEach(i => wy.append(el('div', 'tb-wl', '⚠ ' + i.t.split(':')[0]))); B.append(wy); }   // 1.10.236: mỗi cảnh báo 1 dòng
     else if (trust.info.goodReview) {
       const box = el('div', 'tb-rv good'); box.append(el('b', '', `💬 Đánh giá nổi bật · ${rv ? rv.read : 0} đánh giá không thấy lời chê`), quote(trust.info.goodReview));
       B.append(box);
