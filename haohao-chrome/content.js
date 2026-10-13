@@ -698,6 +698,7 @@
   .tb-hook { all: unset; display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 6px 9px; border-radius: 10px; font-size: 12px; line-height: 1.35; }
   .tb-hook.wait { background: #F1F4FA; color: #6B7394; }
   .tb-hook.ok { background: #E8F7F1; color: #1E7A5F; font-weight: 700; }
+  .tb-hook > b, .tb-hook > span { display: block; } .tb-hook > span { font-weight: 500; font-size: 11.5px; opacity: .9; margin-top: 1px; }   /* 1.10.232: 2 dòng, không dính chữ */
   .tb-hook.hot { cursor: pointer; background: linear-gradient(135deg, #FFF1EE, #FFE3D6); border: 1.5px solid #F7A48F; color: #3A4470; }
   .tb-hook.hot b { display: block; color: #D0391B; font-size: 13px; } .tb-hook.hot span { font-size: 11.5px; }
   .tb-hook.hot:hover { border-color: #EE4D2D; } .tb-hook.hot:focus-visible { outline: 2px solid #EE4D2D; }
@@ -6100,6 +6101,37 @@
     return b;
   }
   // ➕ Thêm Xk là dùng được mã: mã shop có đơn tối thiểu cao hơn giá món một chút mà đáng giá
+  // 1.10.232: ➕ ưu đãi MUA NHIỀU – HaoHao tự đọc trên trang (Combo Khuyến Mãi "Mua 2 giảm 5%", mã shop có đơn tối thiểu, Mua Kèm Deal Sốc), tự chọn cái lời nhất rồi gợi ý
+  function comboOffers() {
+    const t = (document.body.innerText || '').replace(/\s+/g, ' '), out = [];
+    for (const m of t.matchAll(/Mua\s*(\d+)\s*(?:&|và|sản phẩm)?\s*(?:được\s*)?giảm\s*(\d{1,2})\s*%/gi)) out.push({ n: +m[1], pct: +m[2] });
+    for (const m of t.matchAll(/Mua\s*(\d+)\s*(?:&|và|sản phẩm)?\s*(?:được\s*)?giảm\s*₫\s*([\d.,]+\s*k?)/gi)) out.push({ n: +m[1], off: HT.money(m[2]) });
+    for (const m of t.matchAll(/Buy\s*(\d+)\s*(?:&|and)?\s*(?:get\s*)?(\d{1,2})\s*%\s*off/gi)) out.push({ n: +m[1], pct: +m[2] });
+    return out.filter(x => x.n >= 2 && x.n <= 10 && (x.pct > 0 || x.off > 0));
+  }
+  function moreHook(price, D) {
+    if (!(price > 0)) return null;
+    const k1 = n => kShort(Math.round(n / 1000) * 1000);
+    let fill = null, combo = null;
+    // mã shop có đơn tối thiểu (Flash Sale: mã shop thường không áp → bỏ)
+    if (!flashSale()) for (const v of ((D && D.vouchers) || pageVouchers())) {
+      if (v.out || !v.min || v.min <= price) continue;
+      const need = v.min - price, val = v.pct ? Math.min(Math.round(v.min * v.pct / 100), v.cap || Infinity) : (v.off || 0);
+      if (!(val >= 5000) || val < need * 0.7 || need > Math.max(30000, price * 0.3)) continue;
+      if (!fill || need - val < fill.need - fill.val) fill = { need, val };
+    }
+    for (const c of comboOffers()) {
+      const tot = c.n * price, save = c.pct ? Math.round(tot * c.pct / 100) : c.off; if (!(save > 0)) continue;
+      if (!combo || save / c.n > combo.save / combo.n) combo = { ...c, save, unit: (tot - save) / c.n };
+    }
+    let head = '', sub = '';
+    if (fill && fill.need - fill.val <= 5000) { head = `➕ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = fill.val >= fill.need ? 'có thêm món mà gần như không tốn thêm' : `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
+    else if (combo) { head = `➕ Mua ${combo.n} ${combo.pct ? 'giảm ' + combo.pct + '%' : 'giảm ' + k1(combo.off)} → còn ${k1(combo.unit)}/cái`; sub = 'Combo Khuyến Mãi của shop'; }
+    else if (fill) { head = `➕ Thêm món ~${k1(fill.need)} cùng shop → giảm ${k1(fill.val)}`; sub = `chỉ tốn thêm ${k1(fill.need - fill.val)}`; }
+    else if (/Mua Kèm Deal Sốc/i.test(document.body.innerText || '')) { head = '➕ Có Mua Kèm Deal Sốc'; sub = 'món mua kèm được giá sốc · xem ngay dưới giá'; }
+    if (!head) return null;
+    const b = el('div', 'tb-hook ok'); b.append(el('b', '', head), el('span', '', sub)); return b;
+  }
   function needMoreHook(D) {
     const r = D && D.res; if (!r || !D.vouchers) return null;
     let best = null;
@@ -6499,14 +6531,14 @@
     if (DR && DR.res) {
       B.append(dealBlock(DR));
       const vh = saveHook(DR); if (vh) B.append(vh);
-      const nm = needMoreHook(DR); if (nm) B.append(nm);
+      const nm = moreHook((p && p.price) || (DR.res && DR.res.base), DR); if (nm) B.append(nm);
       if (p && p.price) { const fh = flashHook(p); if (fh) B.append(fh); ttCompare(p); const th = ttHook(p); if (th) B.append(th); }
     } else if (isShopeeItem() && !shopOnly) {   // chưa đọc được bảng giá (vd Flash Sale): vẫn có mã QR mua trên app
       B.append(p && p.price ? liteDeal(p) : appQr(0));   // 1.10.216: vẫn hiện đủ 2 khung Mua trên web / Mua trên app như bình thường
       // 1.10.217: trang tải chậm → thử đọc lại bảng giá, đọc được thì vẽ lại bong bóng đầy đủ (tối đa 4 lần)
       { const href = location.href; let k = 0; const again = () => { if (++k > 4 || location.href !== href || B.hidden || B.dataset.kind !== 'trust') return;
           const d2 = readDeal(); if (d2 && d2.res) showTrustBubble(); else setTimeout(again, 2000); }; setTimeout(again, 2000); }
-      if (p && p.price) { ttCompare(p); const th = ttHook(p); if (th) B.append(th); }
+      if (p && p.price) { const nm2 = moreHook(p.price, null); if (nm2) B.append(nm2); ttCompare(p); const th = ttHook(p); if (th) B.append(th); }
     }
     // câu mời từ kết quả tự so giá
     const st = p && sameState && sameState.url === p.url ? sameState : null;
