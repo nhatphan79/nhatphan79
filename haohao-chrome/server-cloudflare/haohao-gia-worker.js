@@ -182,25 +182,43 @@ async function anh(env, b) {
     try { const r = await fetch(u.replace(/_tn$/, '') + '_tn'); if (!r.ok) continue; const ct = r.headers.get('content-type') || 'image/jpeg'; parts.push({ inline_data: { mime_type: ct.split(';')[0], data: b64(await r.arrayBuffer()) } }); } catch {}
   }
   if (parts.length < 4) return { ok: false, error: 'img' };
-  let out = null;
-  for (const m of [env.GEMINI_MODEL || 'gemini-flash-lite-latest', 'gemini-flash-latest']) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
-      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 200 } }) });
-    if (!r.ok) continue;
-    const j = await r.json().catch(() => null), t = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(x => x.text || '').join('');
-    try { const v = JSON.parse(t); if (/^(giong|hoi_khac|khac_xa|khong_ro)$/.test(v.muc)) { out = { muc: v.muc, diem: Math.max(0, Math.min(100, Math.round(+v.diem || 0))), y: String(v.y || '').slice(0, 120), n: real.length }; break; } } catch {}
+  let out = null, lastErr = '';
+  // mẫu Gemini: dò danh sách mẫu "flash" mà key dùng được (nhớ 1 ngày), lite trước
+  let gm = await getSt(env, 'gemModels');
+  if (!gm || Date.now() - gm.at > 864e5) {
+    try { const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': env.GEMINI_KEY } }); const j = await r.json();
+      const ver = n => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+      const list = (j.models || []).map(m => ({ n: String(m.name || '').replace(/^models\//, ''), g: m.supportedGenerationMethods || [] })).filter(m => m.g.includes('generateContent') && /^gemini-[\d.]+-flash(-lite)?$/.test(m.n)).map(m => m.n)
+        .sort((x, y) => (/-lite/.test(y) - /-lite/.test(x)) || ver(y) - ver(x));
+      gm = { at: Date.now(), list: list.slice(0, 4) }; if (list.length) await setSt(env, 'gemModels', gm); else lastErr = 'models: ' + (j.error && j.error.message || r.status);
+    } catch (e) { lastErr = 'models: ' + e.message; }
   }
-  if (!out) return { ok: false, error: 'ai' };
+  for (const m of [...new Set([env.GEMINI_MODEL, ...((gm && gm.list) || []), 'gemini-flash-lite-latest', 'gemini-flash-latest'].filter(Boolean))].slice(0, 5)) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 300 } }) });
+    if (!r.ok) { lastErr = m + ' ' + r.status + ' ' + String(((await r.json().catch(() => ({}))).error || {}).message || '').slice(0, 120); continue; }
+    const j = await r.json().catch(() => null), t = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(x => x.text || '').join('');
+    lastErr = m + ' trả lời lạ: ' + String(t || '').slice(0, 80);
+    try { const v = JSON.parse(String(t || '').replace(/^```(json)?|```$/g, '').trim()); if (/^(giong|hoi_khac|khac_xa|khong_ro)$/.test(v.muc)) { out = { muc: v.muc, diem: Math.max(0, Math.min(100, Math.round(+v.diem || 0))), y: String(v.y || '').slice(0, 120), n: real.length }; break; } } catch {}
+  }
+  if (!out) return { ok: false, error: 'ai', why: lastErr.replace(/key=[\w-]+/g, '') };
   await env.DB.prepare('INSERT INTO anh (k, v, at) VALUES (?, ?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v, at = excluded.at').bind(k, JSON.stringify(out), Date.now()).run();
   return { ok: true, ...out };
 }
 
-// 🤝 Chợ voucher cộng đồng: khách tặng mã nhập tay mình không dùng; mã báo "hết" ≥ 3 lần tự ẩn. Link chỉ nhận shopee.vn / tiktok.com (không nhận link rút gọn để khỏi bị cướp hoa hồng)
+// 🤝 Chợ voucher cộng đồng: khách tặng mã nhập tay mình không dùng; mã bị 2 máy báo hỏng tự xoá; người đăng tự xoá được. Link chỉ nhận shopee.vn / tiktok.com (không nhận link rút gọn để khỏi bị cướp hoa hồng)
 const CODE = /^[A-Z0-9]{4,24}$/;
-async function choList(env) {
+async function choList(env, by = '') {
   const now = Date.now();
-  const { results = [] } = await env.DB.prepare('SELECT id, shop, code, label, url, until, at, ok, bad, used FROM cho WHERE until > ? AND bad < 3 AND bad <= ok + 2 ORDER BY (ok - bad) DESC, at DESC LIMIT 40').bind(now).all();
-  return { ok: true, items: results };
+  // 13/10: mã bị 2 máy báo hỏng là ẩn (và bị xoá ở choVote); mine = mã do chính máy này đăng (không lộ mã máy)
+  const { results = [] } = await env.DB.prepare('SELECT id, by, shop, code, label, url, until, at, ok, bad, used FROM cho WHERE until > ? AND bad < 2 ORDER BY (ok - bad) DESC, at DESC LIMIT 40').bind(now).all();
+  return { ok: true, items: results.map(({ by: b, ...x }) => ({ ...x, mine: !!by && b === by })) };
+}
+async function choDel(env, b) {   // 13/10: người đăng tự xoá mã của mình
+  const by = String(b && b.by || ''), id = +b.id; if (!ID.test(by) || !(id > 0)) return { ok: false };
+  const r = await env.DB.prepare('DELETE FROM cho WHERE id = ? AND by = ?').bind(id, by).run();
+  await env.DB.prepare('DELETE FROM chov WHERE id = ?').bind(id).run().catch(() => {});
+  return { ok: !!(r && r.meta && r.meta.changes) };
 }
 async function choAdd(env, b) {
   const by = String(b && b.by || ''); if (!ID.test(by)) return { ok: false, error: 'id' };
@@ -222,6 +240,7 @@ async function choVote(env, b) {
   const r = await env.DB.prepare('INSERT OR IGNORE INTO chov (id, by, v) VALUES (?, ?, ?)').bind(id, by, v).run();
   if (r && r.meta && r.meta.changes === 0) return { ok: true, again: true };
   await env.DB.prepare(`UPDATE cho SET ${v} = ${v} + 1 WHERE id = ?`).bind(id).run();
+  if (v === 'bad') await env.DB.prepare('DELETE FROM cho WHERE id = ? AND bad >= 2').bind(id).run();   // 13/10: 2 máy báo hỏng → tự xoá
   return { ok: true };
 }
 
@@ -366,8 +385,8 @@ export default {
         return json(await put(env, await req.json().catch(() => null)));
       }
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
-      if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env));
-      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
+      if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env, String(u.searchParams.get('by') || '')));
+      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.del ? await choDel(env, b) : b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
       if (u.pathname === '/hot' && u.searchParams.get('q')) {   // 🔎 tìm mã theo từ khoá (vd "thời trang", "sữa")
         const f = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
         const words = f(u.searchParams.get('q')).split(/\s+/).filter(w => w.length > 1).slice(0, 5), all = (await getSt(env, 'hotall')) || [], now = Date.now();

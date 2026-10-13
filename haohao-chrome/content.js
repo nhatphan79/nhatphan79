@@ -4639,6 +4639,21 @@
     const r = await chrome.runtime.sendMessage({ type: 'cho', op: 'list' }).catch(() => null);
     cho.busy = false; if (r && r.ok) { cho.items = r.items || []; cho.at = Date.now(); if (!cho.form && tab === 'shop' && ui && !ui.panel.hidden) renderPanel(); }
   }
+  // 1.10.247: TỰ KIỂM TRA mã chợ – khách chép mã rồi dán ở giỏ/thanh toán Shopee: Shopee báo lỗi → tự báo hỏng (2 máy báo → máy chủ xoá); áp được → 👍
+  setTimeout(() => {
+    if (!/(^|\.)shopee\.vn$/.test(location.hostname) || !/^\/(cart|checkout)/.test(location.pathname)) return;
+    let n = 0; const iv = setInterval(async () => {
+      if (++n > 400) return clearInterval(iv);
+      const { choTry } = await chrome.storage.local.get('choTry').catch(() => ({})); if (!choTry || Date.now() - choTry.at > 30 * 6e4) return;
+      const t = document.body.innerText || ''; if (!t.includes(choTry.code)) return;
+      const badRe = /(Mã( voucher)?|Voucher)[^\n]{0,30}(không hợp lệ|không tồn tại|đã hết lượt|hết lượt sử dụng|đã hết hạn|không áp dụng|không đủ điều kiện)|Rất tiếc[^\n]{0,40}(hết|không)/i;
+      const okRe = /(Áp dụng thành công|Đã áp dụng)/i;
+      const v = badRe.test(t) ? 'bad' : okRe.test(t) ? 'ok' : '';
+      if (!v) return;
+      clearInterval(iv); await chrome.storage.local.remove('choTry').catch(() => {});
+      chrome.runtime.sendMessage({ type: 'cho', op: 'vote', data: { vote: 1, id: choTry.id, v } }).catch(() => {});
+    }, 1500);
+  }, 2000);
   function choBox() {
     choLoad();
     const box = el('div', 'hotv'), hd = el('div', 'hvh', '🤝 Chợ voucher cộng đồng'); hd.append(el('em', '', cho.items.length + ' mã')); box.append(hd);
@@ -4649,10 +4664,12 @@
       const left = x.until - Date.now(), cd = el('div', 'hvc' + (left < 864e5 ? ' soon' : ''), (x.shop === 'tiktok' ? '🎵 ' : '🛍️ ') + x.label);
       cd.append(el('small', '', `Mã ${x.code} · ${left < 864e5 ? 'hết hạn hôm nay' : 'HSD ' + new Date(x.until).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}${x.ok ? ` · 👍 ${x.ok}` : ''}${x.used ? ` · ${k(x.used)} lượt lấy` : ''}`));
       const cp = el('button', x.shop === 'tiktok' ? 'tt' : '', 'Chép mã ›');
-      cp.addEventListener('click', async () => { await copyText(x.code, cp); chrome.runtime.sendMessage({ type: 'cho', op: 'vote', data: { vote: 1, id: x.id, v: 'used' } }).catch(() => {}); if (x.url) openDeal(x.url); });
+      cp.addEventListener('click', async () => { await copyText(x.code, cp); chrome.runtime.sendMessage({ type: 'cho', op: 'vote', data: { vote: 1, id: x.id, v: 'used' } }).catch(() => {}); chrome.storage.local.set({ choTry: { id: x.id, code: x.code, at: Date.now() } }).catch(() => {}); if (x.url) openDeal(x.url); });   // 1.10.247: nhớ mã vừa chép để tự kiểm tra lúc thanh toán
       const ok = el('button', 'tt', '👍'), bad = el('button', 'tt', 'Hết ✕'); ok.title = 'Mã dùng được'; bad.title = 'Báo mã hết lượt / không dùng được';
       for (const [b, v] of [[ok, 'ok'], [bad, 'bad']]) b.addEventListener('click', async () => { b.textContent = '✓'; await chrome.runtime.sendMessage({ type: 'cho', op: 'vote', data: { vote: 1, id: x.id, v } }).catch(() => {}); choLoad(true); });
-      ok.style.marginLeft = bad.style.marginLeft = '4px'; cd.append(cp, ok, bad); g.append(cd);
+      ok.style.marginLeft = bad.style.marginLeft = '4px'; cd.append(cp, ok, bad);
+      if (x.mine) { const del = el('button', 'tt', '🗑️ Xoá'); del.title = 'Mã bạn đã đăng · gỡ khỏi chợ'; del.style.marginLeft = '4px'; del.addEventListener('click', async () => { del.textContent = '⏳'; await chrome.runtime.sendMessage({ type: 'cho', op: 'del', data: { del: 1, id: x.id } }).catch(() => {}); choLoad(true); }); cd.append(del); }   // 1.10.247
+      g.append(cd);
     }
     if (cho.items.length > 4) { const m = el('button', 'hvm', choMore ? 'Thu gọn ▴' : `Xem thêm ${Math.min(20, cho.items.length) - 4} mã ▾`); m.addEventListener('click', () => { choMore = !choMore; renderPanel(); }); box.append(m); }
     if (!cho.form) { const a = el('button', 'hvm', '🎁 Tặng mã của bạn ›'); a.addEventListener('click', () => { cho.form = true; cho.msg = ''; renderPanel(); }); box.append(a); }

@@ -206,12 +206,19 @@ async function anh(env, b) {
   return { ok: true, ...out };
 }
 
-// 🤝 Chợ voucher cộng đồng: khách tặng mã nhập tay mình không dùng; mã báo "hết" ≥ 3 lần tự ẩn. Link chỉ nhận shopee.vn / tiktok.com (không nhận link rút gọn để khỏi bị cướp hoa hồng)
+// 🤝 Chợ voucher cộng đồng: khách tặng mã nhập tay mình không dùng; mã bị 2 máy báo hỏng tự xoá; người đăng tự xoá được. Link chỉ nhận shopee.vn / tiktok.com (không nhận link rút gọn để khỏi bị cướp hoa hồng)
 const CODE = /^[A-Z0-9]{4,24}$/;
-async function choList(env) {
+async function choList(env, by = '') {
   const now = Date.now();
-  const { results = [] } = await env.DB.prepare('SELECT id, shop, code, label, url, until, at, ok, bad, used FROM cho WHERE until > ? AND bad < 3 AND bad <= ok + 2 ORDER BY (ok - bad) DESC, at DESC LIMIT 40').bind(now).all();
-  return { ok: true, items: results };
+  // 13/10: mã bị 2 máy báo hỏng là ẩn (và bị xoá ở choVote); mine = mã do chính máy này đăng (không lộ mã máy)
+  const { results = [] } = await env.DB.prepare('SELECT id, by, shop, code, label, url, until, at, ok, bad, used FROM cho WHERE until > ? AND bad < 2 ORDER BY (ok - bad) DESC, at DESC LIMIT 40').bind(now).all();
+  return { ok: true, items: results.map(({ by: b, ...x }) => ({ ...x, mine: !!by && b === by })) };
+}
+async function choDel(env, b) {   // 13/10: người đăng tự xoá mã của mình
+  const by = String(b && b.by || ''), id = +b.id; if (!ID.test(by) || !(id > 0)) return { ok: false };
+  const r = await env.DB.prepare('DELETE FROM cho WHERE id = ? AND by = ?').bind(id, by).run();
+  await env.DB.prepare('DELETE FROM chov WHERE id = ?').bind(id).run().catch(() => {});
+  return { ok: !!(r && r.meta && r.meta.changes) };
 }
 async function choAdd(env, b) {
   const by = String(b && b.by || ''); if (!ID.test(by)) return { ok: false, error: 'id' };
@@ -233,6 +240,7 @@ async function choVote(env, b) {
   const r = await env.DB.prepare('INSERT OR IGNORE INTO chov (id, by, v) VALUES (?, ?, ?)').bind(id, by, v).run();
   if (r && r.meta && r.meta.changes === 0) return { ok: true, again: true };
   await env.DB.prepare(`UPDATE cho SET ${v} = ${v} + 1 WHERE id = ?`).bind(id).run();
+  if (v === 'bad') await env.DB.prepare('DELETE FROM cho WHERE id = ? AND bad >= 2').bind(id).run();   // 13/10: 2 máy báo hỏng → tự xoá
   return { ok: true };
 }
 
@@ -377,8 +385,8 @@ export default {
         return json(await put(env, await req.json().catch(() => null)));
       }
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
-      if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env));
-      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
+      if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env, String(u.searchParams.get('by') || '')));
+      if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null); return json(b && b.del ? await choDel(env, b) : b && b.vote ? await choVote(env, b) : await choAdd(env, b)); }
       if (u.pathname === '/hot' && u.searchParams.get('q')) {   // 🔎 tìm mã theo từ khoá (vd "thời trang", "sữa")
         const f = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
         const words = f(u.searchParams.get('q')).split(/\s+/).filter(w => w.length > 1).slice(0, 5), all = (await getSt(env, 'hotall')) || [], now = Date.now();

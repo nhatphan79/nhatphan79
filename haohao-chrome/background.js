@@ -509,8 +509,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'hot-sync') { syncHot().then(() => send({ ok: true })).catch(() => send({ ok: false })); return true; }
   if (msg.type === 'cho') {   // 🤝 chợ voucher cộng đồng
     (async () => { const base = HT.PRICE_API.replace(/\/$/, '') + '/cho';
-      if (msg.op === 'list') return send(await fetch(base).then(r => r.json()).catch(() => ({ ok: false })));
       const by = await hhId();
+      if (msg.op === 'list') return send(await fetch(base + '?by=' + encodeURIComponent(by)).then(r => r.json()).catch(() => ({ ok: false })));   // 13/10: biết mã nào do máy này đăng
       send(await fetch(base, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...msg.data, by }) }).then(r => r.json()).catch(() => ({ ok: false }))); })();
     return true;
   }
