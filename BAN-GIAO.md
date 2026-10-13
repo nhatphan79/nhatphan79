@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · bản **1.10.223**
+Cập nhật: 13/10/2026 · bản **1.10.224**
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -33,6 +33,7 @@ Cập nhật: 13/10/2026 · bản **1.10.223**
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| 1.10.224 | Dòng 📊 ghi "Y đánh giá 1–2★" thay "lời chê"; có 1–2★ mà chưa đọc được nội dung → khung "💬 Có N đánh giá 1–2★" + nút "Đọc đánh giá 1–2★ ›", không còn ghi "không thấy lời chê" sai |
 | 1.10.223 | Đọc đánh giá Shopee tiếng Anh: PRODUCT RATINGS, "5 Star (…)", out of 5, With Media |
 | 1.10.222 | Nút "🎟️ Tìm voucher" cùng kiểu nút "📱 Mở trên app" |
 | 1.10.221 | Tab Voucher ở trang sản phẩm thêm Lịch săn mã, Top 10, Tìm mã, Ví voucher, Chợ voucher |
@@ -50,5 +51,4 @@ Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 ## Việc đang chờ anh duyệt
 - [ ] Làm gọn khung Voucher trang sản phẩm (gộp 2 khung đầu thành 1 dòng, rút chữ giải thích, kết quả 1 dòng/mã, mỗi phần 3 mã + Xem thêm)
 - [ ] Phần đọc toàn bộ đánh giá (Kiểm tra chi tiết) cho Shopee tiếng Anh
-- [ ] Chưa đọc được số sao thì ghi "chưa đọc được đánh giá" thay vì "0 lời chê"
 - [ ] Mở `HaoHao.rar` (anh nén 22:39 tối 12/10) so với bản hiện tại

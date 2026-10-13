@@ -6403,6 +6403,14 @@
       B.append(box);
     } else if (trust.info.reviewsReading) B.append(el('div', 'tb-hook wait', '💬 Đang đọc toàn bộ đánh giá…'));
     else if (bad && pick.length) B.append(el('div', 'tb-why', pick.map(i => '⚠ ' + i.t.split(':')[0]).join(' · ')));
+    else if (!bad && !trust.info.fullRead && trust.info.dist && ((trust.info.dist[1] || 0) + (trust.info.dist[2] || 0)) > 0) {
+      // 1.10.224: có đánh giá 1–2★ mà chưa đọc được nội dung → không ghi "không thấy lời chê", cho bấm đọc
+      const n12 = (trust.info.dist[1] || 0) + (trust.info.dist[2] || 0), fr0 = fullRev.get(itemKey());
+      const box = el('div', 'tb-rv bad'); box.append(el('b', '', `💬 Có ${n12.toLocaleString('vi-VN')} đánh giá 1–2★`));
+      if (fr0 && fr0.state === 'fail') box.append(el('small', 'tb-rs', 'Shopee chưa cho đọc, thử lại sau hoặc lọc 1–2★ ngay trên trang'));
+      const rb = el('button', 'tb-sv', 'Đọc đánh giá 1–2★ ›'); rb.addEventListener('click', e => { e.stopPropagation(); fullRev.delete(itemKey()); try { chrome.storage.session.remove('rvApiBad'); } catch {} loadAllReviews(); rb.textContent = '⏳ Đang đọc…'; });
+      box.append(rb); B.append(box);
+    }
     else if (trust.info.goodReview) {
       const box = el('div', 'tb-rv good'); box.append(el('b', '', `💬 Đánh giá nổi bật · ${rv ? rv.read : 0} đánh giá không thấy lời chê`), quote(trust.info.goodReview));
       B.append(box);
@@ -6485,7 +6493,7 @@
     else if (pct < 5) { cls = 'warn'; verdict = 'lỗi hơi nhiều, đọc kỹ lời chê'; }
     else { cls = 'bad'; verdict = 'lỗi nhiều ⚠'; }
     const box = el('div', 'tb-sold ' + cls);
-    box.append(el('b', '', `📊 Đã bán ${f(sold)} · ${f(low)} lời chê (${p}%)`), el('span', '', verdict));
+    box.append(el('b', '', `📊 Đã bán ${f(sold)} · ${f(low)} đánh giá 1–2★ (${p}%)`), el('span', '', verdict));
     box.title = 'Lời chê = số đánh giá 1–2★ Shopee ghi. Tỉ lệ = lời chê ÷ số đã bán (không phải ai mua cũng đánh giá)';
     return box;
   }
