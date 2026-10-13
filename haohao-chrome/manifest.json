@@ -1,0 +1,164 @@
+{
+  "manifest_version": 3,
+  "name": "HaoHao – trợ lý ngay trên Chrome",
+  "version": "1.10.223",
+  "version_name": "V1 · 1.10.62 (Chrome)",
+  "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, kiểm tra hàng & mã giảm giá Shopee, TikTok Shop, canh email.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "alarms",
+    "notifications",
+    "tabs",
+    "system.display",
+    "identity",
+    "contextMenus",
+    "search",
+    "topSites",
+    "favicon",
+    "geolocation",
+    "declarativeNetRequest",
+    "offscreen",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://api.coingecko.com/*",
+    "https://api.dexscreener.com/*",
+    "http://127.0.0.1:47321/*", "http://127.0.0.1:8686/*",
+    "https://mail.google.com/*",
+    "https://graph.microsoft.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://vt.tiktok.com/*",
+    "https://vm.tiktok.com/*",
+    "https://www.tiktok.com/*",
+    "https://shop.tiktok.com/*",
+    "https://api.open-meteo.com/*",
+    "https://api.bigdatacloud.net/*",
+    "https://ipwho.is/*",
+    "https://www.youtube.com/*",
+    "https://sjc.com.vn/*",
+    "https://vapi.vnappmob.com/*",
+    "https://iboard-query.ssi.com.vn/*",
+    "https://api-finfo.vndirect.com.vn/*",
+    "https://*.susercontent.com/*",
+    "https://cf.shopee.vn/*",
+    "https://*.ibyteimg.com/*",
+    "https://*.tiktokcdn.com/*",
+    "https://*.workers.dev/*",
+    "https://api.accesstrade.vn/*",
+    "https://riohub.vn/*",
+    "https://riohub.riokupon.com/*",
+    "https://riohub.riokupon.me/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "common.js",
+        "i18n.js",
+        "qrcode.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "adhide.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "yt-ads.js",
+        "yt-music.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "yt-main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://shopee.vn/*"
+      ],
+      "js": [
+        "shopee-main.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "yt-subs-main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "subs.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "subs-web.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Mở cài đặt HaoHao"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ads",
+        "enabled": true,
+        "path": "rules/ads.json"
+      }
+    ]
+  }
+}

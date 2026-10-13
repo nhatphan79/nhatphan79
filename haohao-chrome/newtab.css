@@ -1,0 +1,81 @@
+:root {
+  /* nền trắng, chữ xanh đậm, viền xám nhạt như trang Google */
+  --bg: #FFFFFF; --ink: #202124; --soft: #5F6368; --card: #F1F3F4; --line: #DFE1E5; --accent: #E08A00;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: var(--ink);
+  background: var(--bg); min-height: 100vh;
+}
+.nt { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 16px 120px; text-align: center; }
+.clock { font-size: clamp(48px, 6.5vw, 76px); font-weight: 400; color: #23305E; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.date { margin-top: 8px; font-size: 17px; font-weight: 600; }
+.lunar { margin-top: 3px; font-size: 13.5px; color: var(--soft); }
+.hello { margin: 20px 0 18px; font-size: 21px; font-weight: 600; }
+.search { width: min(620px, 100%); display: flex; align-items: center; gap: 8px; padding: 0 10px 0 18px; height: 50px; border-radius: 999px; background: #fff; border: 1px solid var(--line); }
+.search:hover { box-shadow: 0 1px 6px rgba(32, 33, 36, .28); border-color: transparent; }
+.search:focus-within { box-shadow: 0 1px 6px rgba(32, 33, 36, .28); border-color: transparent; }
+.search .mag { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--soft); stroke-width: 2.2; stroke-linecap: round; }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; }
+.search input::placeholder { color: var(--soft); }
+.quick { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 760px; }
+.quick button { cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; }
+.quick button:hover { border-color: var(--accent); }
+.quick button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.copyr { position: fixed; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 12px; color: var(--soft); pointer-events: none; }
+.copyr a { color: inherit; pointer-events: auto; }
+.sites { margin-top: 30px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 8px; width: min(820px, 100%); }
+.site { width: 92px; }
+.site { all: unset; box-sizing: border-box; position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 8px 4px; border-radius: 14px; }
+.site:hover { background: var(--card); } .site:focus-visible { outline: 3px solid var(--accent); }
+.site .ic { width: 48px; height: 48px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); font-size: 26px; color: #5A6590; }
+.site .ic img { width: 26px; height: 26px; }
+.site .lb { font-size: 12.5px; max-width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.site .rm { all: unset; position: absolute; top: 2px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; font-size: 11px; display: none; place-items: center; cursor: pointer; }
+.site:hover .rm, .site:focus-within .rm { display: grid; }
+.site.add .ic { background: var(--card); border: 1.5px dashed var(--line); box-shadow: none; }
+.addsite { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.addsite input { font: inherit; font-size: 14px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); min-width: 0; width: 200px; }
+.addsite button { font: inherit; font-size: 14px; font-weight: 700; padding: 9px 16px; border-radius: 10px; border: 0; background: var(--accent); color: #23305E; cursor: pointer; }
+.addsite button.ghost { background: transparent; border: 1.5px solid var(--line); color: var(--ink); }
+.addsite[hidden] { display: none; }
+
+/* thanh trên cùng: Gmail · Hình ảnh · ứng dụng Google */
+.topbar { position: fixed; top: 0; right: 0; display: flex; align-items: center; gap: 18px; padding: 14px 22px; z-index: 5; }
+.topbar a { color: var(--ink); font-size: 14px; text-decoration: none; } .topbar a:hover { text-decoration: underline; }
+.appsbtn { all: unset; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
+.appsbtn:hover, .appsbtn[aria-expanded="true"] { background: var(--card); } .appsbtn:focus-visible { outline: 3px solid var(--accent); }
+.appsbtn svg { width: 22px; height: 22px; fill: var(--soft); }
+.apps { position: absolute; top: 58px; right: 16px; width: 300px; padding: 14px; border-radius: 22px; background: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.apps[hidden] { display: none; }
+.apps .app { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: 14px; color: #23305E !important; font-size: 12.5px; text-decoration: none !important; }
+.apps .app:hover { background: #F1F4FA; } .apps .aico { width: 40px; height: 40px; display: grid; place-items: center; } .apps .aico svg { width: 36px; height: 36px; display: block; }
+/* nút trong ô tìm */
+.search { padding-right: 8px; }
+.sbtn { all: unset; cursor: pointer; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.sbtn:hover { background: rgba(127, 127, 127, .15); } .sbtn:focus-visible { outline: 3px solid var(--accent); }
+.sbtn svg { width: 21px; height: 21px; fill: none; stroke: var(--soft); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sbtn.on svg { stroke: #E0344B; } .sbtn.on { animation: pulse 1s infinite; }
+@keyframes pulse { 50% { background: rgba(224, 52, 75, .15); } }
+.aimode { all: unset; cursor: pointer; flex: none; font-size: 14px; font-weight: 600; color: var(--ink); padding: 8px 14px; border-radius: 999px; background: rgba(127, 127, 127, .12); white-space: nowrap; }
+.aimode:hover { background: rgba(127, 127, 127, .22); } .aimode:focus-visible { outline: 3px solid var(--accent); }
+.sacts { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.sacts button { cursor: pointer; font: inherit; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid transparent; border-radius: 8px; padding: 10px 16px; }
+.sacts button:hover { border-color: var(--line); } .sacts button:focus-visible { outline: 3px solid var(--accent); }
+@media (max-width: 560px) { .aimode { display: none; } }
+.weather { margin-top: 6px; font-size: 14px; color: var(--soft); text-decoration: none; padding: 3px 10px; border-radius: 999px; }
+.weather:hover { background: var(--card); color: var(--ink); }
+.weather[hidden] { display: none; }
+
+/* ☕ Ủng hộ */
+.supbtn { all: unset; pointer-events: auto; cursor: pointer; margin-right: 8px; padding: 4px 10px; border-radius: 999px; background: #FFF4E5; color: #8A5300; font-weight: 700; }
+.supbtn:hover { background: #FFE7C2; }
+.sup { border: 0; border-radius: 18px; padding: 22px 24px; max-width: 360px; text-align: center; box-shadow: 0 20px 60px rgba(32,33,36,.3); }
+.sup::backdrop { background: rgba(32,33,36,.45); }
+.sup h2 { margin: 0 0 8px; font-size: 19px; }
+.sup p { margin: 0 0 12px; color: var(--soft); font-size: 14px; }
+.sup img { width: 220px; max-width: 100%; border-radius: 12px; border: 1px solid var(--line); }
+.sup #supinfo { margin-top: 10px; font-size: 14px; line-height: 1.6; }
+.supx { all: unset; cursor: pointer; position: absolute; top: 10px; right: 12px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--soft); }
+.supx:hover { background: var(--card); }

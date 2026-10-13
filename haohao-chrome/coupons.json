@@ -1,0 +1,50 @@
+{
+  "updated": "2026-10-12",
+  "_huong_dan": "Thêm mã vào 'coupons'. shop: shopee | tiktok. Dùng discount (số tiền) HOẶC percent (+ maxDiscount nếu có). minOrder = đơn tối thiểu. code để trống nếu là mã 'Lưu' trên trang. url = trang dùng mã (tự đi qua link tiếp thị). expires = hạn dùng. Chỉ đăng mã thật, còn hạn.",
+  "hubs": [
+    {
+      "shop": "shopee",
+      "label": "Kho mã Shopee",
+      "url": "https://shopee.vn/m/ma-giam-gia"
+    }
+  ],
+  "coupons": [],
+  "_huong_dan_hot": "Mã hot: các mã trong 'coupons' còn hạn hiện ở tab Mua sắm (3 mã đầu, Xem thêm). hotEvent = {name:'11.11', text:'Sale lớn, săn mã 0h', url:'trang sự kiện', until:'2026-11-12'} → hiện nhãn sự kiện + nút Trang sự kiện; hết until tự ẩn.",
+  "hotEvent": null,
+  "_huong_dan_tiktok": "TikTok: chủ app gửi link 'Sao chép liên kết' (vt.tiktok.com/...) vào khung chat; Claude thêm vào 'list'. Máy người dùng tự đọc mã, tên, ảnh.",
+  "tiktok": {
+    "creator": "haohaomall",
+    "links": {
+      "1736498717850503115": "https://shop.tiktok.com/vn/pdp/1736498717850503115?_d=f1ifmalf24cgbk&_svg=1&chain_key=%7B%22t%22%3A1%2C%22k%22%3A%22000000000000000007695414754383595282%22%2C%22sc%22%3A%22copy%22%7D&checksum=07a39d1bc3ec2ee54e1c6336c9a9b82de5b6403f26e452b186324029b66c19c2&ec_search_share_params=%7B%22product_id%22%3A%221736498717850503115%22%2C%22req_id%22%3A%2299C96601-7A79-49EE-AD30-9E0F42C8E917%22%2C%22group_id%22%3A%221736498717850503115%22%2C%22token_type%22%3A%22product_card%22%2C%22enter_from%22%3A%22personal_homepage%22%2C%22share_material_id%22%3A%221736498717850503115%22%2C%22share_material%22%3A%22product_card%22%7D&encode_params=MIIBUwQMti6bARVMN6st-l6wBIIBL0QQWDjx08p0MzpJg_pRvWIt8IOIerRJNSjb1ZYyL5UjCh_g9FJtdQ7KNpmlgHQQjlNygvNC90XPApT3JeNKsGBCvI-6mT_Mid7G9bgC3qYw5PJKBgdOV2bs1aOfG1CGP_ZHlS_mXqwxq8tq2CNBBqRDjlhtDJ-5ycFhQ6GfDpb23rthJ3la26NT8vPh0GndjUTQZmIotfgZLNzk7g9jo5q6vc7kYI-4Y14lop4X2CR0w7xrVJYvFpkH4HOjuU2QsQk4qDdkTAiaYVw_SCs6gx-r3JrhbT-xOt_k28NiWir0Nl01B8JriYW438MsyuNtqlO6Bo7AwXHKQAaPYBfIuIWkXVP2aK9BerDElO7Xa4WDFcoAwMRKsTIemEVzF82JjAX1D_PW9FdHPB2oc9gmQwQQdf4rAw1yIHHCkX58q8e2AA%3D%3D&og_info=%7B%22title%22%3A%22B%E1%BB%99+%C4%91%E1%BB%93+xinh+%C4%91i+ch%C6%A1i+cho+b%C3%A9+g%C3%A1i%2C%C3%A1o+k%E1%BA%BB+c%E1%BB%99c+tay%2C+ch%E1%BA%A5t+v%E1%BA%A3i+cotton+m%E1%BB%81m+m%E1%BB%8Bn+co+gi%C3%A3n+tho%E1%BA%A3i+m%C3%A1i.M88%22%2C%22image%22%3A%22https%3A%5C%2F%5C%2Fp16-oec-sg.ibyteimg.com%5C%2Ftos-alisg-i-aphluv4xwc-sg%5C%2F15398048ba834cea8500925289809e09~tplv-aphluv4xwc-resize-webp%3A260%3A260.webp%3Fdr%3D15582%26t%3D555f072d%26ps%3D933b5bde%26shp%3D7745054a%26shcp%3D9b759fb9%26idc%3Dmy%26from%3D2001012042%22%7D&panel_source_v2=share_panel&sec_user_id=MS4wLjABAAAAc6jouTsTzKQoSnluYuMN5csHe6nDcfznBMom1YSeK0icYVGzipo3n9pC4YK4oZlN&share_app_id=1180&share_enter_from=&share_link_id=5B575A74-1250-441F-B3A2-49DDEAF2F0E5&share_region=VN&social_share_type=15&timestamp=1791728388&trackParams=%7B%22enable_shop_tab_popup%22%3A1%2C%22device_id%22%3A%227600272508994110996%22%2C%22enter_from_info%22%3A%22product_share_outside%22%2C%22source_page_type%22%3A%22product_share%22%2C%22traffic_source_list%22%3A%5B3%5D%2C%22traffic_source%22%3A3%7D&tt_from=copy&u_code=D03CC%3AMGC52LKM&ug_btm=b8727%2Cb6661&unique_id=haohaomall&user_id=6555850726877577218&utm_campaign=client_share&utm_medium=ios&utm_source=copy",
+      "1732636422702073256": "https://shop.tiktok.com/vn/pdp/1732636422702073256?_d=f1ifmalf24cgbk&_svg=1&chain_key=%7B%22t%22%3A1%2C%22k%22%3A%22000000000000000007695414675389171463%22%2C%22sc%22%3A%22copy%22%7D&checksum=a8f2fce5d2acbbedbd82ec72b6d1e04c17ccf83932ea46cfce3d2e7742d7d005&ec_search_share_params=%7B%22product_id%22%3A%221732636422702073256%22%2C%22req_id%22%3A%22369888B4-4DCE-4A27-ABD5-02BD583AB7A0%22%2C%22group_id%22%3A%221732636422702073256%22%2C%22token_type%22%3A%22product_card%22%2C%22enter_from%22%3A%22personal_homepage%22%2C%22share_material_id%22%3A%221732636422702073256%22%2C%22share_material%22%3A%22product_card%22%7D&encode_params=MIIBUwQMCdjeQcTMS35O43cvBIIBL5Y0towXpAPzT9YI-FIwjuaHwTKDH11NCh0yBqZL6EuqW7ThKZMF9HrdiFisZJuhuFfqAJCCaGoPve9blVriVhw5cIZLf2TsUUphShdNs4zAYoZox7ejDianNg5c-SIFNQp_f-RBXPYdqDBlR9VRJoPv3J2owyw8WkextKK9hNd16_1KENQkjGOUT8a9SaVUzIjLPDZ63LdrAEQBbKTH4nfQCMdShbJws5rVUPCHlk7uEMvEJjVFr8QQq3Ue5U1rH5reze6wCCeo_FjNKr2xwAwggbj71O0JT8ebsPey8_f6MADdkZCKwnUDt_qGLVYICeSTVibd80Fx5ouHlLSLZVa1xIUD9g6L_2iA_AD9MdMeSmYdHHtyLbL0xPhgbZrL7QF9Bj0dp2ajNisNMDvKIwQQ-8rbBaHrjEtSGnF5sajRjg%3D%3D&og_info=%7B%22title%22%3A%22%C3%81o+Kho%C3%A1c+Gi%C3%B3+B%C3%A9+G%C3%A1i+%28+Kh%C3%B4ng+K%C3%A8m+T%C3%BAi+%C4%90eo+%29+Size+6kg-+45kg+H%C3%ACnh+In+Ho%E1%BA%A1t+H%C3%ACnh+%C4%90%E1%BA%B9p+Nhi%E1%BB%81u+M%C3%A0u+%C4%90a+D%E1%BA%A1ng+L%C3%B3t+Gi%C3%B3+2+L%E1%BB%9Bp%22%2C%22image%22%3A%22https%3A%5C%2F%5C%2Fp16-oec-sg.ibyteimg.com%5C%2Ftos-alisg-i-aphluv4xwc-sg%5C%2F7c9f35ddab524c7cac01b1ac5759035e~tplv-aphluv4xwc-resize-webp%3A260%3A260.webp%3Fdr%3D15582%26t%3D555f072d%26ps%3D933b5bde%26shp%3D7745054a%26shcp%3D9b759fb9%26idc%3Dmy%26from%3D2001012042%22%7D&panel_source_v2=share_panel&sec_user_id=MS4wLjABAAAAc6jouTsTzKQoSnluYuMN5csHe6nDcfznBMom1YSeK0icYVGzipo3n9pC4YK4oZlN&share_app_id=1180&share_enter_from=&share_link_id=D49E5487-D6C7-43F7-92C6-DE1F94BA98A5&share_region=VN&social_share_type=15&timestamp=1791728362&trackParams=%7B%22enable_shop_tab_popup%22%3A1%2C%22device_id%22%3A%227600272508994110996%22%2C%22enter_from_info%22%3A%22product_share_outside%22%2C%22source_page_type%22%3A%22product_share%22%2C%22traffic_source_list%22%3A%5B3%5D%2C%22traffic_source%22%3A3%7D&tt_from=copy&u_code=D03CC%3AMGC52LKM&ug_btm=b8727%2Cb6661&unique_id=haohaomall&user_id=6555850726877577218&utm_campaign=client_share&utm_medium=ios&utm_source=copy"
+    },
+    "showcase": "https://www.tiktok.com/@haohaomall",
+    "titles": {
+      "1736498717850503115": "Bộ đồ xinh đi chơi cho bé gái,áo kẻ cộc tay, chất vải cotton mềm mịn co giãn thoải mái.M88",
+      "1732636422702073256": "Áo Khoác Gió Bé Gái ( Không Kèm Túi Đeo ) Size 6kg- 45kg Hình In Hoạt Hình Đẹp Nhiều Màu Đa Dạng Lót Gió 2 Lớp"
+    },
+    "images": {
+      "1736498717850503115": "https://p16-oec-sg.ibyteimg.com/tos-alisg-i-aphluv4xwc-sg/15398048ba834cea8500925289809e09~tplv-aphluv4xwc-resize-webp:260:260.webp?dr=15582&t=555f072d&ps=933b5bde&shp=7745054a&shcp=9b759fb9&idc=my&from=2001012042",
+      "1732636422702073256": "https://p16-oec-sg.ibyteimg.com/tos-alisg-i-aphluv4xwc-sg/7c9f35ddab524c7cac01b1ac5759035e~tplv-aphluv4xwc-resize-webp:260:260.webp?dr=15582&t=555f072d&ps=933b5bde&shp=7745054a&shcp=9b759fb9&idc=my&from=2001012042"
+    },
+    "list": []
+  },
+  "shopee": {
+    "showcase": "https://collshp.com/haohaostore?view=storefront"
+  },
+  "_huong_dan_music": "Nhạc gợi ý cho Pomodoro: mỗi mục { id, name, url } (YouTube hoặc .mp3 https). Chủ app gửi 'link | tên' vào khung chat; Claude thêm vào đây.",
+  "music": [],
+  "_huong_dan_deals": "🔥 Deal Shopee: mỗi mục { id, url, title, image, price, orig }. Chủ app gửi 'link | tên | giá | giá gốc' vào khung chat; Claude thêm vào đây.",
+  "deals": [],
+  "_huong_dan_news": "📣 Tin chủ app: mỗi mục { id, title, text, url, btn, until }. Mỗi tin hiện 1 lần (bong bóng HaoHao) trên máy khách, không hiện ở trang mua bán. id mới = tin mới. until = hạn (YYYY-MM-DD). url mở qua link tiếp thị.",
+  "news": [
+    {
+      "id": "ban-moi-1-10-125",
+      "title": "🎉 HaoHao có bản mới",
+      "text": "Có bản mới rồi nhé cả nhà! 🔔 Canh giá giúp bạn, báo giá đáy và sale ảo, tìm shop rẻ hơn khi mua Shopee.",
+      "until": "2026-10-19"
+    }
+  ],
+  "fanpage": "https://www.facebook.com/trolyHaoHao",
+  "transfer": "https://github.com/nhatphan79/nhatphan79/raw/HEAD/downloads/HaoHao-Transfer-Windows.zip"
+}

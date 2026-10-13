@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Note HaoHao</title>
+<style>
+  :root { --paper: #FFF3A6; --edge: #F2DA5C; --ink: #3B3417; }
+  body[data-c="red"]    { --paper: #FFD6D6; --edge: #F2A3A3; --ink: #4A1F1F; }
+  body[data-c="pink"], body[data-c="red"] { --paper: #FFD6E0; --edge: #F5A9BC; --ink: #4A2230; }
+  body[data-c="blue"]   { --paper: #D4ECFF; --edge: #9CCBF2; --ink: #1C3550; }
+  body[data-c="green"]  { --paper: #D8F5D0; --edge: #A6DE97; --ink: #22401B; }
+  body[data-c="purple"] { --paper: #E6DCFF; --edge: #BFA9F2; --ink: #34265A; }
+  body[data-c="white"]  { --paper: #FFFFFF; --edge: #E8EAF1; --ink: #23305E; }
+  body[data-c="black"]  { --paper: #22252C; --edge: #14161B; --ink: #EDEFF5; }
+  /* giấy đen: chữ sáng, link xanh sáng, nút/ô gợi ý tối để vẫn đọc rõ */
+  body[data-c="black"] #src { color: #9CC4FF; background: rgba(255,255,255,.1); }
+  body[data-c="black"] header .dot.on { border-color: #fff; }
+  body[data-c="black"] #src:hover { background: rgba(255,255,255,.18); }
+  body[data-c="black"] #hint { background: rgba(255,255,255,.08) !important; }
+  body[data-c="black"] #hintGo { background: #3A3F4B !important; color: #FFE680; }
+  body[data-c="black"] #tidyBtn { background: rgba(255,255,255,.1) !important; }
+  body[data-c="black"] .tb { background: rgba(255,255,255,.04); border-top-color: rgba(255,255,255,.1); }
+  body[data-c="black"] .tb button:hover { background: rgba(255,255,255,.12); }
+  body[data-c="black"] #text::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); }
+  body[data-c="black"] #text ::selection, body[data-c="black"] #title::selection { background: #4A6FB5; color: #fff; }
+  body[data-c="white"] header .dot[data-c="white"], header .dot[data-c="white"] { box-shadow: inset 0 0 0 1px #C9CEDF; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--paper); color: var(--ink); font: 13.5px/1.5 "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--edge); }
+  header .dot { all: unset; cursor: pointer; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,.18); }
+  header .dot.on { border-color: rgba(0,0,0,.6); }
+  header .sp { flex: 1; }
+  header .meta { font-size: 11.5px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  header button.x { all: unset; cursor: pointer; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+  header button.x:hover { background: rgba(0,0,0,.08); }
+  #title { padding: 10px 14px 0; font-weight: 800; font-size: 15px; outline: none; min-height: 1em; }
+  #title:empty::before { content: "Tiêu đề…"; opacity: .4; }
+  #text { flex: 1; padding: 6px 16px 14px; outline: none; word-break: break-word; overflow: auto; line-height: 1.5; }
+  #text:empty::before { content: "Ghi gì đó…"; opacity: .4; }
+  #text > div { min-height: 1.5em; }
+  #text > div + div { margin-top: 6px; }
+  #text p { margin: 0 0 10px; }
+  #text ul, #text ol { margin: 4px 0 10px; padding-left: 22px; }
+  #text li { margin: 2px 0; }
+  #text img { max-width: 100%; border-radius: 6px; display: block; margin: 6px 0; }
+  #text b, #text strong { font-weight: 800; }
+  #text::-webkit-scrollbar { width: 8px; } #text::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 8px; }
+  footer { font-size: 11px; padding: 4px 14px 6px; display: flex; justify-content: space-between; align-items: center; }
+  #saved { opacity: .6; }
+  #src { color: #1D3E8A; font-weight: 800; text-decoration: none; font-size: 12.5px; background: rgba(255,255,255,.55); padding: 3px 10px; border-radius: 999px; }
+  #src:hover { background: #fff; text-decoration: underline; }
+  #src:empty { display: none; }
+  #hint[hidden] { display: none !important; }
+  .tb { display: flex; gap: 2px; padding: 4px 8px; border-top: 1px solid rgba(0,0,0,.08); background: rgba(255,255,255,.35); }
+  .tb button { all: unset; cursor: pointer; width: 34px; height: 30px; display: grid; place-items: center; border-radius: 6px; font: 15px "Segoe UI", system-ui, sans-serif; color: var(--ink); opacity: .75; }
+  .tb button:hover { background: rgba(0,0,0,.07); opacity: 1; }
+  .tb button.on { background: rgba(0,0,0,.12); opacity: 1; }
+  .tb button:focus-visible { outline: 2px solid var(--ink); }
+  .tb button[hidden] { display: none; }
+  #tidyBtn, #undoBtn { white-space: nowrap; }
+</style>
+</head>
+<body data-c="yellow">
+  <header>
+    <button class="dot" data-c="yellow" style="background:#FFF3A6" aria-label="Màu vàng"></button>
+    <button class="dot" data-c="red" style="background:#FFD6E0" aria-label="Màu hồng"></button>
+    <button class="dot" data-c="blue" style="background:#D4ECFF" aria-label="Màu xanh dương"></button>
+    <button class="dot" data-c="green" style="background:#D8F5D0" aria-label="Màu xanh lá"></button>
+    <button class="dot" data-c="purple" style="background:#E6DCFF" aria-label="Màu tím"></button>
+    <button class="dot" data-c="white" style="background:#FFFFFF" aria-label="Màu trắng"></button>
+    <button class="dot" data-c="black" style="background:#22252C" aria-label="Màu đen"></button>
+    <span class="sp"></span>
+    <span class="meta" id="meta"></span>
+    <button class="x" id="copy" title="Sao chép">📋</button>
+  </header>
+  <div id="title" contenteditable="plaintext-only" spellcheck="false"></div>
+  <div id="hint" hidden style="margin:6px 12px 0;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.6);font-size:12.5px;display:flex;align-items:center;gap:8px"><span style="flex:1">✨ Note hơi dài và rối, để HaoHao sắp xếp nội dung chính cho gọn?</span><button id="hintGo" style="all:unset;cursor:pointer;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--edge)">Sắp xếp</button><button id="hintX" style="all:unset;cursor:pointer;opacity:.6" title="Để sau">✕</button></div>
+  <div id="text" contenteditable="true" spellcheck="false"></div>
+  <footer><span id="saved"></span><a id="src" target="_blank" rel="noopener"></a></footer>
+  <div class="tb" role="toolbar" aria-label="Định dạng">
+    <button data-cmd="bold" title="Đậm (Ctrl+B)"><b>B</b></button>
+    <button data-cmd="italic" title="Nghiêng (Ctrl+I)"><i>I</i></button>
+    <button data-cmd="underline" title="Gạch chân (Ctrl+U)"><u>U</u></button>
+    <button data-cmd="strikeThrough" title="Gạch ngang"><s>ab</s></button>
+    <button data-cmd="insertUnorderedList" title="Danh sách chấm">☰</button>
+    <button id="imgBtn" title="Chèn ảnh">🖼</button>
+    <span style="flex:1"></span>
+    <button id="undoBtn" title="Trả lại bản trước khi sắp xếp" hidden style="width:auto;padding:0 8px;font-size:12.5px">↶ Hoàn tác</button>
+    <button id="tidyBtn" title="Sắp xếp nội dung chính (AI): tóm ý chính, chia phần, gạch đầu dòng" style="width:auto;padding:0 10px;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.6)">✨ Sắp xếp</button>
+    <input type="file" id="imgFile" accept="image/*" hidden>
+  </div>
+<script src="sticky.js"></script>
+</body>
+</html>
