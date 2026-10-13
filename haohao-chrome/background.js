@@ -182,7 +182,7 @@ async function scheduleAll() {
   chrome.alarms.create('todo-clean', { delayInMinutes: 0.2, periodInMinutes: 30 });
   chrome.alarms.create('coupon-sync', { delayInMinutes: 1, periodInMinutes: 60 });
   chrome.alarms.create('prod-auto', { delayInMinutes: 20, periodInMinutes: 180 });
-  chrome.alarms.create('live-chk', { delayInMinutes: 2, periodInMinutes: 10 });   // 1.10.170: săn live – shop khách theo dõi đang live thì báo
+  chrome.alarms.clear('live-chk');   // 1.10.249: bỏ Săn live   // 1.10.170: săn live – shop khách theo dõi đang live thì báo
   chrome.alarms.create('hh-ping', { delayInMinutes: 0.5, periodInMinutes: 180 });   // 1.10.126: đếm máy đang dùng, 1 lần/ngày   // 1.10.115: canh giá món đã lưu, mỗi ngày 1 lần
   chrome.alarms.clear('prod-check');   // đã bỏ kiểm tra giá ngầm định kỳ: khách tự bấm cập nhật
   chrome.alarms.clear('voucher-scan');   // đã bỏ quét voucher tự động
@@ -222,7 +222,7 @@ chrome.alarms.onAlarm.addListener(async (a) => {
   if (a.name === 'todo-clean') return cleanDoneTodos();
   if (a.name === 'coupon-sync') return syncCoupons();
   if (a.name === 'prod-auto') return autoCheckPrices();
-  if (a.name === 'live-chk') return liveCheck();
+  if (a.name === 'live-chk') return chrome.alarms.clear('live-chk');
   if (a.name === 'price-flush') return priceFlush();
   if (a.name === 'hh-ping') return hhPing();
   if (a.name.startsWith('fs:')) {

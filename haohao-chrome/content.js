@@ -4059,7 +4059,7 @@
       L.append(ob);
     }
     // 1.10.221: trang sản phẩm cũng hiện đủ Top 10 mã, Ví voucher, Lịch săn mã, Tìm mã, Chợ voucher (bỏ khung Săn live)
-    { const tmp = el('div'); renderHotVoucher(tmp); const kids = [...tmp.children]; const lv = kids.shift(); kids.forEach(x => L.append(x)); if (lv) L.append(lv); }   // 1.10.248: Săn live xuống cuối
+    { const tmp = el('div'); renderHotVoucher(tmp); const kids = [...tmp.children]; kids.forEach(x => L.append(x)); }   // 1.10.249: bỏ Săn live
   }
   // ---------- 🎟️ Voucher ở giỏ hàng (1.9.62): đọc số Shopee đang hiện, ghi rõ cách tính + gợi ý ----------
   function readCart() {
@@ -4733,7 +4733,7 @@
   }
   function renderHotVoucher(L) {
     hotFresh();
-    L.append(liveBox());
+    // 1.10.249: bỏ chế độ Săn live (anh Nhật)
     L.append(saleCalBox());
     L.append(hotVouchers(true));
     // 1.10.244: bỏ "Tìm mã theo nhu cầu" (không ra mã giảm)   // 1.10.183: gọn 2 hàng, bấm Xem thêm
@@ -7727,7 +7727,7 @@
     setTimeout(newsBubble, 4500);
     setTimeout(voucherExpiryNudge, 12000);
     setTimeout(readVoucherWallet, 2500);
-    setInterval(liveWatch, 2500);
+    // setInterval(liveWatch, 2500);   // 1.10.249: bỏ Săn live
     setTimeout(tiredAsk, 7000);
     setTimeout(trackPrice, 3000);
     setTimeout(loadAllReviews, 1500);   // 1.10.162: tự đọc đánh giá ngay (không cần kéo xuống)
