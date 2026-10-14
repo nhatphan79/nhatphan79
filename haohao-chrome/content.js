@@ -1873,7 +1873,7 @@
   let unlPrev = '';   // máy chủ app xem thử: '' = lần đầu, 'renew' = hết 7 ngày (vẫn mở link, không lưu)
   function renderUnlock(V) {
     const preview = tab === 'tools' && toolsSub === 'unl';
-    if (!preview && unlockSt.until && !isUnlocked()) { unlockSt = { steps: unlockSt.steps.fb ? { fb: unlockSt.steps.fb } : {}, until: 0, renew: true }; saveUnlock(); }   // hết 7 ngày: bấm lại TikTok + Shopee
+    if (!preview && unlockSt.until && !isUnlocked()) { unlockSt = unlockSt.trial ? { steps: {}, until: 0, trialEnd: true } : { steps: unlockSt.steps.fb ? { fb: unlockSt.steps.fb } : {}, until: 0, renew: true }; saveUnlock(); }   // V1.10: hết 7 ngày dùng thử → mời đủ 3 bước (có fanpage)   // hết 7 ngày: bấm lại TikTok + Shopee
     const st = preview ? (renderUnlock.fake = renderUnlock.fake && renderUnlock.fake.mode === unlPrev ? renderUnlock.fake : { mode: unlPrev, steps: unlPrev ? { fb: 1 } : {}, renew: !!unlPrev }) : unlockSt;
     const S = unlockSteps().filter(x => !(st.renew && x.id === 'fb')), done = S.filter(x => st.steps[x.id]).length;
     const box = el('div', 'unl');
@@ -1883,8 +1883,8 @@
       { const c = el('button', 'chip sm', 'Thứ Ba'); c.addEventListener('click', () => { closePanel(); setTimeout(() => tiredAsk(true), 200); }); bar.append(c); }
       box.append(bar);
     }
-    box.append(el('div', 'unl-t', st.renew ? '⏰ Hết 7 ngày dùng miễn phí' : '🔓 Mở khoá Tiện ích miễn phí'),
-      el('div', 'unl-s', st.renew ? 'Để HaoHao duy trì miễn phí, bạn ghé thăm shop ủng hộ nhé!' : `Hoàn thành ${S.length} bước để dùng miễn phí.`));
+    box.append(el('div', 'unl-t', st.renew ? '⏰ Hết 7 ngày dùng miễn phí' : st.trialEnd ? '⏰ Hết 7 ngày dùng thử' : '🔓 Mở khoá Tiện ích miễn phí'),
+      el('div', 'unl-s', st.renew ? 'Để HaoHao duy trì miễn phí, bạn ghé thăm shop ủng hộ nhé!' : st.trialEnd ? `Bạn thấy HaoHao hữu ích chứ? Hoàn thành ${S.length} bước để dùng tiếp miễn phí nhé!` : `Hoàn thành ${S.length} bước để dùng miễn phí.`));
     S.forEach((x, i) => {
       const ok = !!st.steps[x.id], r = el('button', 'unl-r' + (ok ? ' ok' : ''));
       r.append(el('span', 'unl-n', ok ? '✓' : String(i + 1)));
