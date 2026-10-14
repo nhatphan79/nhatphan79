@@ -118,6 +118,7 @@
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
+  TOOLS.push({ id: 'gopy', label: 'Góp ý', emoji: '💬', color: '#7C3AED', desc: 'Gửi mong muốn của bạn cho HaoHao', icon: '<path d="M4 5h16v11H9l-5 4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M8 9.5h8M8 12.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' });   // V1.8
   const LAYOUT_OPT = ['focus', 'info', 'market', 'adblock', 'transfer'];   // 1.10.253: thêm Chặn quảng cáo, HaoHao Transfer
   for (const id of ['adblock', 'transfer']) { const t = TOOLS.find(x => x.id === id); if (t && !BRANCHES.some(b => b.id === id)) BRANCHES.splice(BRANCHES.findIndex(b => b.id === 'shop'), 0, { id, label: id === 'transfer' ? 'Transfer' : 'Chặn QC', color: t.color, angle: -18, icon: t.icon, menuIcon: t.icon.replace(/currentColor/g, '#fff') }); }
   const slots = () => { const s = settings && settings.slots; return Array.isArray(s) && s.length === 2 && s[0] !== s[1] && s.every(x => LAYOUT_OPT.includes(x)) ? s : ['focus', 'info']; };
@@ -500,6 +501,7 @@
   .lay-sw button { all: unset; cursor: pointer; padding: 4px 8px; white-space: nowrap; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #5B6478; }
   .lay-sw button.on { background: #1F2A44; color: #fff; }
   .hh-tip { position: relative; margin: 6px 10px 4px; padding: 7px 28px 7px 10px; border-radius: 10px; background: #FFF8E1; border: 1px solid #F5D78E; font: 600 12px/1.45 system-ui; color: #5B4A12; } .hh-tip button { all: unset; cursor: pointer; position: absolute; top: 5px; right: 8px; font-size: 12px; color: #8A7430; }
+  .gp-n { margin: 8px 10px 0; font-size: 12.5px; color: #5B6478; line-height: 1.45; } .gp-t { display: block; width: calc(100% - 20px); box-sizing: border-box; margin: 8px 10px; padding: 8px 10px; border: 1.5px solid #E3E6F0; border-radius: 10px; font: 13px/1.45 system-ui; color: #1F2A44; resize: vertical; } .gp-m { margin: 8px 10px; font: 600 12.5px system-ui; color: #15803D; }
   .lay-2 { justify-content: flex-start; gap: 6px; } .lay-2 > span { flex: none; }
   .lay-sel { flex: 1; min-width: 0; margin-left: 0; padding: 6px 10px; border: 1.5px solid #E3E6F0; border-radius: 10px; font: 700 12.5px system-ui; color: #23305E; background: #fff; cursor: pointer; }
   .lay-n { font-size: 11px; color: #8A92A6; margin-top: 4px; }
@@ -1904,7 +1906,7 @@
     idea: '📝 Bạn có ý tưởng gì cần lưu thì vào mục Note này.', focus: '🍅 Bấm bắt đầu để tập trung 25 phút, HaoHao báo giờ nghỉ.',
     info: '💡 Bôi đen chữ trên web để dịch, tóm tắt hoặc giải thích.', market: '📊 Theo dõi giá vàng, chứng khoán, crypto, đặt báo khi giá chạm mức.',
     shop: '🛍️ Mở sản phẩm Shopee hoặc TikTok, HaoHao kiểm tra shop, so giá, tìm mã giảm.', tools: '🧰 Thêm app hay: chặn quảng cáo, chuyển ảnh iPhone, thị trường…',
-    adblock: '🛡️ Bật là quảng cáo phim, kể cả YouTube, tự ẩn.', transfer: '📲 iPhone hết dung lượng? Quét mã QR để chuyển ảnh, video lên PC.' };
+    adblock: '🛡️ Bật là quảng cáo phim, kể cả YouTube, tự ẩn.', transfer: '📲 iPhone hết dung lượng? Quét mã QR để chuyển ảnh, video lên PC.', gopy: '💬 Góp ý gì cũng được, chỉ chủ app đọc.' };
   function tipEl() {
     if (tipStart === -1) { tipStart = Date.now(); chrome.storage.local.set({ tipStart }).catch(() => {}); }
     if (!(tipStart > 1e12) || Date.now() - tipStart > 15 * 6e4) return null;
@@ -6860,7 +6862,25 @@
   }
 
   // ---------- 🧰 Tiện ích ----------
-  const TOOL_RENDER = { crypto: V => renderCrypto(V), adblock: V => renderAdblock(V), unl: V => renderUnlock(V), transfer: V => renderTransfer(V) };
+  const TOOL_RENDER = { crypto: V => renderCrypto(V), adblock: V => renderAdblock(V), unl: V => renderUnlock(V), transfer: V => renderTransfer(V), gopy: V => renderGopy(V) };
+  // 💬 V1.8: Góp ý – khách gửi mong muốn, chỉ chủ app đọc (máy chủ /gopy, xem ở trang thống kê có mật khẩu)
+  let gopyMsg = '', gopyTxt = '';
+  function renderGopy(V) {
+    const L = el('div', 'body-list');
+    L.append(el('div', 'gp-n', 'Bạn muốn HaoHao có thêm gì, hay chỗ nào chưa tiện? Góp ý gửi thẳng cho chủ app, người khác không xem được.'));
+    const ta = document.createElement('textarea'); ta.className = 'gp-t'; ta.rows = 5; ta.maxLength = 1000; ta.placeholder = 'Viết góp ý của bạn…'; ta.value = gopyTxt;
+    ta.addEventListener('input', () => { gopyTxt = ta.value; }); ta.addEventListener('keydown', e => e.stopPropagation());
+    const b = el('button', 'b', 'Gửi góp ý');
+    b.addEventListener('click', async () => {
+      const t = ta.value.trim(); if (t.length < 5) { gopyMsg = 'Viết thêm chút nữa nhé (ít nhất 5 chữ).'; return renderPanel(); }
+      b.disabled = true; b.textContent = 'Đang gửi…';
+      const r = await chrome.runtime.sendMessage({ type: 'gopy', txt: t }).catch(() => null);
+      if (r && r.ok) { gopyTxt = ''; gopyMsg = '✓ Cảm ơn bạn! Chủ app đã nhận góp ý.'; } else gopyMsg = r && r.error === 'limit' ? 'Hôm nay bạn đã gửi nhiều góp ý rồi, mai gửi tiếp nhé.' : 'Chưa gửi được, thử lại sau nhé.';
+      renderPanel();
+    });
+    L.append(ta, b); if (gopyMsg) L.append(el('div', 'gp-m', gopyMsg));
+    V.append(L);
+  }
   // ---------- 📲 HaoHao Transfer (1.10.195): dùng app ChuyenAnh-iPhone (.exe, cổng 8686) chạy trên máy ----------
   function renderTransfer(V) {
     const L = el('div', 'body-list tfx'); V.append(el('div', 'tfx-slo', 'iPhone nhẹ tênh, kỷ niệm vẫn còn nguyên'), L);

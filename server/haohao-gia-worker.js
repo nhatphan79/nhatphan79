@@ -28,6 +28,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS cho (id INTEGER PRIMARY KEY AUTOINCREMENT, by TEXT, shop TEXT, code TEXT, label TEXT, url TEXT, until INTEGER, at INTEGER, ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, used INTEGER DEFAULT 0)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS chov (id INTEGER, by TEXT, v TEXT, PRIMARY KEY (id, by))'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS gopy (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER, by TEXT, ip TEXT, v TEXT, txt TEXT)'),   // 14/10: góp ý của khách – chỉ chủ app đọc
     env.DB.prepare('CREATE TABLE IF NOT EXISTS choip (d INTEGER, ip TEXT, n INTEGER, PRIMARY KEY (d, ip))'),   // 13/10: giới hạn đăng chợ theo IP
     env.DB.prepare('CREATE TABLE IF NOT EXISTS sp (k TEXT PRIMARY KEY, t TEXT, f TEXT, img TEXT, p INTEGER, o INTEGER, dc INTEGER, shop TEXT, url TEXT, d INTEGER)'),   // 13/10: kho tìm sản phẩm Shopee cho khách
   ]);
@@ -259,6 +260,15 @@ async function ipHash(req) {
   return [...new Uint8Array(h)].slice(0, 12).map(x => x.toString(16).padStart(2, '0')).join('');
 }
 const isAdmin = (env, u) => !!(env.STATS_KEY && u.searchParams.get('key') === env.STATS_KEY);
+// 💬 14/10: góp ý – khách gửi, chỉ chủ app đọc ở /thongke?key=…  (mỗi mạng tối đa 5 góp ý/ngày)
+async function gopy(env, b, ipx) {
+  const txt = String(b && b.txt || '').replace(/[<>]/g, '').replace(/\s+\n/g, '\n').trim().slice(0, 1000), by = String(b && b.by || '').slice(0, 40), v = String(b && b.v || '').slice(0, 20);
+  if (txt.length < 5 || !ipx) return { ok: false, error: 'bad' };
+  const c = await env.DB.prepare('SELECT COUNT(*) n FROM gopy WHERE ip = ? AND at > ?').bind(ipx, Date.now() - 864e5).first();
+  if (c && c.n >= 5) return { ok: false, error: 'limit' };
+  await env.DB.prepare('INSERT INTO gopy (at, by, ip, v, txt) VALUES (?, ?, ?, ?, ?)').bind(Date.now(), by, ipx, v, txt).run();
+  return { ok: true };
+}
 async function choDel(env, b) {   // 13/10: người đăng tự xoá mã của mình
   const by = String(b && b.by || ''), id = +b.id; if (!ID.test(by) || !(id > 0)) return { ok: false };
   const r = await env.DB.prepare('DELETE FROM cho WHERE id = ? AND by = ?').bind(id, by).run();
@@ -402,6 +412,11 @@ async function byeWhy(env, b) {
   await env.DB.prepare('UPDATE go SET why = ? WHERE id = ? AND why IS NULL').bind(why, id).run();
   return { ok: true };
 }
+async function gopyBox(env) {
+  const { results: r = [] } = await env.DB.prepare('SELECT at, v, txt FROM gopy ORDER BY id DESC LIMIT 100').all();
+  const t = x => new Date(x + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+  return `<div class="box"><b>💬 Góp ý của khách (${r.length} mới nhất)</b><table>${r.map(x => `<tr><td style="white-space:nowrap;vertical-align:top">${t(x.at)}<br><small>${esc(x.v || '')}</small></td><td style="white-space:pre-wrap">${esc(x.txt)}</td></tr>`).join('') || '<tr><td>Chưa có góp ý</td><td></td></tr>'}</table></div>`;
+}
 async function stats(env, u) {
   if (env.STATS_KEY && u.searchParams.get('key') !== env.STATS_KEY) return page('Thống kê', '<h1>🔒 Cần mật khẩu</h1><p>Mở lại đường dẫn có ?key=…</p>');
   const d = today(), q = (sql, ...a) => env.DB.prepare(sql).bind(...a).first();
@@ -411,12 +426,13 @@ async function stats(env, u) {
     q('SELECT COUNT(*) n FROM go WHERE d >= ?', d - 6), q('SELECT COUNT(*) n FROM go'), q('SELECT COUNT(*) n FROM gia')]);
   const { results: vers = [] } = await env.DB.prepare('SELECT v, COUNT(*) n FROM may WHERE d1 >= ? AND gone IS NULL GROUP BY v ORDER BY n DESC LIMIT 12').bind(d - 29).all();
   const { results: whys = [] } = await env.DB.prepare('SELECT why, COUNT(*) n FROM go WHERE why IS NOT NULL GROUP BY why ORDER BY n DESC').all();
-  const n = x => (x && x.n || 0).toLocaleString('vi-VN'), feed = await getSt(env, 'feed').catch(() => null), fe = await getSt(env, 'feedErr').catch(() => null), ft = await getSt(env, 'feedtt').catch(() => null);
+  const n = x => (x && x.n || 0).toLocaleString('vi-VN'), feed = await getSt(env, 'feed2').catch(() => null), fe = await getSt(env, 'feedErr').catch(() => null), ft = await getSt(env, 'feedtt').catch(() => null);
   const tile = (v, l) => `<div><div class="n">${v}</div><div class="l">${l}</div></div>`;
   return page('HaoHao – Thống kê', `<h1>🐹 HaoHao – Thống kê</h1><p>Mỗi máy chỉ tính 1 lần (mã ngẫu nhiên, không thông tin cá nhân).</p>
 <div class="box g">${tile(n(d1), 'Dùng hôm nay')}${tile(n(d7), 'Dùng 7 ngày')}${tile(n(d30), 'Dùng 30 ngày')}</div>
 <div class="box g">${tile(n(all), 'Tổng máy đã cài')}${tile(n(nw7), 'Cài mới 7 ngày')}${tile(n(gAll), 'Đã gỡ (7 ngày: ' + n(g7) + ')')}</div>
 <div class="box"><b>Phiên bản đang chạy (30 ngày)</b><table>${vers.map(r => `<tr><td>${esc(r.v)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
+${isAdmin(env, u) ? await gopyBox(env) : '<div class="box"><b>💬 Góp ý của khách</b><p>Đặt Secret STATS_KEY trên Cloudflare rồi mở /thongke?key=… để xem.</p></div>'}
 <div class="box"><b>Lý do gỡ</b><table>${whys.map(r => `<tr><td>${esc(r.why)}</td><td>${n(r)}</td></tr>`).join('') || '<tr><td>Chưa có</td><td></td></tr>'}</table></div>
 <p>Kho giá: ${n(gia)} món.${feed ? ` Tự nạp hôm nay: ${feed.done ? 'xong' : 'trang ' + feed.page} · ${(feed.n || 0).toLocaleString('vi-VN')} lượt ghi${feed.err ? ' · lỗi ' + esc(feed.err) : ''}.` : ''}${ft ? ` TikTok hôm nay: ${ft.ki >= TT_KW.length ? 'xong' : 'từ khoá ' + ft.ki + '/' + TT_KW.length} · ${(ft.n || 0).toLocaleString('vi-VN')} lượt ghi${ft.err ? ' · lỗi ' + esc(ft.err) : ''}.` : ''}${fe && (!feed || fe.at > Math.max(feed.at || 0, ft && ft.at || 0)) ? ` ⚠️ Tự nạp lỗi: ${esc(fe.e)}` : ''}</p>
 ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchParams.get('ngay') : 7)}`);
@@ -435,6 +451,7 @@ export default {
       }
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env, String(u.searchParams.get('by') || '')));
+      if (u.pathname === '/gopy' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 6000) return json({ error: 'too big' }, 413); return json(await gopy(env, await req.json().catch(() => null), await ipHash(req))); }
       if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null), ipx = await ipHash(req); return json(b && b.del ? await choDel(env, b) : b && b.vote ? await choVote(env, b, ipx) : await choAdd(env, b, ipx)); }
       if (u.pathname === '/hot' && u.searchParams.get('q')) {   // 🔎 tìm mã theo từ khoá (vd "thời trang", "sữa")
         const f = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();

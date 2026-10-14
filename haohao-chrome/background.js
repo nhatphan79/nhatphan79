@@ -433,6 +433,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   // ⬆️ V1.1: tự cập nhật – xem có bản mới không (+ app Transfer có hỗ trợ tự cài không), chạy cập nhật qua app Transfer
   if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
   if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
+  // 💬 V1.8: góp ý → máy chủ HaoHao (chỉ chủ app đọc)
+  if (msg.type === 'gopy') { (async () => { try { const m = chrome.runtime.getManifest(), r = await fetch(HT.PRICE_API.replace(/\/$/, '') + '/gopy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ by: await hhId(), txt: String(msg.txt || '').slice(0, 1000), v: m.version_name || m.version }) }).then(r => r.json()); send(r); } catch { send({ ok: false }); } })(); return true; }
   if (msg.type === 'tf-st') {
     const T = 'http://127.0.0.1:8686', g = p => fetch(T + p, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2500) }).then(r => r.json());
     Promise.all([g('/info'), g('/tt')]).then(([info, tt]) => send({ ok: true, info, tt })).catch(() => send({ ok: false }));

@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.7** (số kỹ thuật 1.10.262)
+Cập nhật: 13/10/2026 · **Bản V1.8** (số kỹ thuật 1.10.263)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -27,7 +27,7 @@ Cập nhật: 13/10/2026 · **Bản V1.7** (số kỹ thuật 1.10.262)
 - Săn voucher chỉ vào ngày sale đặc biệt. Nguồn mã: anh cập nhật tay (coupons.json) + mã cộng đồng (Chợ voucher).
 
 ## Phát hành bản mới cho khách (V1.1+)
-Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (trong thư mục HaoHao-V1-1.9.58: nén + KÝ), đưa `HaoHao-V1.zip` và chữ ký `HaoHao-V1.sig` vào `haohao-latest.json` (`sig`). Cách cũ: nén thư mục HaoHao đang chạy (bỏ `server-cloudflare`, file `.bak`) thành `downloads/HaoHao-V1.zip` (file nằm ngay gốc zip), sửa `downloads/haohao-latest.json` (`name` = V1.x, `version` = số kỹ thuật, `notes` ngắn) rồi đẩy lên. Máy khách tự thấy trong ≤ 6 giờ.
+Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm rối .js + ký) (trong thư mục HaoHao-V1-1.9.58: nén + KÝ), đưa `HaoHao-V1.zip` và chữ ký `HaoHao-V1.sig` vào `haohao-latest.json` (`sig`). Cách cũ: nén thư mục HaoHao đang chạy (bỏ `server-cloudflare`, file `.bak`) thành `downloads/HaoHao-V1.zip` (file nằm ngay gốc zip), sửa `downloads/haohao-latest.json` (`name` = V1.x, `version` = số kỹ thuật, `notes` ngắn) rồi đẩy lên. Máy khách tự thấy trong ≤ 6 giờ.
 - App HaoHao Transfer: mã nguồn `haohao-transfer/app.js`. Exe là bản pkg, mã nhúng dài đúng 21840 byte ở vị trí 57444352 (bắt đầu `//\n//\n`). Sửa app: minify bằng esbuild, đệm bằng comment cho đủ 21840 byte (xem `haohao-transfer/app.nhung-exe.js`) rồi ghi đè đúng chỗ đó.
 
 ## Bảo mật (13/10)
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (trong thư m�
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.8 (1.10.263) | 💬 Góp ý: Tiện ích có app "Góp ý" – khách gửi mong muốn (5–1000 chữ, mỗi mạng ≤5/ngày) → máy chủ `/gopy` (bảng `gopy`); CHỈ anh xem ở `/thongke?key=STATS_KEY` (cần đặt Secret STATS_KEY). Gói phát hành: mọi file .js được NÉN + LÀM RỐI bằng esbuild (`_release/tools/esbuild`, kịch bản `_release/dong-goi.py`, bản sao trong `tools-release/`), có dòng bản quyền đầu file; thư mục HaoHao gốc giữ nguyên |
 | V1.7 (1.10.262) | Sửa nhắc lặp lại (uống nước) chỉ hiện 1 lần: cửa sổ nhắc cũ còn mở nhưng bị che / thu nhỏ → HaoHao đóng và mở cửa sổ mới trên cùng, giữ lời nhắc chưa xử lý (`deskKeep` trong background.js) |
 | V1.6 – chữ ký số | Gói phát hành có CHỮ KÝ SỐ Ed25519: `downloads/haohao-latest.json` có `sig`; app Transfer chỉ cài gói có chữ ký đúng (khoá công khai nhúng trong app). Khoá riêng CHỈ nằm trên máy anh: `D:\4 .Phần mềm tự viết  - Nhật\HaoHao-V1-1.9.58\_release\khoa-ky\rieng.pem` – không đưa lên GitHub, nên sao lưu (USB). `_release/dong-goi.py` nén xong tự ký (`_release/ky.js`) |
 | V1.6 (1.10.261) | BẢO MẬT. App Transfer: mã ghép nối ngẫu nhiên mỗi lần bật app, nằm trong QR (`/?k=…` → cookie `hk`); `/up` không có mã → từ chối; lệnh điều khiển (`/info /tt /mo /noi-luu /chon-thu-muc /thoat /capnhat`) phải có header `x-haohao: 1` (trang web lạ không gửi được). HaoHao gửi header (TFH trong background.js). Máy chủ: Chợ voucher mỗi IP tối đa 2 mã/ngày (bảng `choip`, IP băm), báo hỏng tính theo IP (2 IP khác nhau → xoá), `/nap` và `/hot?run` cần `?key=STATS_KEY` |
