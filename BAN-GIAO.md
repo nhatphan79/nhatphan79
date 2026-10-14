@@ -106,6 +106,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ anh duyệt
+- [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
 - [ ] Lên Chrome Web Store (chờ khảo sát bản zip V1.5): làm bản Store riêng `haohao-store/` – (1) luật 1 mục đích: chọn a) gom thành "Trợ lý mua sắm an toàn" hay b) giữ đủ, mô tả "trợ lý cá nhân"; (2) bỏ canh Gmail (cần thẩm định bảo mật); (3) bỏ Bảng mở khoá theo dõi fanpage; (4) tự cập nhật đã tự tắt khi có update_url – kiểm lại; (5) trang Chính sách quyền riêng tư; (6) bỏ quyền không dùng (geolocation, topSites, search, identity…), giải thích từng quyền; (7) ghi rõ "có dùng link tiếp thị"; anh: tài khoản nhà phát triển + ảnh 1280×800 + mô tả + email hỗ trợ
 - [ ] Làm gọn khung Voucher trang sản phẩm (gộp 2 khung đầu thành 1 dòng, rút chữ giải thích, kết quả 1 dòng/mã, mỗi phần 3 mã + Xem thêm)
 - [ ] Phần đọc toàn bộ đánh giá (Kiểm tra chi tiết) cho Shopee tiếng Anh
