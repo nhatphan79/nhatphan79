@@ -634,16 +634,16 @@
   .mail-in .line { gap: 6px; align-items: center; }
   .mail-in { padding: 6px 2px 2px; }
   .foot { font-size: 11px; color: #9AA1BE; text-align: center; margin-top: 10px; }
-  .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; }
-  .tool { all: unset; cursor: pointer; border: 1.5px solid #E6E9F2; border-radius: 16px; padding: 14px 12px; background: #fff; display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 10px; }   /* V1.9: ô gọn */
+  .tool { all: unset; cursor: pointer; border: 1.5px solid #E6E9F2; border-radius: 12px; padding: 8px 9px; background: #fff; display: flex; flex-direction: row; gap: 8px; align-items: center; min-width: 0;
     box-shadow: 0 2px 8px rgba(35,48,94,.06); transition: transform .15s, box-shadow .15s, border-color .15s; }
   .tool:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 45%, transparent); box-shadow: 0 8px 20px color-mix(in srgb, var(--c) 22%, transparent); }
-  .tool .ti { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff;
+  .tool .ti { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #fff;
     background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--c) 55%, #fff) 0%, var(--c) 60%, color-mix(in srgb, var(--c) 82%, #000) 100%);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--c) 40%, transparent); }
-  .tool .ti svg { width: 24px; height: 24px; }
-  .tool b { display: block; font-size: 15.5px; font-weight: 800; color: #23305E; line-height: 1.25; }
-  .tool span.td { display: block; font-size: 11px; color: #6B7394; line-height: 1.4; margin-top: 3px; }
+  .tool .ti svg { width: 17px; height: 17px; } .tool > div { min-width: 0; }
+  .tool b { display: block; font-size: 13px; font-weight: 800; color: #23305E; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tool span.td { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 10.5px; color: #6B7394; line-height: 1.3; margin-top: 1px; }
   .tool:focus-visible { outline: 2px solid #D98E1F; outline-offset: 2px; }
   .menu-open .sat:nth-of-type(5) { transition-delay: .16s; } .menu-open .sat:nth-of-type(6) { transition-delay: .2s; }
   .menu-open .sat:hover { transform: scale(1.08); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--c) 60%, transparent), 0 0 26px color-mix(in srgb, var(--c) 60%, transparent), 0 8px 18px rgba(35,48,94,.22); }
