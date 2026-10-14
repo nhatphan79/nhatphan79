@@ -452,6 +452,10 @@ export default {
       }
       if (u.pathname === '/anh' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ error: 'too big' }, 413); return json(await anh(env, await req.json().catch(() => null))); }
       if (u.pathname === '/cho' && req.method === 'GET') return json(await choList(env, String(u.searchParams.get('by') || '')));
+      // 14/10: link ngắn – /tai (tải HaoHao bản mới nhất), /video (video hướng dẫn), /transfer (app chuyển ảnh)
+      if (u.pathname === '/tai') return Response.redirect('https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-V1.zip', 302);
+      if (u.pathname === '/video') return Response.redirect((CAI_DAT_HTML.match(/https:\/\/cdn\.jsdelivr\.net\/[^"]+\.mp4/) || [''])[0] || 'https://haohao-gia.nhatphan79.workers.dev/cai', 302);
+      if (u.pathname === '/transfer') return Response.redirect('https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-Transfer-Windows.zip', 302);
       if (u.pathname === '/cai-dat' || u.pathname === '/cai') return new Response(CAI_DAT_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=600' } });
       if (u.pathname === '/gopy' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 6000) return json({ error: 'too big' }, 413); return json(await gopy(env, await req.json().catch(() => null), await ipHash(req))); }
       if (u.pathname === '/cho' && req.method === 'POST') { const b = await req.json().catch(() => null), ipx = await ipHash(req); return json(b && b.del ? await choDel(env, b) : b && b.vote ? await choVote(env, b, ipx) : await choAdd(env, b, ipx)); }
