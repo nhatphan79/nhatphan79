@@ -1,0 +1,118 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1280px;height:720px;overflow:hidden;background:#FFF8EC;font-family:"Segoe UI",system-ui,sans-serif;color:#23305E}
+.abs{position:absolute}
+#br{left:90px;top:40px;width:1100px;height:560px;background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(35,48,94,.18);overflow:hidden;border:1px solid #DCE1EC}
+#tabs{height:38px;background:#DEE3EE;display:flex;align-items:flex-end;padding-left:14px}
+.tab{background:#fff;border-radius:10px 10px 0 0;padding:8px 18px;font-size:14px;width:240px}
+#bar{height:46px;background:#fff;border-bottom:1px solid #E3E6F0;display:flex;align-items:center;gap:10px;padding:0 14px}
+#addr{flex:1;height:30px;border-radius:15px;background:#F1F3F8;display:flex;align-items:center;padding:0 16px;font-size:15px}
+#addr .caret{display:inline-block;width:2px;height:18px;background:#23305E;margin-left:1px}
+.pane{position:absolute;left:0;right:0;top:84px;bottom:0;padding:34px 46px}
+#paneDl h1{font-size:34px;text-align:center;margin-top:30px}
+#paneDl p{text-align:center;color:#5B6478;font-size:17px;margin-top:10px}
+#dlbtn{display:block;margin:30px auto 0;width:280px;text-align:center;padding:16px 0;border-radius:999px;background:#EE4D2D;color:#fff;font-weight:800;font-size:22px}
+#shelf{left:0;right:0;bottom:0;height:52px;background:#F1F3F8;border-top:1px solid #DCE1EC;display:flex;align-items:center;padding:0 20px;gap:12px;font-size:15px}
+.zipic{width:26px;height:32px;border-radius:4px;background:#F2B544}
+#paneExt h2{font-size:26px}
+#dev{position:absolute;right:46px;top:36px;display:flex;align-items:center;gap:12px;font-size:16px;color:#5B6478}
+.tg{width:52px;height:28px;border-radius:14px;background:#C9CFDD;position:relative;transition:none}
+.tg i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff}
+#devbtns{margin-top:26px;display:flex;gap:12px}
+.db{padding:10px 18px;border-radius:8px;border:1.5px solid #1A73E8;color:#1A73E8;font-weight:700;font-size:15px;background:#E8F0FE}
+.db.g{border-color:#C9CFDD;color:#5B6478;background:#fff}
+#card{margin-top:28px;width:420px;border:1.5px solid #F5D78E;background:#FFF8EC;border-radius:14px;padding:18px;display:flex;gap:16px;align-items:center}
+#ex{left:250px;top:120px;width:780px;height:430px;background:#fff;border-radius:12px;box-shadow:0 18px 50px rgba(35,48,94,.25);border:1px solid #DCE1EC;overflow:hidden}
+#ex .hd{height:44px;background:#EEF1F8;display:flex;align-items:center;padding:0 18px;font-size:15px;font-weight:600}
+.file{position:absolute;text-align:center;font-size:14px;width:130px}
+.file .ic{margin:0 auto 8px;width:62px;height:74px;border-radius:8px}
+#ctx{left:330px;top:150px;width:240px;background:#fff;border:1px solid #C9D0E0;border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.15);padding:6px 0;font-size:15px}
+#ctx div{padding:9px 16px}
+#ctx .hi{background:#FFE8C2;font-weight:700}
+#pick{left:300px;top:150px;width:680px;height:380px;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(35,48,94,.3);border:1px solid #DCE1EC;overflow:hidden}
+#pick .hd{height:44px;background:#EEF1F8;display:flex;align-items:center;padding:0 18px;font-weight:600}
+.row{display:flex;align-items:center;gap:12px;padding:12px 22px;font-size:16px}
+.fold{width:30px;height:24px;border-radius:4px;background:#F2B544}
+#pickok{position:absolute;right:22px;bottom:20px;padding:10px 22px;border-radius:8px;background:#1A73E8;color:#fff;font-weight:700}
+#cap{left:0;right:0;bottom:0;height:96px;display:flex;align-items:center;justify-content:center;gap:16px;font-size:30px;font-weight:800}
+#cap .n{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:50%;background:#F2A71B;color:#fff;font-size:28px}
+#cur{width:28px;height:28px;z-index:50}
+#rip{width:46px;height:46px;border-radius:50%;border:4px solid #EE4D2D;z-index:49;opacity:0}
+#intro{inset:0;background:#FFF8EC;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60}
+#intro h1{font-size:54px;margin-top:20px}
+#intro p{font-size:24px;color:#5B6478;margin-top:12px}
+#ham{right:120px;bottom:120px;width:130px;z-index:40}
+#bub{right:250px;bottom:210px;background:#fff;border:2px solid #23305E;border-radius:18px;padding:16px 20px;font-size:20px;font-weight:700;z-index:41;width:330px}
+</style></head>
+<body>
+<div id="br" class="abs">
+  <div id="tabs"><div class="tab" id="tabt">HaoHao – Cài đặt</div></div>
+  <div id="bar"><span style="color:#9AA1BE">⟵ ⟶ ⟳</span><div id="addr"><span id="addrt">haohao-gia.nhatphan79.workers.dev/cai-dat</span><span class="caret" id="caret"></span></div></div>
+  <div class="pane" id="paneDl"><h1>Cài HaoHao trong 1 phút</h1><p>Trợ lý mua sắm, nhắc việc, chặn quảng cáo – miễn phí</p><div id="dlbtn">⬇️ Tải HaoHao</div></div>
+  <div class="pane" id="paneExt"><h2>Tiện ích</h2>
+    <div id="dev">Chế độ dành cho nhà phát triển <div class="tg" id="tg"><i id="tgi"></i></div></div>
+    <div id="devbtns"><div class="db" id="loadbtn">Tải tiện ích đã giải nén</div><div class="db g">Đóng gói tiện ích</div><div class="db g">Cập nhật</div></div>
+    <div id="card"><svg width="58" height="58" viewBox="0 0 100 100"><circle cx="28" cy="24" r="11" fill="#D98E1F"/><circle cx="72" cy="24" r="11" fill="#D98E1F"/><ellipse cx="50" cy="56" rx="42" ry="38" fill="#F2B544"/><ellipse cx="50" cy="66" rx="26" ry="22" fill="#FFF3DC"/><circle cx="37" cy="50" r="5.5" fill="#23305E"/><circle cx="63" cy="50" r="5.5" fill="#23305E"/></svg><div><div style="font-size:20px;font-weight:800">HaoHao V1</div><div style="color:#5B6478">Đã cài · đang bật ✓</div></div></div>
+  </div>
+  <div id="shelf" class="abs"><div class="zipic"></div><div><b>HaoHao-V1.zip</b><br><span style="color:#5B6478;font-size:13px" id="shelft">Đang tải…</span></div></div>
+</div>
+<div id="ex" class="abs"><div class="hd">📁 Tải về (Downloads)</div>
+  <div class="file" style="left:70px;top:90px"><div class="ic" style="background:#F2B544"></div>HaoHao-V1.zip</div>
+  <div class="file" id="folder" style="left:250px;top:90px"><div class="ic" style="background:#FFD877;height:62px;margin-top:12px"></div>HaoHao-V1</div>
+  <div id="ctx" class="abs"><div>Mở</div><div class="hi">Giải nén tất cả…</div><div>Sao chép</div><div>Xoá</div></div>
+</div>
+<div id="pick" class="abs"><div class="hd">Chọn thư mục tiện ích</div>
+  <div class="row"><div class="fold"></div>Tài liệu</div><div class="row" id="prow"><div class="fold"></div><b>HaoHao-V1</b></div><div class="row"><div class="fold"></div>Hình ảnh</div>
+  <div id="pickok">Chọn thư mục</div></div>
+<svg id="ham" class="abs" viewBox="0 0 100 100"><ellipse cx="50" cy="95" rx="28" ry="4" fill="rgba(0,0,0,.12)"/><circle cx="28" cy="24" r="11" fill="#D98E1F"/><circle cx="72" cy="24" r="11" fill="#D98E1F"/><ellipse cx="50" cy="56" rx="42" ry="38" fill="#F2B544"/><ellipse cx="50" cy="66" rx="26" ry="22" fill="#FFF3DC"/><circle cx="37" cy="50" r="5.5" fill="#23305E"/><circle cx="63" cy="50" r="5.5" fill="#23305E"/><ellipse cx="28" cy="62" rx="6.5" ry="4.2" fill="#FF9F8E"/><ellipse cx="72" cy="62" rx="6.5" ry="4.2" fill="#FF9F8E"/><ellipse cx="50" cy="59" rx="3" ry="2.2" fill="#23305E"/><path d="M45 63.5q5 4.5 10 0" fill="none" stroke="#23305E" stroke-width="2" stroke-linecap="round"/></svg>
+<div id="bub" class="abs">Xin chào! HaoHao đã sẵn sàng 🐹<br><span style="font-weight:500;font-size:16px;color:#5B6478">Bấm 🧩 trên Chrome → ghim 📌 HaoHao</span></div>
+<div id="rip" class="abs"></div>
+<svg id="cur" class="abs" viewBox="0 0 24 24"><path d="M4 2l15 11-7 1-3 7z" fill="#23305E" stroke="#fff" stroke-width="1.5"/></svg>
+<div id="cap" class="abs"></div>
+<div id="intro" class="abs"><svg width="150" height="150" viewBox="0 0 100 100"><circle cx="28" cy="24" r="11" fill="#D98E1F"/><circle cx="72" cy="24" r="11" fill="#D98E1F"/><ellipse cx="50" cy="56" rx="42" ry="38" fill="#F2B544"/><ellipse cx="50" cy="66" rx="26" ry="22" fill="#FFF3DC"/><circle cx="37" cy="50" r="5.5" fill="#23305E"/><circle cx="63" cy="50" r="5.5" fill="#23305E"/><ellipse cx="50" cy="59" rx="3" ry="2.2" fill="#23305E"/><path d="M45 63.5q5 4.5 10 0" fill="none" stroke="#23305E" stroke-width="2" stroke-linecap="round"/></svg><h1 id="it">Cài HaoHao trong 1 phút</h1><p id="ip">4 bước · miễn phí · Chrome, Cốc Cốc, Edge</p></div>
+<script>
+const $ = id => document.getElementById(id);
+const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const show = (id, on, op) => { const e = $(id); e.style.display = on ? '' : 'none'; if (op != null) e.style.opacity = op; };
+// đường chuột: [giây, x, y]
+// đo vị trí thật của các nút (hiện tạm tất cả rồi đo)
+const C = {}; ['paneDl','paneExt','ex','ctx','pick','devbtns','folder'].forEach(id => show(id, true)); show('intro', false);
+const ctr = (k, sel) => { const r = document.querySelector(sel).getBoundingClientRect(); C[k] = [r.left + r.width / 2, r.top + r.height / 2]; };
+ctr('dl', '#dlbtn'); ctr('addr', '#addr'); ctr('tg', '#tg'); ctr('load', '#loadbtn'); ctr('zip', '#ex .file .ic'); ctr('unz', '#ctx .hi'); ctr('row', '#prow'); ctr('ok', '#pickok');
+const at = (t, k, dx = 0, dy = 0) => [t, C[k][0] + dx, C[k][1] + dy];
+const P = [[5,640,620], at(7.5,'dl',-10,4), at(9,'dl',-10,4), [15,700,560], at(16.5,'zip'), at(18,'zip'), at(19.5,'unz',-20), at(21,'unz',-20), at(24.6,'addr',-300), at(25.4,'addr',-300), [33,950,450], at(35,'tg'), at(36.5,'tg'), [41,800,420], at(43,'load'), at(44,'load'), at(46.5,'row',-80), at(47.5,'row',-80), at(49.5,'ok'), at(50.5,'ok'), [60,980,560]];
+const CLICKS = [9, 18, 21, 25.4, 36.5, 44, 47.5, 50.5];
+function curAt(t) { if (t <= P[0][0]) return P[0]; for (let i = 1; i < P.length; i++) if (t <= P[i][0]) { const a = P[i - 1], b = P[i], k = ease((t - a[0]) / (b[0] - a[0])); return [t, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; } return P[P.length - 1]; }
+const CAP = [[5, 15, 1, 'Bấm "Tải HaoHao" trên trang hướng dẫn'], [15, 24, 2, 'Chuột phải file zip → "Giải nén tất cả"'], [24, 33, 3, 'Mở chrome://extensions'], [33, 41, 3, 'Bật "Chế độ dành cho nhà phát triển"'], [41, 53, 4, 'Bấm "Tải tiện ích đã giải nén" → chọn thư mục HaoHao-V1'], [53, 60.1, 0, '🎉 Xong! Chú hamster HaoHao đã ở góc màn hình']];
+window.render = t => {
+  // intro 0–5s
+  show('intro', t < 5.4, t < 4.6 ? 1 : cl((5.4 - t) / .8, 0, 1));
+  // cảnh trình duyệt
+  const ext = t >= 24;
+  show('paneDl', !ext); show('paneExt', ext);
+  show('shelf', t >= 9.3 && t < 24); $('shelft').textContent = t < 11 ? 'Đang tải… ' + Math.round(cl((t - 9.3) / 1.7, 0, 1) * 100) + '%' : 'Xong ✓';
+  // gõ địa chỉ
+  const url = 'chrome://extensions';
+  if (t < 24) { $('addrt').textContent = 'haohao-gia.nhatphan79.workers.dev/cai-dat'; $('tabt').textContent = 'HaoHao – Cài đặt'; show('caret', false); }
+  else { const n = cl(Math.floor((t - 25.5) * 9), 0, url.length); $('addrt').textContent = t < 25.5 ? '' : url.slice(0, n); show('caret', t < 29 && Math.floor(t * 2) % 2 === 0); $('tabt').textContent = t >= 29 ? 'Tiện ích' : 'Thẻ mới'; show('paneExt', t >= 29); }
+  // công tắc nhà phát triển
+  const on = t >= 36.6; $('tg').style.background = on ? '#1A73E8' : '#C9CFDD'; $('tgi').style.left = on ? '27px' : '3px';
+  show('devbtns', on); show('card', t >= 51);
+  // explorer
+  show('ex', t >= 15 && t < 24); show('ctx', t >= 18.1 && t < 21.1); show('folder', t >= 21.6);
+  // hộp chọn thư mục
+  show('pick', t >= 44.1 && t < 50.6); $('prow').style.background = t >= 47.6 ? '#E8F0FE' : '';
+  // hamster
+  const hs = cl((t - 52) / .6, 0, 1); show('ham', t >= 52); $('ham').style.transform = `scale(${hs}) translateY(${Math.sin(t * 3) * 3}px)`; show('bub', t >= 53);
+  // chuột + click
+  const c = curAt(t); show('cur', t >= 5 && t < 58); $('cur').style.left = c[1] + 'px'; $('cur').style.top = c[2] + 'px';
+  const ck = CLICKS.find(x => t >= x && t < x + .5); show('rip', !!ck); if (ck) { const k = (t - ck) / .5; $('rip').style.left = (c[1] - 22) + 'px'; $('rip').style.top = (c[2] - 22) + 'px'; $('rip').style.opacity = 1 - k; $('rip').style.transform = `scale(${.4 + k})`; }
+  // phụ đề
+  const cp = CAP.find(x => t >= x[0] && t < x[1]); $('cap').innerHTML = cp ? (cp[2] ? `<span class="n">${cp[2]}</span>` : '') + cp[3] : '';
+};
+render(0);
+</script>
+</body></html>
