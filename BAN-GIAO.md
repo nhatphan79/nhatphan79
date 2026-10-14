@@ -27,7 +27,7 @@ Cập nhật: 13/10/2026 · **Bản V1.10** (số kỹ thuật 1.10.265)
 - Săn voucher chỉ vào ngày sale đặc biệt. Nguồn mã: anh cập nhật tay (coupons.json) + mã cộng đồng (Chợ voucher).
 
 ## Phát hành bản mới cho khách (V1.1+)
-Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm rối .js + ký) (trong thư mục HaoHao-V1-1.9.58: nén + KÝ), đưa `HaoHao-V1.zip` và chữ ký `HaoHao-V1.sig` vào `haohao-latest.json` (`sig`). Cách cũ: nén thư mục HaoHao đang chạy (bỏ `server-cloudflare`, file `.bak`) thành `downloads/HaoHao-V1.zip` (file nằm ngay gốc zip), sửa `downloads/haohao-latest.json` (`name` = V1.x, `version` = số kỹ thuật, `notes` ngắn) rồi đẩy lên. Máy khách tự thấy trong ≤ 6 giờ.
+Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm rối .js + ký; từ 14/10 mọi file nằm trong thư mục `HaoHao-V1/` của zip – app Transfer tự tìm manifest.json) (trong thư mục HaoHao-V1-1.9.58: nén + KÝ), đưa `HaoHao-V1.zip` và chữ ký `HaoHao-V1.sig` vào `haohao-latest.json` (`sig`). Cách cũ: nén thư mục HaoHao đang chạy (bỏ `server-cloudflare`, file `.bak`) thành `downloads/HaoHao-V1.zip` (file nằm ngay gốc zip), sửa `downloads/haohao-latest.json` (`name` = V1.x, `version` = số kỹ thuật, `notes` ngắn) rồi đẩy lên. Máy khách tự thấy trong ≤ 6 giờ.
 - App HaoHao Transfer: mã nguồn `haohao-transfer/app.js`. Exe là bản pkg, mã nhúng dài đúng 21840 byte ở vị trí 57444352 (bắt đầu `//\n//\n`). Sửa app: minify bằng esbuild, đệm bằng comment cho đủ 21840 byte (xem `haohao-transfer/app.nhung-exe.js`) rồi ghi đè đúng chỗ đó.
 
 ## Bảo mật (13/10)

@@ -12,7 +12,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
         dirs[:] = [d for d in dirs if d not in ('server-cloudflare', '.git', 'node_modules')]
         for f in files:
             if '.bak.' in f: continue
-            p = os.path.join(r, f); rel = os.path.relpath(p, src); n += 1
+            p = os.path.join(r, f); rel = os.path.join('HaoHao-V1', os.path.relpath(p, src)); n += 1   # V1.11: mọi file nằm trong thư mục HaoHao-V1/ của gói zip
             if f.endswith('.js'):
                 data = open(p, 'rb').read()
                 res = subprocess.run([E, '--minify', '--charset=utf8', '--target=chrome110', '--loader=js', '--banner=' + BANNER], input=data, capture_output=True)
