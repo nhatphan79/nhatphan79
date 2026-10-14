@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.6** (số kỹ thuật 1.10.261)
+Cập nhật: 13/10/2026 · **Bản V1.7** (số kỹ thuật 1.10.262)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (trong thư m�
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.7 (1.10.262) | Sửa nhắc lặp lại (uống nước) chỉ hiện 1 lần: cửa sổ nhắc cũ còn mở nhưng bị che / thu nhỏ → HaoHao đóng và mở cửa sổ mới trên cùng, giữ lời nhắc chưa xử lý (`deskKeep` trong background.js) |
 | V1.6 – chữ ký số | Gói phát hành có CHỮ KÝ SỐ Ed25519: `downloads/haohao-latest.json` có `sig`; app Transfer chỉ cài gói có chữ ký đúng (khoá công khai nhúng trong app). Khoá riêng CHỈ nằm trên máy anh: `D:\4 .Phần mềm tự viết  - Nhật\HaoHao-V1-1.9.58\_release\khoa-ky\rieng.pem` – không đưa lên GitHub, nên sao lưu (USB). `_release/dong-goi.py` nén xong tự ký (`_release/ky.js`) |
 | V1.6 (1.10.261) | BẢO MẬT. App Transfer: mã ghép nối ngẫu nhiên mỗi lần bật app, nằm trong QR (`/?k=…` → cookie `hk`); `/up` không có mã → từ chối; lệnh điều khiển (`/info /tt /mo /noi-luu /chon-thu-muc /thoat /capnhat`) phải có header `x-haohao: 1` (trang web lạ không gửi được). HaoHao gửi header (TFH trong background.js). Máy chủ: Chợ voucher mỗi IP tối đa 2 mã/ngày (bảng `choip`, IP băm), báo hỏng tính theo IP (2 IP khác nhau → xoá), `/nap` và `/hot?run` cần `?key=STATS_KEY` |
 | V1.5 (1.10.260) | Thanh mục con Mua sắm (Kiểm tra · Rẻ hơn · Voucher · Đã lưu (N)) luôn 1 hàng, không xuống dòng |

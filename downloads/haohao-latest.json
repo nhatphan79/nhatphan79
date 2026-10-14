@@ -1,7 +1,7 @@
 {
- "name": "V1.6",
- "version": "1.10.261",
+ "name": "V1.7",
+ "version": "1.10.262",
  "file": "HaoHao-V1.zip",
- "sig": "5FiNj9gGFgBouwAESI8OqmYBYXDlbUoJeX6CnbA608I1OjoegmwA3V7ZzjCW/nt495SzaWM+i8WSwkJGZifFAA==",
- "notes": "bảo mật: app Transfer có mã ghép nối, chống phá Chợ voucher"
+ "sig": "iEskOxxtuPM1AfHbmyl+wa9UvbnwQHjdKDJFflLKGIfrrdZlL7iC2WeS/nTG284c/h/84jUTc567mzyQj6gABA==",
+ "notes": "nhắc uống nước và lời nhắc lặp lại luôn hiện trên cùng"
 }

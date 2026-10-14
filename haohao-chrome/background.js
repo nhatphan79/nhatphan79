@@ -371,7 +371,12 @@ async function showDesk(item) {
   deskQueue.push(item);
   await chrome.storage.session.set({ deskQueue });
   if (deskWin != null) {
-    try { await chrome.windows.get(deskWin); await chrome.windows.update(deskWin, { focused: true, drawAttention: true }); return; } catch {}
+    // V1.7: cửa sổ nhắc cũ còn đang ở trên cùng → chỉ thêm lời nhắc; đang bị che / thu nhỏ → đóng, mở cửa sổ mới trên cùng (giữ lời nhắc chưa xử lý)
+    try {
+      const w = await chrome.windows.get(deskWin);
+      if (w.state !== 'minimized' && w.focused) { await chrome.windows.update(deskWin, { drawAttention: true }); return; }
+      await chrome.storage.session.set({ deskKeep: deskWin }); await chrome.windows.remove(deskWin).catch(() => {});
+    } catch {}
   }
   let left, top;
   try {
@@ -384,7 +389,8 @@ async function showDesk(item) {
   await chrome.storage.session.set({ deskWin: w.id });
 }
 chrome.windows.onRemoved.addListener(async id => {
-  const { deskWin } = await chrome.storage.session.get('deskWin');
+  const { deskWin, deskKeep } = await chrome.storage.session.get(['deskWin', 'deskKeep']);
+  if (id === deskKeep) { await chrome.storage.session.set({ deskKeep: null }); return; }   // V1.7: HaoHao tự đóng để mở lại trên cùng → giữ lời nhắc
   if (id === deskWin) await chrome.storage.session.set({ deskWin: null, deskQueue: [] });
 });
 const localISO = ms => { const d = new Date(ms); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
