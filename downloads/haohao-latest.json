@@ -1,7 +1,7 @@
 {
- "name": "V1.11",
- "version": "1.10.266",
+ "name": "V1.12",
+ "version": "1.10.267",
  "file": "HaoHao-V1.zip",
- "sig": "4lTw0gB463ZX0jHZM4KgRA3xnt22AEtlqkoVVxEbgKhUJktPhDtNt1XcanecoAVgbCpKPPXxx4Q3Yq1P8VbvCA==",
- "notes": "Sửa lỗi gõ chữ trong cửa sổ note bị nhảy con trỏ"
+ "sig": "Y1mjGU9Hi2Iu9YTiUsy22YTiz7jSL4ZeL8qzxklY+K8QHaPc3xR1xy2WfxuUK0oYt3ofKvfyybVFbeQHfEzXAQ==",
+ "notes": "Chứng khoán: đủ mã HOSE, HNX, UPCoM, gõ mã hoặc tên công ty để thêm"
 }

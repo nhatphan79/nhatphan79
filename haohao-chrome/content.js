@@ -472,6 +472,11 @@
   .stk .ch { font-size: 12.5px; font-weight: 700; } .stk .ch.ref { color: #C99700; }
   .stk-hd { font-size: 11px; color: #888; font-weight: 700; padding-top: 0; } .stk-hd span:nth-child(2), .stk-hd span:nth-child(3) { text-align: right; }
   .stk-add select { flex: 1; }
+  .stk-in { position: relative; flex: 1 1 auto; min-width: 0; } .stk-in input { width: 100%; }
+  .stk-sug { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 6; background: #fff; border: 1px solid #D5DAE6; border-radius: 8px; box-shadow: 0 8px 20px rgba(31,42,68,.14); max-height: 232px; overflow: auto; }
+  .stk-sug button { all: unset; display: block; box-sizing: border-box; width: 100%; padding: 6px 10px; font-size: 12px; line-height: 1.35; cursor: pointer; color: #1F2A44; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stk-sug button:hover, .stk-sug button.on { background: #EEF0F5; } .stk-sug b { margin-right: 6px; } .stk-sug small { color: #8A90A6; margin-left: 4px; }
+  .stk-sug .none { padding: 8px 10px; font-size: 12px; color: #8A90A6; }
   .mk-al { display: grid !important; grid-template-columns: minmax(0, 1fr) 78px 80px auto; gap: 6px; } .mk-al > * { min-width: 0; box-sizing: border-box; width: 100%; }
   .hold-ln { all: unset; cursor: pointer; display: block; box-sizing: border-box; width: 100%; padding: 1px 4px 6px; font-size: 11.5px; color: #6B7385; border-bottom: 1px solid #F0F2F7; }
   .hold-ln:hover { color: #23305E; } .hold-ln.add { color: #A0A7B8; }
@@ -7028,8 +7033,27 @@
   const fmt = p => { if (p == null || isNaN(p)) return '?'; p = +p; if (p === 0) return '0'; if (Math.abs(p) < 0.01) return p.toPrecision(4); return p.toLocaleString('en-US', { minimumFractionDigits: Math.abs(p) >= 1000 ? 0 : 2, maximumFractionDigits: 2 }); };
   // 1.10.63 màu trong ngày kiểu bảng giá: xanh tăng · đỏ giảm · vàng đứng giá (tham chiếu)
   const mkDir = v => { v = Number(v) || 0; return v > 0 ? 'mk-up' : v < 0 ? 'mk-dn' : 'mk-ref'; };
-  // 📈 Chứng khoán: chỉ mã trong rổ VN30
+  // 📈 Chứng khoán: mọi mã HOSE, HNX, UPCoM (V1.12; trước đây chỉ rổ VN30)
   let stocks = ['FPT', 'TCB', 'VIC'], stockQ = null, vn30 = HT.VN30;
+  // V1.12: đủ mã cổ phiếu HOSE, HNX, UPCoM (danh sách + tên công ty từ SSI, nền tải lại mỗi ngày)
+  let stockAll = null, stockName = {}, stockListAsk = false;
+  const stNorm = t => String(t || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  async function loadStockList() {
+    if (stockAll || stockListAsk) return; stockListAsk = true;
+    try {
+      const r = await chrome.runtime.sendMessage({ type: 'stock-list' });
+      if (r && r.L && r.L.length) { stockAll = r.L.map(x => ({ c: x[0], n: x[1] || '', ex: x[2] || '', k: stNorm(x[1]) })); stockAll.forEach(x => { stockName[x.c] = x; }); if ((tab === 'tools' || tab === 'market') && mktSub === 'stock' && !holdTyping()) renderPanel(); }
+    } catch {} finally { stockListAsk = false; }
+  }
+  function stockFind(q) {
+    q = String(q || '').trim(); if (!q || !stockAll) return [];
+    const Q = q.toUpperCase(), n = stNorm(q), out = [], seen = new Set();
+    const add = x => { if (!seen.has(x.c) && !stocks.includes(x.c)) { seen.add(x.c); out.push(x); } };
+    for (const x of stockAll) if (x.c === Q) add(x);
+    for (const x of stockAll) if (x.c.startsWith(Q)) add(x);
+    if (n.length >= 2) for (const x of stockAll) if (x.k.includes(n)) add(x);
+    return out.slice(0, 8);
+  }
   async function loadStocks(force) {
     try {
       const r = await chrome.runtime.sendMessage({ type: 'stock-get', codes: stocks, force: !!force });
@@ -7039,24 +7063,42 @@
   const kd = v => v == null || isNaN(v) ? '–' : (+v).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   function renderStock(V) {
     if (!stockQ) loadStocks();
-    const left = vn30.filter(c => !stocks.includes(c));
-    const form = h(`<div class="row cry-add stk-add">
-        <select aria-label="Mã VN30">${left.length ? left.map(c => `<option>${c}</option>`).join('') : '<option value="">Đã thêm đủ VN30</option>'}</select>
+    loadStockList();
+    const form = h(`<div class="row cry-add stk-add"><div class="stk-in">
+        <input class="grow hold-in" placeholder="Gõ mã hoặc tên công ty (VD: DGC, Đức Giang)" aria-label="Tìm mã cổ phiếu" autocomplete="off" spellcheck="false">
+        <div class="stk-sug" hidden></div></div>
         <button class="b" aria-label="Theo dõi mã">＋ Thêm</button></div>`);
-    const sel = form.querySelector('select');
-    form.querySelector('button').addEventListener('click', () => {
-      const c = sel.value; if (!c || stocks.includes(c)) return;
-      stocks.push(c); chrome.storage.local.set({ stocks }); loadStocks(); renderPanel();
-    });
+    const inp = form.querySelector('input'), sug = form.querySelector('.stk-sug');
+    let hits = [];
+    const addCode = c => {
+      c = String(c || '').trim().toUpperCase(); if (!c || stocks.includes(c)) return;
+      if (stockAll ? !stockName[c] : !/^[A-Z0-9]{3}$/.test(c)) { sug.hidden = false; sug.replaceChildren(el('div', 'none', 'Không thấy mã ' + c + ' trên HOSE, HNX, UPCoM')); return; }
+      stocks.push(c); chrome.storage.local.set({ stocks }); inp.value = ''; inp.blur(); loadStocks(); renderPanel();
+    };
+    const draw = () => {
+      hits = stockFind(inp.value); sug.replaceChildren();
+      if (!inp.value.trim()) { sug.hidden = true; return; }
+      if (!stockAll) sug.append(el('div', 'none', 'Đang tải danh sách mã…'));
+      else if (!hits.length) sug.append(el('div', 'none', 'Không thấy mã phù hợp'));
+      hits.forEach((x, k) => {
+        const b = el('button', k ? '' : 'on'); b.append(el('b', '', x.c), x.n, el('small', '', '· ' + x.ex)); b.title = x.n;
+        b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => addCode(x.c)); sug.append(b);
+      });
+      sug.hidden = false;
+    };
+    inp.addEventListener('input', draw);
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); addCode(hits[0] ? hits[0].c : inp.value); } else if (e.key === 'Escape') { inp.value = ''; draw(); } });
+    inp.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; }, 150));
+    form.querySelector('button.b').addEventListener('click', () => addCode(hits[0] ? hits[0].c : inp.value));
     V.append(form);
     const list = el('div', 'body-list mk-list');
-    if (!stocks.length) list.append(el('div', 'empty', 'Chọn mã trong rổ VN30 rồi bấm ＋ Thêm để theo dõi.'));
+    if (!stocks.length) list.append(el('div', 'empty', 'Gõ mã hoặc tên công ty ở ô trên (đủ HOSE, HNX, UPCoM) rồi bấm ＋ Thêm để theo dõi.'));
     const hd = el('div', 'stk stk-hd'); hd.append(el('span', '', 'Mã'), el('span', '', 'Đơn vị'), el('span', '', 'Mua'), el('span', '', 'Bán'), el('span', '', '%'), el('span', '', '')); if (stocks.length) list.append(hd);
     for (const c of stocks) {
       const q = stockQ && stockQ.q && stockQ.q[c];
       const d = q && q.price ? mkDir(q.chg) : '';
       const row = el('div', 'stk mk-r ' + d);
-      const nmc = el('span', 'nmc'); nmc.append(el('b', 'sym', c)); row.append(nmc, unitCell('nghìn'));
+      const nmc = el('span', 'nmc'); nmc.append(el('b', 'sym', c)); if (stockName[c]) nmc.title = stockName[c].n + ' · ' + stockName[c].ex; row.append(nmc, unitCell('nghìn'));
       if (q && q.price) {
         const chg = Math.abs(q.chg) > q.price * 0.15 ? q.chg / 1000 : q.chg;   // nguồn có lúc trả ± theo đồng thay vì nghìn đ
         // 1.10.96: theo chuẩn Vàng – Mua · Bán (giá khớp, như Thế giới) · %; ± đồng ở tooltip

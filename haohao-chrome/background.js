@@ -549,6 +549,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'scan-me') { const job = scanJobs.get(sender.tab && sender.tab.id); send({ scan: job ? job.type : false, data: job ? job.data : null }); return; }
   if (msg.type === 'scan-result') { const job = scanJobs.get(sender.tab && sender.tab.id); if (job) job.done(msg.result); return; }
   if (msg.type === 'get-quotes') { getQuotes(msg.items || []).then(send); return true; }
+  if (msg.type === 'stock-list') { stockList(msg.force).then(send).catch(e => send({ error: e.message, L: [] })); return true; }
   if (msg.type === 'stock-get') { stockGet(msg.codes || [], msg.force).then(send).catch(e => send({ error: e.message, q: {} })); return true; }
   if (msg.type === 'gold-get') { goldGet(msg.force).then(send).catch(e => send({ error: e.message })); return true; }
 });
@@ -584,18 +585,40 @@ async function goldVapi() {   // dự phòng: vapi.vnappmob.com (khoá miễn ph
 // 📈 Giá VN30: 1 lần gọi SSI lấy cả rổ VN30; lỗi thì lấy từng mã từ VNDirect. Lưu 60 giây.
 let stockCache = null;
 const kdong = v => { v = Number(v); if (!v) return 0; return v > 1000 ? v / 1000 : v; };   // về nghìn đồng
-async function stockSSI() {
-  const r = await fetch('https://iboard-query.ssi.com.vn/stock/group/VN30', { headers: { Accept: 'application/json' } });
-  if (!r.ok) throw new Error('SSI ' + r.status);
-  const L = ((await r.json()).data) || [], q = {};
-  for (const x of L) {
-    const c = String(x.stockSymbol || x.ss || '').toUpperCase(); if (!c) continue;
-    const ref = kdong(x.refPrice ?? x.ref), price = kdong(x.matchedPrice ?? x.mp) || ref;
-    const chg = x.priceChange != null ? kdong(Math.abs(x.priceChange)) * Math.sign(x.priceChange) : price - ref;
-    q[c] = { price, chg, pct: x.priceChangePercent != null ? Number(x.priceChangePercent) : (ref ? chg / ref * 100 : 0) };
-  }
+// V1.12: giá từng mã theo đúng sàn (HOSE / HNX / UPCoM), không còn giới hạn rổ VN30
+async function stockSSI(codes) {
+  const q = {};
+  await Promise.all(codes.map(async c => {
+    try {
+      const r = await fetch(`https://iboard-query.ssi.com.vn/stock/${encodeURIComponent(c)}`, { headers: { Accept: 'application/json' } });
+      if (!r.ok) return;
+      const x = (await r.json()).data; if (!x) return;
+      const ref = kdong(x.refPrice ?? x.ref), price = kdong(x.matchedPrice ?? x.mp) || ref;
+      const chg = x.priceChange != null ? kdong(Math.abs(x.priceChange)) * Math.sign(x.priceChange) : price - ref;
+      q[c] = { price, chg, pct: x.priceChangePercent != null ? Number(x.priceChangePercent) : (ref ? chg / ref * 100 : 0), ex: String(x.exchange || '').toUpperCase() };
+    } catch {}
+  }));
   if (!Object.keys(q).length) throw new Error('SSI: không có dữ liệu');
-  return { q, vn30: Object.keys(q).sort(), src: 'SSI iBoard' };
+  return { q, src: 'SSI iBoard' };
+}
+// V1.12: danh sách mọi mã cổ phiếu niêm yết (HOSE, HNX, UPCoM) + tên công ty, tải lại mỗi ngày 1 lần
+const stockShort = n => String(n || '').replace(/^Cổ phiếu\s+/i, '').replace(/^(Công ty|Cty)\s+(Cổ phần|CP)\s+/i, 'CTCP ').replace(/\s+/g, ' ').trim();
+async function stockList(force) {
+  const { stockList: old } = await chrome.storage.local.get('stockList');
+  if (!force && old && old.L && old.L.length > 500 && Date.now() - old.at < 864e5) return old;
+  try {
+    const L = [];
+    for (const e of ['hose', 'hnx', 'upcom']) {
+      const r = await fetch(`https://iboard-query.ssi.com.vn/stock/exchange/${e}`, { headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error('SSI ' + r.status);
+      for (const x of ((await r.json()).data || [])) if (x.stockType === 's' && x.stockSymbol) L.push([String(x.stockSymbol).toUpperCase(), stockShort(x.companyNameVi || x.companyNameEn), e.toUpperCase()]);
+    }
+    if (L.length < 500) throw new Error('danh sách mã thiếu');
+    L.sort((a, b) => a[0].localeCompare(b[0]));
+    const res = { at: Date.now(), L };
+    await chrome.storage.local.set({ stockList: res });
+    return res;
+  } catch (e) { return old && old.L ? old : { at: 0, L: HT.VN30.map(c => [c, '', 'HOSE']), error: e.message }; }
 }
 async function stockVND(codes) {
   const q = {};
@@ -611,7 +634,10 @@ async function stockVND(codes) {
 async function stockGet(codes, force) {
   if (!force && stockCache && Date.now() - stockCache.at < 60000 && codes.every(c => stockCache.q[c])) return stockCache;
   let res, err = '';
-  try { res = await stockSSI(); } catch (e) { err = e.message; try { res = await stockVND(codes.filter(c => HT.VN30.includes(c))); } catch (e2) { err += ' · ' + e2.message; } }
+  if (!codes.length) return { q: {}, at: Date.now(), src: 'SSI iBoard' };
+  try { res = await stockSSI(codes); } catch (e) { err = e.message; }
+  const miss = codes.filter(c => !(res && res.q[c]));
+  if (miss.length) { try { const v = await stockVND(miss); res = res ? { ...res, q: { ...res.q, ...v.q } } : v; } catch (e2) { err += (err ? ' · ' : '') + e2.message; } }
   if (!res) return { ...(stockCache || { q: {} }), error: err };
   stockCache = { ...res, at: Date.now() };
   return stockCache;
