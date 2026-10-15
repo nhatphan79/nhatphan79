@@ -2,7 +2,9 @@
 // 🗒 Note dạng giấy dán (sticky note): cửa sổ nhỏ, sửa trực tiếp (đậm, nghiêng, gạch, danh sách, ảnh), tự lưu vào kho Note
 const $ = s => document.querySelector(s);
 const id = new URLSearchParams(location.search).get('id');
-let item = null, timer = 0, typing = false;
+let item = null, timer = 0, typing = false, loaded = false;
+// V1.11: đang gõ trong note (con trỏ đang ở tiêu đề / nội dung) thì KHÔNG nạp lại chữ – tránh con trỏ nhảy về đầu dòng sau mỗi lần tự lưu
+const editing = () => loaded && (document.activeElement === $('#title') || document.activeElement === $('#text'));
 const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 // chữ thường → đoạn gọn: mỗi dòng 1 khối, dòng trống = khoảng cách đoạn, dòng bắt đầu "-", "•", "*", "✓" → danh sách chấm
 function textToHtml(t) {
@@ -40,7 +42,8 @@ async function load() {
   if (!item) { $('#text').textContent = 'Note này đã bị xoá.'; $('#text').contentEditable = 'false'; return; }
   document.body.dataset.c = item.color || 'yellow';
   document.querySelectorAll('.dot').forEach(d => d.classList.toggle('on', d.dataset.c === document.body.dataset.c));
-  if (!typing) { $('#title').textContent = item.name || ''; $('#text').innerHTML = item.html ? clean(item.html) : textToHtml(item.text); }
+  if (!typing && !editing()) { $('#title').textContent = item.name || ''; $('#text').innerHTML = item.html ? clean(item.html) : textToHtml(item.text); }
+  loaded = true;
   document.title = (item.name || (item.text || '').split('\n')[0] || 'Note').slice(0, 40) + ' · HaoHao';
   $('#meta').textContent = new Date(item.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
   const a = $('#src');
@@ -57,6 +60,8 @@ const saveBody = () => save({ name: $('#title').textContent.trim(), html: clean(
 const later = () => { typing = true; clearTimeout(timer); timer = setTimeout(() => { typing = false; saveBody(); }, 500); };
 $('#title').addEventListener('input', later);
 $('#text').addEventListener('input', later);
+// rời khỏi ô gõ: lưu ngay phần đang chờ, rồi nạp lại nếu chỗ khác vừa sửa
+for (const k of ['#title', '#text']) $(k).addEventListener('blur', () => setTimeout(() => { if (editing()) return; if (typing) { clearTimeout(timer); typing = false; saveBody(); } else load(); }, 0));
 $('#title').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#text').focus(); } });
 // dán: chỉ lấy chữ thuần rồi chia đoạn gọn
 $('#text').addEventListener('paste', e => {

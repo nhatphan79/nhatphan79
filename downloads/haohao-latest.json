@@ -1,7 +1,7 @@
 {
- "name": "V1.10",
- "version": "1.10.265",
+ "name": "V1.11",
+ "version": "1.10.266",
  "file": "HaoHao-V1.zip",
- "sig": "Fx/82RpjiygxWpRbsIHx81QKatrQrcTTmTNsdgEfsQEV1ongDpgcguo0hzwW9+bMIZnJRgG3EfUrW1DxHC0bAQ==",
- "notes": "gói giải nén ra thư mục HaoHao-V1; dùng thử 7 ngày; trang hướng dẫn cài"
+ "sig": "4lTw0gB463ZX0jHZM4KgRA3xnt22AEtlqkoVVxEbgKhUJktPhDtNt1XcanecoAVgbCpKPPXxx4Q3Yq1P8VbvCA==",
+ "notes": "Sửa lỗi gõ chữ trong cửa sổ note bị nhảy con trỏ"
 }

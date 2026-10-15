@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 13/10/2026 · **Bản V1.10** (số kỹ thuật 1.10.265)
+Cập nhật: 15/10/2026 · **Bản V1.11** (số kỹ thuật 1.10.266)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.11 (1.10.266) | Sửa cửa sổ note nổi (`sticky.js`): gõ chữ bị nhảy con trỏ về đầu dòng. Nguyên nhân: ngừng gõ 0,5 giây là tự lưu → sự kiện đổi kho kích hoạt nạp lại toàn bộ nội dung. Nay đang để con trỏ trong tiêu đề/nội dung thì không nạp lại; rời ô gõ thì lưu ngay phần còn chờ hoặc nạp lại nếu chỗ khác vừa sửa. |
 | V1.10 (1.10.265) | Mở khoá nhẹ hơn: máy CÀI MỚI được dùng Tiện ích ngay 7 ngày (unlock.trial, đặt lúc onInstalled); hết 7 ngày hiện "⏰ Hết 7 ngày dùng thử" mời đủ 3 bước (có fanpage). Máy cũ không đổi. Trang hướng dẫn cài 4 bước + video 1 phút có lồng tiếng của anh Nhật (`downloads/huong-dan-cai-haohao.mp4`; đổi video thì phải sửa mã commit trong `server/cai-dat.html` rồi Deploy, nguồn dựng `server/video-huong-dan.html`, phát qua jsDelivr theo mã commit): `https://haohao-gia.nhatphan79.workers.dev/cai-dat` (nguồn `server/cai-dat.html`, nhúng trong worker) |
 | V1.9 (1.10.264) | Tiện ích gọn: ô app nhỏ (biểu tượng 30px cùng hàng tên, mô tả tối đa 2 dòng), khung "📌 Thay đổi giao diện tuỳ chọn" hiện ngay bên dưới |
 | V1.8 (1.10.263) | 💬 Góp ý: Tiện ích có app "Góp ý" – khách gửi mong muốn (5–1000 chữ, mỗi mạng ≤5/ngày) → máy chủ `/gopy` (bảng `gopy`); CHỈ anh xem ở `/thongke?key=STATS_KEY` (cần đặt Secret STATS_KEY). Gói phát hành: mọi file .js được NÉN + LÀM RỐI bằng esbuild (`_release/tools/esbuild`, kịch bản `_release/dong-goi.py`, bản sao trong `tools-release/`), có dòng bản quyền đầu file; thư mục HaoHao gốc giữ nguyên |
