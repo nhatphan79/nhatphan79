@@ -3222,14 +3222,14 @@
     c.append(nt);
     if (it.text) {
       // 1.10.8: cố định 3 dòng, bấm không bung ra (xem đủ: bấm 🗒 mở giấy dán); vẫn bôi đen chép được
-      // V1.13: hiện đủ nội dung như note nổi; note dài có nút ▴ Thu gọn / ▾ Xem hết (nhớ theo từng note: it.fold)
-      const tx = el('div', 'it2' + (it.fold ? '' : ' full'), it.text);
-      const fb = el('button', 'fold', it.fold ? '▾ Xem hết' : '▴ Thu gọn'); fb.hidden = true;
+      // V1.14: note dài mặc định thu gọn 3 dòng, bấm ▾ Xem hết để hiện đủ như note nổi (nhớ theo từng note: it.unfold)
+      const tx = el('div', 'it2' + (it.unfold ? ' full' : ''), it.text);
+      const fb = el('button', 'fold', it.unfold ? '▴ Thu gọn' : '▾ Xem hết'); fb.hidden = true;
       fb.addEventListener('click', async e => {
         e.stopPropagation();
         const { ideas: all = [] } = await chrome.storage.local.get('ideas');
         const x = all.find(y => y.id === it.id); if (!x) return;
-        if (x.fold) delete x.fold; else x.fold = true;
+        if (x.unfold) delete x.unfold; else x.unfold = true; delete x.fold;
         await chrome.storage.local.set({ ideas: all });
       });
       c.append(tx, fb);

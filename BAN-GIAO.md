@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 15/10/2026 · **Bản V1.13** (số kỹ thuật 1.10.268)
+Cập nhật: 15/10/2026 · **Bản V1.14** (số kỹ thuật 1.10.269)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.14 (1.10.269) | Note dài mặc định tự thu gọn 3 dòng; bấm "▾ Xem hết" hiện đủ, "▴ Thu gọn" gọn lại; nhớ theo từng note (trường `unfold`, bỏ `fold`). |
 | V1.13 (1.10.268) | Danh sách Note: hiện đủ nội dung như note nổi (trước cắt 3 dòng). Note dài hơn 3 dòng có nút nhỏ "▴ Thu gọn / ▾ Xem hết"; nhớ theo từng note (trường `fold` trong `ideas`). CSS `.idea .it2.full`, `.idea .fold`. |
 | V1.12 (1.10.267) | Thị trường → Chứng khoán: hết giới hạn VN30, theo dõi được mọi mã cổ phiếu HOSE, HNX, UPCoM (~1.520 mã). Ô chọn VN30 đổi thành ô gõ mã hoặc tên công ty (không dấu cũng được, ví dụ "duc giang" → DGC), gợi ý 8 mã. Nền: `stockList()` tải danh sách + tên công ty từ SSI `iboard-query.ssi.com.vn/stock/exchange/{hose,hnx,upcom}` mỗi ngày 1 lần (lưu `stockList`), giá từng mã lấy `…/stock/{MÃ}` (đúng sàn), mã nào SSI thiếu thì lấy VNDirect. Tin nhắn mới: `stock-list`. |
 | V1.11 (1.10.266) | Sửa cửa sổ note nổi (`sticky.js`): gõ chữ bị nhảy con trỏ về đầu dòng. Nguyên nhân: ngừng gõ 0,5 giây là tự lưu → sự kiện đổi kho kích hoạt nạp lại toàn bộ nội dung. Nay đang để con trỏ trong tiêu đề/nội dung thì không nạp lại; rời ô gõ thì lưu ngay phần còn chờ hoặc nạp lại nếu chỗ khác vừa sửa. |
