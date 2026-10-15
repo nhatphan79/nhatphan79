@@ -1165,6 +1165,8 @@
 .idea .nt { all: unset; cursor: text; display: block; width: 100%; font-size: 14.5px; font-weight: 800; color: #23305E; line-height: 1.35; margin: 4px 0 0; word-break: break-word; }
 .idea .nt:hover { color: #2E7DD7; } .idea .nt:focus-visible { outline: 2px solid #D98E1F; border-radius: 4px; }
 .idea .nt.empty { font-size: 12px; font-weight: 600; color: #9AA1BE; }
+.idea .it2.full { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+.idea .fold { all: unset; display: inline-block; cursor: pointer; margin: -2px 0 4px; padding: 0 2px; font: 600 11.5px system-ui, sans-serif; color: #8A90A6; } .idea .fold:hover, .idea .fold:focus-visible { color: #23305E; } .idea .fold[hidden] { display: none; }
 .idea .nti { width: 100%; box-sizing: border-box; margin: 4px 0 0; padding: 4px 8px; font-family: inherit; font-size: 14px; font-weight: 800; line-height: 1.35; color: #23305E; border: 1.5px solid #D98E1F; border-radius: 8px; outline: none; background: #fff; }
 .idea .ai .tl { display: flex; gap: 6px; align-items: flex-start; }
 .idea .ai .tl .cp { flex: 1; }
@@ -3220,8 +3222,18 @@
     c.append(nt);
     if (it.text) {
       // 1.10.8: cố định 3 dòng, bấm không bung ra (xem đủ: bấm 🗒 mở giấy dán); vẫn bôi đen chép được
-      const tx = el('div', 'it2', it.text); tx.title = 'Xem đủ: bấm 🗒';
-      c.append(tx);
+      // V1.13: hiện đủ nội dung như note nổi; note dài có nút ▴ Thu gọn / ▾ Xem hết (nhớ theo từng note: it.fold)
+      const tx = el('div', 'it2' + (it.fold ? '' : ' full'), it.text);
+      const fb = el('button', 'fold', it.fold ? '▾ Xem hết' : '▴ Thu gọn'); fb.hidden = true;
+      fb.addEventListener('click', async e => {
+        e.stopPropagation();
+        const { ideas: all = [] } = await chrome.storage.local.get('ideas');
+        const x = all.find(y => y.id === it.id); if (!x) return;
+        if (x.fold) delete x.fold; else x.fold = true;
+        await chrome.storage.local.set({ ideas: all });
+      });
+      c.append(tx, fb);
+      requestAnimationFrame(() => { const lh = parseFloat(getComputedStyle(tx).lineHeight) || 20; if (tx.scrollHeight > lh * 3 + 4) fb.hidden = false; });
     }
     const ai = it.ai;
     const shown = aiOpen.has(it.id);
