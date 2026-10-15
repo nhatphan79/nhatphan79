@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 15/10/2026 · **Bản V1.14** (số kỹ thuật 1.10.269)
+Cập nhật: 15/10/2026 · **Bản V1.15** (số kỹ thuật 1.10.270)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.15 (1.10.270) | Giao diện English dịch đủ: `i18n.js` thêm ~770 câu vào `D` và ~215 mẫu vào `P` (mẫu riêng cần ưu tiên đặt ĐẦU mảng P, mẫu thường đặt cuối). Cách kiểm tra: chạy trình giả lập với `settings.lang='en'`, quét chữ có dấu tiếng Việt trong shadow root (công cụ quét ở thư mục làm việc của Claude: `scan.js`, `ext.js` dùng acorn lấy chuỗi trong code). Còn lại tiếng Việt chỉ là dữ liệu người dùng (việc, note, email, tên sản phẩm). Lưu ý: khi thêm câu giao diện mới phải thêm bản dịch vào `i18n.js`. |
 | V1.14 (1.10.269) | Note dài mặc định tự thu gọn 3 dòng; bấm "▾ Xem hết" hiện đủ, "▴ Thu gọn" gọn lại; nhớ theo từng note (trường `unfold`, bỏ `fold`). |
 | V1.13 (1.10.268) | Danh sách Note: hiện đủ nội dung như note nổi (trước cắt 3 dòng). Note dài hơn 3 dòng có nút nhỏ "▴ Thu gọn / ▾ Xem hết"; nhớ theo từng note (trường `fold` trong `ideas`). CSS `.idea .it2.full`, `.idea .fold`. |
 | V1.12 (1.10.267) | Thị trường → Chứng khoán: hết giới hạn VN30, theo dõi được mọi mã cổ phiếu HOSE, HNX, UPCoM (~1.520 mã). Ô chọn VN30 đổi thành ô gõ mã hoặc tên công ty (không dấu cũng được, ví dụ "duc giang" → DGC), gợi ý 8 mã. Nền: `stockList()` tải danh sách + tên công ty từ SSI `iboard-query.ssi.com.vn/stock/exchange/{hose,hnx,upcom}` mỗi ngày 1 lần (lưu `stockList`), giá từng mã lấy `…/stock/{MÃ}` (đúng sàn), mã nào SSI thiếu thì lấy VNDirect. Tin nhắn mới: `stock-list`. |
