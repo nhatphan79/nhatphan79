@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 16/10/2026 · **Bản V1.17** (số kỹ thuật 1.10.272)
+Cập nhật: 16/10/2026 · **Bản V1.18** (số kỹ thuật 1.10.273)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.18 (1.10.273) | Trang Dự án (chỉ máy chủ app) thành "Quản lý công việc" theo mẫu Notion anh Nhật gửi: thẻ Điều hướng (Việc cần làm, Hôm nay, Ngày mai, Tuần này, Lịch sử, Dòng thời gian, Đang làm, Đã xong); thẻ Danh sách việc (tab Cần làm / Đang làm / Đã xong / Tất cả; cột Tên việc, Trạng thái, Ưu tiên, Hạn chót, Tiến độ %); thẻ Lịch (Hôm nay / Ngày mai / Tuần này / Lịch sử); thẻ Dòng thời gian (21 ngày). Sửa ngay trong bảng, tự lưu `chrome.storage.local['projTasks']`. File mới `proj.js`, `proj.css` (newtab.html nạp). Chưa dịch tiếng Anh vì chỉ chủ app dùng. |
 | V1.17 (1.10.272) | Công tắc Trang chủ / Dự án và trang Dự án CHỈ dành cho chủ app (anh Nhật dùng riêng, không chia sẻ): chỉ hiện khi máy có `spyKeys` (khoá soi sản phẩm `at` hoặc `rh`); máy khách không thấy công tắc, luôn ở trang chủ. |
 | V1.16 (1.10.271) | Tab mới: công tắc gạt "🏠 Trang chủ / 📋 Dự án" cuối dòng bản quyền (`#pgsw`). Gạt sang ẩn trang chủ, hiện `#proj` (trang Kế hoạch dự án, hiện để trắng, chờ anh Nhật đưa mẫu kế hoạch). Nhớ trang đang chọn bằng `localStorage['hh-ntPage']`. |
 | V1.15 (1.10.270) | Giao diện English dịch đủ: `i18n.js` thêm ~770 câu vào `D` và ~215 mẫu vào `P` (mẫu riêng cần ưu tiên đặt ĐẦU mảng P, mẫu thường đặt cuối). Cách kiểm tra: chạy trình giả lập với `settings.lang='en'`, quét chữ có dấu tiếng Việt trong shadow root (công cụ quét ở thư mục làm việc của Claude: `scan.js`, `ext.js` dùng acorn lấy chuỗi trong code). Còn lại tiếng Việt chỉ là dữ liệu người dùng (việc, note, email, tên sản phẩm). Lưu ý: khi thêm câu giao diện mới phải thêm bản dịch vào `i18n.js`. |
