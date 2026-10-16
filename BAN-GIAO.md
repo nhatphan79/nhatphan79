@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 16/10/2026 · **Bản V1.19** (số kỹ thuật 1.10.274)
+Cập nhật: 16/10/2026 · **Bản V1.20** (số kỹ thuật 1.10.275)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.20 (1.10.275) | Trang Dự án (chỉ máy chủ app) = "Dự án đang làm": bảng thẻ 3 cột Đang làm / Tạm dừng / Xong, kéo thả đổi cột. Thẻ: tên, loại (💻 Phần mềm / 🏠 Công trình / 📣 Kinh doanh), % tiến độ (tính từ việc trong thư mục con), hạn chót (đỏ: trễ, cam: còn ≤3 ngày), Việc tiếp theo (gõ tay, để trống thì tự lấy việc chưa xong đầu tiên). Bấm thẻ → chi tiết: thư mục con (mẫu sẵn theo loại), mỗi thư mục có việc cần làm, ghi chú, link. Lưu `chrome.storage.local['projBoard']`. File `proj.js`, `proj.css`. |
 | V1.19 (1.10.274) | Quay lại như V1.17: anh Nhật thấy trang Quản lý công việc (V1.18, mẫu Notion) chưa hợp → bỏ `proj.js`, `proj.css` (chuyển vào `_to_delete/` trên máy anh), trang Dự án để trắng chờ mẫu khác. Dữ liệu thử `projTasks` (nếu có) vẫn nằm trong Chrome, không ảnh hưởng. |
 | V1.18 (1.10.273) | Trang Dự án (chỉ máy chủ app) thành "Quản lý công việc" theo mẫu Notion anh Nhật gửi: thẻ Điều hướng (Việc cần làm, Hôm nay, Ngày mai, Tuần này, Lịch sử, Dòng thời gian, Đang làm, Đã xong); thẻ Danh sách việc (tab Cần làm / Đang làm / Đã xong / Tất cả; cột Tên việc, Trạng thái, Ưu tiên, Hạn chót, Tiến độ %); thẻ Lịch (Hôm nay / Ngày mai / Tuần này / Lịch sử); thẻ Dòng thời gian (21 ngày). Sửa ngay trong bảng, tự lưu `chrome.storage.local['projTasks']`. File mới `proj.js`, `proj.css` (newtab.html nạp). Chưa dịch tiếng Anh vì chỉ chủ app dùng. |
 | V1.17 (1.10.272) | Công tắc Trang chủ / Dự án và trang Dự án CHỈ dành cho chủ app (anh Nhật dùng riêng, không chia sẻ): chỉ hiện khi máy có `spyKeys` (khoá soi sản phẩm `at` hoặc `rh`); máy khách không thấy công tắc, luôn ở trang chủ. |
@@ -116,7 +117,6 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
-- Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): đang để trắng. Mẫu Notion "Todo List Manager" (V1.18) anh Nhật thấy chưa hợp, chờ anh gửi mẫu khác.
 - Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
 - [ ] Lên Chrome Web Store (chờ khảo sát bản zip V1.5): làm bản Store riêng `haohao-store/` – (1) luật 1 mục đích: chọn a) gom thành "Trợ lý mua sắm an toàn" hay b) giữ đủ, mô tả "trợ lý cá nhân"; (2) bỏ canh Gmail (cần thẩm định bảo mật); (3) bỏ Bảng mở khoá theo dõi fanpage; (4) tự cập nhật đã tự tắt khi có update_url – kiểm lại; (5) trang Chính sách quyền riêng tư; (6) bỏ quyền không dùng (geolocation, topSites, search, identity…), giải thích từng quyền; (7) ghi rõ "có dùng link tiếp thị"; anh: tài khoản nhà phát triển + ảnh 1280×800 + mô tả + email hỗ trợ
