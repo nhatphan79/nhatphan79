@@ -1832,8 +1832,10 @@
 "Tân Dậu": "Xin Rooster",
 "Nhâm Tuất": "Ren Dog",
 "Quý Hợi": "Gui Pig",
-"Ghi note…": "Write a note…",
-"vd 166600": "e.g. 166600"
+"🏠 Trang chủ": "🏠 Home",
+"📋 Dự án": "📋 Projects",
+"Chuyển trang Dự án": "Switch to the Projects page",
+"Kế hoạch dự án": "Project plans"
 // V1.15: bổ sung bản dịch còn thiếu
 
 };

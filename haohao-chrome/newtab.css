@@ -79,3 +79,15 @@ body {
 .sup #supinfo { margin-top: 10px; font-size: 14px; line-height: 1.6; }
 .supx { all: unset; cursor: pointer; position: absolute; top: 10px; right: 12px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--soft); }
 .supx:hover { background: var(--card); }
+
+/* V1.16: công tắc Trang chủ ⇄ Dự án (cuối dòng bản quyền) + trang Dự án (để trắng, chờ mẫu kế hoạch) */
+.pgsw { pointer-events: auto; position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; vertical-align: middle; margin-left: 12px; padding: 3px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; box-shadow: inset 0 1px 2px rgba(0,0,0,.06); }
+.pgsw-o { position: relative; z-index: 1; padding: 5px 12px; color: var(--soft); white-space: nowrap; transition: color .25s; }
+.pgsw-k { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 999px; background: #23305E; box-shadow: 0 2px 6px rgba(35,48,94,.35); transition: transform .3s cubic-bezier(.4,0,.2,1); }
+.pgsw[aria-checked="true"] .pgsw-k { transform: translateX(100%); }
+.pgsw[aria-checked="false"] .pgsw-o:first-of-type, .pgsw[aria-checked="true"] .pgsw-o:last-of-type { color: #fff; }
+.pgsw:hover { border-color: var(--accent); }
+.pgsw:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.proj { min-height: calc(100vh - 60px); }
+body.pg-proj main.nt, body.pg-proj .topbar { display: none; }
+@media (prefers-reduced-motion: reduce) { .pgsw-k, .pgsw-o { transition: none; } }

@@ -174,6 +174,18 @@
   $('#supbtn').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'ungho' }).catch(() => {}));
 
 
+  // V1.16: công tắc Trang chủ ⇄ Dự án; nhớ trang đang chọn (lần sau mở Tab mới vào đúng trang đó)
+  {
+    const sw = document.getElementById('pgsw'), pj = document.getElementById('proj');
+    const set = on => {
+      document.body.classList.toggle('pg-proj', on); pj.hidden = !on; sw.setAttribute('aria-checked', on ? 'true' : 'false');
+      const t = on ? 'Kế hoạch dự án' : 'Tab mới'; document.title = HT.tr ? HT.tr(t) : t;
+      if (on && document.activeElement && document.activeElement.id === 'q') document.activeElement.blur();
+    };
+    let on = false; try { on = localStorage.getItem('hh-ntPage') === 'proj'; } catch {}
+    set(on);
+    sw.addEventListener('click', () => { on = !on; set(on); try { localStorage.setItem('hh-ntPage', on ? 'proj' : 'home'); } catch {} });
+  }
   // nút nhanh: mở đúng mục trong HaoHao (HaoHao chạy ngay trên trang này)
   document.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () =>
     window.dispatchEvent(new CustomEvent('hh-open', { detail: { tab: b.dataset.tab } }))));
