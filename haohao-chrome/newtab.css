@@ -91,3 +91,4 @@ body {
 .proj { min-height: calc(100vh - 60px); }
 body.pg-proj main.nt, body.pg-proj .topbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .pgsw-k, .pgsw-o { transition: none; } }
+.pgsw[hidden] { display: none; }

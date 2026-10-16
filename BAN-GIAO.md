@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 16/10/2026 · **Bản V1.16** (số kỹ thuật 1.10.271)
+Cập nhật: 16/10/2026 · **Bản V1.17** (số kỹ thuật 1.10.272)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.17 (1.10.272) | Công tắc Trang chủ / Dự án và trang Dự án CHỈ dành cho chủ app (anh Nhật dùng riêng, không chia sẻ): chỉ hiện khi máy có `spyKeys` (khoá soi sản phẩm `at` hoặc `rh`); máy khách không thấy công tắc, luôn ở trang chủ. |
 | V1.16 (1.10.271) | Tab mới: công tắc gạt "🏠 Trang chủ / 📋 Dự án" cuối dòng bản quyền (`#pgsw`). Gạt sang ẩn trang chủ, hiện `#proj` (trang Kế hoạch dự án, hiện để trắng, chờ anh Nhật đưa mẫu kế hoạch). Nhớ trang đang chọn bằng `localStorage['hh-ntPage']`. |
 | V1.15 (1.10.270) | Giao diện English dịch đủ: `i18n.js` thêm ~770 câu vào `D` và ~215 mẫu vào `P` (mẫu riêng cần ưu tiên đặt ĐẦU mảng P, mẫu thường đặt cuối). Cách kiểm tra: chạy trình giả lập với `settings.lang='en'`, quét chữ có dấu tiếng Việt trong shadow root (công cụ quét ở thư mục làm việc của Claude: `scan.js`, `ext.js` dùng acorn lấy chuỗi trong code). Còn lại tiếng Việt chỉ là dữ liệu người dùng (việc, note, email, tên sản phẩm). Lưu ý: khi thêm câu giao diện mới phải thêm bản dịch vào `i18n.js`. |
 | V1.14 (1.10.269) | Note dài mặc định tự thu gọn 3 dòng; bấm "▾ Xem hết" hiện đủ, "▴ Thu gọn" gọn lại; nhớ theo từng note (trường `unfold`, bỏ `fold`). |
@@ -113,7 +114,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
-- Trang Kế hoạch dự án (Tab mới → 📋 Dự án): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
+- Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
 - [ ] Lên Chrome Web Store (chờ khảo sát bản zip V1.5): làm bản Store riêng `haohao-store/` – (1) luật 1 mục đích: chọn a) gom thành "Trợ lý mua sắm an toàn" hay b) giữ đủ, mô tả "trợ lý cá nhân"; (2) bỏ canh Gmail (cần thẩm định bảo mật); (3) bỏ Bảng mở khoá theo dõi fanpage; (4) tự cập nhật đã tự tắt khi có update_url – kiểm lại; (5) trang Chính sách quyền riêng tư; (6) bỏ quyền không dùng (geolocation, topSites, search, identity…), giải thích từng quyền; (7) ghi rõ "có dùng link tiếp thị"; anh: tài khoản nhà phát triển + ảnh 1280×800 + mô tả + email hỗ trợ
 - [ ] Làm gọn khung Voucher trang sản phẩm (gộp 2 khung đầu thành 1 dòng, rút chữ giải thích, kết quả 1 dòng/mã, mỗi phần 3 mã + Xem thêm)

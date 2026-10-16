@@ -174,7 +174,7 @@
   $('#supbtn').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'ungho' }).catch(() => {}));
 
 
-  // V1.16: công tắc Trang chủ ⇄ Dự án; nhớ trang đang chọn (lần sau mở Tab mới vào đúng trang đó)
+  // V1.16: công tắc Trang chủ ⇄ Dự án (chỉ máy chủ app); nhớ trang đang chọn (lần sau mở Tab mới vào đúng trang đó)
   {
     const sw = document.getElementById('pgsw'), pj = document.getElementById('proj');
     const set = on => {
@@ -182,8 +182,14 @@
       const t = on ? 'Kế hoạch dự án' : 'Tab mới'; document.title = HT.tr ? HT.tr(t) : t;
       if (on && document.activeElement && document.activeElement.id === 'q') document.activeElement.blur();
     };
-    let on = false; try { on = localStorage.getItem('hh-ntPage') === 'proj'; } catch {}
-    set(on);
+    let on = false; set(false);
+    // V1.17: trang Dự án chỉ dành cho chủ app (máy có khoá soi sản phẩm), máy khách không thấy công tắc
+    chrome.storage.local.get('spyKeys').then(({ spyKeys: k }) => {
+      if (!(k && (k.at || k.rh))) return;
+      sw.hidden = false;
+      try { on = localStorage.getItem('hh-ntPage') === 'proj'; } catch {}
+      set(on);
+    }).catch(() => {});
     sw.addEventListener('click', () => { on = !on; set(on); try { localStorage.setItem('hh-ntPage', on ? 'proj' : 'home'); } catch {} });
   }
   // nút nhanh: mở đúng mục trong HaoHao (HaoHao chạy ngay trên trang này)
