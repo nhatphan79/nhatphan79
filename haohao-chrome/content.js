@@ -447,6 +447,7 @@
   .tfx-st { font-weight: 800; font-size: 13px; } .tfx-st.off { color: #6B7394; } .tfx-st.on { color: #2E9E6B; }
   .tfx-n { color: #6B7394; font-size: 12px; line-height: 1.45; }
   .tfx-steps { margin: 0; padding-left: 18px; color: #4A5275; font-size: 12px; line-height: 1.5; } .tfx-steps b { color: #23305E; }
+:host([data-drop]) .wrap { filter: drop-shadow(0 0 12px rgba(46,125,215,.9)); }
 .tfx-sw { position: relative; display: flex; margin: 4px 12px 6px; background: #E9EDF6; border-radius: 999px; padding: 3px; }
 .tfx-sw::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); background: #23305E; border-radius: 999px; box-shadow: 0 2px 6px rgba(35,48,94,.25); transition: transform .25s ease; }
 .tfx-sw[data-m=gui]::before { transform: translateX(100%); }
@@ -1526,6 +1527,16 @@
       openTab(s.dataset.b);
     }));
     root.querySelectorAll('.sat.child').forEach(s => s.addEventListener('click', () => { const id = s.dataset.tool; if (id === 'focus' || id === 'info') return openTab(id); toolsSub = id; openTab('tools'); }));
+    // V1.49: kéo thả ảnh/video vào HaoHao (linh vật hoặc bảng) → mở 📤 Máy tính → iPhone và gửi luôn
+    { const isF = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files'); let dz = 0;
+      host.addEventListener('dragenter', e => { if (!isF(e)) return; e.preventDefault(); dz++; host.setAttribute('data-drop', ''); });
+      host.addEventListener('dragover', e => { if (!isF(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+      host.addEventListener('dragleave', e => { if (!isF(e)) return; if (--dz <= 0) { dz = 0; host.removeAttribute('data-drop'); } });
+      host.addEventListener('drop', e => {
+        if (!isF(e)) return; e.preventDefault(); e.stopPropagation(); dz = 0; host.removeAttribute('data-drop');
+        const fs = [...e.dataTransfer.files]; if (!fs.length) return;
+        tfPending = fs; tfMode = 'gui'; toolsSub = 'transfer'; openTab('tools'); tfFlush();
+      }); }
     root.querySelectorAll('.tabs [data-t]').forEach(t => t.addEventListener('click', () => { helloMode = false; if (t.dataset.t === 'tools') toolsSub = null; openTab(t.dataset.t); }));   // bấm tab Tiện ích: về danh sách tiện ích
     $$('.tabs .x').addEventListener('click', () => { closePanel(); ui.pet.focus(); });
     $$('.tabs .big').addEventListener('click', e => { if (miniMode) { e.stopImmediatePropagation(); setMini(false); renderPanel(); } }, true);
@@ -6906,6 +6917,9 @@
   }
   // ---------- 📲 HaoHao Transfer (1.10.195): dùng app ChuyenAnh-iPhone (.exe, cổng 8686) chạy trên máy ----------
   let tfMode = 'nhan';   // V1.48: thanh trượt 📥 iPhone → Máy tính / 📤 Máy tính → iPhone
+  let tfPending = null, tfIfr = null, tfReady = false;   // V1.49: file kéo thả vào HaoHao, chờ khung gửi sẵn sàng
+  const TFK = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const tfFlush = () => { if (!tfPending || !tfIfr || !tfReady || !tfIfr.isConnected) return; tfIfr.contentWindow.postMessage({ hhTfFiles: tfPending, k: TFK }, 'chrome-extension://' + chrome.runtime.id); tfPending = null; };
   function renderTransfer(V) {
     const L = el('div', 'body-list tfx'), SW = el('div', 'tfx-sw'), S = el('div', 'tfx-send');
     const bN = el('button', '', '📥 iPhone → Máy tính'), bG = el('button', '', '📤 Máy tính → iPhone');
@@ -6917,7 +6931,8 @@
       bN.setAttribute('aria-selected', m === 'nhan'); bG.setAttribute('aria-selected', m === 'gui');
       L.style.display = m === 'gui' ? 'none' : ''; S.style.display = m === 'gui' ? '' : 'none';
       if (m === 'gui' && !ifr) {
-        ifr = document.createElement('iframe'); ifr.className = 'tfx-if'; ifr.title = 'Gửi ảnh/video sang iPhone'; ifr.src = chrome.runtime.getURL('tfgui.html');
+        ifr = document.createElement('iframe'); ifr.className = 'tfx-if'; ifr.title = 'Gửi ảnh/video sang iPhone'; ifr.src = chrome.runtime.getURL('tfgui.html') + '#k=' + TFK;
+        tfIfr = ifr; tfReady = false; ifr.addEventListener('load', () => { if (tfIfr === ifr) { tfReady = true; tfFlush(); } });
         const onMsg = e => { if (!ifr.isConnected) return window.removeEventListener('message', onMsg); if (e.source === ifr.contentWindow && e.data && e.data.hhTfH) ifr.style.height = e.data.hhTfH + 'px'; };
         window.addEventListener('message', onMsg); S.append(ifr);
       }

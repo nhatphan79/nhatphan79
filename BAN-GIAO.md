@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.48** (số kỹ thuật 1.10.304)
+Cập nhật: 18/10/2026 · **Bản V1.49** (số kỹ thuật 1.10.305)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.49 (1.10.305) | Kéo thả ảnh/video vào linh vật hoặc bảng HaoHao (bất kỳ trang nào) → tự mở Transfer chế độ 📤 và gửi luôn (file chuyển vào iframe `tfgui` bằng postMessage kèm mã `TFK`). |
 | V1.48 (1.10.304) | Bảng Transfer có thanh trượt **📥 iPhone → Máy tính / 📤 Máy tính → iPhone** (chỉ hiện khi app có `gui`). Chiều gửi là iframe `tfgui.html`+`tfgui.js` (web_accessible) gọi thẳng 127.0.0.1:8686 – chọn/kéo thả file, thanh %, QR ngay trong HaoHao, không mở trang /pc. Exe `HaoHao-Transfer-moi.exe` (no-bytecode) anh Nhật đã chạy được. |
 | V1.47 (1.10.303) | Nút 📤 chỉ hiện khi app Transfer có `gui` (ẩn hẳn với app cũ). ⚠️ Exe v46 (pkg node22) KHÔNG chạy trên máy anh Nhật: thoát ngay, mã lỗi 4, không in gì – kể cả bản console, kể cả ở đường dẫn không dấu. Máy anh đã trả về v33. Nghi do pkg biên dịch bytecode chéo (exe cũ chứa mã nguồn dạng chữ). Đã đóng gói lại `--no-bytecode --public-packages "*" --public` → `HaoHao-Transfer-moi.exe` (md5 631f6ffed462e133c5f20a5aa4d818ea, subsystem 2) đặt trong thư mục HaoHao-Transfer-Windows; anh Nhật tự thay, chưa thử chạy. |
 | V1.46 (1.10.302) | Bảng Transfer trong HaoHao có nút **📤 Gửi ảnh/video sang iPhone** (mở `/pc#gui`; mờ nếu app Transfer cũ chưa có `gui`). Máy anh Nhật đã thay `HaoHao-Transfer.exe` (cả 2 chỗ) bằng bản v46 có Gửi sang iPhone; bản v33 lưu ở `HaoHao-Transfer.v33b.exe`, bản gốc ở `HaoHao-Transfer.v32.exe`. Chưa cập nhật zip cho khách. |

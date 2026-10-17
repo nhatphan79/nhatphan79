@@ -44,4 +44,7 @@ f.addEventListener('change', () => send(f.files));
 ['dragleave', 'drop'].forEach(k => d.addEventListener(k, e => { e.preventDefault(); d.classList.remove('over'); }));
 d.addEventListener('drop', e => send(e.dataTransfer.files));
 $('x').addEventListener('click', async () => { try { await fetch(H + '/gui-moi', { method: 'POST', headers: HD }); } catch {} p.hidden = true; q.hidden = true; });
+// V1.49: nhận file kéo thả vào linh vật / bảng HaoHao (content script gửi qua postMessage kèm mã k)
+const K = (location.hash.match(/k=([a-z0-9]+)/) || [])[1];
+window.addEventListener('message', e => { if (e.source === parent && K && e.data && e.data.k === K && Array.isArray(e.data.hhTfFiles)) send(e.data.hhTfFiles); });
 ds(); size();
