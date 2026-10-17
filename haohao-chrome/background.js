@@ -464,7 +464,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     }).catch(() => send({ error: 'Không gọi được app' }));
     return true;
   }
-  if (msg.type === 'tf-pc') { chrome.tabs.create({ url: 'http://127.0.0.1:8686/pc' }); return; }
+  if (msg.type === 'tf-pc') { chrome.tabs.create({ url: 'http://127.0.0.1:8686/pc' + (msg.hash ? '#' + msg.hash : '') }); return; }
   if (msg.type === 'open-options') { if (msg.hash) chrome.tabs.create({ url: chrome.runtime.getURL('options.html#' + msg.hash) }); else chrome.runtime.openOptionsPage(); }
   if (msg.type === 'pomo-start') pomoStart(msg);
   if (msg.type === 'pomo-pause') pomoPause();

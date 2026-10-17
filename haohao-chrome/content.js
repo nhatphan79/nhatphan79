@@ -6936,6 +6936,8 @@
         // 1.10.203: quản lý ngay trong HaoHao, không mở trang riêng
         L.append(el('div', 'tfx-tip', 'Mỗi lần chuyển nên dưới 500 ảnh, hoặc 5–10 video (tuỳ dung lượng)'));
         const dir = el('div', 'tfx-dir'); L.append(dir);
+        // V1.46: 📤 gửi ảnh/video từ máy tính sang iPhone (app Transfer bản mới có I.gui)
+        { const gw = el('div', 'dbtns'); const gb = el('button', 'b', I.gui ? '📤 Gửi ảnh/video sang iPhone' : '📤 Gửi sang iPhone (cần cập nhật app Transfer)'); gb.style.flex = '1'; gb.disabled = !I.gui; gb.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'tf-pc', hash: 'gui' })); gw.append(gb); L.append(gw); }
         const row = el('div', 'dbtns');
         const mo = el('button', 'b ghost', '📂 Mở thư mục ảnh'); mo.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'tf-mo' }));
         const doi = el('button', 'b ghost', '🔁 Đổi thư mục lưu'); doi.addEventListener('click', () => { doi.textContent = '⏳ Đang mở hộp chọn…'; chrome.runtime.sendMessage({ type: 'tf-doi' }).then(x => { doi.textContent = x && x.error ? '⚠️ ' + x.error : '🔁 Đổi thư mục lưu'; tick(); }).catch(() => { doi.textContent = '🔁 Đổi thư mục lưu'; }); });
