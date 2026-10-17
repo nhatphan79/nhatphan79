@@ -6,7 +6,7 @@
 (() => {
   const root = document.getElementById('proj'); if (!root) return;
   const COLS = [['doing', 'Đang làm', '#E08A00'], ['pause', 'Tạm dừng', '#9AA1B5'], ['done', 'Xong', '#2E8B57']];
-  let data = { projects: [] }, openId = null, openFolder = null, ready = false;
+  let data = { projects: [] }, openId = null, openFolder = null, selRow = null, ready = false;
   const uid = () => Math.random().toString(36).slice(2, 9);
   const $ = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   // V1.21: nhớ bản vừa tự lưu – sự kiện đổi kho do chính trang này gây ra thì bỏ qua (không thay `data` bằng bản sao)
@@ -22,7 +22,7 @@
   const nextOf = p => { for (const f of p.folders) { const r = (f.rows || []).find(x => !x.done && real(x)); if (r) return r.t.trim() + ' · ' + f.name; } return ''; };
   const proj = () => data.projects.find(p => p.id === openId);
   const editing = () => { const a = document.activeElement; return a && root.contains(a) && (a.isContentEditable || (/INPUT|TEXTAREA/.test(a.tagName) && !/checkbox|date/.test(a.type || ''))); };
-  const newFolder = n => ({ id: uid(), name: n, rows: [], html: '', v28: 1 });
+  const newFolder = n => ({ id: uid(), name: n, rows: [], v28: 1, v29: 1 });
   const escH = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
   // V1.22: chuyển dữ liệu cũ (việc cần làm / ghi chú / link) vào bảng – không mất gì
@@ -65,6 +65,17 @@
         }
         if (add) f.html = (f.html || '') + add;
         f.v28 = 1; ch = true;
+      }
+      // V1.29: note theo từng việc (r.html, r.color); note chung của thư mục chuyển vào việc đầu tiên
+      for (const f of p.folders) {
+        if (f.v29) continue;
+        const h = (f.html || '').trim();
+        if (h && h.replace(/<[^>]+>/g, '').trim() || /<img/i.test(h)) {
+          let r0 = (f.rows || []).find(r => (r.t || '').trim());
+          if (!r0) { r0 = { id: uid(), t: 'Ghi chú', done: false }; (f.rows = f.rows || []).push(r0); }
+          r0.html = (r0.html || '') + h; if (f.color && !r0.color) r0.color = f.color;
+        }
+        delete f.html; delete f.color; f.v29 = 1; ch = true;
       }
     }
     return ch;
@@ -257,6 +268,7 @@
       fd.addEventListener('click', () => { if (!arm && f.rows.some(real)) { arm = true; fd.textContent = 'Bấm lần nữa để xoá'; setTimeout(() => { arm = false; fd.textContent = 'Xoá thư mục'; }, 3000); return; } delFolder(f); });
       fh.append('📂', fn, fd); M.append(fh);
 
+      let pick = () => {}, syncTitle = () => {};
       // V1.28: danh sách việc đánh số · Link · Thư mục (biểu tượng gọn, bấm là mở)
       const sheet = $('div', 'pj-sheet'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', 'Việc cần làm ' + f.name);
       const hd = $('div', 'pj-r hd'); hd.setAttribute('role', 'row');
@@ -292,13 +304,16 @@
         const ct = $('div', 'c'), ti = $('textarea', 'c-t'); ti.rows = 1; ti.value = r.t || ''; ti.placeholder = blank ? 'Gõ việc mới…' : ''; ti.setAttribute('aria-label', 'Việc cần làm'); ct.append(ti);
         const lk = chipCell(r, 'link', () => blank), dr = chipCell(r, 'dir', () => blank);
         const cx = $('div', 'c c-x'), x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá việc'); x.hidden = blank; cx.append(x);
-        tr.append(no, ck, ct, lk, dr, cx);
+        tr.append(no, ck, ct, lk, dr, cx); tr._r = r;
+        // V1.29: bấm / gõ vào việc nào thì note bên dưới chuyển sang việc đó
+        tr.addEventListener('focusin', () => { if (!blank) pick(r); });
+        no.addEventListener('click', () => { if (!blank) { pick(r); ti.focus(); } });
         const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; ti.placeholder = ''; lk._show(); dr._show(); sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum(); };
-        ti.addEventListener('input', () => { grow(ti); if (ti.value.trim()) make(); r.t = ti.value; saveSoon(); updBar(); });
+        ti.addEventListener('input', () => { grow(ti); const was = blank; if (ti.value.trim()) make(); r.t = ti.value; saveSoon(); updBar(); if (was && !blank) pick(r); else if (selRow === r.id) syncTitle(); });
         ti.addEventListener('blur', () => { if (!blank) save(); });
         ti.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const nx = tr.nextElementSibling; (nx ? nx.querySelector('.c-t') : ti).focus(); } });
         cb.addEventListener('change', () => { r.done = cb.checked; tr.classList.toggle('done', r.done); save(); updBar(); });
-        x.addEventListener('click', () => { f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); renum(); });
+        x.addEventListener('click', () => { f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); renum(); if (selRow === r.id) pick(f.rows.find(real) || null); });
         setTimeout(() => grow(ti), 0);
         return tr;
       };
@@ -306,48 +321,63 @@
       sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum();
       M.append(sheet);
 
-      // V1.28: note làm việc của thư mục (như note nổi: màu, B/I/U/gạch, danh sách, ảnh, ✨ Sắp xếp) – tự lưu vào f.html
+      // V1.29: NOTE THEO TỪNG VIỆC – tiêu đề = tên việc (sửa ở đây thì bảng đổi theo), nội dung r.html, màu r.color
       const NC = { white: '#FFFFFF', yellow: '#FFF8D6', red: '#FFE4EA', blue: '#E3F1FF', green: '#E3F6E8', purple: '#F0E8FD' };
-      const nt = $('div', 'pj-nt'); nt.style.setProperty('--nb', NC[f.color] || NC.white);
-      const tb = $('div', 'pj-ntb');
-      const dots = $('div', 'pj-dots'); Object.entries(NC).forEach(([k, v]) => { const d = $('button', 'pj-dot' + ((f.color || 'white') === k ? ' on' : '')); d.style.background = v; d.setAttribute('aria-label', 'Màu ' + k); d.addEventListener('click', () => { f.color = k; nt.style.setProperty('--nb', v); dots.querySelectorAll('.pj-dot').forEach(z => z.classList.toggle('on', z === d)); save(); }); dots.append(d); });
-      const ed = $('div', 'pj-nted'); ed.contentEditable = 'true'; ed.setAttribute('role', 'textbox'); ed.setAttribute('aria-multiline', 'true'); ed.setAttribute('aria-label', 'Note làm việc ' + f.name);
-      ed.dataset.ph = 'Ghi chú làm việc cho “' + f.name + '”… (dán ảnh, link được)'; ed.innerHTML = f.html || '';
-      const saved = $('span', 'pj-saved');
-      let nts = 0; const saveNote = () => { f.html = ed.innerHTML.replace(/^(<br>|<div><br><\/div>)$/, ''); save(); saved.textContent = '✓ Đã lưu'; setTimeout(() => { saved.textContent = ''; }, 1200); };
-      ed.addEventListener('input', () => { clearTimeout(nts); nts = setTimeout(saveNote, 500); });
-      ed.addEventListener('blur', () => { clearTimeout(nts); saveNote(); });
-      const cmds = [['bold', '<b>B</b>', 'Đậm'], ['italic', '<i>I</i>', 'Nghiêng'], ['underline', '<u>U</u>', 'Gạch chân'], ['strikeThrough', '<s>ab</s>', 'Gạch ngang'], ['insertUnorderedList', '☰', 'Danh sách']];
-      const fmt = $('div', 'pj-fmt');
-      cmds.forEach(([c, h, t]) => { const b = $('button', 'pj-fb'); b.innerHTML = h; b.title = t; b.setAttribute('aria-label', t); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => { ed.focus(); document.execCommand(c); clearTimeout(nts); nts = setTimeout(saveNote, 300); }); fmt.append(b); });
-      const addImg = async file => {
-        const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
-        const im = await new Promise((r, j) => { const i = new Image(); i.onload = () => r(i); i.onerror = j; i.src = url; });
-        const k = Math.min(1, 900 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
-        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ed.focus(); document.execCommand('insertHTML', false, `<img src="${cv.toDataURL('image/jpeg', 0.85)}">`); saveNote();
+      const noteBox = $('div'); M.append(noteBox);
+      let titleIn = null;
+      syncTitle = () => { const r = f.rows.find(x => x.id === selRow); if (titleIn && r && document.activeElement !== titleIn) titleIn.value = r.t || ''; };
+      pick = r => {
+        if (r && selRow === r.id && noteBox.firstChild) return;
+        selRow = r ? r.id : null;
+        sheet.querySelectorAll('.pj-r:not(.hd)').forEach(tr => tr.classList.toggle('sel', !!r && tr._r === r));
+        noteBox.replaceChildren(r ? buildNote(r) : $('div', 'pj-empty pj-nempty', 'Gõ một việc ở bảng trên, rồi bấm vào việc đó để ghi note.'));
       };
-      const fi = $('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; fi.addEventListener('change', () => { if (fi.files[0]) addImg(fi.files[0]); fi.value = ''; });
-      const ib = $('button', 'pj-fb', '🖼'); ib.title = 'Chèn ảnh'; ib.setAttribute('aria-label', 'Chèn ảnh'); ib.addEventListener('mousedown', e => e.preventDefault()); ib.addEventListener('click', () => fi.click()); fmt.append(ib, fi);
-      ed.addEventListener('paste', e => {
-        const img = [...(e.clipboardData.files || [])].find(x => /^image\//.test(x.type)); if (img) { e.preventDefault(); addImg(img); return; }
-        const t = e.clipboardData.getData('text/plain'); if (!t) return; e.preventDefault();
-        const html = escH(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>');
-        document.execCommand('insertHTML', false, html);
-      });
-      ed.addEventListener('click', e => { const a = e.target.closest('a'); if (a && a.href) { e.preventDefault(); window.open(a.href, '_blank', 'noopener'); } });   // link trong note: bấm là mở
-      let prev = null; const undo = $('button', 'pj-fb wide', '↶ Hoàn tác'); undo.hidden = true;
-      const tidy = $('button', 'pj-fb wide', '✨ Sắp xếp'); tidy.title = 'Sắp xếp nội dung cho gọn (Gemini)';
-      tidy.addEventListener('click', async () => {
-        const txt = ed.innerText.trim(); if (!txt || tidy.disabled) return; tidy.disabled = true; tidy.textContent = '⏳ Đang sắp xếp…';
-        try { const r = await chrome.runtime.sendMessage({ type: 'note-tidy', text: txt }); if (!r || !r.ok) throw new Error(r && r.error === 'nokey' ? 'Cần mã Gemini (HaoHao → Thông tin → Tóm tắt)' : (r && r.error) || 'Mất kết nối');
-          prev = ed.innerHTML; ed.innerHTML = r.html; undo.hidden = false; saveNote(); }
-        catch (e) { saved.textContent = '⚠ ' + e.message; setTimeout(() => { saved.textContent = ''; }, 4000); }
-        tidy.disabled = false; tidy.textContent = '✨ Sắp xếp';
-      });
-      undo.addEventListener('click', () => { if (prev == null) return; ed.innerHTML = prev; prev = null; undo.hidden = true; saveNote(); });
-      tb.append($('b', 'pj-ntt', '🗒 Note làm việc'), dots, $('div', 'pj-sp'), saved);
-      const bt = $('div', 'pj-ntf'); bt.append(fmt, $('div', 'pj-sp'), undo, tidy);
-      nt.append(tb, ed, bt); M.append(nt);
+      const buildNote = r => {
+        const idx = f.rows.filter(real).indexOf(r) + 1;
+        const nt = $('div', 'pj-nt'); nt.style.setProperty('--nb', NC[r.color] || NC.white);
+        const tb = $('div', 'pj-ntb');
+        titleIn = $('input', 'pj-ntitle'); titleIn.value = r.t || ''; titleIn.placeholder = 'Tiêu đề…'; titleIn.setAttribute('aria-label', 'Tiêu đề note (tên việc)');
+        titleIn.addEventListener('input', () => { r.t = titleIn.value; const tr = [...sheet.children].find(x => x._r === r); if (tr) { const t = tr.querySelector('.c-t'); t.value = r.t; grow(t); } saveSoon(); });
+        titleIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ed.focus(); } });
+        const dots = $('div', 'pj-dots'); Object.entries(NC).forEach(([k, v]) => { const d = $('button', 'pj-dot' + ((r.color || 'white') === k ? ' on' : '')); d.style.background = v; d.setAttribute('aria-label', 'Màu ' + k); d.addEventListener('click', () => { r.color = k; nt.style.setProperty('--nb', v); dots.querySelectorAll('.pj-dot').forEach(z => z.classList.toggle('on', z === d)); save(); }); dots.append(d); });
+        const saved = $('span', 'pj-saved');
+        tb.append($('span', 'pj-nno', idx ? String(idx) : '•'), titleIn, dots, saved);
+        const ed = $('div', 'pj-nted'); ed.contentEditable = 'true'; ed.setAttribute('role', 'textbox'); ed.setAttribute('aria-multiline', 'true'); ed.setAttribute('aria-label', 'Nội dung note');
+        ed.dataset.ph = 'Ghi chú cho việc này… (dán ảnh, link được)'; ed.innerHTML = r.html || '';
+        let nts = 0; const saveNote = () => { r.html = ed.innerHTML.replace(/^(<br>|<div><br><\/div>)$/, ''); save(); saved.textContent = '✓ Đã lưu'; setTimeout(() => { saved.textContent = ''; }, 1200); };
+        ed.addEventListener('input', () => { clearTimeout(nts); nts = setTimeout(saveNote, 500); });
+        ed.addEventListener('blur', () => { clearTimeout(nts); saveNote(); });
+        const cmds = [['bold', '<b>B</b>', 'Đậm'], ['italic', '<i>I</i>', 'Nghiêng'], ['underline', '<u>U</u>', 'Gạch chân'], ['strikeThrough', '<s>ab</s>', 'Gạch ngang'], ['insertUnorderedList', '☰', 'Danh sách']];
+        const fmt = $('div', 'pj-fmt');
+        cmds.forEach(([c, h, t]) => { const b = $('button', 'pj-fb'); b.innerHTML = h; b.title = t; b.setAttribute('aria-label', t); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => { ed.focus(); document.execCommand(c); clearTimeout(nts); nts = setTimeout(saveNote, 300); }); fmt.append(b); });
+        const addImg = async file => {
+          const url = await new Promise(rs => { const fr = new FileReader(); fr.onload = () => rs(fr.result); fr.readAsDataURL(file); });
+          const im = await new Promise((rs, j) => { const i = new Image(); i.onload = () => rs(i); i.onerror = j; i.src = url; });
+          const k = Math.min(1, 900 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ed.focus(); document.execCommand('insertHTML', false, `<img src="${cv.toDataURL('image/jpeg', 0.85)}">`); saveNote();
+        };
+        const fi = $('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; fi.addEventListener('change', () => { if (fi.files[0]) addImg(fi.files[0]); fi.value = ''; });
+        const ib = $('button', 'pj-fb', '🖼'); ib.title = 'Chèn ảnh'; ib.setAttribute('aria-label', 'Chèn ảnh'); ib.addEventListener('mousedown', e => e.preventDefault()); ib.addEventListener('click', () => fi.click()); fmt.append(ib, fi);
+        ed.addEventListener('paste', e => {
+          const img = [...(e.clipboardData.files || [])].find(x => /^image\//.test(x.type)); if (img) { e.preventDefault(); addImg(img); return; }
+          const t = e.clipboardData.getData('text/plain'); if (!t) return; e.preventDefault();
+          document.execCommand('insertHTML', false, escH(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'));
+        });
+        ed.addEventListener('click', e => { const a = e.target.closest('a'); if (a && a.href) { e.preventDefault(); window.open(a.href, '_blank', 'noopener'); } });   // link trong note: bấm là mở
+        let prev = null; const undo = $('button', 'pj-fb wide', '↶ Hoàn tác'); undo.hidden = true;
+        const tidy = $('button', 'pj-fb wide', '✨ Sắp xếp'); tidy.title = 'Sắp xếp nội dung cho gọn (Gemini)';
+        tidy.addEventListener('click', async () => {
+          const txt = ed.innerText.trim(); if (!txt || tidy.disabled) return; tidy.disabled = true; tidy.textContent = '⏳ Đang sắp xếp…';
+          try { const res = await chrome.runtime.sendMessage({ type: 'note-tidy', text: txt }); if (!res || !res.ok) throw new Error(res && res.error === 'nokey' ? 'Cần mã Gemini (HaoHao → Thông tin → Tóm tắt)' : (res && res.error) || 'Mất kết nối');
+            prev = ed.innerHTML; ed.innerHTML = res.html; undo.hidden = false; saveNote(); }
+          catch (e) { saved.textContent = '⚠ ' + e.message; setTimeout(() => { saved.textContent = ''; }, 4000); }
+          tidy.disabled = false; tidy.textContent = '✨ Sắp xếp';
+        });
+        undo.addEventListener('click', () => { if (prev == null) return; ed.innerHTML = prev; prev = null; undo.hidden = true; saveNote(); });
+        const bt = $('div', 'pj-ntf'); bt.append(fmt, $('div', 'pj-sp'), undo, tidy);
+        nt.append(tb, ed, bt); return nt;
+      };
+      const first = f.rows.find(x => x.id === selRow && real(x)) || f.rows.find(real) || null; selRow = null; pick(first);
     }
     D.append(S, M); W.append(D);
   }
