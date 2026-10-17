@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.23** (số kỹ thuật 1.10.279)
+Cập nhật: 17/10/2026 · **Bản V1.24** (số kỹ thuật 1.10.280)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.24 (1.10.280) | Trang Dự án: mỗi dòng bảng có nút 📝 → mở hạng mục thành NOTE NỔI đầy đủ (cửa sổ nhỏ như note nổi: màu, tiêu đề, B/I/U/gạch, danh sách, ảnh, 🔗 Link, ✨ Sắp xếp), mở nhiều note cùng lúc. `sticky.js` nhận `?id=pj:<dự án>:<thư mục>:<dòng>` → đọc/ghi thẳng `projBoard` (tiêu đề = Hạng mục, nội dung = Lưu ý, thêm `html`, `color`, `at` vào dòng), không lẫn vào kho Note. Sửa Lưu ý ở bảng thì xoá `html` để note lấy chữ mới. Cột trái bỏ chữ "Thư mục con", thư mục đánh số 1, 2, 3… theo thứ tự tạo. |
 | V1.23 (1.10.279) | Trang Dự án: bỏ luôn Bắt đầu / Kết thúc và thanh tiến độ ở cột trái (chỉ còn tên + thư mục con). Mỗi thư mục con có ✏️ đổi tên (hoặc bấm đúp; Enter lưu, Esc huỷ) và 🗑 xoá ngay trên dòng (thư mục có hạng mục thì bấm 2 lần). CSS `.pj-fi`, `.pj-ic`, `.pj-ren`. |
 | V1.22 (1.10.278) | Trang Dự án – chi tiết gọn theo ý anh Nhật: cột trái chỉ còn tên, Ngày bắt đầu / Kết thúc (`p.start`, `p.due`), thanh tiến độ, thư mục con (bỏ Loại, Trạng thái, Việc tiếp theo; đổi cột vẫn kéo thẻ ngoài bảng). Dự án mới có sẵn 1 thư mục "Việc chính". Thêm thư mục con: gõ tên + Enter → tự mở, con trỏ nằm ở bảng. Bên phải: mỗi thư mục là 1 bảng kiểu Excel nền note vàng (☐ · Hạng mục con · Lưu ý), bấm ô là sửa, tự lưu, Enter xuống dòng dưới, dòng cuối trống gõ là thêm dòng, link trong Lưu ý tự bấm được. Dữ liệu mới `folder.rows = [{id,t,note,done}]`; dữ liệu cũ (tasks / note / links) tự chuyển vào bảng khi mở (`migrate()`), không mất. Tiến độ = số dòng đã tick. Thẻ ngoài bảng: % + 📅 bắt đầu → kết thúc + trễ/sắp tới hạn. |
 | V1.21 (1.10.276) | Sửa trang Dự án không lưu / thêm không được (ghi chú, việc, link mất sau lần lưu đầu). Nguyên nhân: mỗi lần lưu, sự kiện đổi kho thay `data` bằng bản sao trong khi ô đang gõ → các ô còn trỏ vào bản cũ. Nay `proj.js` nhớ bản vừa tự lưu (`lastSaved`) và bỏ qua sự kiện của chính mình; tab khác sửa thì đợi rời ô gõ mới nạp. Đã thử bằng trình giả lập (jsdom): bản cũ mất ghi chú + việc, bản mới lưu đủ. Chỉ máy chủ app dùng → không đóng gói bản cho khách. |
@@ -120,6 +121,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
+- [ ] Trang Dự án: nút "📋 Thêm vào dự án" trên HaoHao ở mọi trang web (lưu tên + link trang hiện tại thành 1 dòng trong bảng, chỉ máy chủ app) – chờ anh Nhật xác nhận ý.
 - Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
 - [ ] Lên Chrome Web Store (chờ khảo sát bản zip V1.5): làm bản Store riêng `haohao-store/` – (1) luật 1 mục đích: chọn a) gom thành "Trợ lý mua sắm an toàn" hay b) giữ đủ, mô tả "trợ lý cá nhân"; (2) bỏ canh Gmail (cần thẩm định bảo mật); (3) bỏ Bảng mở khoá theo dõi fanpage; (4) tự cập nhật đã tự tắt khi có update_url – kiểm lại; (5) trang Chính sách quyền riêng tư; (6) bỏ quyền không dùng (geolocation, topSites, search, identity…), giải thích từng quyền; (7) ghi rõ "có dùng link tiếp thị"; anh: tài khoản nhà phát triển + ảnh 1280×800 + mô tả + email hỗ trợ

@@ -36,9 +36,34 @@ function clean(html) {
   walk(tpl.content);
   return tpl.innerHTML;
 }
+// V1.24: note của hạng mục trong trang Dự án – id dạng "pj:<dự án>:<thư mục>:<dòng>", lưu vào projBoard (không lẫn vào kho Note)
+const PJ = /^pj:/.test(id || '') ? id.split(':').slice(1) : null;
+const URLRE = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/i;
+const pjRow = b => { const p = (b && b.projects || []).find(x => x.id === PJ[0]), f = p && p.folders.find(x => x.id === PJ[1]); return f && (f.rows || []).find(x => x.id === PJ[2]); };
+async function getItem() {
+  if (!PJ) { const { ideas = [] } = await chrome.storage.local.get('ideas'); return ideas.find(x => x.id === id); }
+  const { projBoard } = await chrome.storage.local.get('projBoard'), r = pjRow(projBoard); if (!r) return null;
+  const m = (r.note || '').match(URLRE);
+  return { name: r.t || '', html: r.html, text: r.note || '', color: r.color, at: r.at || Date.now(), tidyAsked: r.tidyAsked, url: m ? (/^https?:/i.test(m[0]) ? m[0] : 'https://' + m[0]) : '' };
+}
+async function putItem(patch) {
+  if (!PJ) {
+    const { ideas = [] } = await chrome.storage.local.get('ideas');
+    const x = ideas.find(y => y.id === id); if (!x) return false;
+    Object.assign(x, patch); if (patch.name === '') delete x.name;
+    await chrome.storage.local.set({ ideas }); return true;
+  }
+  const { projBoard } = await chrome.storage.local.get('projBoard'), r = pjRow(projBoard); if (!r) return false;
+  if ('name' in patch) r.t = patch.name;
+  if ('html' in patch) r.html = patch.html;
+  if ('text' in patch) r.note = patch.text;
+  if ('color' in patch) r.color = patch.color;
+  if ('tidyAsked' in patch) r.tidyAsked = patch.tidyAsked;
+  r.at = Date.now();
+  await chrome.storage.local.set({ projBoard }); return true;
+}
 async function load() {
-  const { ideas = [] } = await chrome.storage.local.get('ideas');
-  item = ideas.find(x => x.id === id);
+  item = await getItem();
   if (!item) { $('#text').textContent = 'Note này đã bị xoá.'; $('#text').contentEditable = 'false'; return; }
   document.body.dataset.c = item.color || 'yellow';
   document.querySelectorAll('.dot').forEach(d => d.classList.toggle('on', d.dataset.c === document.body.dataset.c));
@@ -50,10 +75,7 @@ async function load() {
   if (item.url) { a.href = item.url; a.textContent = '🔗 Link'; a.title = (item.title ? item.title + '\n' : '') + item.url; } else a.textContent = '';
 }
 async function save(patch) {
-  const { ideas = [] } = await chrome.storage.local.get('ideas');
-  const x = ideas.find(y => y.id === id); if (!x) return;
-  Object.assign(x, patch); if (patch.name === '') delete x.name;
-  await chrome.storage.local.set({ ideas });
+  if (!(await putItem(patch))) return;
   $('#saved').textContent = '✓ Đã lưu'; setTimeout(() => { $('#saved').textContent = ''; }, 1200);
 }
 const saveBody = () => save({ name: $('#title').textContent.trim(), html: clean($('#text').innerHTML), text: $('#text').innerText.replace(/\n{3,}/g, '\n\n').trim() });
@@ -110,7 +132,7 @@ $('#copy').addEventListener('click', async () => {
   const t = [$('#title').textContent.trim(), $('#text').innerText.trim()].filter(Boolean).join('\n\n');
   try { await navigator.clipboard.writeText(t); $('#copy').textContent = '✓'; setTimeout(() => { $('#copy').textContent = '📋'; }, 1200); } catch {}
 });
-chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.ideas && !typing) load(); });
+chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && (PJ ? ch.projBoard : ch.ideas) && !typing) load(); });
 // 📐 mở ra là thấy hết nội dung: kéo cửa sổ cao vừa đủ (tối đa gần hết màn hình), 1 lần lúc mở
 async function fit() {
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));

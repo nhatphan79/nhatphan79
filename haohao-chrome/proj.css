@@ -91,3 +91,10 @@
 .pj-fl .pj-ic:hover { background: #FDECEA; }
 .pj-fl .pj-ic.arm { color: #C4401F; font-weight: 700; font-size: 12px; }
 .pj-ren { padding: 6px 9px !important; font-size: 14px !important; }
+/* V1.24: số thứ tự thư mục + nút 📝 mở note */
+.pj-fl .pj-no { color: var(--pj-soft); font-weight: 700; min-width: 18px; }
+.pj-name { margin-bottom: 10px; }
+.pj-r { grid-template-columns: 38px minmax(140px, 1fr) minmax(180px, 1.6fr) 64px; }
+.pj-r .c-x { gap: 2px; } .pj-r .c-x .pj-op { opacity: .55; }
+.pj-r .c-x .pj-op:hover { background: #FFF0C2; color: var(--pj-ink); }
+@media (max-width: 700px) { .pj-r { grid-template-columns: 34px 1fr 62px; } }

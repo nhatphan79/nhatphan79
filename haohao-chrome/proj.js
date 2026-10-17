@@ -109,14 +109,14 @@
       const sm = S.querySelector('.pj-fl button.on small'), cf = p.folders.find(x => x.id === openFolder);
       if (sm && cf) { const R = (cf.rows || []).filter(real); sm.textContent = R.length ? R.filter(r => r.done).length + '/' + R.length : ''; }
     };
-    S.append(nm, $('div', 'pj-sec', 'Thư mục con'));
+    S.append(nm);   // V1.24: bỏ chữ "Thư mục con"
     const FL = $('div', 'pj-fl');
     // V1.23: mỗi thư mục có ✏️ đổi tên (hoặc bấm đúp) và 🗑 xoá ngay trên dòng
     const delFolder = f => { p.folders = p.folders.filter(x => x !== f); if (openFolder === f.id) openFolder = (p.folders[0] || {}).id || null; save(); render(true); };
-    for (const f of p.folders) {
+    p.folders.forEach((f, i) => {
       const it = $('div', 'pj-fi' + (f.id === openFolder ? ' on' : ''));
       const b = $('button', f.id === openFolder ? 'on' : ''); const R = (f.rows || []).filter(real), dn = R.filter(r => r.done).length;
-      b.append('📂 ' + f.name, $('small', '', R.length ? dn + '/' + R.length : ''));
+      b.append($('span', 'pj-no', (i + 1) + '.'), f.name, $('small', '', R.length ? dn + '/' + R.length : ''));   // V1.24: đánh số 1, 2, 3… theo thứ tự tạo
       b.addEventListener('click', () => { if (openFolder !== f.id) { openFolder = f.id; render(true); } });
       const ed = $('button', 'pj-ic', '✏️'); ed.title = 'Đổi tên'; ed.setAttribute('aria-label', 'Đổi tên thư mục ' + f.name);
       const dl = $('button', 'pj-ic', '🗑'); dl.title = 'Xoá thư mục'; dl.setAttribute('aria-label', 'Xoá thư mục ' + f.name);
@@ -135,7 +135,7 @@
         delFolder(f);
       });
       it.append(b, ed, dl); FL.append(it);
-    }
+    });
     // V1.22: gõ tên + Enter (hoặc ＋) → thêm thư mục con và tự mở luôn, con trỏ nằm sẵn ở bảng
     const af = $('div', 'pj-addrow'), ai = $('input', 'pj-in'); ai.placeholder = 'Thêm thư mục con…'; ai.setAttribute('aria-label', 'Tên thư mục con mới');
     const ab = $('button', 'pj-btn', '＋');
@@ -162,16 +162,19 @@
         const cn = $('div', 'c c-n'), nv = $('div', 'nv'), ne = $('textarea', 'c-ne'); ne.rows = 1; ne.value = r.note || ''; ne.setAttribute('aria-label', 'Lưu ý'); ne.hidden = true;
         linkify(nv, r.note); if (!r.note) nv.append($('span', 'ph', blank ? '' : 'Bấm để ghi lưu ý, dán link…'));
         cn.append(nv, ne);
-        const cx = $('div', 'c c-x'), x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá dòng'); x.hidden = blank; cx.append(x);
+        // V1.24: 📝 mở hạng mục thành note nổi đầy đủ (màu, định dạng, ảnh, link, sắp xếp) – sticky.html?id=pj:…
+        const cx = $('div', 'c c-x'), op = $('button', 'pj-x pj-op', '📝'); op.title = 'Mở thành note'; op.setAttribute('aria-label', 'Mở hạng mục thành note'); op.hidden = blank;
+        op.addEventListener('click', async () => { clearTimeout(st); await save(); chrome.runtime.sendMessage({ type: 'sticky-open', id: 'pj:' + p.id + ':' + f.id + ':' + r.id }).catch(() => {}); });
+        const x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá dòng'); x.hidden = blank; cx.append(op, x);
         tr.append(ck, ct, cn, cx);
-        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; ti.placeholder = ''; sheet.append(rowEl({ id: uid(), t: '', note: '', done: false }, true)); };
+        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; op.hidden = false; ti.placeholder = ''; sheet.append(rowEl({ id: uid(), t: '', note: '', done: false }, true)); };
         ti.addEventListener('input', () => { grow(ti); if (ti.value.trim()) make(); r.t = ti.value; saveSoon(); updBar(); });
         ti.addEventListener('blur', () => { if (!blank) save(); });
         ti.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const nx = tr.nextElementSibling; (nx ? nx.querySelector('.c-t') : ti).focus(); } });
         const openNote = () => { nv.hidden = true; ne.hidden = false; grow(ne); ne.focus(); };
         nv.addEventListener('click', openNote); nv.tabIndex = 0; nv.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); openNote(); } });
-        ne.addEventListener('input', () => { grow(ne); if (ne.value.trim()) make(); r.note = ne.value; saveSoon(); });
-        ne.addEventListener('blur', () => { r.note = ne.value; ne.hidden = true; nv.hidden = false; linkify(nv, r.note); if (!r.note && !blank) nv.append($('span', 'ph', 'Bấm để ghi lưu ý, dán link…')); if (!blank) save(); });
+        ne.addEventListener('input', () => { grow(ne); if (ne.value.trim()) make(); r.note = ne.value; delete r.html; saveSoon(); });   // sửa ở bảng → note nổi lấy chữ mới
+        ne.addEventListener('blur', () => { if (r.note !== ne.value) delete r.html; r.note = ne.value; ne.hidden = true; nv.hidden = false; linkify(nv, r.note); if (!r.note && !blank) nv.append($('span', 'ph', 'Bấm để ghi lưu ý, dán link…')); if (!blank) save(); });
         cb.addEventListener('change', () => { r.done = cb.checked; tr.classList.toggle('done', r.done); save(); updBar(); });
         x.addEventListener('click', () => { f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); });
         setTimeout(() => grow(ti), 0);
