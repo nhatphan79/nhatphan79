@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.26** (số kỹ thuật 1.10.282)
+Cập nhật: 17/10/2026 · **Bản V1.27** (số kỹ thuật 1.10.283)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.27 (1.10.283) | Thẻ 5 mảng nhỏ gọn: rộng vừa chữ, xếp 1 hàng (flex), biểu tượng 32px, tên không xuống dòng; tiêu đề mảng nhỏ lại. Chỉ sửa CSS. |
 | V1.26 (1.10.282) | Trang Dự án chia 5 mảng: hàng thẻ trên cùng 🏠 Xây dựng nhà phố · 🐹 APP HaoHao · 📈 Trade · 🪂 Airdrop (cố định) + "＋ Thêm mảng" đặt tên tự do (📁, màu tự chọn; đổi tên / xoá khi trống). Mỗi thẻ: số dự án, số đang làm, Lãi/Lỗ. Bấm thẻ → bảng chỉ hiện dự án của mảng đó, dòng Tổng theo mảng; ＋ Dự án mới vào mảng đang chọn. Trang chi tiết có ô chọn mảng để chuyển dự án. Dữ liệu `projBoard.areas`, `projBoard.cur`, `p.area` (dự án cũ: tên có "HaoHao" → APP HaoHao, còn lại → mảng đầu). |
 | V1.25 (1.10.281) | Trang Dự án: bảng thẻ 3 cột → BẢNG kiểu Excel: STT · Tên dự án (bấm mở, dòng nhỏ "→ việc tiếp theo") · Bắt đầu · Kết thúc (đỏ trễ / cam ≤3 ngày) · Tiến độ (thanh + %, tự tính từ hạng mục đã tick) · Trạng thái (Đang làm / Tạm dừng / Xong, chọn ngay trong bảng) · Vốn đầu tư · Lãi/lỗ (lãi xanh, lỗ đỏ, gõ số âm cho lỗ) + dòng Tổng. Sửa thẳng trong bảng, tự lưu (`p.von`, `p.lai`, `p.start`, `p.due`, `p.col`). Hàm `card()` cũ còn trong code nhưng không dùng. |
 | V1.24 (1.10.280) | Trang Dự án: mỗi dòng bảng có nút 📝 → mở hạng mục thành NOTE NỔI đầy đủ (cửa sổ nhỏ như note nổi: màu, tiêu đề, B/I/U/gạch, danh sách, ảnh, 🔗 Link, ✨ Sắp xếp), mở nhiều note cùng lúc. `sticky.js` nhận `?id=pj:<dự án>:<thư mục>:<dòng>` → đọc/ghi thẳng `projBoard` (tiêu đề = Hạng mục, nội dung = Lưu ý, thêm `html`, `color`, `at` vào dòng), không lẫn vào kho Note. Sửa Lưu ý ở bảng thì xoá `html` để note lấy chữ mới. Cột trái bỏ chữ "Thư mục con", thư mục đánh số 1, 2, 3… theo thứ tự tạo. |

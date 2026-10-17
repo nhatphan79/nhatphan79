@@ -142,3 +142,13 @@
 .pj-atop h1 .hi { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-size: 21px; background: color-mix(in srgb, var(--ac) 14%, #fff); }
 .pj-atop .pj-x[disabled] { opacity: .4; cursor: not-allowed; }
 .pj-amove { width: auto; border: 1.5px solid var(--pj-line); padding: 7px 10px; font-weight: 700; color: var(--pj-ink); }
+/* V1.27: thẻ mảng nhỏ gọn – rộng vừa chữ, 1 hàng */
+.pj-areas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.pj-area { padding: 7px 14px 7px 7px; gap: 9px; min-height: 0; border-radius: 12px; border-width: 1.5px; }
+.pj-area .ai { width: 32px; height: 32px; border-radius: 9px; font-size: 17px; }
+.pj-area .at { gap: 0; }
+.pj-area .at b { font-size: 14px; white-space: nowrap; display: block; -webkit-line-clamp: unset; }
+.pj-area .at small, .pj-area .al { font-size: 11.5px; white-space: nowrap; }
+.pj-area.on::before { left: 10px; right: 10px; }
+.pj-area.add.ed { min-width: 200px; }
+.pj-atop { margin-bottom: 16px; } .pj-atop h1 { font-size: 23px; } .pj-atop h1 .hi { width: 34px; height: 34px; font-size: 18px; border-radius: 9px; }
