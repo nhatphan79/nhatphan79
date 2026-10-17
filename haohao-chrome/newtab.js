@@ -137,7 +137,7 @@
   const where = () => new Promise(res => {
     const byIp = () => fetch('https://ipwho.is/?fields=city,latitude,longitude,success').then(r => r.json())
       .then(j => res(j && j.success !== false && j.latitude ? { lat: j.latitude, lon: j.longitude, city: j.city || '' } : null)).catch(() => res(null));
-    if (!navigator.geolocation) return byIp();
+    if (HT.STORE || !navigator.geolocation) return byIp();   // V1.58: bản Store không xin quyền vị trí → lấy vị trí gần đúng theo mạng
     navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lon: p.coords.longitude, city: '' }), byIp, { timeout: 8000, maximumAge: 3 * 3600e3 });
   });
   function showWx(w) {
