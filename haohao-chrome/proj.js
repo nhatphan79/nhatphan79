@@ -136,7 +136,21 @@
   const parseC = (t, c) => { if (c !== 'usdt') return parseMoney(t); const x = String(t || '').replace(/[^\d.\-]/g, ''); if (!x || x === '-' || x === '.') return null; const n = parseFloat(x); return isNaN(n) ? null : Math.round(n * 100) / 100; };
   const sumC = (L, k) => { const o = { vnd: 0, usdt: 0 }; L.forEach(p => { o[curOf(p)] += k === 'von' ? vonOf(p) : laiOf(p); }); return o; };
   const fmtSum = (o, sign, sep) => { const parts = ['vnd', 'usdt'].filter(c => o[c]).map(c => fmtC(o[c], c, sign)); return parts.join(sep || ' · ') || '0'; };
-  const tone3 = o => { const v = (o.vnd || 0) + (o.usdt || 0) * 25000; return v > 0 ? ' pos' : v < 0 ? ' neg' : ''; };
+  // V1.40: tỷ giá USDT → VND (CoinGecko, lưu usdtVnd 6 giờ; lỗi mạng thì lấy tỷ giá HaoHao đã lưu ở mục vàng, cuối cùng 26.000)
+  let RATE = 26000, RATE_AT = 0;
+  const toVnd = (v, c) => c === 'usdt' ? (Number(v) || 0) * RATE : (Number(v) || 0);
+  const sumV = (L, k) => L.reduce((a, p) => a + toVnd(k === 'von' ? vonOf(p) : laiOf(p), curOf(p)), 0);
+  const hasUsdt = L => L.some(p => curOf(p) === 'usdt' && (vonOf(p) || laiOf(p)));
+  const tone3 = o => { const v = (o.vnd || 0) + (o.usdt || 0) * RATE; return v > 0 ? ' pos' : v < 0 ? ' neg' : ''; };
+  async function loadRate() {
+    try {
+      const { usdtVnd: u, gold: g } = await chrome.storage.local.get(['usdtVnd', 'gold']);
+      if (u && u.v > 10000) { RATE = u.v; RATE_AT = u.at || 0; } else if (g && g.xau && g.xau.vnd > 10000) { RATE = g.xau.vnd; RATE_AT = g.at || 0; }
+      if (Date.now() - RATE_AT < 6 * 3600e3) return;
+      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd').then(x => x.json()), v = r && r.tether && r.tether.vnd;
+      if (v > 10000) { RATE = v; RATE_AT = Date.now(); await chrome.storage.local.set({ usdtVnd: { v, at: RATE_AT } }); if (ready && !editing()) render(true); }
+    } catch {}
+  }
   function curChip(p, after) {
     const c = curOf(p), b = $('button', 'pj-cur ' + c, c === 'usdt' ? 'USDT' : 'VND'); b.title = 'Đơn vị tiền của dự án – bấm để đổi VND ⇄ USDT'; b.setAttribute('aria-label', 'Đổi đơn vị tiền, đang là ' + (c === 'usdt' ? 'USDT' : 'VND'));
     b.addEventListener('click', e => { e.stopPropagation(); p.cur = curOf(p) === 'usdt' ? 'vnd' : 'usdt'; save(); (after || (() => render(true)))(); });
@@ -231,7 +245,7 @@
   //        lợi nhuận theo mảng, top dự án lời / lỗ, 5 khoản chi lớn nhất, việc sắp tới hạn & lịch ⏰ 7 ngày tới.
   //        Số theo kỳ lấy từ các khoản thu / chi CÓ NGÀY ở mục 0; kỳ "Tất cả" cộng thêm vốn / lãi gõ tay ở bảng dự án.
   const OV = '$all';
-  let ovPer = 'month', ovOff = 0, ovCur = null;
+  let ovPer = 'month', ovOff = 0;
   const C_THU = '#2F6FD6', C_CHI = '#C8641E', C_INK = '#23305E';
   const dkey = d => ymd(d);
   function ovRange() {
@@ -245,19 +259,20 @@
   function ovEntries() {   // mọi khoản thu / chi có ngày, kèm dự án, mảng, đơn vị
     const out = [];
     for (const p of data.projects) { if (!ledger(p)) continue; const c = curOf(p);
-      for (const k of ['thu', 'chi']) for (const x of (p.money[k] || [])) if (x.v) out.push({ k, v: Number(x.v), d: x.d || '', t: x.t || '', p, c }); }
+      for (const k of ['thu', 'chi']) for (const x of (p.money[k] || [])) if (x.v) out.push({ k, v: toVnd(x.v, c), raw: Number(x.v), d: x.d || '', t: x.t || '', p, c }); }
     return out;
   }
   function overview(W) {
     areaBar(W);
     const R = ovRange(), all = ovEntries();
-    const curs = new Set([...all.map(x => x.c), ...data.projects.filter(p => !ledger(p) && (p.von || p.lai)).map(curOf)]);
-    if (!ovCur || (curs.size && !curs.has(ovCur))) ovCur = curs.has('vnd') || !curs.size ? 'vnd' : 'usdt';
-    const cu = ovCur, inR = x => !R.s || (x.d && x.d >= dkey(R.s) && x.d < dkey(R.e));
-    const E = all.filter(x => x.c === cu && inR(x));
-    const manual = ovPer === 'all' ? data.projects.filter(p => !ledger(p) && curOf(p) === cu && (p.von || p.lai)) : [];
-    const thu = E.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + (Number(p.von) || 0) + (Number(p.lai) || 0), 0);
-    const chi = E.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + (Number(p.von) || 0), 0);
+    // V1.40: mọi số quy về VND (USDT × tỷ giá) → 1 bảng duy nhất
+    const cu = 'vnd', inR = x => !R.s || (x.d && x.d >= dkey(R.s) && x.d < dkey(R.e));
+    const E = all.filter(inR);
+    const manual = ovPer === 'all' ? data.projects.filter(p => !ledger(p) && (p.von || p.lai)) : [];
+    const mV = (p, k) => toVnd(Number(p[k]) || 0, curOf(p));
+    const thu = E.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von') + mV(p, 'lai'), 0);
+    const chi = E.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von'), 0);
+    const anyU = all.some(x => x.c === 'usdt') || manual.some(p => curOf(p) === 'usdt');
     const loi = thu - chi, ty = chi ? Math.round(loi / chi * 1000) / 10 : null;
 
     // thanh điều khiển: kỳ · ‹ nhãn › · đơn vị
@@ -269,8 +284,8 @@
     if (ovPer !== 'all') { const nav = $('div', 'pj-ovnav'), pv = $('button', 'pj-fb', '‹'), nx = $('button', 'pj-fb', '›'); pv.setAttribute('aria-label', 'Kỳ trước'); nx.setAttribute('aria-label', 'Kỳ sau');
       pv.addEventListener('click', () => { ovOff--; render(true); }); nx.addEventListener('click', () => { ovOff++; render(true); }); nav.append(pv, $('b', '', R.label), nx); ctl.append(nav); }
     else ctl.append($('b', 'pj-ovlb', R.label));
-    const cs = $('div', 'pj-seg sm'); [['vnd', 'VND'], ['usdt', 'USDT']].forEach(([k, lb]) => { const b = $('button', cu === k ? 'on' : '', lb); b.setAttribute('aria-pressed', cu === k); b.addEventListener('click', () => { ovCur = k; render(true); }); cs.append(b); });
-    ctl.append(cs); top.append(ctl); W.append(top);
+    top.append(ctl); W.append(top);
+    if (anyU) W.append($('div', 'pj-rate', '💱 Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') + (RATE_AT ? ' · cập nhật ' + new Date(RATE_AT).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '')));
 
     // 1) 4 ô số
     const k4 = $('div', 'pj-kpis');
@@ -279,14 +294,14 @@
     kp(loi < 0 ? 'Lỗ' : 'Lợi nhuận', fmtC(loi, cu, true), 'loi' + (loi > 0 ? ' pos' : loi < 0 ? ' neg' : ''), R.label);
     kp('Tỷ suất lãi', ty == null ? '–' : (ty > 0 ? '+' : '') + ty.toLocaleString('vi-VN') + '%', 'ty' + (ty > 0 ? ' pos' : ty < 0 ? ' neg' : ''), 'lợi nhuận / chi');
     W.append(k4);
-    if (!E.length && !manual.length) W.append($('div', 'pj-empty pj-nempty', 'Chưa có khoản thu / chi ' + (cu === 'usdt' ? 'USDT' : 'VND') + ' nào trong kỳ này. Ghi thu / chi ở mục 0. Vốn đầu tư của từng dự án để biểu đồ hiện số.'));
+    if (!E.length && !manual.length) W.append($('div', 'pj-empty pj-nempty', 'Chưa có khoản thu / chi nào trong kỳ này. Ghi thu / chi ở mục 0. Vốn đầu tư của từng dự án để biểu đồ hiện số.'));
 
     // 2) biểu đồ cột thu – chi + đường lợi nhuận cộng dồn
     const B = []; const now = new Date(); now.setHours(0, 0, 0, 0);
     if (ovPer === 'week' || ovPer === 'month') { for (let d = new Date(R.s); d < R.e; d.setDate(d.getDate() + 1)) B.push({ k: dkey(d), lb: ovPer === 'week' ? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][(d.getDay() + 6) % 7] : String(d.getDate()), full: d.toLocaleDateString('vi-VN') }); }
-    else { let s, e; if (ovPer === 'year') { s = new Date(R.s); e = new Date(R.e); } else { const ds = all.filter(x => x.c === cu && x.d).map(x => x.d).sort(); s = ds.length ? new Date(ds[0].slice(0, 7) + '-01T00:00') : new Date(now.getFullYear(), now.getMonth(), 1); e = new Date(now.getFullYear(), now.getMonth() + 1, 1); if ((e - s) / 864e5 > 731) s = new Date(e.getFullYear() - 2, e.getMonth(), 1); }
+    else { let s, e; if (ovPer === 'year') { s = new Date(R.s); e = new Date(R.e); } else { const ds = all.filter(x => x.d).map(x => x.d).sort(); s = ds.length ? new Date(ds[0].slice(0, 7) + '-01T00:00') : new Date(now.getFullYear(), now.getMonth(), 1); e = new Date(now.getFullYear(), now.getMonth() + 1, 1); if ((e - s) / 864e5 > 731) s = new Date(e.getFullYear() - 2, e.getMonth(), 1); }
       for (let d = new Date(s); d < e; d.setMonth(d.getMonth() + 1)) B.push({ k: dkey(d).slice(0, 7), lb: 'T' + (d.getMonth() + 1), full: 'Tháng ' + (d.getMonth() + 1) + '/' + d.getFullYear(), m: 1 }); }
-    for (const b of B) { const L = all.filter(x => x.c === cu && x.d && (b.m ? x.d.slice(0, 7) === b.k : x.d === b.k)); b.thu = L.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0); b.chi = L.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0); }
+    for (const b of B) { const L = all.filter(x => x.d && (b.m ? x.d.slice(0, 7) === b.k : x.d === b.k)); b.thu = L.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0); b.chi = L.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0); }
     let run = 0; const tk = today(); B.forEach(b => { run += b.thu - b.chi; b.cum = run; b.fut = b.m ? b.k > tk.slice(0, 7) : b.k > tk; });   // ngày / tháng chưa tới: không vẽ đường cộng dồn
     const card = $('div', 'pj-ovc'), ch = $('div', 'pj-ovh'); ch.append($('b', '', 'Thu – chi ' + (ovPer === 'week' || ovPer === 'month' ? 'theo ngày' : 'theo tháng')));
     const lg = $('div', 'pj-lg'); [[C_THU, 'Thu', 'sq'], [C_CHI, 'Chi', 'sq'], [C_INK, 'Lợi nhuận cộng dồn', 'ln']].forEach(([c, t, k]) => { const i = $('span', 'pj-lgi'); const sw = $('i', k); sw.style.background = c; i.append(sw, t); lg.append(i); });
@@ -324,7 +339,7 @@
     // 3) lợi nhuận theo mảng · 4) top dự án · 5) chi lớn nhất · 6) nhắc việc
     const grid = $('div', 'pj-ovg');
     const byP = new Map(); E.forEach(x => { const o = byP.get(x.p) || { thu: 0, chi: 0 }; o[x.k] += x.v; byP.set(x.p, o); });
-    manual.forEach(p => byP.set(p, { thu: (Number(p.von) || 0) + (Number(p.lai) || 0), chi: Number(p.von) || 0 }));
+    manual.forEach(p => byP.set(p, { thu: mV(p, 'von') + mV(p, 'lai'), chi: mV(p, 'von') }));
     const areaL = areas().map(a => { let v = 0; byP.forEach((o, p) => { if (p.area === a.id) v += o.thu - o.chi; }); return { a, v }; }).filter(x => x.v);
     const c1 = $('div', 'pj-ovc'); c1.append($('div', 'pj-ovh', 'Lợi nhuận theo mảng'));
     if (!areaL.length) c1.append($('div', 'pj-ovn', 'Chưa có số trong kỳ'));
@@ -340,7 +355,7 @@
     const c3 = $('div', 'pj-ovc'); c3.append($('div', 'pj-ovh', '5 khoản chi lớn nhất'));
     const big = E.filter(x => x.k === 'chi').sort((a, b) => b.v - a.v).slice(0, 5);
     if (!big.length) c3.append($('div', 'pj-ovn', 'Chưa có khoản chi trong kỳ'));
-    big.forEach(x => { const r = $('div', 'pj-li st'); const l = $('span'); l.append(x.t || '(không ghi nội dung)', $('small', '', (x.d ? new Date(x.d + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ' · ' : '') + (x.p.name || ''))); r.append(l, $('b', 'neg', fmtC(x.v, cu))); c3.append(r); });
+    big.forEach(x => { const r = $('div', 'pj-li st'); const l = $('span'); l.append(x.t || '(không ghi nội dung)', $('small', '', (x.d ? new Date(x.d + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ' · ' : '') + (x.p.name || ''))); r.append(l, $('b', 'neg', fmtC(x.v, cu) + (x.c === 'usdt' ? ' ($' + x.raw.toLocaleString('en-US') + ')' : ''))); c3.append(r); });
     const c4 = $('div', 'pj-ovc'); c4.append($('div', 'pj-ovh', 'Sắp tới hạn · 7 ngày'));
     const T = today(), T7 = ymd(Date.now() + 7 * 864e5), items = [];
     data.projects.forEach(p => { if (p.due && p.col !== 'done' && p.due <= T7) items.push({ at: p.due, t: (p.due < T ? '🔴 Trễ hạn · ' : '📅 Hết hạn · ') + (p.name || ''), w: fmt(p.due), p }); });
@@ -416,7 +431,9 @@
       ft.append($('div', 'c'), $('div', 'c', nHid && !showHidden ? 'Tổng (gồm cả ' + nHid + ' dự án ẩn)' : 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl, $('div', 'c'));
       updTotal = () => {
         const sv = sumC(PL, 'von'), sl = sumC(PL, 'lai');
-        tv.textContent = fmtSum(sv, false, '\n'); tl.textContent = fmtSum(sl, true, '\n'); tl.className = 'c c-sum' + tone3(sl);
+        const vv = sumV(PL, 'von'), vl = sumV(PL, 'lai'), ap = hasUsdt(PL) ? '≈ ' : '';   // V1.40: quy USDT ra VND, 1 dòng
+        tv.textContent = ap + fmtC(vv, 'vnd'); tl.textContent = ap + fmtC(vl, 'vnd', true); tl.className = 'c c-sum' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : '');
+        tv.title = tl.title = hasUsdt(PL) ? 'Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') : '';
       };
       updTotal(); T.append(ft);
     }
@@ -738,7 +755,7 @@
     if (projBoard && Array.isArray(projBoard.projects)) data = projBoard;
     todos = Array.isArray(td) ? td : [];
     if (migrate() | todoSync()) save();
-    ready = true; render(true);
+    ready = true; render(true); loadRate();
   }).catch(() => { ready = true; render(true); });
   let pend = null;
   chrome.storage.onChanged.addListener((ch, area) => {

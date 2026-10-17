@@ -360,3 +360,5 @@
 .pj-seg button { padding: 5px 10px; font-size: 12px; } .pj-seg.sm button { padding: 5px 8px; font-size: 11.5px; }
 .pj-ovnav b, .pj-ovlb { font-size: 13px; min-width: 104px; }
 .pj-atop { margin-bottom: 12px; }
+/* V1.40: dòng tỷ giá quy đổi */
+.pj-rate { font-size: 11.5px; color: var(--pj-soft); margin: -6px 0 10px; }
