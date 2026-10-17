@@ -244,3 +244,17 @@
 .pj-bell:focus-visible { outline: 2px solid var(--pj-acc); }
 .pj-bell[hidden] { display: none !important; }
 @media (max-width: 700px) { .pj-r { grid-template-columns: 30px 30px 1fr 40px 40px 40px 26px; } }
+/* V1.32: lối tắt trang web theo từng mảng */
+.pj-ql { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--pj-line); }
+.pj-qlh { font-size: 12.5px; font-weight: 800; color: var(--pj-soft); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; text-align: center; }
+.pj-qls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 8px; }
+.pj-site { all: unset; box-sizing: border-box; position: relative; cursor: pointer; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 8px 4px; border-radius: 14px; }
+.pj-site:hover { background: #F4F5F8; } .pj-site:focus-visible { outline: 3px solid var(--pj-acc); }
+.pj-site .ic { width: 48px; height: 48px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.12); font-size: 20px; font-weight: 800; color: #5A6590; }
+.pj-site .ic img { width: 26px; height: 26px; }
+.pj-site .lb { font-size: 12.5px; max-width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pj-ink); }
+.pj-site .rm { all: unset; position: absolute; top: 2px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; display: none; place-items: center; cursor: pointer; }
+.pj-site:hover .rm, .pj-site:focus-within .rm { display: grid; }
+.pj-site.add .ic { background: #F4F5F8; border: 1.5px dashed #CBD0DA; box-shadow: none; font-weight: 500; }
+.pj-qlf { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
+.pj-qlf .pj-in { width: 220px; } .pj-qlf[hidden] { display: none; }

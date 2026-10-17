@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.31** (số kỹ thuật 1.10.287)
+Cập nhật: 17/10/2026 · **Bản V1.32** (số kỹ thuật 1.10.288)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.32 (1.10.288) | Mỗi mảng (Xây dựng nhà phố, APP HaoHao, Trade, Airdrop, mảng tự thêm) có hàng **🔗 Lối tắt** riêng dưới bảng dự án, kiểu giống lối tắt trang chủ: biểu tượng tròn (favicon `/_favicon/`, lỗi thì chữ cái đầu) + tên, bấm mở tab mới, rê chuột ✕ xoá, ＋ Thêm (tên + link, tự thêm https://). Lưu `area.links = [{id,t,u}]`. |
 | V1.31 (1.10.287) | Việc trong dự án có cột 🔔 **Nhắc**: bấm 🔔 → đưa sang Todo HaoHao (`todos`, chữ "việc · tên dự án", trường `pj`), chuông sáng vàng; bấm lần nữa → bỏ khỏi Todo. `row.todoId` nối 2 bên: tick / bỏ tick ở bên nào bên kia theo; xoá ở Todo HaoHao → chuông tự tắt; xoá việc trong dự án → xoá luôn ở Todo; sửa tên việc → sửa chữ Todo. Hẹn giờ nhắc thì bấm 🔔 bên Todo HaoHao như cũ. |
 | V1.30 (1.10.286) | Mục **0. Vốn đầu tư** cố định ở đầu mọi dự án (`openFolder = '$money'`, không xoá/đổi tên): 3 ô Tổng thu · Tổng chi (= vốn đầu tư) · Lãi/Lỗ + 2 bảng Nguồn thu / Nguồn chi (STT · Ngày · Nội dung · Số tiền; dòng cuối trống gõ là thêm, ngày tự điền hôm nay). Dữ liệu `p.money = {thu:[{id,d,t,v}], chi:[…]}`. Có số liệu thì bảng dự án bên ngoài tự lấy: Vốn = tổng chi, Lãi/lỗ = thu − chi (ô thành nút ↗ bấm mở mục 0; dòng Tổng + thẻ mảng cũng tính theo). Chưa có số liệu thì vẫn gõ tay như cũ (`vonOf`, `laiOf`). |
 | V1.29 (1.10.285) | Note làm việc theo TỪNG VIỆC: bấm số thứ tự hoặc bấm vào việc nào thì note bên dưới chuyển sang việc đó (dòng đang chọn tô xanh). Đầu note: ô số + tiêu đề = tên việc (sửa tiêu đề thì bảng đổi theo, và ngược lại). Nội dung `row.html`, màu `row.color`. Note chung của thư mục (V1.28) tự chuyển vào việc đầu tiên (`folder.v29`). Cột Thư mục rộng hơn, tiêu đề cột không xuống dòng. |

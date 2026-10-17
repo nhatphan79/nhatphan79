@@ -216,6 +216,38 @@
       updTotal(); T.append(ft);
     }
     W.append(T, $('div', 'pj-hint', 'Bấm tên dự án để mở · sửa ngày, trạng thái, vốn, lãi/lỗ ngay trong bảng · tự lưu · lỗ ghi số âm (vd -500000)'));
+    quickLinks(W, A);
+  }
+  // V1.32: 🔗 lối tắt trang web riêng cho từng mảng (giống hàng lối tắt ở trang chủ) – lưu area.links
+  const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+  const favicon = u => { try { const x = new URL(chrome.runtime.getURL('/_favicon/')); x.searchParams.set('pageUrl', u); x.searchParams.set('size', '64'); return x.toString(); } catch { return ''; } };
+  function quickLinks(W, A) {
+    if (!Array.isArray(A.links)) A.links = [];
+    const box = $('section', 'pj-ql'); box.setAttribute('aria-label', 'Lối tắt ' + A.name);
+    box.append($('div', 'pj-qlh', '🔗 Lối tắt · ' + A.name));
+    const row = $('div', 'pj-qls');
+    A.links.forEach((l, i) => {
+      const a = $('a', 'pj-site'); a.href = l.u; a.target = '_blank'; a.rel = 'noopener'; a.title = (l.t || hostOf(l.u)) + '\n' + l.u;
+      const ic = $('span', 'ic'), im = $('img'); im.alt = ''; im.src = favicon(l.u); im.addEventListener('error', () => { im.remove(); ic.textContent = (l.t || hostOf(l.u)).slice(0, 1).toUpperCase(); }); ic.append(im);
+      const lb = $('span', 'lb', l.t || hostOf(l.u));
+      const x = $('button', 'rm', '✕'); x.type = 'button'; x.title = 'Xoá lối tắt'; x.setAttribute('aria-label', 'Xoá ' + (l.t || hostOf(l.u)));
+      x.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); A.links.splice(i, 1); save(); render(true); });
+      a.append(ic, lb, x); row.append(a);
+    });
+    const add = $('button', 'pj-site add'); add.type = 'button'; add.append($('span', 'ic', '＋'), $('span', 'lb', 'Thêm')); add.title = 'Thêm lối tắt cho mảng ' + A.name;
+    const form = $('form', 'pj-qlf'); form.hidden = true;
+    const tn = $('input', 'pj-in'); tn.placeholder = 'Tên (vd: Bảng giá thép)'; tn.setAttribute('aria-label', 'Tên lối tắt');
+    const tu = $('input', 'pj-in'); tu.placeholder = 'Link trang web'; tu.setAttribute('aria-label', 'Link'); tu.inputMode = 'url';
+    const ok = $('button', 'pj-btn', 'Thêm'); ok.type = 'submit'; const no = $('button', 'pj-btn ghost', 'Huỷ'); no.type = 'button';
+    form.append(tn, tu, ok, no);
+    add.addEventListener('click', () => { form.hidden = false; tu.focus(); });
+    no.addEventListener('click', () => { form.hidden = true; });
+    form.addEventListener('submit', e => {
+      e.preventDefault(); let u = tu.value.trim(); if (!u) return tu.focus();
+      if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { new URL(u); } catch { return tu.focus(); }
+      A.links.push({ id: uid(), t: tn.value.trim() || hostOf(u), u }); save(); render(true);
+    });
+    row.append(add); box.append(row, form); W.append(box);
   }
 
   // Lưu ý: chữ thường + link tự nhận (http…, www…, tên miền…/…) → thẻ a bấm được
