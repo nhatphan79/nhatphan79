@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.21** (số kỹ thuật 1.10.276)
+Cập nhật: 17/10/2026 · **Bản V1.22** (số kỹ thuật 1.10.278)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.22 (1.10.278) | Trang Dự án – chi tiết gọn theo ý anh Nhật: cột trái chỉ còn tên, Ngày bắt đầu / Kết thúc (`p.start`, `p.due`), thanh tiến độ, thư mục con (bỏ Loại, Trạng thái, Việc tiếp theo; đổi cột vẫn kéo thẻ ngoài bảng). Dự án mới có sẵn 1 thư mục "Việc chính". Thêm thư mục con: gõ tên + Enter → tự mở, con trỏ nằm ở bảng. Bên phải: mỗi thư mục là 1 bảng kiểu Excel nền note vàng (☐ · Hạng mục con · Lưu ý), bấm ô là sửa, tự lưu, Enter xuống dòng dưới, dòng cuối trống gõ là thêm dòng, link trong Lưu ý tự bấm được. Dữ liệu mới `folder.rows = [{id,t,note,done}]`; dữ liệu cũ (tasks / note / links) tự chuyển vào bảng khi mở (`migrate()`), không mất. Tiến độ = số dòng đã tick. Thẻ ngoài bảng: % + 📅 bắt đầu → kết thúc + trễ/sắp tới hạn. |
 | V1.21 (1.10.276) | Sửa trang Dự án không lưu / thêm không được (ghi chú, việc, link mất sau lần lưu đầu). Nguyên nhân: mỗi lần lưu, sự kiện đổi kho thay `data` bằng bản sao trong khi ô đang gõ → các ô còn trỏ vào bản cũ. Nay `proj.js` nhớ bản vừa tự lưu (`lastSaved`) và bỏ qua sự kiện của chính mình; tab khác sửa thì đợi rời ô gõ mới nạp. Đã thử bằng trình giả lập (jsdom): bản cũ mất ghi chú + việc, bản mới lưu đủ. Chỉ máy chủ app dùng → không đóng gói bản cho khách. |
 | V1.20 (1.10.275) | Trang Dự án (chỉ máy chủ app) = "Dự án đang làm": bảng thẻ 3 cột Đang làm / Tạm dừng / Xong, kéo thả đổi cột. Thẻ: tên, loại (💻 Phần mềm / 🏠 Công trình / 📣 Kinh doanh), % tiến độ (tính từ việc trong thư mục con), hạn chót (đỏ: trễ, cam: còn ≤3 ngày), Việc tiếp theo (gõ tay, để trống thì tự lấy việc chưa xong đầu tiên). Bấm thẻ → chi tiết: thư mục con (mẫu sẵn theo loại), mỗi thư mục có việc cần làm, ghi chú, link. Lưu `chrome.storage.local['projBoard']`. File `proj.js`, `proj.css`. |
 | V1.19 (1.10.274) | Quay lại như V1.17: anh Nhật thấy trang Quản lý công việc (V1.18, mẫu Notion) chưa hợp → bỏ `proj.js`, `proj.css` (chuyển vào `_to_delete/` trên máy anh), trang Dự án để trắng chờ mẫu khác. Dữ liệu thử `projTasks` (nếu có) vẫn nằm trong Chrome, không ảnh hưởng. |
