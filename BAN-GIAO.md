@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.56** (số kỹ thuật 1.10.312)
+Cập nhật: 18/10/2026 · **Bản V1.57** (số kỹ thuật 1.10.313)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.57 (1.10.313) | Rà toàn bộ: máy anh = GitHub (46 file khớp md5). Sửa sót: `tfgui.html/js` trên máy anh còn bản V1.48 (lần V1.49/V1.50 chép song song với lệnh sửa) → đã chép lại. PHÁT HÀNH lại cho khách V1.57 (chữ ký OK, thử nạp OK). Xưởng code `haohao-workbench.html` cập nhật đủ file. `HaoHao-Store.zip` đóng lại theo V1.57. |
 | V1.56 (1.10.312) | Chuẩn bị Chrome Web Store: công tắc `HT.STORE` (common.js, bản thường = false) – Store: xem kiểm tra không gắn link tiếp thị, lấy mã chỉ gắn link khi có mã thật, dòng báo link tiếp thị (`HT.AFF_NOTE`) ở tab Mua sắm + dưới nút Mua qua HaoHao, không khoá Tiện ích, không tự cập nhật, không ô khoá soi của chủ app. Mọi bản: trang Giới thiệu có câu link tiếp thị; Cài đặt chung thêm 2 ô tắt "thống kê ẩn danh" (`settings.stats`) và "góp giá" (`settings.priceShare`). Thư mục `haohao-store/`: `dong-goi-store.py` (zip không làm rối, bỏ geolocation + cổng 47321), `HaoHao-Store.zip`, `NOP-STORE.md` (mô tả, mục đích, lý do quyền, dữ liệu), `CHINH-SACH-RIENG-TU.md`, `anh/` 5 ảnh 1280×800 + ô 440×280. |
 | V1.55 (1.10.311) | **Trang Dự án mở cho mọi khách hàng** (bỏ điều kiện `spyKeys` ở công tắc Trang chủ ⇄ Dự án trong newtab.js và ở thanh chọn dự án của note). Máy khách mới: trang trống, chỉ có ＋ Thêm mảng (chọn mẫu). ĐÃ PHÁT HÀNH cho khách 18/10 (dong-goi.py trên máy anh, chữ ký kiểm tra OK, thử nạp gói đã nén chạy được); `downloads/HaoHao-Transfer-Windows.zip` thay bằng exe v52 (có Gửi sang iPhone). |
 | V1.54 (1.10.310) | Thanh chọn dự án của note chọn tới **thư mục con** (nhóm = mảng · dự án, mục = các thư mục con không phải Hold/Trade; dự án chưa có thư mục → tạo `📝 Ghi chú`). Giá trị `p|f`. V1.53: bỏ 📁 lặp. ⚠ Bài học: không chạy `cp` ra outputs và `device_commit_files` song song (lần V1.52 chép nhầm file cũ). |
