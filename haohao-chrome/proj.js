@@ -6,7 +6,7 @@
 (() => {
   const root = document.getElementById('proj'); if (!root) return;
   const COLS = [['doing', 'Đang làm', '#E08A00'], ['pause', 'Tạm dừng', '#9AA1B5'], ['done', 'Xong', '#2E8B57']];
-  let data = { projects: [] }, openId = null, openFolder = null, selRow = null, ready = false;
+  let data = { projects: [] }, openId = null, openFolder = null, selRow = null, showHidden = false, ready = false;
   const uid = () => Math.random().toString(36).slice(2, 9);
   const $ = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   // V1.21: nhớ bản vừa tự lưu – sự kiện đổi kho do chính trang này gây ra thì bỏ qua (không thay `data` bằng bản sao)
@@ -34,6 +34,7 @@
       if (!t) { delete r.todoId; ch = true; continue; }
       if (!!t.done !== !!r.done) { r.done = !!t.done; ch = true; }
     }
+    for (const p of data.projects) if (p.remindId && !todos.some(t => t.id === p.remindId && !t.done)) { delete p.remindId; ch = true; }   // V1.34: nhắc đã xong / bị xoá bên HaoHao
     return ch;
   }
   const newFolder = n => ({ id: uid(), name: n, rows: [], v28: 1, v29: 1 });
@@ -163,6 +164,32 @@
     });
     bar.append(nw); W.append(bar);
   }
+  // V1.34: ⏰ hẹn ngày nhắc cho dự án (vd hạn claim airdrop) → tạo việc có giờ trong Todo HaoHao, tới giờ HaoHao báo
+  const whenTxt = d => { const x = new Date(d); return isNaN(x) ? d : x.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); };
+  function remindDlg(p) {
+    root.querySelectorAll('.pj-need').forEach(x => x.remove());
+    const old = todos.find(t => t.id === p.remindId);
+    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Hẹn nhắc');
+    const tx = $('input', 'pj-in'); tx.value = old ? old.text.replace(' · ' + p.name, '') : (p.area === 'air' ? 'Claim' : ''); tx.placeholder = 'Nhắc việc gì? (vd: Claim, nộp hồ sơ, gọi khách)'; tx.setAttribute('aria-label', 'Nội dung nhắc');
+    const dt = $('input', 'pj-in'); dt.type = 'datetime-local'; dt.setAttribute('aria-label', 'Ngày giờ nhắc');
+    if (old && old.due) dt.value = old.due.slice(0, 16); else { const d = new Date(Date.now() + 864e5); d.setHours(9, 0, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); dt.value = d.toISOString().slice(0, 16); }
+    const quick = $('div', 'pj-rmq'); [['Mai 9h', 1], ['3 ngày', 3], ['1 tuần', 7], ['1 tháng', 30]].forEach(([lb, n]) => { const b = $('button', 'pj-chipq', lb); b.type = 'button'; b.addEventListener('click', () => { const d = new Date(Date.now() + n * 864e5); d.setHours(9, 0, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); dt.value = d.toISOString().slice(0, 16); }); quick.append(b); });
+    const ok = $('button', 'pj-btn', '⏰ Lưu nhắc'), no = $('button', 'pj-btn ghost', 'Huỷ'), off = $('button', 'pj-x', 'Bỏ nhắc'); off.hidden = !old;
+    const close = () => bg.remove();
+    ok.addEventListener('click', () => {
+      if (!dt.value) return dt.focus(); const text = (tx.value.trim() || 'Nhắc') + ' · ' + p.name;
+      if (old) Object.assign(old, { text, due: dt.value, notified: false, done: false });
+      else { const id = 't' + Date.now().toString(36); todos.push({ id, text, done: false, due: dt.value, notified: false, pj: p.id }); p.remindId = id; }
+      saveTodos(); save(); close(); render(true); toast('⏰ Đã hẹn ' + whenTxt(dt.value) + ' – HaoHao sẽ nhắc');
+    });
+    off.addEventListener('click', () => { todos = todos.filter(t => t !== old); delete p.remindId; saveTodos(); save(); close(); render(true); toast('Đã bỏ nhắc'); });
+    no.addEventListener('click', close); bg.addEventListener('click', e => { if (e.target === bg) close(); });
+    cd.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Enter' && e.target.tagName === 'INPUT') ok.click(); });
+    const row = $('div', 'pj-needb'); const sp = $('div'); sp.style.flex = '1'; row.append(off, sp, no, ok);
+    cd.append($('div', 'pj-needt', '⏰ Hẹn nhắc · ' + (p.name || '')), $('div', 'pj-needn', 'Nhắc việc'), tx, $('div', 'pj-needn', 'Ngày giờ'), dt, quick,
+      $('div', 'pj-needn', 'Tới giờ HaoHao sẽ hiện thông báo. Việc này cũng nằm trong Todo HaoHao.'), row);
+    bg.append(cd); root.append(bg); tx.focus(); tx.select();
+  }
   function board(W) {
     areaBar(W);
     const A = curArea(), PL = data.projects.filter(p => p.area === A.id);
@@ -182,10 +209,12 @@
     top.append(add); W.append(top);
     const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh sách dự án');
     const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
-    ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ'].forEach(t => hd.append($('div', 'c', t)));
+    ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', ''].forEach(t => hd.append($('div', 'c', t)));
     T.append(hd);
-    PL.forEach((p, i) => {
-      const r = $('div', 'pj-lr st-' + p.col); r.setAttribute('role', 'row');
+    // V1.34: 👁 ẩn dự án đã xong / không cần xem (p.hidden) – mặc định không hiện; ✕ xoá dự án (bấm 2 lần)
+    const nHid = PL.filter(p => p.hidden).length, VL = showHidden ? PL : PL.filter(p => !p.hidden);
+    VL.forEach((p, i) => {
+      const r = $('div', 'pj-lr st-' + p.col + (p.hidden ? ' hid' : '')); r.setAttribute('role', 'row');
       const no = $('div', 'c c-no', String(i + 1));
       const nmc = $('div', 'c c-nm'), nb = $('button', 'pj-open', p.name || '(chưa đặt tên)'); nb.title = 'Mở dự án';
       nb.addEventListener('click', () => { openId = p.id; openFolder = (p.folders[0] || {}).id || null; render(true); window.scrollTo({ top: 0 }); });
@@ -203,19 +232,34 @@
         vb.title = lb.title = 'Tính từ mục 0. Vốn đầu tư – bấm để xem thu / chi'; vb.addEventListener('click', go); lb.addEventListener('click', go);
         vc.append(vb); lc.append(lb);
       } else { vc.append(moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai')); }
-      r.append(no, nmc, ds, de, pc, sc, vc, lc); T.append(r);
+      const ac = $('div', 'c c-act');
+      const eye = $('button', 'pj-ic2', p.hidden ? '🙈' : '👁'); eye.title = p.hidden ? 'Hiện lại dự án' : 'Ẩn dự án cho gọn'; eye.setAttribute('aria-label', (p.hidden ? 'Hiện lại ' : 'Ẩn ') + p.name);
+      eye.addEventListener('click', () => { p.hidden = !p.hidden; save(); render(true); });
+      const del = $('button', 'pj-ic2 del', '✕'); del.title = 'Xoá dự án'; del.setAttribute('aria-label', 'Xoá ' + p.name); let arm = false;
+      del.addEventListener('click', () => {
+        if (!arm) { arm = true; del.textContent = 'Xoá?'; del.classList.add('arm'); setTimeout(() => { arm = false; del.textContent = '✕'; del.classList.remove('arm'); }, 3000); return; }
+        const ids = new Set(p.folders.flatMap(f => (f.rows || []).map(x => x.todoId).filter(Boolean)));   // việc đã đưa sang Todo HaoHao thì xoá theo
+        if (ids.size) { todos = todos.filter(t => !ids.has(t.id)); saveTodos(); }
+        data.projects = data.projects.filter(x => x !== p); save(); render(true); toast('🗑 Đã xoá dự án “' + (p.name || '') + '”');
+      });
+      const rm = todos.find(t => t.id === p.remindId), al = $('button', 'pj-ic2' + (rm ? ' on' : ''), '⏰'); al.title = rm ? 'Sửa nhắc hẹn' : 'Hẹn ngày nhắc (HaoHao nhắc đúng giờ)'; al.setAttribute('aria-label', 'Hẹn nhắc cho ' + p.name);
+      al.addEventListener('click', () => remindDlg(p));
+      if (rm && rm.due) { const ch = $('button', 'pj-rmchip', '⏰ ' + whenTxt(rm.due) + ' · ' + rm.text.replace(' · ' + p.name, '')); ch.title = 'Sửa nhắc'; ch.addEventListener('click', () => remindDlg(p)); nmc.append(ch); }
+      ac.append(al, eye, del);
+      r.append(no, nmc, ds, de, pc, sc, vc, lc, ac); T.append(r);
     });
-    if (!PL.length) T.append($('div', 'pj-empty', 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
+    if (!VL.length) T.append($('div', 'pj-empty', PL.length ? 'Các dự án trong mảng này đang ẩn' : 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
     else {
       const ft = $('div', 'pj-lr ft'), tv = $('div', 'c c-sum'), tl = $('div', 'c c-sum');
-      ft.append($('div', 'c'), $('div', 'c', 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl);
+      ft.append($('div', 'c'), $('div', 'c', nHid && !showHidden ? 'Tổng (gồm cả ' + nHid + ' dự án ẩn)' : 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl, $('div', 'c'));
       updTotal = () => {
         const sv = sum(PL, 'von'), sl = sum(PL, 'lai');
         tv.textContent = money(sv) || '0'; tl.textContent = (sl > 0 ? '+' : '') + (money(sl) || '0'); tl.className = 'c c-sum' + (sl > 0 ? ' pos' : sl < 0 ? ' neg' : '');
       };
       updTotal(); T.append(ft);
     }
-    W.append(T, $('div', 'pj-hint', 'Bấm tên dự án để mở · sửa ngày, trạng thái, vốn, lãi/lỗ ngay trong bảng · tự lưu · lỗ ghi số âm (vd -500000)'));
+    W.append(T);
+    if (nHid) { const hb = $('button', 'pj-hidbtn', showHidden ? '🙈 Ẩn lại ' + nHid + ' dự án đã ẩn' : '👁 Hiện ' + nHid + ' dự án đã ẩn'); hb.addEventListener('click', () => { showHidden = !showHidden; render(true); }); W.append(hb); }
     quickLinks(W, A);
   }
   // V1.32: 🔗 lối tắt trang web riêng cho từng mảng (giống hàng lối tắt ở trang chủ) – lưu area.links
