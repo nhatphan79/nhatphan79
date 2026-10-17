@@ -83,3 +83,11 @@
 @media (max-width: 700px) { .pj-r { grid-template-columns: 34px 1fr 30px; } .pj-r .c-n { grid-column: 2 / 4; border-left: 0; border-top: 1px dashed #EBDDA0; } .pj-r.hd .c-n { display: none; } }
 .pj-r [hidden] { display: none !important; }
 .pj-dates .pj-field { min-width: 0; } .pj-dates .pj-field input { min-width: 0; width: 100%; font-size: 13px; padding: 7px 4px; }
+/* V1.23: thư mục con – đổi tên ✏️ / xoá 🗑 ngay trên dòng */
+.pj-fi { display: flex; align-items: center; gap: 2px; border-radius: 9px; }
+.pj-fi > button:first-child { flex: 1; min-width: 0; }
+.pj-fl .pj-ic { flex: none; padding: 6px 7px; font-size: 13px; opacity: 0; border-radius: 7px; }
+.pj-fi:hover .pj-ic, .pj-fl .pj-ic:focus-visible, .pj-fl .pj-ic.arm { opacity: 1; }
+.pj-fl .pj-ic:hover { background: #FDECEA; }
+.pj-fl .pj-ic.arm { color: #C4401F; font-weight: 700; font-size: 12px; }
+.pj-ren { padding: 6px 9px !important; font-size: 14px !important; }

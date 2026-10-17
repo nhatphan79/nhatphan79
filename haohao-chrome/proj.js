@@ -1,6 +1,6 @@
 // © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
 // 📋 Trang Dự án trong Tab mới (chỉ máy chủ app): bảng thẻ 3 cột (Đang làm / Tạm dừng / Xong), kéo thả đổi cột.
-// V1.22: chi tiết dự án gọn – tên, ngày bắt đầu / kết thúc, tiến độ; thư mục con; mỗi thư mục là 1 bảng kiểu Excel
+// V1.22–23: chi tiết dự án gọn – tên + thư mục con (đổi tên, xoá); mỗi thư mục là 1 bảng kiểu Excel
 //        (☐ · Hạng mục con · Lưu ý), nền vàng như note dán, bấm ô là sửa, tự lưu, link trong Lưu ý bấm được.
 // Lưu chrome.storage.local['projBoard'].
 (() => {
@@ -104,22 +104,37 @@
     const nm = $('input', 'pj-name'); nm.value = p.name; nm.setAttribute('aria-label', 'Tên dự án');
     nm.addEventListener('input', () => { p.name = nm.value.trim() || 'Dự án mới'; saveSoon(); });
     nm.addEventListener('change', () => { p.name = nm.value.trim() || 'Dự án mới'; save(); });
-    const ds = $('input'); ds.type = 'date'; ds.value = p.start || ''; ds.addEventListener('change', () => { p.start = ds.value; save(); });
-    const de = $('input'); de.type = 'date'; de.value = p.due || ''; de.addEventListener('change', () => { p.due = de.value; save(); });
-    const dates = $('div', 'pj-dates'); dates.append(fld('Bắt đầu', ds), fld('Kết thúc', de));
-    const pl = $('div', 'pj-sec'), bar = $('div', 'pj-bar'), bi = $('i'); bar.append(bi);
+    // V1.23: bỏ ngày bắt đầu / kết thúc và thanh tiến độ ở cột trái (anh Nhật muốn gọn)
     const updBar = () => {
-      const v = pct(p); pl.textContent = 'Tiến độ ' + v + '%'; bi.style.width = v + '%';
       const sm = S.querySelector('.pj-fl button.on small'), cf = p.folders.find(x => x.id === openFolder);
       if (sm && cf) { const R = (cf.rows || []).filter(real); sm.textContent = R.length ? R.filter(r => r.done).length + '/' + R.length : ''; }
     };
-    updBar();
-    S.append(nm, dates, pl, bar, $('div', 'pj-sec', 'Thư mục con'));
+    S.append(nm, $('div', 'pj-sec', 'Thư mục con'));
     const FL = $('div', 'pj-fl');
+    // V1.23: mỗi thư mục có ✏️ đổi tên (hoặc bấm đúp) và 🗑 xoá ngay trên dòng
+    const delFolder = f => { p.folders = p.folders.filter(x => x !== f); if (openFolder === f.id) openFolder = (p.folders[0] || {}).id || null; save(); render(true); };
     for (const f of p.folders) {
+      const it = $('div', 'pj-fi' + (f.id === openFolder ? ' on' : ''));
       const b = $('button', f.id === openFolder ? 'on' : ''); const R = (f.rows || []).filter(real), dn = R.filter(r => r.done).length;
       b.append('📂 ' + f.name, $('small', '', R.length ? dn + '/' + R.length : ''));
-      b.addEventListener('click', () => { openFolder = f.id; render(true); }); FL.append(b);
+      b.addEventListener('click', () => { if (openFolder !== f.id) { openFolder = f.id; render(true); } });
+      const ed = $('button', 'pj-ic', '✏️'); ed.title = 'Đổi tên'; ed.setAttribute('aria-label', 'Đổi tên thư mục ' + f.name);
+      const dl = $('button', 'pj-ic', '🗑'); dl.title = 'Xoá thư mục'; dl.setAttribute('aria-label', 'Xoá thư mục ' + f.name);
+      const rename = () => {
+        const inp = $('input', 'pj-in pj-ren'); inp.value = f.name; inp.setAttribute('aria-label', 'Tên mới');
+        let done = false; const ok = keep => { if (done) return; done = true; if (keep) { const n = inp.value.trim(); if (n) { f.name = n; save(); } } render(true); };
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); });
+        inp.addEventListener('blur', () => ok(true));
+        it.replaceChildren(inp); inp.focus(); inp.select();
+      };
+      ed.addEventListener('click', e => { e.stopPropagation(); rename(); }); b.addEventListener('dblclick', rename);
+      let arm = false;
+      dl.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!arm && (f.rows || []).some(real)) { arm = true; dl.textContent = 'Xoá?'; dl.classList.add('arm'); setTimeout(() => { arm = false; dl.textContent = '🗑'; dl.classList.remove('arm'); }, 3000); return; }
+        delFolder(f);
+      });
+      it.append(b, ed, dl); FL.append(it);
     }
     // V1.22: gõ tên + Enter (hoặc ＋) → thêm thư mục con và tự mở luôn, con trỏ nằm sẵn ở bảng
     const af = $('div', 'pj-addrow'), ai = $('input', 'pj-in'); ai.placeholder = 'Thêm thư mục con…'; ai.setAttribute('aria-label', 'Tên thư mục con mới');
@@ -135,7 +150,7 @@
       const fh = $('div', 'pj-fh'), fn = $('input'); fn.value = f.name; fn.setAttribute('aria-label', 'Tên thư mục con');
       fn.addEventListener('change', () => { f.name = fn.value.trim() || f.name; save(); render(true); });
       const fd = $('button', 'pj-x', 'Xoá thư mục'); let arm = false;
-      fd.addEventListener('click', () => { if (!arm && f.rows.some(real)) { arm = true; fd.textContent = 'Bấm lần nữa để xoá'; setTimeout(() => { arm = false; fd.textContent = 'Xoá thư mục'; }, 3000); return; } p.folders = p.folders.filter(x => x !== f); openFolder = (p.folders[0] || {}).id || null; save(); render(true); });
+      fd.addEventListener('click', () => { if (!arm && f.rows.some(real)) { arm = true; fd.textContent = 'Bấm lần nữa để xoá'; setTimeout(() => { arm = false; fd.textContent = 'Xoá thư mục'; }, 3000); return; } delFolder(f); });
       fh.append('📂', fn, fd); M.append(fh);
 
       const sheet = $('div', 'pj-sheet'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', 'Bảng hạng mục ' + f.name);
