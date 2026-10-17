@@ -921,6 +921,7 @@
   .rvq mark { background: #FFD6DB; color: #B42336; font-style: normal; font-weight: 800; border-radius: 3px; padding: 0 2px; }
   .tnote2 { font-size: 11.5px; color: #6B7394; margin: 4px 0; }
   .tnote { font-size: 11px; color: #8A91AE; margin-top: 8px; line-height: 1.4; }
+  .aff-note { margin: 6px 12px 0; color: #B7791F; font-weight: 700; }
   .buybox { border-radius: 14px; padding: 12px; margin: 6px 0 8px; background: linear-gradient(135deg, #FFF1EE, #FFF8E8); border: 1.5px solid #F7B5A5; }
   .buybox .bt { font-size: 15px; font-weight: 800; color: #D0391B; }
   .buybox .big2 { display: block; text-align: center; margin: 10px 0 2px; padding: 10px 12px; font-size: 14px; background: #EE4D2D; }
@@ -1877,7 +1878,7 @@
   const UNLOCK_DAYS = 7;   // 1.10.134: mở khoá 7 ngày; hết hạn khách tự bấm lại TikTok Shop + Cửa hàng Shopee (fanpage chỉ 1 lần đầu)
   let unlockSt = { steps: {}, until: 0 };
   chrome.storage.local.get('unlock').then(d => { if (d.unlock) { unlockSt = d.unlock; if (unlockSt.until > Date.now() + UNLOCK_DAYS * 864e5) unlockSt.until = Date.now() + UNLOCK_DAYS * 864e5; } }).catch(() => {});
-  const isUnlocked = () => unlockSt.until > Date.now() || !!(spyKeys && (spyKeys.at || spyKeys.rh));   // máy chủ app (có khoá soi sản phẩm) luôn mở
+  const isUnlocked = () => HT.STORE || unlockSt.until > Date.now() || !!(spyKeys && (spyKeys.at || spyKeys.rh));   // máy chủ app (có khoá soi sản phẩm) luôn mở
   function unlockSteps() {
     const fb = (couponFeed && couponFeed.fanpage) || HT.FANPAGE || '';
     return [
@@ -4176,6 +4177,7 @@
   const svMore = new Set();
   function renderShop(V) {
     shopAlert = false;
+    if (HT.STORE) V.append(el('div', 'tnote aff-note', HT.AFF_NOTE));   // V1.56: báo link tiếp thị trong giao diện (luật Chrome Web Store)
     const p = detectProduct(), item = isItemPage(), shopPg = !item && isShopeeShop();
     const nSaved = products.length ? ` (${products.length})` : '';
     if (item || shopPg) {
@@ -4604,7 +4606,7 @@
   const spyOn = () => !!(HT.SPY_API || (spyKeys && (spyKeys.at || spyKeys.rh)));
   // 🔑 chủ app dán khoá 1 lần (lưu trong Chrome máy này, không gửi đi đâu ngoài AccessTrade/RioHub)
   function spyKeyBox() {
-    const w = el('div', 'spy-key');
+    const w = el('div', 'spy-key'); if (HT.STORE) return w;   // V1.56: bản Store không có ô khoá chủ app
     const t = el('button', 'spy-kt', '🔑 Bật soi sản phẩm (chủ app)'); t.addEventListener('click', () => { spyKeyOpen = !spyKeyOpen; renderPanel(); }); w.append(t);
     if (!spyKeyOpen) return w;
     const f = h(`<div class="spy-kf"><input type="password" class="hold-in" placeholder="Khoá AccessTrade (tài khoản phụ)" aria-label="Khoá AccessTrade" autocomplete="off">
@@ -5598,7 +5600,7 @@
   // Khách tự bấm lấy mã: copy mã rồi mở lại đúng món này qua link tiếp thị (chỉ khi có mã thật cho món này)
   async function useCoupon(p, code) {
     if (code) await copyText(code);
-    if (viaHaoHao() || !HT.isAff(p.url)) return say(code ? `Đã copy mã ${code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop');
+    if (viaHaoHao() || !HT.isAff(p.url) || (HT.STORE && !code)) return say(code ? `Đã copy mã ${code}. Dán ở bước thanh toán nhé.` : 'Bấm "Lưu" mã trên trang rồi đặt hàng nhé.', 'happy', '🎟️ Mã giảm giá', 'shop');
     try { sessionStorage.setItem('hh-aff', itemKey()); } catch {}
     markJump('');
     goAff(p.url);
@@ -6150,7 +6152,7 @@
   // Bấm "Xem kiểm tra": mở lại trang qua link tiếp thị (nếu chưa), rồi tự mở bảng kiểm tra
   function goCheck(sub = 'check') {
     const url = trustTarget();
-    if (!viaHaoHao() && HT.isAff(url)) {
+    if (!HT.STORE && !viaHaoHao() && HT.isAff(url)) {   // V1.56 bản Store: xem kiểm tra không gắn link tiếp thị
       try { sessionStorage.setItem('hh-aff', itemKey()); sessionStorage.setItem('hh-open', itemKey() + '|' + sub); } catch {}
       markJump(sub);
       return goAff(url);
@@ -6729,7 +6731,7 @@
     const row = el('div', 'gbtn');
     if (guide && guide.k === 'ktotal') last = true;
     if (!last && guide && guide.k && !['vch', 'det', 'ctick', 'cspv', 'cok'].includes(guide.k)) { const nx = el('button', 'b', ['buy', 'wbuy', 'cbuy'].includes(guide.k) ? 'Xong ✓' : 'Tiếp ›'); nx.addEventListener('click', () => { if (!guide) return; guide.i++; guideRun(); }); row.append(nx); }
-    if (!last && guide && (guide.k === 'buy' || guide.k === 'wbuy') && !viaHaoHao() && HT.isAff(trustTarget())) { const aff = el('button', 'b ghost', '🛒 Mua qua HaoHao'); aff.title = 'Link tiếp thị · Giá không đổi'; aff.addEventListener('click', () => { try { sessionStorage.setItem('hh-aff', itemKey()); } catch {} goAff(trustTarget()); }); row.append(aff); }
+    if (!last && guide && (guide.k === 'buy' || guide.k === 'wbuy') && !viaHaoHao() && HT.isAff(trustTarget())) { const aff = el('button', 'b ghost', '🛒 Mua qua HaoHao'); aff.title = HT.AFF_NOTE; aff.addEventListener('click', () => { try { sessionStorage.setItem('hh-aff', itemKey()); } catch {} goAff(trustTarget()); }); row.append(aff); if (HT.STORE) pop.append(el('div', 'tnote', HT.AFF_NOTE)); }
     const x = el('button', 'mlink', last ? 'Đóng' : 'Bỏ qua'); x.addEventListener('click', () => { if (!last) gsave(null); guideStop(); }); row.append(x);
     pop.append(row);
     ui.root.append(ring, pop);
@@ -7106,7 +7108,7 @@
       b.addEventListener('click', () => { if (t.id === 'focus' || t.id === 'info') return openTab(t.id); toolsSub = t.id; if (t.id === 'crypto') loadQuotes(); renderPanel(); });
       g.append(b);
     });
-    if (spyKeys && (spyKeys.at || spyKeys.rh)) {   // chỉ máy chủ app: xem thử bảng mở khoá như khách
+    if (!HT.STORE && spyKeys && (spyKeys.at || spyKeys.rh)) {   // chỉ máy chủ app: xem thử bảng mở khoá như khách
       const b = el('button', 'tool'); b.style.setProperty('--c', '#F2A71B');
       const ti = el('span', 'ti', '🔓'); const tx = el('div'); tx.append(el('b', '', 'Bảng mở khoá'), el('span', 'td', 'Xem thử như khách (chỉ máy chủ app)')); b.append(ti, tx);
       b.addEventListener('click', () => { toolsSub = 'unl'; renderPanel(); }); g.append(b);

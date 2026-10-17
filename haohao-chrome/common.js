@@ -314,6 +314,8 @@ HT.shopSearch = (id, q) => { const s = HT.SHOPS.find(x => x.id === id) || HT.SHO
 // Kho mã của bạn: sửa file haohao-extension/coupons.json trên GitHub, mọi người dùng tự nhận mã mới (1 giờ/lần), không cần ra bản mới.
 // 🔎 Máy chủ soi sản phẩm (Cloudflare Worker của chủ app): giữ khoá AccessTrade/RioHub, trả danh sách hàng Shopee + TikTok.
 //   Để trống = tắt (ô tìm mở thẳng Shopee như cũ). Điền link worker, vd 'https://haohao-api.<tên>.workers.dev'
+HT.STORE = false;   // V1.56: bản Chrome Web Store (haohao-store) – script đóng gói tự đổi thành true
+HT.AFF_NOTE = 'Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm.';
 HT.SPY_API = 'https://haohao-gia.nhatphan79.workers.dev';   // 1.10.250: khách dùng Soi sản phẩm luôn, khoá nằm trên máy chủ
 // 🧾 Máy chủ kho giá chung (1.10.122): mọi máy HaoHao gửi mã sản phẩm + giá (không thông tin cá nhân) → khách mới mở món là thấy lịch sử giá. Để trống = tắt.
 HT.FANPAGE = 'https://www.facebook.com/trolyHaoHao';   // fanpage HaoHao (dự phòng nếu coupons.json chưa có 'fanpage')

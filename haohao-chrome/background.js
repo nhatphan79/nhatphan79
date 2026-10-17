@@ -2076,7 +2076,7 @@ async function reviewsScanOne({ url, key }) {
 // 🔄 1.9.59 TỰ CẬP NHẬT (chỉ bản cài từ thư mục – "Tiện ích đã giải nén"): Claude ghi file mới vào thư mục,
 // HaoHao thấy manifest.json đổi thì tự tải lại, không cần tải zip / bấm ↻. Bản trên Chrome Web Store không chạy phần này.
 (() => {
-  if ('update_url' in chrome.runtime.getManifest()) return;
+  if (HT.STORE || 'update_url' in chrome.runtime.getManifest()) return;
   const running = chrome.runtime.getManifest().version;   // so theo SỐ PHIÊN BẢN: mỗi lần cập nhật đều tăng số
   const check = async () => {
     try {
@@ -2094,7 +2094,7 @@ async function reviewsScanOne({ url, key }) {
 const UPD_BASE = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/';
 const verGt = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0; } return false; };
 async function updCheck(force) {
-  if ('update_url' in chrome.runtime.getManifest()) return null;   // bản trên Chrome Web Store: Chrome tự cập nhật
+  if (HT.STORE || 'update_url' in chrome.runtime.getManifest()) return null;   // bản trên Chrome Web Store: Chrome tự cập nhật
   const { updInfo } = await chrome.storage.local.get('updInfo');
   if (!force && updInfo && Date.now() - updInfo.at < 6 * 3600e3) return { ...updInfo, avail: !!(updInfo.version && verGt(updInfo.version, chrome.runtime.getManifest().version)) };
   try {

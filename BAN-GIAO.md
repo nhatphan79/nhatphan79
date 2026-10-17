@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.55** (số kỹ thuật 1.10.311)
+Cập nhật: 18/10/2026 · **Bản V1.56** (số kỹ thuật 1.10.312)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.56 (1.10.312) | Chuẩn bị Chrome Web Store: công tắc `HT.STORE` (common.js, bản thường = false) – Store: xem kiểm tra không gắn link tiếp thị, lấy mã chỉ gắn link khi có mã thật, dòng báo link tiếp thị (`HT.AFF_NOTE`) ở tab Mua sắm + dưới nút Mua qua HaoHao, không khoá Tiện ích, không tự cập nhật, không ô khoá soi của chủ app. Mọi bản: trang Giới thiệu có câu link tiếp thị; Cài đặt chung thêm 2 ô tắt "thống kê ẩn danh" (`settings.stats`) và "góp giá" (`settings.priceShare`). Thư mục `haohao-store/`: `dong-goi-store.py` (zip không làm rối, bỏ geolocation + cổng 47321), `HaoHao-Store.zip`, `NOP-STORE.md` (mô tả, mục đích, lý do quyền, dữ liệu), `CHINH-SACH-RIENG-TU.md`, `anh/` 5 ảnh 1280×800 + ô 440×280. |
 | V1.55 (1.10.311) | **Trang Dự án mở cho mọi khách hàng** (bỏ điều kiện `spyKeys` ở công tắc Trang chủ ⇄ Dự án trong newtab.js và ở thanh chọn dự án của note). Máy khách mới: trang trống, chỉ có ＋ Thêm mảng (chọn mẫu). ĐÃ PHÁT HÀNH cho khách 18/10 (dong-goi.py trên máy anh, chữ ký kiểm tra OK, thử nạp gói đã nén chạy được); `downloads/HaoHao-Transfer-Windows.zip` thay bằng exe v52 (có Gửi sang iPhone). |
 | V1.54 (1.10.310) | Thanh chọn dự án của note chọn tới **thư mục con** (nhóm = mảng · dự án, mục = các thư mục con không phải Hold/Trade; dự án chưa có thư mục → tạo `📝 Ghi chú`). Giá trị `p|f`. V1.53: bỏ 📁 lặp. ⚠ Bài học: không chạy `cp` ra outputs và `device_commit_files` song song (lần V1.52 chép nhầm file cũ). |
 | V1.52 (1.10.308) | Note: mỗi note có thanh **📁 Lưu vào dự án…** (chỉ máy chủ app) – chọn dự án → thêm 1 dòng vào mục `📝 Ghi chú` của dự án (tạo nếu chưa có; tiêu đề = tên note/dòng đầu, nội dung vào `html`, link trang); note nhớ `pj{p,f,r}`, đổi dự án thì chuyển dòng, chọn "✕ Bỏ khỏi dự án" thì xoá dòng. Anh Nhật xác nhận Gửi sang iPhone chạy OK. |
@@ -156,7 +157,7 @@ Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 - [ ] Trang Dự án: nút "📋 Thêm vào dự án" trên HaoHao ở mọi trang web (lưu tên + link trang hiện tại thành 1 dòng trong bảng, chỉ máy chủ app) – chờ anh Nhật xác nhận ý.
 - Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
-- [ ] **Lên Chrome Web Store – hướng a "Trợ lý cá nhân"** (18/10, anh Nhật đã có tài khoản nhà phát triển). Bản riêng `haohao-store/` (không làm rối mã, không tự cập nhật). Anh đã quyết phần A (link tiếp thị): 1) "Xem kiểm tra" KHÔNG gắn link tiếp thị ✅; 2) lấy mã: chỉ gắn link khi có mã thật ✅; 3) giữ "🛒 Mua qua HaoHao" + dòng ghi link tiếp thị; 4) "HaoHao mệt xin cà phê" thứ Ba: TẠM GIỮ, bàn thêm sau; 5) câu báo (màn chào + giao diện + trang Store) đúng ý anh: "Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm." Còn chờ anh quyết phần B (6 bỏ Mở khoá Tiện ích, 7 bỏ Gmail giữ Outlook, 8 bỏ tự cập nhật – bắt buộc, 9 gỡ soi sản phẩm) và C (10 bỏ quyền geolocation). Em làm: chính sách quyền riêng tư, mô tả, 5 ảnh 1280×800, lý do từng quyền, zip nộp.
+- [ ] **Lên Chrome Web Store – hướng a "Trợ lý cá nhân"**: hồ sơ ĐÃ SẴN trong `haohao-store/` (V1.56). Quyết định anh Nhật: A1,A2,A3,A5 ✅; A4 cà phê thứ Ba TẠM GIỮ; B6 ✅ B8 ✅ B9 ✅; B7 Gmail TẠM GIỮ (phân tích thêm); C10 ✅. Còn: anh quyết Soi sản phẩm (khách đang dùng qua máy chủ – không phải khoá của anh như em nói nhầm); anh điền email hỗ trợ; anh nộp zip trên Developer Dashboard.
 - [ ] Làm gọn khung Voucher trang sản phẩm (gộp 2 khung đầu thành 1 dòng, rút chữ giải thích, kết quả 1 dòng/mã, mỗi phần 3 mã + Xem thêm)
 - [ ] Phần đọc toàn bộ đánh giá (Kiểm tra chi tiết) cho Shopee tiếng Anh
 - [ ] Mở `HaoHao.rar` (anh nén 22:39 tối 12/10) so với bản hiện tại

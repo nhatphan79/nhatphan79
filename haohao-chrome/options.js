@@ -157,6 +157,7 @@ function renderSettings() {
   $('#desktop').checked = settings.desktop !== false;
   $('#sound').checked = settings.sound !== false;
   $('#shopTrust').checked = settings.shopTrust !== false;
+  $('#statsOn').checked = settings.stats !== false; $('#priceShare').checked = settings.priceShare !== false;   // V1.56: tắt được thống kê ẩn danh / góp giá
   $('#shopAsk').checked = settings.shopAsk !== false;
   $('#shopAuto').checked = settings.shopAuto !== false;
   const L = $('#hidden'); L.innerHTML = '';
@@ -172,6 +173,8 @@ $('#mascotEnabled').addEventListener('change', e => { settings.mascotEnabled = e
 $('#desktop').addEventListener('change', e => { settings.desktop = e.target.checked; saveSettings(); });
 $('#sound').addEventListener('change', e => { settings.sound = e.target.checked; saveSettings(); });
 $('#shopTrust').addEventListener('change', e => { settings.shopTrust = e.target.checked; saveSettings(); });
+$('#statsOn').addEventListener('change', e => { settings.stats = e.target.checked; saveSettings(); });
+$('#priceShare').addEventListener('change', e => { settings.priceShare = e.target.checked; saveSettings(); });
 $('#shopAsk').addEventListener('change', e => { settings.shopAsk = e.target.checked; saveSettings(); });
 $('#shopAuto').addEventListener('change', e => { settings.shopAuto = e.target.checked; saveSettings(); });
 $('#deskTest').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'desk-test' }));
