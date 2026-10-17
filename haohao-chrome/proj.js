@@ -128,12 +128,26 @@
   // V1.25: bảng dự án kiểu Excel: STT · Tên dự án · Bắt đầu · Kết thúc · Tiến độ · Trạng thái · Vốn đầu tư · Lãi/lỗ
   const money = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('vi-VN');
   const parseMoney = t => { const s = String(t || '').replace(/[^\d-]/g, ''); if (!s || s === '-') return null; const n = parseInt(s, 10); return isNaN(n) ? null : n; };
+  // V1.37: mỗi dự án 1 đơn vị tiền – VND hoặc USDT (p.cur); mảng mẫu Trade / Airdrop mặc định USDT
+  const curOf = p => p.cur || (['trade', 'air'].includes((tplOf(areas().find(a => a.id === p.area)) || {}).id) ? 'usdt' : 'vnd');
+  const numTxt = (n, c) => (n == null || n === '' || isNaN(n)) ? '' : c === 'usdt' ? Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) : Number(n).toLocaleString('vi-VN');
+  const fmtC = (n, c, sign) => { if (n == null || n === '' || isNaN(n)) n = 0; const v = Number(n), sg = sign && v > 0 ? '+' : v < 0 ? '-' : '';
+    return c === 'usdt' ? sg + '$' + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : sg + Math.abs(v).toLocaleString('vi-VN') + ' ₫'; };
+  const parseC = (t, c) => { if (c !== 'usdt') return parseMoney(t); const x = String(t || '').replace(/[^\d.\-]/g, ''); if (!x || x === '-' || x === '.') return null; const n = parseFloat(x); return isNaN(n) ? null : Math.round(n * 100) / 100; };
+  const sumC = (L, k) => { const o = { vnd: 0, usdt: 0 }; L.forEach(p => { o[curOf(p)] += k === 'von' ? vonOf(p) : laiOf(p); }); return o; };
+  const fmtSum = (o, sign, sep) => { const parts = ['vnd', 'usdt'].filter(c => o[c]).map(c => fmtC(o[c], c, sign)); return parts.join(sep || ' · ') || '0'; };
+  const tone3 = o => { const v = (o.vnd || 0) + (o.usdt || 0) * 25000; return v > 0 ? ' pos' : v < 0 ? ' neg' : ''; };
+  function curChip(p, after) {
+    const c = curOf(p), b = $('button', 'pj-cur ' + c, c === 'usdt' ? 'USDT' : 'VND'); b.title = 'Đơn vị tiền của dự án – bấm để đổi VND ⇄ USDT'; b.setAttribute('aria-label', 'Đổi đơn vị tiền, đang là ' + (c === 'usdt' ? 'USDT' : 'VND'));
+    b.addEventListener('click', e => { e.stopPropagation(); p.cur = curOf(p) === 'usdt' ? 'vnd' : 'usdt'; save(); (after || (() => render(true)))(); });
+    return b;
+  }
   function moneyInput(p, key, cls) {
-    const i = $('input', 'pj-money ' + (cls || '')); i.inputMode = 'numeric'; i.value = money(p[key]); i.placeholder = '0';
+    const c = curOf(p), i = $('input', 'pj-money ' + (cls || '')); i.inputMode = 'decimal'; i.value = numTxt(p[key], c); i.placeholder = '0';
     const tone = () => { if (key === 'lai') { i.classList.toggle('pos', p.lai > 0); i.classList.toggle('neg', p.lai < 0); } };
     tone();
-    i.addEventListener('input', () => { p[key] = parseMoney(i.value); saveSoon(); tone(); updTotal(); });
-    i.addEventListener('blur', () => { i.value = money(p[key]); save(); });
+    i.addEventListener('input', () => { p[key] = parseC(i.value, c); saveSoon(); tone(); updTotal(); });
+    i.addEventListener('blur', () => { i.value = numTxt(p[key], c); save(); });
     i.addEventListener('focus', () => { i.select(); });
     return i;
   }
@@ -149,11 +163,11 @@
   function areaBar(W) {
     const bar = $('div', 'pj-areas'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', 'Các mảng dự án');
     areas().forEach(a => {
-      const L = data.projects.filter(p => p.area === a.id), on = a.id === curArea().id, lai = sum(L, 'lai');
+      const L = data.projects.filter(p => p.area === a.id), on = a.id === curArea().id, lo = sumC(L, 'lai'), lai = (lo.vnd || 0) + (lo.usdt || 0);
       const t = $('button', 'pj-area' + (on ? ' on' : '')); t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', on); t.style.setProperty('--ac', a.color);
       const ic = $('span', 'ai', a.icon), tx = $('div', 'at');
       tx.append($('b', '', a.name), $('small', '', L.length + ' dự án · ' + L.filter(p => p.col === 'doing').length + ' đang làm'));
-      if (lai) tx.append($('span', 'al' + (lai > 0 ? ' pos' : ' neg'), (lai > 0 ? 'Lãi +' : 'Lỗ ') + money(lai)));
+      if (lai) tx.append($('span', 'al' + tone3(lo), 'Lãi/lỗ ' + fmtSum(lo, true)));
       t.append(ic, tx);
       t.addEventListener('click', () => { if (data.cur !== a.id) { data.cur = a.id; save(); render(true); } });
       bar.append(t);
@@ -248,10 +262,10 @@
       const vc = $('div', 'c'), lc = $('div', 'c');
       if (ledger(p)) {   // V1.30: lấy từ mục 0. Vốn đầu tư
         const go = () => { openId = p.id; openFolder = MONEY; render(true); window.scrollTo({ top: 0 }); };
-        const vb = $('button', 'pj-money pj-calc', money(vonOf(p)) || '0'), l = laiOf(p), lb = $('button', 'pj-money pj-calc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), (l > 0 ? '+' : '') + (money(l) || '0'));
+        const cu = curOf(p), vb = $('button', 'pj-money pj-calc', fmtC(vonOf(p), cu)), l = laiOf(p), lb = $('button', 'pj-money pj-calc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), fmtC(l, cu, true));
         vb.title = lb.title = 'Tính từ mục 0. Vốn đầu tư – bấm để xem thu / chi'; vb.addEventListener('click', go); lb.addEventListener('click', go);
-        vc.append(vb); lc.append(lb);
-      } else { vc.append(moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai')); }
+        vc.append(curChip(p), vb); lc.append(lb);
+      } else { vc.append(curChip(p), moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai')); }
       const ac = $('div', 'c c-act');
       const eye = $('button', 'pj-ic2', p.hidden ? '🙈' : '👁'); eye.title = p.hidden ? 'Hiện lại dự án' : 'Ẩn dự án cho gọn'; eye.setAttribute('aria-label', (p.hidden ? 'Hiện lại ' : 'Ẩn ') + p.name);
       eye.addEventListener('click', () => { p.hidden = !p.hidden; save(); render(true); });
@@ -273,8 +287,8 @@
       const ft = $('div', 'pj-lr ft'), tv = $('div', 'c c-sum'), tl = $('div', 'c c-sum');
       ft.append($('div', 'c'), $('div', 'c', nHid && !showHidden ? 'Tổng (gồm cả ' + nHid + ' dự án ẩn)' : 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl, $('div', 'c'));
       updTotal = () => {
-        const sv = sum(PL, 'von'), sl = sum(PL, 'lai');
-        tv.textContent = money(sv) || '0'; tl.textContent = (sl > 0 ? '+' : '') + (money(sl) || '0'); tl.className = 'c c-sum' + (sl > 0 ? ' pos' : sl < 0 ? ' neg' : '');
+        const sv = sumC(PL, 'von'), sl = sumC(PL, 'lai');
+        tv.textContent = fmtSum(sv, false, '\n'); tl.textContent = fmtSum(sl, true, '\n'); tl.className = 'c c-sum' + tone3(sl);
       };
       updTotal(); T.append(ft);
     }
@@ -354,15 +368,15 @@
   // V1.30: 💰 mục 0. Vốn đầu tư – 3 ô tổng (Thu · Chi = vốn · Lãi/lỗ) + 2 bảng Nguồn thu / Nguồn chi (Ngày · Nội dung · Số tiền)
   function moneyView(M, p) {
     if (!p.money) p.money = { thu: [], chi: [] };
-    const fh = $('div', 'pj-fh'); fh.append('💰', $('b', 'pj-f0t', 'Vốn đầu tư')); M.append(fh);
+    const cu = curOf(p), fh = $('div', 'pj-fh'); fh.append('💰', $('b', 'pj-f0t', 'Vốn đầu tư'), curChip(p)); M.append(fh);
     const cards = $('div', 'pj-mcards'), cT = $('div', 'pj-mc thu'), cC = $('div', 'pj-mc chi'), cL = $('div', 'pj-mc lai');
     cards.append(cT, cC, cL); M.append(cards);
     const upd = () => {
       const t = tot(p.money.thu), c = tot(p.money.chi), l = t - c;
-      cT.replaceChildren($('span', '', 'Tổng thu'), $('b', '', money(t) || '0'));
-      cC.replaceChildren($('span', '', 'Tổng chi · vốn đầu tư'), $('b', '', money(c) || '0'));
-      cL.replaceChildren($('span', '', l < 0 ? 'Lỗ' : 'Lãi'), $('b', '', (l > 0 ? '+' : '') + (money(l) || '0'))); cL.className = 'pj-mc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : '');
-      const sm = root.querySelector('.pj-f0 small'); if (sm) { sm.textContent = ledger(p) ? (l > 0 ? '+' : '') + money(l) : ''; sm.className = 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); }
+      cT.replaceChildren($('span', '', 'Tổng thu'), $('b', '', fmtC(t, cu)));
+      cC.replaceChildren($('span', '', 'Tổng chi · vốn đầu tư'), $('b', '', fmtC(c, cu)));
+      cL.replaceChildren($('span', '', l < 0 ? 'Lỗ' : 'Lãi'), $('b', '', fmtC(l, cu, true))); cL.className = 'pj-mc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : '');
+      const sm = root.querySelector('.pj-f0 small'); if (sm) { sm.textContent = ledger(p) ? fmtC(l, cu, true) : ''; sm.className = 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); }
     };
     const book = (key, title, ic) => {
       const L = p.money[key] = p.money[key] || [];
@@ -370,19 +384,19 @@
       h.append($('span', '', ic + ' ' + title), st); box.append(h);
       const sheet = $('div', 'pj-sheet pj-ms'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', title);
       const hd = $('div', 'pj-mr hd'); ['STT', 'Ngày', 'Nội dung', 'Số tiền', ''].forEach(t => hd.append($('div', 'c', t))); sheet.append(hd);
-      const subt = () => { st.textContent = money(tot(L)) || '0'; upd(); };
+      const subt = () => { st.textContent = fmtC(tot(L), cu); upd(); };
       const renum = () => sheet.querySelectorAll('.pj-mr:not(.hd)').forEach((r, i) => { r.firstChild.textContent = r.classList.contains('blank') ? '' : i + 1; });
       const rowEl = (x, blank) => {
         const r = $('div', 'pj-mr' + (blank ? ' blank' : '')); r.setAttribute('role', 'row');
         const no = $('div', 'c c-no'), dc = $('div', 'c'), d = $('input', 'pj-date'); d.type = 'date'; d.value = x.d || ''; dc.append(d);
         const tc = $('div', 'c'), t = $('input', 'pj-mt'); t.value = x.t || ''; t.placeholder = blank ? (key === 'thu' ? 'Thêm khoản thu…' : 'Thêm khoản chi…') : ''; t.setAttribute('aria-label', 'Nội dung'); tc.append(t);
-        const vc = $('div', 'c'), v = $('input', 'pj-money'); v.inputMode = 'numeric'; v.value = money(x.v); v.placeholder = '0'; v.setAttribute('aria-label', 'Số tiền'); vc.append(v);
+        const vc = $('div', 'c'), v = $('input', 'pj-money'); v.inputMode = 'decimal'; v.value = numTxt(x.v, cu); v.placeholder = cu === 'usdt' ? '$0' : '0 ₫'; v.setAttribute('aria-label', 'Số tiền'); vc.append(v);
         const xc = $('div', 'c c-x'), del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá dòng'); del.hidden = blank; xc.append(del);
         r.append(no, dc, tc, vc, xc);
         const make = () => { if (!blank) return; blank = false; r.classList.remove('blank'); if (!x.d) { x.d = today(); d.value = x.d; } L.push(x); del.hidden = false; t.placeholder = ''; sheet.append(rowEl({ id: uid(), d: '', t: '', v: null }, true)); renum(); };
         t.addEventListener('input', () => { if (t.value.trim()) make(); x.t = t.value; saveSoon(); });
-        v.addEventListener('input', () => { const n = parseMoney(v.value); if (n != null) make(); x.v = n == null ? null : Math.abs(n); saveSoon(); subt(); });
-        v.addEventListener('focus', () => v.select()); v.addEventListener('blur', () => { v.value = money(x.v); if (!blank) save(); });
+        v.addEventListener('input', () => { const n = parseC(v.value, cu); if (n != null) make(); x.v = n == null ? null : Math.abs(n); saveSoon(); subt(); });
+        v.addEventListener('focus', () => v.select()); v.addEventListener('blur', () => { v.value = numTxt(x.v, cu); if (!blank) save(); });
         t.addEventListener('blur', () => { if (!blank) save(); }); t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); v.focus(); } });
         v.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const nx = r.nextElementSibling; if (nx) nx.querySelector('.pj-mt').focus(); } });
         d.addEventListener('change', () => { x.d = d.value; if (!blank) save(); });
@@ -420,7 +434,7 @@
     const FL = $('div', 'pj-fl');
     { // V1.30: mục 0 cố định ở mọi dự án
       const it = $('div', 'pj-fi pj-f0' + (openFolder === MONEY ? ' on' : '')), b = $('button', openFolder === MONEY ? 'on' : '');
-      const l = laiOf(p); b.append($('span', 'pj-no', '0.'), 'Vốn đầu tư', $('small', 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), ledger(p) ? (l > 0 ? '+' : '') + money(l) : ''));
+      const l = laiOf(p); b.append($('span', 'pj-no', '0.'), 'Vốn đầu tư', $('small', 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), ledger(p) ? fmtC(l, curOf(p), true) : ''));
       b.addEventListener('click', () => { if (openFolder !== MONEY) { openFolder = MONEY; render(true); } });
       it.append(b); FL.append(it);
     }

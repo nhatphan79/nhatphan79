@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.36** (số kỹ thuật 1.10.292)
+Cập nhật: 17/10/2026 · **Bản V1.37** (số kỹ thuật 1.10.293)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.37 (1.10.293) | Mỗi dự án 1 đơn vị tiền **VND hoặc USDT** (`p.cur`; mảng mẫu Trade / Airdrop mặc định USDT). Nhãn VND / USDT cạnh ô Vốn đầu tư và cạnh tiêu đề mục 0 – bấm để đổi. VND hiện `150.000 ₫`, USDT hiện `$1,250.5` (2 số lẻ, gõ dấu chấm). Dòng Tổng và thẻ mảng cộng RIÊNG từng loại (mỗi loại 1 dòng), không quy đổi. Hàm `curOf`, `fmtC`, `parseC`, `sumC`, `fmtSum`. |
 | V1.36 (1.10.292) | Mảng KHÔNG còn cố định: mặc định chỉ có "＋ Thêm mảng". Bấm vào → hộp chọn 4 MẪU (🏠 Xây dựng nhà phố · 🐹 APP HaoHao · 📈 Trade · 🪂 Airdrop) hoặc tự đặt tên. Dự án mới trong mảng mẫu tự có thư mục mẫu: nhà phố = Báo giá, Thiết kế, Xin phép, Thi công, Bàn giao; APP = Tính năng, Lỗi cần sửa, Phát hành; Trade = Kế hoạch, Nhật ký lệnh, Bài học; Airdrop = Nhiệm vụ, Ví & tài khoản, Claim (`AREAS0[].folders`, `area.tpl`). Mảng nào cũng đổi tên / xoá được (xoá khi trống). Máy đã có mảng thì giữ nguyên; dự án cũ chưa có mảng thì tự tạo mảng mẫu phù hợp. |
 | V1.35 (1.10.291) | 📁 mở thư mục trong tab Chrome → góc phải trên có thanh "🐹 HaoHao · việc · dự án" + nút **💾 Lưu thư mục này**: đi vào thư mục con nào rồi bấm Lưu thì đường dẫn đó ghi vào cột Thư mục của việc, lần sau 📁 mở thẳng vào đây. File mới `pjdir.js` (content script chỉ chạy trên `file:///*`, trang danh sách thư mục); proj.js ghi `pjDirPick = {p,f,r,at}` lúc mở (nhớ 2 giờ). |
 | V1.34 (1.10.290) | Bảng dự án có cột thao tác cuối dòng (hiện rõ khi rê chuột): ⏰ **hẹn nhắc** – hộp thoại nội dung (mảng Airdrop mặc định "Claim") + ngày giờ + nút nhanh Mai 9h / 3 ngày / 1 tuần / 1 tháng → tạo việc có giờ trong Todo HaoHao (`todos`, `due`, `pj`), background tự đặt báo thức `todo:` như mọi việc; dưới tên dự án hiện chip "⏰ giờ · nội dung", sửa / Bỏ nhắc được (`p.remindId`; xoá hoặc tick xong bên HaoHao thì chip tự mất). 👁 **ẩn** dự án (`p.hidden`, ẩn khỏi bảng, nút "👁 Hiện N dự án đã ẩn" dưới bảng, dòng Tổng vẫn tính cả dự án ẩn). ✕ **xoá** dự án (bấm 2 lần; việc đã đưa sang Todo HaoHao xoá theo). Bỏ dòng chữ hướng dẫn dưới bảng. |

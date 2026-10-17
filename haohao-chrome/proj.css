@@ -296,3 +296,10 @@
 .pj-tpli b { font-size: 14.5px; font-weight: 800; color: var(--pj-ink); }
 .pj-tpli small { font-size: 11.5px; color: var(--pj-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 560px) { .pj-tplg { grid-template-columns: 1fr; } }
+/* V1.37: đơn vị tiền VND / USDT theo dự án */
+.pj-cur { all: unset; cursor: pointer; flex: none; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; padding: 2px 6px; border-radius: 6px; line-height: 1.4; }
+.pj-cur.vnd { background: #FDF0E1; color: #9A5B00; } .pj-cur.usdt { background: #E3F6EE; color: #127A55; }
+.pj-cur:hover { filter: brightness(.95); } .pj-cur:focus-visible { outline: 2px solid var(--pj-acc); }
+.pj-lr .c-sum { white-space: pre-line; text-align: right; font-size: 13px; line-height: 1.5; }
+.pj-fh .pj-cur { margin-left: 4px; font-size: 11.5px; padding: 3px 8px; }
+.pj-lr { grid-template-columns: 48px minmax(200px, 2fr) 146px 146px minmax(120px, 1fr) 118px 158px 140px 104px; min-width: 1156px; }
