@@ -318,7 +318,7 @@
     const card = $('div', 'pj-ovc'), ch = $('div', 'pj-ovh'); ch.append($('b', '', 'Thu – chi ' + (ovPer === 'week' || ovPer === 'month' ? 'theo ngày' : 'theo tháng')));
     const lg = $('div', 'pj-lg'); [[C_THU, 'Thu', 'sq'], [C_CHI, 'Chi', 'sq'], [C_INK, 'Lợi nhuận cộng dồn', 'ln']].forEach(([c, t, k]) => { const i = $('span', 'pj-lgi'); const sw = $('i', k); sw.style.background = c; i.append(sw, t); lg.append(i); });
     ch.append(lg); card.append(ch);
-    const VW = 900, VH = 190, PL = 64, PR = 12, PT = 12, PB = 26, iw = VW - PL - PR, ih = VH - PT - PB;
+    const VW_ = 900, VW = VW_, VH = Math.round(Math.max(130, Math.min(230, innerHeight * 0.27 * VW_ / Math.max(500, (root.clientWidth || 1200) - 60)))), PL = 64, PR = 12, PT = 12, PB = 26, iw = VW - PL - PR, ih = VH - PT - PB;   // V1.44: biểu đồ cao vừa 1 màn hình
     const mx = Math.max(1, ...B.map(b => Math.max(b.thu, b.chi, b.cum))), mn = Math.min(0, ...B.map(b => b.cum));
     const nice = v => { if (v <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
     const step = nice((mx - mn) / 4) || 1, top0 = Math.ceil(mx / step) * step, bot0 = Math.floor(mn / step) * step, Y = v => PT + (top0 - v) / (top0 - bot0) * ih;   // vạch chia tròn, luôn có vạch 0

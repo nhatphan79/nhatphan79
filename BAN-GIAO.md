@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.43** (số kỹ thuật 1.10.299)
+Cập nhật: 17/10/2026 · **Bản V1.44** (số kỹ thuật 1.10.300)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.44 (1.10.300) | Trang Dự án: **1 kiểu chữ** (Segoe UI cho cả ô nhập, nút, chọn – trước đây ô tên dự án bị chữ khác) + **thang cỡ chữ đồng bộ** (tiêu đề 20 · tên 18 · số lớn 18 · chữ thường 13.5 · nhãn 11 viết hoa), hàng bảng cao đều (42 / 36px). **Gói trọn 1 màn hình, không kéo trang**: `.proj` cao = màn hình − chân trang, bảng dự án / 2 cột chi tiết / các khung dưới của Tổng quan tự cuộn bên trong, dòng tiêu đề bảng đứng yên; biểu đồ tự chọn chiều cao theo màn hình; lối tắt nhỏ gọn. Màn hình thấp hơn 640px thì cho cuộn trang như cũ. Chỉ sửa CSS + chiều cao biểu đồ. |
 | V1.43 (1.10.299) | **Mảng Trade** (chỉ mảng này): dự án mới có 2 mục theo mẫu CRYPTO PLAN SUN79 (`Downloads/crypto-planner.html` trên máy anh): **Hold** (`folder.kind='hold'`, `holds=[{sym,qty,cost,target}]`) – 4 ô Giá vốn · Giá trị hiện tại · Lãi chưa chốt · Giá trị nếu chạm mục tiêu + bảng Coin · Số lượng · Giá vốn · Giá hiện tại · 24h · Giá trị · Lãi/lỗ · Giá mục tiêu + tiến độ; giá Binance `data-api.binance.vision` cặp …USDT (60 giây). **Trade** (`kind='trade'`, `book={start,pct,days:[{d,close,note}]}`) – Sổ vốn theo ngày: vốn gốc + mục tiêu %/ngày, 4 ô Số dư · Hôm nay cần đạt · Chuỗi ngày đạt · Gấp đôi sau N ngày, nhật ký Ngày · Vốn đầu ngày · Cần đạt · Số dư cuối · Lãi/lỗ · % · Đạt/Chưa đạt · Ghi chú. Dự án Trade cũ tự thêm 2 mục (`p.v43`). Bảng dự án: Vốn = giá vốn Hold + vốn gốc Trade, Lãi = lãi Hold + (số dư − vốn gốc). Tổng quan: ngày Trade lời = thu, lỗ = chi; kỳ Tất cả cộng thêm Hold. **Lối tắt riêng cho từng dự án** ở cuối trang chi tiết (`p.links`). Sửa lỗi vẽ lại khi ô đang mất focus (`render` hoãn nếu đang vẽ). |
 | V1.42 (1.10.298) | Trả về như V1.40 theo ý anh Nhật: Tổng quan hiện đủ số VND (`+2.600.350.000 ₫`), bỏ kiểu nghìn đồng của V1.41. Chỉ tăng số bản để HaoHao tự nạp lại. |
 | V1.41 (1.10.297) | Tổng quan bỏ 3 số 0 cuối: mọi số VND trong trang Tổng quan (ô số, biểu đồ, rê chuột, theo mảng, top dự án, chi lớn) hiện theo nghìn đồng, vd `+2.600.350k` (hàm `fmtK`). Dòng tỷ giá và bảng dự án vẫn hiện đủ số. |

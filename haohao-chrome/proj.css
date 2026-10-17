@@ -386,3 +386,37 @@
 .pj-bl .pj-in { width: 170px; }
 .pj-dayadd { margin: 0 0 10px; } .pj-dayadd .pj-in[type=date] { flex: 0 0 150px; } .pj-dayadd .pj-in:nth-child(2) { flex: 0 0 200px; }
 .pj-hit { white-space: nowrap; }
+/* V1.44: 1 kiểu chữ + cỡ chữ đồng bộ · gói trọn trong 1 màn hình (không kéo trang, phần dài tự cuộn bên trong khung) */
+.proj, .proj input, .proj select, .proj textarea, .proj button { font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+.proj { font-size: 13.5px; line-height: 1.45; height: calc(100vh - 44px); padding: 16px max(20px, env(safe-area-inset-left, 0px)) 6px; box-sizing: border-box; overflow: hidden; }
+.pj-wrap { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.pj-wrap > * { flex: none; }
+/* thang chữ: tiêu đề trang 20 · tên 18 · số lớn 18 · chữ thường 13.5 · nhãn 11 viết hoa */
+.pj-top { margin-bottom: 12px; gap: 10px; } .pj-top h1, .pj-atop h1 { font-size: 20px; } .pj-atop h1 .hi { width: 30px; height: 30px; font-size: 16px; border-radius: 8px; }
+.pj-btn { font-size: 13px; padding: 7px 14px; border-radius: 9px; } .pj-x { font-size: 12.5px; }
+.pj-name { font-size: 18px !important; } .pj-fh input, .pj-f0t, .pj-ntitle { font-size: 16px !important; }
+.pj-lr .c, .pj-r .c, .pj-mr .c, .pj-cr .c, .pj-li, .pj-hb, .pj-fl button, .pj-mt, .pj-r textarea, .pj-r .nv, .pj-nted, .pj-in, .pj-date, .pj-money, .pj-st { font-size: 13.5px; }
+.pj-open { font-size: 14px; }
+.pj-lr.hd .c, .pj-r.hd .c, .pj-mr.hd .c, .pj-cr.hd .c, .pj-kpi span, .pj-mc span, .pj-qlh, .pj-ovs, .pj-field, .pj-bl, .pj-sec { font-size: 11px !important; }
+.pj-kpi b, .pj-mc b { font-size: 18px; } .pj-area .at b { font-size: 13.5px; } .pj-area .at small, .pj-hint, .pj-rate, .pj-nx, .pj-li small, .pj-kpi small { font-size: 11.5px; }
+/* cao độ hàng đồng đều */
+.pj-lr:not(.hd):not(.ft) { min-height: 42px; } .pj-r:not(.hd), .pj-mr:not(.hd), .pj-cr:not(.hd) { min-height: 36px; }
+.pj-r textarea, .pj-r .nv { min-height: 34px; padding-top: 7px; padding-bottom: 7px; }
+/* bảng dự án: tự cuộn trong khung, dòng tiêu đề đứng yên */
+.pj-list { flex: 0 1 auto !important; min-height: 90px; overflow: auto; }
+.pj-lr.hd, .pj-cr.hd, .pj-mr.hd, .pj-r.hd { position: sticky; top: 0; z-index: 2; }
+.pj-areas { margin-bottom: 12px; }
+.pj-ql { margin-top: 10px; padding-top: 8px; } .pj-qlh { margin-bottom: 4px; }
+.pj-site { width: 78px; padding: 4px; gap: 4px; } .pj-site .ic { width: 36px; height: 36px; } .pj-site .ic img { width: 20px; height: 20px; } .pj-site .lb { font-size: 11.5px; max-width: 74px; }
+/* chi tiết dự án: 2 cột cao bằng màn hình, mỗi cột tự cuộn */
+.pj-det { flex: 1 1 auto !important; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: 14px; }
+.pj-side, .pj-main { min-height: 0; overflow: auto; padding: 12px 14px; }
+.pj-main { display: flex; flex-direction: column; } .pj-main > * { flex: none; }
+.pj-main > div:has(> .pj-nt) { flex: 1 0 auto; display: flex; flex-direction: column; }
+.pj-nt { flex: 1 0 auto; display: flex; flex-direction: column; margin-top: 10px; min-height: 200px; } .pj-nted { flex: 1; min-height: 110px; overflow: auto; }
+.pj-mcards, .pj-kpis { margin-bottom: 10px; }
+/* tổng quan: khung dưới tự cuộn */
+.pj-ovg { flex: 1 1 auto !important; min-height: 0; overflow: auto; align-content: start; }
+.pj-ovc { margin-bottom: 8px; }
+.pj-chart { max-height: 30vh; }
+@media (max-height: 640px) { .proj { overflow: auto; height: auto; } .pj-wrap { height: auto; } }
