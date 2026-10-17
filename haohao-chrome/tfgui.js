@@ -18,7 +18,7 @@ function up(file, i, n, done, tot) {
     const x = new XMLHttpRequest();
     x.open('POST', H + '/gui?name=' + encodeURIComponent(file.name)); x.setRequestHeader('x-haohao', '1');
     x.upload.onprogress = e => { const a = Math.floor((done + e.loaded) / tot * 100); b.style.width = a + '%'; t.textContent = 'Đang chuẩn bị ' + (i + 1) + '/' + n + ' · ' + a + '%'; };
-    x.onload = () => x.status === 200 ? ok() : no(new Error(x.responseText || 'Lỗi ' + x.status));
+    x.onload = () => { if (x.status === 200) return ok(); let m = x.responseText; try { m = JSON.parse(m).error || m; } catch {} no(new Error(m || 'Lỗi ' + x.status)); };
     x.onerror = () => no(new Error('Không kết nối được app Transfer')); x.send(file);
   });
 }
@@ -29,9 +29,9 @@ async function send(list) {
   const tot = fs.reduce((a, x) => a + x.size, 0) || 1; let done = 0;
   p.hidden = false; q.hidden = true; t.classList.remove('err'); b.style.width = '0';
   try {
-    await fetch(H + '/gui-moi', { method: 'POST', headers: HD });
+    // V1.50: mỗi lần chọn / kéo thả là THÊM vào danh sách gửi (không xoá file cũ); muốn làm lại thì bấm ✕ Xoá danh sách
     for (const [i, x] of fs.entries()) { await up(x, i, fs.length, done, tot); done += x.size; }
-    t.textContent = '✓ Sẵn sàng ' + fs.length + ' file'; b.style.width = '100%';
+    t.textContent = '✓ Đã thêm ' + fs.length + ' file'; b.style.width = '100%';
     await ds();
   } catch (e) { t.textContent = '⚠️ ' + e.message; t.classList.add('err'); }
   f.value = '';
