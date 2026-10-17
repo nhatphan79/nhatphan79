@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 16/10/2026 · **Bản V1.20** (số kỹ thuật 1.10.275)
+Cập nhật: 17/10/2026 · **Bản V1.21** (số kỹ thuật 1.10.276)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.21 (1.10.276) | Sửa trang Dự án không lưu / thêm không được (ghi chú, việc, link mất sau lần lưu đầu). Nguyên nhân: mỗi lần lưu, sự kiện đổi kho thay `data` bằng bản sao trong khi ô đang gõ → các ô còn trỏ vào bản cũ. Nay `proj.js` nhớ bản vừa tự lưu (`lastSaved`) và bỏ qua sự kiện của chính mình; tab khác sửa thì đợi rời ô gõ mới nạp. Đã thử bằng trình giả lập (jsdom): bản cũ mất ghi chú + việc, bản mới lưu đủ. Chỉ máy chủ app dùng → không đóng gói bản cho khách. |
 | V1.20 (1.10.275) | Trang Dự án (chỉ máy chủ app) = "Dự án đang làm": bảng thẻ 3 cột Đang làm / Tạm dừng / Xong, kéo thả đổi cột. Thẻ: tên, loại (💻 Phần mềm / 🏠 Công trình / 📣 Kinh doanh), % tiến độ (tính từ việc trong thư mục con), hạn chót (đỏ: trễ, cam: còn ≤3 ngày), Việc tiếp theo (gõ tay, để trống thì tự lấy việc chưa xong đầu tiên). Bấm thẻ → chi tiết: thư mục con (mẫu sẵn theo loại), mỗi thư mục có việc cần làm, ghi chú, link. Lưu `chrome.storage.local['projBoard']`. File `proj.js`, `proj.css`. |
 | V1.19 (1.10.274) | Quay lại như V1.17: anh Nhật thấy trang Quản lý công việc (V1.18, mẫu Notion) chưa hợp → bỏ `proj.js`, `proj.css` (chuyển vào `_to_delete/` trên máy anh), trang Dự án để trắng chờ mẫu khác. Dữ liệu thử `projTasks` (nếu có) vẫn nằm trong Chrome, không ảnh hưởng. |
 | V1.18 (1.10.273) | Trang Dự án (chỉ máy chủ app) thành "Quản lý công việc" theo mẫu Notion anh Nhật gửi: thẻ Điều hướng (Việc cần làm, Hôm nay, Ngày mai, Tuần này, Lịch sử, Dòng thời gian, Đang làm, Đã xong); thẻ Danh sách việc (tab Cần làm / Đang làm / Đã xong / Tất cả; cột Tên việc, Trạng thái, Ưu tiên, Hạn chót, Tiến độ %); thẻ Lịch (Hôm nay / Ngày mai / Tuần này / Lịch sử); thẻ Dòng thời gian (21 ngày). Sửa ngay trong bảng, tự lưu `chrome.storage.local['projTasks']`. File mới `proj.js`, `proj.css` (newtab.html nạp). Chưa dịch tiếng Anh vì chỉ chủ app dùng. |

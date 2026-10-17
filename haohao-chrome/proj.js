@@ -9,7 +9,10 @@
   let data = { projects: [] }, openId = null, openFolder = null, ready = false;
   const uid = () => Math.random().toString(36).slice(2, 9);
   const $ = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
-  const save = () => chrome.storage.local.set({ projBoard: data }).catch(() => {});
+  // V1.21: nhớ bản vừa tự lưu – sự kiện đổi kho do chính trang này gây ra thì bỏ qua, không thay `data` bằng bản sao
+  //        (trước đây thay → thư mục/ô đang mở còn trỏ vào bản cũ → thêm việc, ghi chú, link bị mất, không lưu được)
+  let lastSaved = '';
+  const save = () => { lastSaved = JSON.stringify(data); return chrome.storage.local.set({ projBoard: data }).catch(() => {}); };
   const ymd = d => { const z = new Date(d); z.setMinutes(z.getMinutes() - z.getTimezoneOffset()); return z.toISOString().slice(0, 10); };
   const today = () => ymd(new Date());
   const fmt = s => s ? new Date(s + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
@@ -134,5 +137,13 @@
     root.replaceChildren(W);
   }
   chrome.storage.local.get('projBoard').then(({ projBoard }) => { if (projBoard && Array.isArray(projBoard.projects)) data = projBoard; ready = true; render(true); }).catch(() => { ready = true; render(true); });
-  chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.projBoard && ch.projBoard.newValue) { data = ch.projBoard.newValue; render(); } });
+  let pend = null;
+  chrome.storage.onChanged.addListener((ch, area) => {
+    if (area !== 'local' || !ch.projBoard || !ch.projBoard.newValue) return;
+    const v = ch.projBoard.newValue, js = JSON.stringify(v);
+    if (js === lastSaved || js === JSON.stringify(data)) return;   // của chính trang này
+    if (editing()) { pend = v; return; }                            // tab khác vừa sửa: đợi gõ xong mới nạp
+    data = v; lastSaved = js; render();
+  });
+  root.addEventListener('focusout', () => setTimeout(() => { if (pend && !editing()) { data = pend; lastSaved = JSON.stringify(pend); pend = null; render(true); } }, 0));
 })();
