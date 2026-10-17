@@ -63,21 +63,52 @@
     return c;
   }
 
+  // V1.25: bảng dự án kiểu Excel: STT · Tên dự án · Bắt đầu · Kết thúc · Tiến độ · Trạng thái · Vốn đầu tư · Lãi/lỗ
+  const money = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('vi-VN');
+  const parseMoney = t => { const s = String(t || '').replace(/[^\d-]/g, ''); if (!s || s === '-') return null; const n = parseInt(s, 10); return isNaN(n) ? null : n; };
+  function moneyInput(p, key, cls) {
+    const i = $('input', 'pj-money ' + (cls || '')); i.inputMode = 'numeric'; i.value = money(p[key]); i.placeholder = '0';
+    const tone = () => { if (key === 'lai') { i.classList.toggle('pos', p.lai > 0); i.classList.toggle('neg', p.lai < 0); } };
+    tone();
+    i.addEventListener('input', () => { p[key] = parseMoney(i.value); saveSoon(); tone(); updTotal(); });
+    i.addEventListener('blur', () => { i.value = money(p[key]); save(); });
+    i.addEventListener('focus', () => { i.select(); });
+    return i;
+  }
+  let updTotal = () => {};
   function board(W) {
     const top = $('div', 'pj-top'), add = $('button', 'pj-btn', '＋ Dự án mới'); add.addEventListener('click', newProject);
     top.append($('h1', '', 'Dự án đang làm'), add); W.append(top);
-    const B = $('div', 'pj-board');
-    for (const [k, lb, color] of COLS) {
-      const col = $('div', 'pj-col'), L = data.projects.filter(p => p.col === k);
-      const h = $('div', 'pj-colh'), dot = $('i'); dot.style.background = color; h.append(dot, lb, $('b', '', L.length));
-      const cs = $('div', 'pj-cards'); L.forEach(p => cs.append(card(p)));
-      if (!L.length) cs.append($('div', 'pj-empty', k === 'doing' ? 'Bấm ＋ Dự án mới để bắt đầu' : 'Kéo thẻ dự án vào đây'));
-      col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('over'); });
-      col.addEventListener('dragleave', () => col.classList.remove('over'));
-      col.addEventListener('drop', e => { e.preventDefault(); col.classList.remove('over'); const p = data.projects.find(x => x.id === e.dataTransfer.getData('text/plain')); if (p && p.col !== k) { p.col = k; save(); render(true); } });
-      col.append(h, cs); B.append(col);
+    const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh sách dự án');
+    const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
+    ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ'].forEach(t => hd.append($('div', 'c', t)));
+    T.append(hd);
+    data.projects.forEach((p, i) => {
+      const r = $('div', 'pj-lr st-' + p.col); r.setAttribute('role', 'row');
+      const no = $('div', 'c c-no', String(i + 1));
+      const nmc = $('div', 'c c-nm'), nb = $('button', 'pj-open', p.name || '(chưa đặt tên)'); nb.title = 'Mở dự án';
+      nb.addEventListener('click', () => { openId = p.id; openFolder = (p.folders[0] || {}).id || null; render(true); window.scrollTo({ top: 0 }); });
+      const nx = nextOf(p); nmc.append(nb); if (nx && p.col !== 'done') nmc.append($('small', 'pj-nx', '→ ' + nx));
+      const date = k => { const c = $('div', 'c'), d = $('input', 'pj-date'); d.type = 'date'; d.value = p[k] || ''; d.addEventListener('change', () => { p[k] = d.value; save(); render(true); }); c.append(d); return c; };
+      const ds = date('start'), de = date('due');
+      if (p.due && p.col !== 'done') { const t = today(); if (p.due < t) de.classList.add('late'); else if (p.due <= ymd(Date.now() + 3 * 864e5)) de.classList.add('soon'); }
+      const v = pct(p), pc = $('div', 'c c-pg'), bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = v + '%'; bar.append(bi); pc.append(bar, $('b', '', v + '%'));
+      const sc = $('div', 'c'), sel = $('select', 'pj-st'); for (const [k, lb] of COLS) { const o = $('option', '', lb); o.value = k; o.selected = k === p.col; sel.append(o); }
+      sel.addEventListener('change', () => { p.col = sel.value; save(); render(true); }); sc.append(sel);
+      const vc = $('div', 'c'), lc = $('div', 'c'); vc.append(moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai'));
+      r.append(no, nmc, ds, de, pc, sc, vc, lc); T.append(r);
+    });
+    if (!data.projects.length) T.append($('div', 'pj-empty', 'Bấm ＋ Dự án mới để bắt đầu'));
+    else {
+      const ft = $('div', 'pj-lr ft'), tv = $('div', 'c c-sum'), tl = $('div', 'c c-sum');
+      ft.append($('div', 'c'), $('div', 'c', 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl);
+      updTotal = () => {
+        const sv = data.projects.reduce((a, p) => a + (Number(p.von) || 0), 0), sl = data.projects.reduce((a, p) => a + (Number(p.lai) || 0), 0);
+        tv.textContent = money(sv) || '0'; tl.textContent = (sl > 0 ? '+' : '') + (money(sl) || '0'); tl.className = 'c c-sum' + (sl > 0 ? ' pos' : sl < 0 ? ' neg' : '');
+      };
+      updTotal(); T.append(ft);
     }
-    W.append(B);
+    W.append(T, $('div', 'pj-hint', 'Bấm tên dự án để mở · sửa ngày, trạng thái, vốn, lãi/lỗ ngay trong bảng · tự lưu · lỗ ghi số âm (vd -500000)'));
   }
 
   // Lưu ý: chữ thường + link tự nhận (http…, www…, tên miền…/…) → thẻ a bấm được
