@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.37** (số kỹ thuật 1.10.293)
+Cập nhật: 17/10/2026 · **Bản V1.38** (số kỹ thuật 1.10.294)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.38 (1.10.294) | Thẻ **📊 Tổng quan** đứng đầu hàng mảng (`data.cur = '$all'`, hàm `overview`): chọn kỳ Tuần / Tháng / Năm / Tất cả + ‹ › lùi tới, chọn VND / USDT; 4 ô Tổng thu · Tổng chi · Lợi nhuận · Tỷ suất lãi (lãi/chi); biểu đồ SVG cột Thu (xanh #2F6FD6) – Chi (cam #C8641E, cặp màu đã chạy kiểm tra mù màu) theo ngày / tháng + đường lợi nhuận cộng dồn (không vẽ phần ngày chưa tới), rê chuột hiện số; Lợi nhuận theo mảng (thanh ngang); Top 3 dự án lời / lỗ (bấm mở mục 0 của dự án); 5 khoản chi lớn nhất; Sắp tới hạn 7 ngày (dự án trễ / sắp hết hạn + lịch ⏰). Số theo kỳ lấy từ khoản thu / chi có ngày ở mục 0; kỳ Tất cả cộng thêm vốn / lãi gõ tay. |
 | V1.37 (1.10.293) | Mỗi dự án 1 đơn vị tiền **VND hoặc USDT** (`p.cur`; mảng mẫu Trade / Airdrop mặc định USDT). Nhãn VND / USDT cạnh ô Vốn đầu tư và cạnh tiêu đề mục 0 – bấm để đổi. VND hiện `150.000 ₫`, USDT hiện `$1,250.5` (2 số lẻ, gõ dấu chấm). Dòng Tổng và thẻ mảng cộng RIÊNG từng loại (mỗi loại 1 dòng), không quy đổi. Hàm `curOf`, `fmtC`, `parseC`, `sumC`, `fmtSum`. |
 | V1.36 (1.10.292) | Mảng KHÔNG còn cố định: mặc định chỉ có "＋ Thêm mảng". Bấm vào → hộp chọn 4 MẪU (🏠 Xây dựng nhà phố · 🐹 APP HaoHao · 📈 Trade · 🪂 Airdrop) hoặc tự đặt tên. Dự án mới trong mảng mẫu tự có thư mục mẫu: nhà phố = Báo giá, Thiết kế, Xin phép, Thi công, Bàn giao; APP = Tính năng, Lỗi cần sửa, Phát hành; Trade = Kế hoạch, Nhật ký lệnh, Bài học; Airdrop = Nhiệm vụ, Ví & tài khoản, Claim (`AREAS0[].folders`, `area.tpl`). Mảng nào cũng đổi tên / xoá được (xoá khi trống). Máy đã có mảng thì giữ nguyên; dự án cũ chưa có mảng thì tự tạo mảng mẫu phù hợp. |
 | V1.35 (1.10.291) | 📁 mở thư mục trong tab Chrome → góc phải trên có thanh "🐹 HaoHao · việc · dự án" + nút **💾 Lưu thư mục này**: đi vào thư mục con nào rồi bấm Lưu thì đường dẫn đó ghi vào cột Thư mục của việc, lần sau 📁 mở thẳng vào đây. File mới `pjdir.js` (content script chỉ chạy trên `file:///*`, trang danh sách thư mục); proj.js ghi `pjDirPick = {p,f,r,at}` lúc mở (nhớ 2 giờ). |
