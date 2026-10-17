@@ -22,6 +22,20 @@
   const nextOf = p => { for (const f of p.folders) { const r = (f.rows || []).find(x => !x.done && real(x)); if (r) return r.t.trim() + ' · ' + f.name; } return ''; };
   const proj = () => data.projects.find(p => p.id === openId);
   const editing = () => { const a = document.activeElement; return a && root.contains(a) && (a.isContentEditable || (/INPUT|TEXTAREA/.test(a.tagName) && !/checkbox|date/.test(a.type || ''))); };
+  // V1.31: 🔔 đưa việc trong dự án sang Todo của HaoHao (chrome.storage.local.todos) để HaoHao nhắc; tick 2 bên tự khớp
+  let todos = [];
+  const saveTodos = () => chrome.storage.local.set({ todos }).catch(() => {});
+  const todoOf = r => r && r.todoId ? todos.find(t => t.id === r.todoId) : null;
+  function todoSync() {   // Todo HaoHao → dự án: tick / xoá bên HaoHao thì dự án theo
+    let ch = false;
+    for (const p of data.projects) for (const f of p.folders || []) for (const r of f.rows || []) {
+      if (!r.todoId) continue;
+      const t = todos.find(x => x.id === r.todoId);
+      if (!t) { delete r.todoId; ch = true; continue; }
+      if (!!t.done !== !!r.done) { r.done = !!t.done; ch = true; }
+    }
+    return ch;
+  }
   const newFolder = n => ({ id: uid(), name: n, rows: [], v28: 1, v29: 1 });
   const escH = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -338,7 +352,7 @@
       // V1.28: danh sách việc đánh số · Link · Thư mục (biểu tượng gọn, bấm là mở)
       const sheet = $('div', 'pj-sheet'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', 'Việc cần làm ' + f.name);
       const hd = $('div', 'pj-r hd'); hd.setAttribute('role', 'row');
-      hd.append($('div', 'c c-no', 'STT'), $('div', 'c c-k', '✓'), $('div', 'c', 'Việc cần làm'), $('div', 'c c-ln', 'Link'), $('div', 'c c-ln', 'Thư mục'), $('div', 'c c-x', '')); sheet.append(hd);
+      hd.append($('div', 'c c-no', 'STT'), $('div', 'c c-k', '✓'), $('div', 'c', 'Việc cần làm'), $('div', 'c c-ln', 'Link'), $('div', 'c c-ln', 'Thư mục'), $('div', 'c c-bell', 'Nhắc'), $('div', 'c c-x', '')); sheet.append(hd);
       const renum = () => sheet.querySelectorAll('.pj-r:not(.hd)').forEach((tr, i) => { const c = tr.querySelector('.c-no'); if (c) c.textContent = tr.classList.contains('blank') ? '' : i + 1; });
       // ô Link / Thư mục: có giá trị → biểu tượng bấm mở (✏️ sửa khi rê chuột); trống → ＋ để dán
       const chipCell = (r, key, blankRow) => {
@@ -369,17 +383,26 @@
         const ck = $('div', 'c c-k'), cb = $('input'); cb.type = 'checkbox'; cb.checked = !!r.done; cb.setAttribute('aria-label', 'Xong'); cb.disabled = blank; ck.append(cb);
         const ct = $('div', 'c'), ti = $('textarea', 'c-t'); ti.rows = 1; ti.value = r.t || ''; ti.placeholder = blank ? 'Gõ việc mới…' : ''; ti.setAttribute('aria-label', 'Việc cần làm'); ct.append(ti);
         const lk = chipCell(r, 'link', () => blank), dr = chipCell(r, 'dir', () => blank);
+        const bc = $('div', 'c c-bell'), bell = $('button', 'pj-bell'); bell.hidden = blank;
+        const bellSt = () => { const on = !!todoOf(r); bell.classList.toggle('on', on); bell.textContent = '🔔'; bell.title = on ? 'Đang ở Todo HaoHao – bấm để bỏ' : 'Đưa sang Todo HaoHao để nhắc'; bell.setAttribute('aria-pressed', on); };
+        bell.addEventListener('click', () => {
+          const t = todoOf(r);
+          if (t) { todos = todos.filter(x => x !== t); delete r.todoId; toast('Đã bỏ khỏi Todo HaoHao'); }
+          else { if (!(r.t || '').trim()) return; const id = 't' + Date.now().toString(36); todos.push({ id, text: r.t.trim() + ' · ' + p.name, done: !!r.done, due: '', notified: false, pj: p.id }); r.todoId = id; toast('🔔 Đã đưa sang Todo HaoHao – bấm 🔔 bên đó để hẹn giờ nhắc'); }
+          saveTodos(); save(); bellSt();
+        });
+        bellSt(); bc.append(bell);
         const cx = $('div', 'c c-x'), x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá việc'); x.hidden = blank; cx.append(x);
-        tr.append(no, ck, ct, lk, dr, cx); tr._r = r;
+        tr.append(no, ck, ct, lk, dr, bc, cx); tr._r = r;
         // V1.29: bấm / gõ vào việc nào thì note bên dưới chuyển sang việc đó
         tr.addEventListener('focusin', () => { if (!blank) pick(r); });
         no.addEventListener('click', () => { if (!blank) { pick(r); ti.focus(); } });
-        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; ti.placeholder = ''; lk._show(); dr._show(); sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum(); };
+        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; bell.hidden = false; ti.placeholder = ''; lk._show(); dr._show(); sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum(); };
         ti.addEventListener('input', () => { grow(ti); const was = blank; if (ti.value.trim()) make(); r.t = ti.value; saveSoon(); updBar(); if (was && !blank) pick(r); else if (selRow === r.id) syncTitle(); });
-        ti.addEventListener('blur', () => { if (!blank) save(); });
+        ti.addEventListener('blur', () => { if (!blank) { const t = todoOf(r); if (t && r.t.trim()) { t.text = r.t.trim() + ' · ' + p.name; saveTodos(); } save(); } });
         ti.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const nx = tr.nextElementSibling; (nx ? nx.querySelector('.c-t') : ti).focus(); } });
-        cb.addEventListener('change', () => { r.done = cb.checked; tr.classList.toggle('done', r.done); save(); updBar(); });
-        x.addEventListener('click', () => { f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); renum(); if (selRow === r.id) pick(f.rows.find(real) || null); });
+        cb.addEventListener('change', () => { r.done = cb.checked; tr.classList.toggle('done', r.done); const t = todoOf(r); if (t) { t.done = r.done; saveTodos(); } save(); updBar(); });
+        x.addEventListener('click', () => { const t = todoOf(r); if (t) { todos = todos.filter(y => y !== t); saveTodos(); } f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); renum(); if (selRow === r.id) pick(f.rows.find(real) || null); });
         setTimeout(() => grow(ti), 0);
         return tr;
       };
@@ -454,14 +477,17 @@
     if (p) detail(W, p); else { openId = null; board(W); }
     root.replaceChildren(W);
   }
-  chrome.storage.local.get('projBoard').then(({ projBoard }) => {
+  chrome.storage.local.get(['projBoard', 'todos']).then(({ projBoard, todos: td }) => {
     if (projBoard && Array.isArray(projBoard.projects)) data = projBoard;
-    if (migrate()) save();
+    todos = Array.isArray(td) ? td : [];
+    if (migrate() | todoSync()) save();
     ready = true; render(true);
   }).catch(() => { ready = true; render(true); });
   let pend = null;
   chrome.storage.onChanged.addListener((ch, area) => {
-    if (area !== 'local' || !ch.projBoard || !ch.projBoard.newValue) return;
+    if (area !== 'local') return;
+    if (ch.todos) { todos = Array.isArray(ch.todos.newValue) ? ch.todos.newValue : []; if (ready && todoSync()) { save(); if (!editing()) render(true); } else if (ready && !editing()) render(true); }
+    if (!ch.projBoard || !ch.projBoard.newValue) return;
     const v = ch.projBoard.newValue, js = JSON.stringify(v);
     if (js === lastSaved || js === JSON.stringify(data)) return;   // của chính trang này
     if (editing()) { pend = v; return; }                            // tab khác vừa sửa: đợi gõ xong mới nạp

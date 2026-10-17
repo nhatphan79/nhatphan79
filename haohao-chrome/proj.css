@@ -234,3 +234,13 @@
 .pj-calc::after { content: ' ↗'; font-size: 11px; color: var(--pj-soft); }
 @media (max-width: 1100px) { .pj-books { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .pj-mcards { grid-template-columns: 1fr; } }
+/* V1.31: cột 🔔 Nhắc – đưa việc sang Todo HaoHao */
+.pj-r { grid-template-columns: 46px 38px minmax(200px, 1fr) 64px 84px 56px 34px; }
+.pj-r .c-bell { justify-content: center; align-items: center; padding: 4px; }
+.pj-bell { all: unset; cursor: pointer; font-size: 15px; line-height: 1; padding: 5px 6px; border-radius: 8px; filter: grayscale(1); opacity: .35; transition: opacity .15s, filter .15s, background .15s; }
+.pj-r:hover .pj-bell { opacity: .7; }
+.pj-bell:hover { background: #FFF4D6; opacity: 1; filter: none; }
+.pj-bell.on { filter: none; opacity: 1; background: #FFF4D6; }
+.pj-bell:focus-visible { outline: 2px solid var(--pj-acc); }
+.pj-bell[hidden] { display: none !important; }
+@media (max-width: 700px) { .pj-r { grid-template-columns: 30px 30px 1fr 40px 40px 40px 26px; } }
