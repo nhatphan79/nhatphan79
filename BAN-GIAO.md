@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.46** (số kỹ thuật 1.10.302)
+Cập nhật: 18/10/2026 · **Bản V1.47** (số kỹ thuật 1.10.303)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.47 (1.10.303) | Nút 📤 chỉ hiện khi app Transfer có `gui` (ẩn hẳn với app cũ). ⚠️ Exe v46 (pkg node22) KHÔNG chạy trên máy anh Nhật: thoát ngay, mã lỗi 4, không in gì – kể cả bản console, kể cả ở đường dẫn không dấu. Máy anh đã trả về v33. Việc tiếp: thử đóng gói node18/node20 (hello-world trước) để tìm bản chạy được. |
 | V1.46 (1.10.302) | Bảng Transfer trong HaoHao có nút **📤 Gửi ảnh/video sang iPhone** (mở `/pc#gui`; mờ nếu app Transfer cũ chưa có `gui`). Máy anh Nhật đã thay `HaoHao-Transfer.exe` (cả 2 chỗ) bằng bản v46 có Gửi sang iPhone; bản v33 lưu ở `HaoHao-Transfer.v33b.exe`, bản gốc ở `HaoHao-Transfer.v32.exe`. Chưa cập nhật zip cho khách. |
 | V1.45 (1.10.301) | Bỏ dòng tiêu đề (biểu tượng + tên) ở đầu bảng mỗi mảng và ở Tổng quan – thẻ mảng phía trên đã ghi; còn lại nút Đổi tên / Xoá mảng / ＋ Dự án mới và thanh chọn kỳ nằm bên phải. |
 | V1.44 (1.10.300) | Trang Dự án: **1 kiểu chữ** (Segoe UI cho cả ô nhập, nút, chọn – trước đây ô tên dự án bị chữ khác) + **thang cỡ chữ đồng bộ** (tiêu đề 20 · tên 18 · số lớn 18 · chữ thường 13.5 · nhãn 11 viết hoa), hàng bảng cao đều (42 / 36px). **Gói trọn 1 màn hình, không kéo trang**: `.proj` cao = màn hình − chân trang, bảng dự án / 2 cột chi tiết / các khung dưới của Tổng quan tự cuộn bên trong, dòng tiêu đề bảng đứng yên; biểu đồ tự chọn chiều cao theo màn hình; lối tắt nhỏ gọn. Màn hình thấp hơn 640px thì cho cuộn trang như cũ. Chỉ sửa CSS + chiều cao biểu đồ. |
