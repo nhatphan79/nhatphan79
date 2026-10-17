@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.59** (số kỹ thuật 1.10.315)
+Cập nhật: 18/10/2026 · **Bản V1.60** (số kỹ thuật 1.10.316)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.60 (1.10.316) | Trang Giới thiệu cập nhật: lời giới thiệu có Dự án + Transfer; 12 ô tính năng (thêm Dự án, Transfer, Thị trường, Giọng nói); quyền riêng tư nói đúng thực tế (thống kê ẩn danh – tắt được; bỏ câu "không có máy chủ riêng"); bảng dữ liệu thêm Máy chủ HaoHao + App Transfer; bảng quyền thêm Vị trí (lấy theo mạng nếu không có quyền) + Thay trang Tab mới. Đã phát hành cho khách. ⚠ Lại lỡ chạy chép song song 1 lần – phát hiện nhờ so md5, đã chép lại. |
 | V1.59 (1.10.315) | Rà quyền: bỏ host không dùng ở mọi bản – cf.shopee.vn, 127.0.0.1:47321 (app 3D chưa có), api.accesstrade.vn + 3 RioHub (chỉ dùng khi KHÔNG có HT.SPY_API – nay soi luôn qua máy chủ). Bản Store: thời tiết Tab mới lấy vị trí theo mạng (không quyền geolocation). Đã phát hành cho khách. Muốn dùng lại app 3D / soi bằng khoá riêng thì thêm lại host. |
 | V1.58 (1.10.314) | Tiện ích: mô tả Transfer 2 chiều ("Chuyển ảnh, video iPhone ⇄ máy tính – kéo thả vào HaoHao…"); Chặn quảng cáo ở Tab mới hiện "Tab mới" thay mã tiện ích; nút Crypto 🪙 thay ₿. Đã phát hành cho khách (chữ ký OK). |
 | V1.57 (1.10.313) | Rà toàn bộ: máy anh = GitHub (46 file khớp md5). Sửa sót: `tfgui.html/js` trên máy anh còn bản V1.48 (lần V1.49/V1.50 chép song song với lệnh sửa) → đã chép lại. PHÁT HÀNH lại cho khách V1.57 (chữ ký OK, thử nạp OK). Xưởng code `haohao-workbench.html` cập nhật đủ file. `HaoHao-Store.zip` đóng lại theo V1.57. |
