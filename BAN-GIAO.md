@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| Transfer v51 | Trang iPhone (Gửi lên / Nhận về) đổi giao diện đồng bộ HaoHao: linh vật, nền kem, viền xanh đậm, bóng lệch vàng cam, thanh chuyển ⬆️/⬇️. Exe `HaoHao-Transfer-moi.exe` (md5 9c2624e9…, no-bytecode, subsystem 2) đặt trong thư mục để anh Nhật tự thay. |
 | V1.50 (1.10.306) | Kéo thả / chọn file là THÊM vào danh sách gửi iPhone (không xoá file cũ, tối đa 30); ✕ Xoá danh sách để làm lại. |
 | V1.49 (1.10.305) | Kéo thả ảnh/video vào linh vật hoặc bảng HaoHao (bất kỳ trang nào) → tự mở Transfer chế độ 📤 và gửi luôn (file chuyển vào iframe `tfgui` bằng postMessage kèm mã `TFK`). |
 | V1.48 (1.10.304) | Bảng Transfer có thanh trượt **📥 iPhone → Máy tính / 📤 Máy tính → iPhone** (chỉ hiện khi app có `gui`). Chiều gửi là iframe `tfgui.html`+`tfgui.js` (web_accessible) gọi thẳng 127.0.0.1:8686 – chọn/kéo thả file, thanh %, QR ngay trong HaoHao, không mở trang /pc. Exe `HaoHao-Transfer-moi.exe` (no-bytecode) anh Nhật đã chạy được. |
