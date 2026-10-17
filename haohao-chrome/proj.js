@@ -116,7 +116,14 @@
     return i;
   }
   let updTotal = () => {};
-  const sum = (L, k) => L.reduce((a, p) => a + (Number(p[k]) || 0), 0);
+  // V1.30: mục 0. Vốn đầu tư – sổ Nguồn thu / Nguồn chi của dự án (p.money). Có số liệu thì bảng tổng tự lấy:
+  //        Vốn đầu tư = tổng chi, Lãi/lỗ = tổng thu − tổng chi.
+  const MONEY = '$money';
+  const tot = L => (L || []).reduce((a, x) => a + (Number(x.v) || 0), 0);
+  const ledger = p => p.money && ((p.money.thu || []).some(x => x.v) || (p.money.chi || []).some(x => x.v));
+  const vonOf = p => ledger(p) ? tot(p.money.chi) : (Number(p.von) || 0);
+  const laiOf = p => ledger(p) ? tot(p.money.thu) - tot(p.money.chi) : (Number(p.lai) || 0);
+  const sum = (L, k) => L.reduce((a, p) => a + (k === 'von' ? vonOf(p) : k === 'lai' ? laiOf(p) : (Number(p[k]) || 0)), 0);
   function areaBar(W) {
     const bar = $('div', 'pj-areas'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', 'Các mảng dự án');
     areas().forEach(a => {
@@ -175,7 +182,13 @@
       const v = pct(p), pc = $('div', 'c c-pg'), bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = v + '%'; bar.append(bi); pc.append(bar, $('b', '', v + '%'));
       const sc = $('div', 'c'), sel = $('select', 'pj-st'); for (const [k, lb] of COLS) { const o = $('option', '', lb); o.value = k; o.selected = k === p.col; sel.append(o); }
       sel.addEventListener('change', () => { p.col = sel.value; save(); render(true); }); sc.append(sel);
-      const vc = $('div', 'c'), lc = $('div', 'c'); vc.append(moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai'));
+      const vc = $('div', 'c'), lc = $('div', 'c');
+      if (ledger(p)) {   // V1.30: lấy từ mục 0. Vốn đầu tư
+        const go = () => { openId = p.id; openFolder = MONEY; render(true); window.scrollTo({ top: 0 }); };
+        const vb = $('button', 'pj-money pj-calc', money(vonOf(p)) || '0'), l = laiOf(p), lb = $('button', 'pj-money pj-calc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), (l > 0 ? '+' : '') + (money(l) || '0'));
+        vb.title = lb.title = 'Tính từ mục 0. Vốn đầu tư – bấm để xem thu / chi'; vb.addEventListener('click', go); lb.addEventListener('click', go);
+        vc.append(vb); lc.append(lb);
+      } else { vc.append(moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai')); }
       r.append(no, nmc, ds, de, pc, sc, vc, lc); T.append(r);
     });
     if (!PL.length) T.append($('div', 'pj-empty', 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
@@ -205,6 +218,52 @@
   const toast = t => { let el = root.querySelector('.pj-toast'); if (!el) { el = $('div', 'pj-toast'); el.setAttribute('role', 'status'); root.append(el); } el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 3200); };
   const grow = ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
 
+  // V1.30: 💰 mục 0. Vốn đầu tư – 3 ô tổng (Thu · Chi = vốn · Lãi/lỗ) + 2 bảng Nguồn thu / Nguồn chi (Ngày · Nội dung · Số tiền)
+  function moneyView(M, p) {
+    if (!p.money) p.money = { thu: [], chi: [] };
+    const fh = $('div', 'pj-fh'); fh.append('💰', $('b', 'pj-f0t', 'Vốn đầu tư')); M.append(fh);
+    const cards = $('div', 'pj-mcards'), cT = $('div', 'pj-mc thu'), cC = $('div', 'pj-mc chi'), cL = $('div', 'pj-mc lai');
+    cards.append(cT, cC, cL); M.append(cards);
+    const upd = () => {
+      const t = tot(p.money.thu), c = tot(p.money.chi), l = t - c;
+      cT.replaceChildren($('span', '', 'Tổng thu'), $('b', '', money(t) || '0'));
+      cC.replaceChildren($('span', '', 'Tổng chi · vốn đầu tư'), $('b', '', money(c) || '0'));
+      cL.replaceChildren($('span', '', l < 0 ? 'Lỗ' : 'Lãi'), $('b', '', (l > 0 ? '+' : '') + (money(l) || '0'))); cL.className = 'pj-mc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : '');
+      const sm = root.querySelector('.pj-f0 small'); if (sm) { sm.textContent = ledger(p) ? (l > 0 ? '+' : '') + money(l) : ''; sm.className = 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); }
+    };
+    const book = (key, title, ic) => {
+      const L = p.money[key] = p.money[key] || [];
+      const box = $('div', 'pj-book ' + key), h = $('div', 'pj-bh'), st = $('b', 'pj-bs');
+      h.append($('span', '', ic + ' ' + title), st); box.append(h);
+      const sheet = $('div', 'pj-sheet pj-ms'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', title);
+      const hd = $('div', 'pj-mr hd'); ['STT', 'Ngày', 'Nội dung', 'Số tiền', ''].forEach(t => hd.append($('div', 'c', t))); sheet.append(hd);
+      const subt = () => { st.textContent = money(tot(L)) || '0'; upd(); };
+      const renum = () => sheet.querySelectorAll('.pj-mr:not(.hd)').forEach((r, i) => { r.firstChild.textContent = r.classList.contains('blank') ? '' : i + 1; });
+      const rowEl = (x, blank) => {
+        const r = $('div', 'pj-mr' + (blank ? ' blank' : '')); r.setAttribute('role', 'row');
+        const no = $('div', 'c c-no'), dc = $('div', 'c'), d = $('input', 'pj-date'); d.type = 'date'; d.value = x.d || ''; dc.append(d);
+        const tc = $('div', 'c'), t = $('input', 'pj-mt'); t.value = x.t || ''; t.placeholder = blank ? (key === 'thu' ? 'Thêm khoản thu…' : 'Thêm khoản chi…') : ''; t.setAttribute('aria-label', 'Nội dung'); tc.append(t);
+        const vc = $('div', 'c'), v = $('input', 'pj-money'); v.inputMode = 'numeric'; v.value = money(x.v); v.placeholder = '0'; v.setAttribute('aria-label', 'Số tiền'); vc.append(v);
+        const xc = $('div', 'c c-x'), del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá dòng'); del.hidden = blank; xc.append(del);
+        r.append(no, dc, tc, vc, xc);
+        const make = () => { if (!blank) return; blank = false; r.classList.remove('blank'); if (!x.d) { x.d = today(); d.value = x.d; } L.push(x); del.hidden = false; t.placeholder = ''; sheet.append(rowEl({ id: uid(), d: '', t: '', v: null }, true)); renum(); };
+        t.addEventListener('input', () => { if (t.value.trim()) make(); x.t = t.value; saveSoon(); });
+        v.addEventListener('input', () => { const n = parseMoney(v.value); if (n != null) make(); x.v = n == null ? null : Math.abs(n); saveSoon(); subt(); });
+        v.addEventListener('focus', () => v.select()); v.addEventListener('blur', () => { v.value = money(x.v); if (!blank) save(); });
+        t.addEventListener('blur', () => { if (!blank) save(); }); t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); v.focus(); } });
+        v.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const nx = r.nextElementSibling; if (nx) nx.querySelector('.pj-mt').focus(); } });
+        d.addEventListener('change', () => { x.d = d.value; if (!blank) save(); });
+        del.addEventListener('click', () => { const k = L.indexOf(x); if (k >= 0) L.splice(k, 1); r.remove(); save(); subt(); renum(); });
+        return r;
+      };
+      L.forEach(x => sheet.append(rowEl(x, false))); sheet.append(rowEl({ id: uid(), d: '', t: '', v: null }, true)); renum();
+      box.append(sheet); subt(); return box;
+    };
+    const two = $('div', 'pj-books'); two.append(book('thu', 'Nguồn thu', '⬇️'), book('chi', 'Nguồn chi', '⬆️')); M.append(two);
+    M.append($('div', 'pj-hint', 'Lãi / lỗ = tổng thu − tổng chi · Vốn đầu tư = tổng chi · số liệu tự đưa ra bảng dự án bên ngoài · tự lưu'));
+    upd();
+  }
+
   function detail(W, p) {
     const top = $('div', 'pj-top'), back = $('button', 'pj-btn ghost', '← Về bảng dự án');
     back.addEventListener('click', () => { openId = null; render(true); });
@@ -226,6 +285,12 @@
     };
     S.append(nm);   // V1.24: bỏ chữ "Thư mục con"
     const FL = $('div', 'pj-fl');
+    { // V1.30: mục 0 cố định ở mọi dự án
+      const it = $('div', 'pj-fi pj-f0' + (openFolder === MONEY ? ' on' : '')), b = $('button', openFolder === MONEY ? 'on' : '');
+      const l = laiOf(p); b.append($('span', 'pj-no', '0.'), 'Vốn đầu tư', $('small', 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), ledger(p) ? (l > 0 ? '+' : '') + money(l) : ''));
+      b.addEventListener('click', () => { if (openFolder !== MONEY) { openFolder = MONEY; render(true); } });
+      it.append(b); FL.append(it);
+    }
     // V1.23: mỗi thư mục có ✏️ đổi tên (hoặc bấm đúp) và 🗑 xoá ngay trên dòng
     const delFolder = f => { p.folders = p.folders.filter(x => x !== f); if (openFolder === f.id) openFolder = (p.folders[0] || {}).id || null; save(); render(true); };
     p.folders.forEach((f, i) => {
@@ -259,7 +324,8 @@
     af.append(ai, ab); S.append(FL, af);
 
     const f = p.folders.find(x => x.id === openFolder);
-    if (!f) M.append($('div', 'pj-empty', 'Gõ tên thư mục con ở cột bên trái rồi Enter để bắt đầu.'));
+    if (openFolder === MONEY) moneyView(M, p);
+    else if (!f) M.append($('div', 'pj-empty', 'Gõ tên thư mục con ở cột bên trái rồi Enter để bắt đầu.'));
     else {
       if (!Array.isArray(f.rows)) f.rows = [];
       const fh = $('div', 'pj-fh'), fn = $('input'); fn.value = f.name; fn.setAttribute('aria-label', 'Tên thư mục con');

@@ -206,3 +206,31 @@
 .pj-ntitle { all: unset; flex: 1; min-width: 0; font-size: 17px; font-weight: 800; color: var(--pj-ink); padding: 3px 6px; border-radius: 7px; }
 .pj-ntitle::placeholder { color: #A9AFBF; } .pj-ntitle:focus { background: rgba(255,255,255,.7); box-shadow: inset 0 0 0 1.5px var(--pj-line); }
 .pj-nempty { margin-top: 16px; border: 1px dashed var(--pj-line); border-radius: 12px; padding: 28px; }
+/* V1.30: mục 0. Vốn đầu tư – thu / chi / lãi lỗ */
+.pj-f0 > button { font-weight: 700; }
+.pj-fl .pj-f0 { border-bottom: 1px dashed var(--pj-line); border-radius: 9px 9px 0 0; margin-bottom: 4px; padding-bottom: 2px; }
+.pj-l0 { font-weight: 800; font-variant-numeric: tabular-nums; } .pj-l0.pos { color: var(--pj-ok) !important; } .pj-l0.neg { color: #C4401F !important; }
+.pj-f0t { font-size: 19px; font-weight: 800; color: var(--pj-ink); }
+.pj-mcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0 16px; }
+.pj-mc { border: 1px solid var(--pj-line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; background: #fff; }
+.pj-mc span { font-size: 12px; font-weight: 700; color: var(--pj-soft); text-transform: uppercase; letter-spacing: .04em; }
+.pj-mc b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--pj-ink); }
+.pj-mc.thu b { color: #1A7F4B; } .pj-mc.chi b { color: #B4541A; }
+.pj-mc.lai.pos { border-color: #BFE3CC; background: #F3FBF6; } .pj-mc.lai.pos b { color: var(--pj-ok); }
+.pj-mc.lai.neg { border-color: #F3C9BE; background: #FDF4F1; } .pj-mc.lai.neg b { color: #C4401F; }
+.pj-books { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.pj-bh { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 800; margin: 0 2px 8px; color: var(--pj-ink); }
+.pj-bh .pj-bs { font-variant-numeric: tabular-nums; } .pj-book.thu .pj-bs { color: #1A7F4B; } .pj-book.chi .pj-bs { color: #B4541A; }
+.pj-mr { display: grid; grid-template-columns: 34px 108px minmax(130px, 1fr) 112px 26px; border-top: 1px solid #EEF0F4; align-items: center; }
+.pj-mr:first-child { border-top: 0; } .pj-mr .c { padding: 4px 6px; border-left: 1px solid #EEF0F4; min-width: 0; display: flex; align-items: center; }
+.pj-mr .c:first-child { border-left: 0; } .pj-mr.hd { background: #F7F8FA; } .pj-mr.hd .c { font-size: 11.5px; font-weight: 800; color: var(--pj-soft); text-transform: uppercase; letter-spacing: .04em; padding: 7px 6px; white-space: nowrap; }
+.pj-mr .c-no { justify-content: center; color: var(--pj-soft); font-weight: 700; font-size: 13px; }
+.pj-mr .pj-date { padding: 5px 0; font-size: 12px; } .pj-mr .pj-money { padding: 6px 4px; }
+.pj-mt { all: unset; box-sizing: border-box; width: 100%; font: inherit; font-size: 14px; color: var(--pj-ink); padding: 6px 4px; border-radius: 7px; }
+.pj-mt:focus { background: #FFFDF5; box-shadow: inset 0 0 0 1.5px var(--pj-acc); } .pj-mt::placeholder { color: #A9AFBF; }
+.pj-mr .c-x { justify-content: center; } .pj-mr .c-x .pj-x { opacity: 0; padding: 3px 5px; } .pj-mr:hover .c-x .pj-x { opacity: 1; }
+.pj-mr:not(.hd):hover { background: #FAFBFC; } .pj-mr.blank .pj-money { opacity: .6; }
+.pj-calc { cursor: pointer; text-align: right; } .pj-calc:hover { background: #F1F3F7; }
+.pj-calc::after { content: ' ↗'; font-size: 11px; color: var(--pj-soft); }
+@media (max-width: 1100px) { .pj-books { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .pj-mcards { grid-template-columns: 1fr; } }

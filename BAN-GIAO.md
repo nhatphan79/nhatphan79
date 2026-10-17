@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.29** (số kỹ thuật 1.10.285)
+Cập nhật: 17/10/2026 · **Bản V1.30** (số kỹ thuật 1.10.286)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.30 (1.10.286) | Mục **0. Vốn đầu tư** cố định ở đầu mọi dự án (`openFolder = '$money'`, không xoá/đổi tên): 3 ô Tổng thu · Tổng chi (= vốn đầu tư) · Lãi/Lỗ + 2 bảng Nguồn thu / Nguồn chi (STT · Ngày · Nội dung · Số tiền; dòng cuối trống gõ là thêm, ngày tự điền hôm nay). Dữ liệu `p.money = {thu:[{id,d,t,v}], chi:[…]}`. Có số liệu thì bảng dự án bên ngoài tự lấy: Vốn = tổng chi, Lãi/lỗ = thu − chi (ô thành nút ↗ bấm mở mục 0; dòng Tổng + thẻ mảng cũng tính theo). Chưa có số liệu thì vẫn gõ tay như cũ (`vonOf`, `laiOf`). |
 | V1.29 (1.10.285) | Note làm việc theo TỪNG VIỆC: bấm số thứ tự hoặc bấm vào việc nào thì note bên dưới chuyển sang việc đó (dòng đang chọn tô xanh). Đầu note: ô số + tiêu đề = tên việc (sửa tiêu đề thì bảng đổi theo, và ngược lại). Nội dung `row.html`, màu `row.color`. Note chung của thư mục (V1.28) tự chuyển vào việc đầu tiên (`folder.v29`). Cột Thư mục rộng hơn, tiêu đề cột không xuống dòng. |
 | V1.28 (1.10.284) | Chi tiết dự án: bảng = danh sách việc đánh số (STT · ✓ · Việc cần làm · Link · Thư mục), Link/Thư mục chỉ hiện biểu tượng 🔗/📁 (rê chuột ＋ để dán, ✏️ sửa). Bấm 🔗 hoặc 📁 có link (Drive…) → mở tab mới; 📁 là đường dẫn trên máy (D:\…) → chép vào bộ nhớ tạm + báo "dán vào File Explorer" (Chrome không cho mở thẳng thư mục máy). Dưới bảng là NOTE LÀM VIỆC của từng thư mục (contentEditable, `folder.html`, `folder.color`): 6 màu nền, B/I/U/gạch/danh sách/ảnh (dán ảnh được), link bấm mở, ✨ Sắp xếp (Gemini, `note-tidy`) + Hoàn tác. Bỏ cột Lưu ý + nút 📝: chữ Lưu ý cũ chuyển xuống note của thư mục, link trong Lưu ý chuyển sang cột Link (`folder.v28`). Cả trang nền trắng đồng màu. |
 | V1.27 (1.10.283) | Thẻ 5 mảng nhỏ gọn: rộng vừa chữ, xếp 1 hàng (flex), biểu tượng 32px, tên không xuống dòng; tiêu đề mảng nhỏ lại. Chỉ sửa CSS. |
