@@ -2876,10 +2876,10 @@
     try { await navigator.clipboard.writeText(t); if (btn) { const o = btn.textContent; btn.textContent = 'Đã chép ✓'; setTimeout(() => { if (btn.isConnected) btn.textContent = o; }, 1200); } }
     catch { say('Không chép được, bấm vào trang rồi thử lại.', 'alert', '', 'idea'); }
   }
-  // V1.52: note → dự án (chỉ máy chủ app: máy có khoá soi sản phẩm)
+  // V1.52: note → dự án (V1.55: mọi người dùng có dự án)
   let pjBoard = null, pjAsked = false;
-  const pjLoad = () => chrome.storage.local.get(['spyKeys', 'projBoard']).then(({ spyKeys: k, projBoard: b }) => { pjBoard = k && (k.at || k.rh) && b ? b : null; return pjBoard; }).catch(() => null);
-  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.projBoard || ch.spyKeys) && pjAsked) pjLoad(); });
+  const pjLoad = () => chrome.storage.local.get('projBoard').then(({ projBoard: b }) => { pjBoard = b || null; return pjBoard; }).catch(() => null);   // V1.55: mọi người dùng
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.projBoard && pjAsked) pjLoad(); });
   const pjEsc = t => String(t).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
   async function noteToProj(id, pid) {
     const { ideas: all = [], projBoard: B } = await chrome.storage.local.get(['ideas', 'projBoard']);

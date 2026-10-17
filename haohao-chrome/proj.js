@@ -1,5 +1,5 @@
 // © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
-// 📋 Trang Dự án trong Tab mới (chỉ máy chủ app): bảng thẻ 3 cột (Đang làm / Tạm dừng / Xong), kéo thả đổi cột.
+// 📋 Trang Dự án trong Tab mới (V1.55: mọi người dùng): bảng thẻ 3 cột (Đang làm / Tạm dừng / Xong), kéo thả đổi cột.
 // V1.22–23: chi tiết dự án gọn – tên + thư mục con (đổi tên, xoá); mỗi thư mục là 1 bảng kiểu Excel
 //        (☐ · Hạng mục con · Lưu ý), nền vàng như note dán, bấm ô là sửa, tự lưu, link trong Lưu ý bấm được.
 // Lưu chrome.storage.local['projBoard'].
