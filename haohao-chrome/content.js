@@ -114,7 +114,7 @@
   { const fb = BRANCHES.find(b => b.id === 'focus'), ib = BRANCHES.find(b => b.id === 'info');
     TOOLS.push({ id: 'focus', label: 'Pomodoro', emoji: '🍅', color: fb.color, desc: 'Tập trung, nghỉ giải lao, nhạc nền', icon: fb.icon },
                { id: 'info', label: 'Thông tin', emoji: '💡', color: ib.color, desc: 'Dịch, tóm tắt, giải thích', icon: ib.icon },
-               { id: 'transfer', label: 'HaoHao Transfer', emoji: '📲', color: '#2E7DD7', desc: 'iPhone hết dung lượng, chuyển ảnh, video lên PC',
+               { id: 'transfer', label: 'HaoHao Transfer', emoji: '📲', color: '#2E7DD7', desc: 'Chuyển ảnh, video iPhone ⇄ máy tính',
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
@@ -1934,7 +1934,7 @@
     idea: '📝 Bạn có ý tưởng gì cần lưu thì vào mục Note này.', focus: '🍅 Bấm bắt đầu để tập trung 25 phút, HaoHao báo giờ nghỉ.',
     info: '💡 Bôi đen chữ trên web để dịch, tóm tắt hoặc giải thích.', market: '📊 Theo dõi giá vàng, chứng khoán, crypto, đặt báo khi giá chạm mức.',
     shop: '🛍️ Mở sản phẩm Shopee hoặc TikTok, HaoHao kiểm tra shop, so giá, tìm mã giảm.', tools: '🧰 Thêm app hay: chặn quảng cáo, chuyển ảnh iPhone, thị trường…',
-    adblock: '🛡️ Bật là quảng cáo phim, kể cả YouTube, tự ẩn.', transfer: '📲 iPhone hết dung lượng? Quét mã QR để chuyển ảnh, video lên PC.', gopy: '💬 Góp ý gì cũng được, chỉ chủ app đọc.' };
+    adblock: '🛡️ Bật là quảng cáo phim, kể cả YouTube, tự ẩn.', transfer: '📲 Chuyển ảnh, video iPhone ⇄ máy tính – kéo thả vào HaoHao để gửi sang iPhone.', gopy: '💬 Góp ý gì cũng được, chỉ chủ app đọc.' };
   function tipEl() {
     if (tipStart === -1) { tipStart = Date.now(); chrome.storage.local.set({ tipStart }).catch(() => {}); }
     if (!(tipStart > 1e12) || Date.now() - tipStart > 15 * 6e4) return null;
@@ -7079,7 +7079,8 @@
       if (!here || exempt) c2.remove(); else adCount().then(r => { c2.querySelector('b').textContent = r.on ? Number(r.n || 0).toLocaleString('vi-VN') : '–'; });
     }
     if (on && here) {
-      L.append(el('div', 'adsite', exempt ? `${here}: không chặn (trang tiếp thị)` : `${here}: đang tự chặn`));
+      const hereName = location.protocol === 'chrome-extension:' ? 'Tab mới' : here;   // V1.58: Tab mới không hiện mã tiện ích
+      L.append(el('div', 'adsite', exempt ? `${hereName}: không chặn (trang tiếp thị)` : `${hereName}: đang tự chặn`));
       if (!exempt) {
         const cnt = el('div', 'adcnt', '…'); L.append(cnt);
         adCount().then(r => { if (r.on && !r.yt) { cnt.remove(); return; } cnt.textContent = !r.on ? 'Tải lại trang (F5) để áp dụng' : `YouTube: đã bỏ qua ${r.skipped || 0} quảng cáo video, ẩn ${r.n} ô quảng cáo`; });
@@ -7512,7 +7513,7 @@
   function renderCrypto(V) {
     const tb = el('div', 'mkt-tabs');
     if (tab === 'market') tb.style.marginTop = '10px';
-    [['gold', '🥇 Vàng'], ['stock', '📈 Chứng khoán'], ['crypto', '₿ Crypto']].forEach(([id, t]) => {
+    [['gold', '🥇 Vàng'], ['stock', '📈 Chứng khoán'], ['crypto', '🪙 Crypto']].forEach(([id, t]) => {
       const b = el('button', 'mkt-t' + (mktSub === id ? ' on' : ''), t); b.setAttribute('aria-pressed', mktSub === id);
       b.addEventListener('click', () => { mktSub = id; if (id === 'gold') loadGold(); if (id === 'stock') loadStocks(); renderPanel(); });
       tb.append(b);
