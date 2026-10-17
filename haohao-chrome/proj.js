@@ -61,6 +61,12 @@
       if (!data.areas.some(a => a.id === want.id)) data.areas.push({ id: want.id, name: want.name, icon: want.icon, color: want.color, tpl: want.id });
       p.area = want.id; ch = true;
     }
+    for (const p of data.projects) {   // V1.43: dự án trong mảng mẫu Trade luôn có mục Hold + Trade
+      const A = data.areas.find(a => a.id === p.area); if (!A || (A.tpl || A.id) !== 'trade' || p.v43) continue;
+      if (!p.folders.some(f => f.kind === 'trade')) p.folders.unshift(tradeFolder());
+      if (!p.folders.some(f => f.kind === 'hold')) p.folders.unshift(holdFolder());
+      p.v43 = 1; ch = true;
+    }
     if (data.areas.length && data.cur !== '$all' && (!data.cur || !data.areas.some(a => a.id === data.cur))) { data.cur = data.areas[0].id; ch = true; }
     for (const p of data.projects) {
       if (!Array.isArray(p.folders)) { p.folders = []; ch = true; }
@@ -104,7 +110,7 @@
 
   function newProject() {
     const A = curArea(); if (!A) return; const T = tplOf(A);
-    const p = { id: uid(), name: 'Dự án mới', area: A.id, col: 'doing', start: today(), due: '', at: Date.now(), folders: (T ? T.folders : ['Việc chính']).map(newFolder) };
+    const p = { id: uid(), name: 'Dự án mới', area: A.id, col: 'doing', start: today(), due: '', at: Date.now(), folders: T && T.id === 'trade' ? [holdFolder(), tradeFolder()] : (T ? T.folders : ['Việc chính']).map(newFolder) };   // V1.43: mảng Trade → mục Hold + Trade
     data.projects.unshift(p); save(); openId = p.id; openFolder = p.folders[0].id; render(true);
     setTimeout(() => { const n = root.querySelector('.pj-name'); if (n) { n.focus(); n.select(); } }, 30);
   }
@@ -171,8 +177,8 @@
   const MONEY = '$money';
   const tot = L => (L || []).reduce((a, x) => a + (Number(x.v) || 0), 0);
   const ledger = p => p.money && ((p.money.thu || []).some(x => x.v) || (p.money.chi || []).some(x => x.v));
-  const vonOf = p => ledger(p) ? tot(p.money.chi) : (Number(p.von) || 0);
-  const laiOf = p => ledger(p) ? tot(p.money.thu) - tot(p.money.chi) : (Number(p.lai) || 0);
+  const vonOf = p => { const k = cryptoOf(p); if (k) return k.von + (ledger(p) ? tot(p.money.chi) : 0); return ledger(p) ? tot(p.money.chi) : (Number(p.von) || 0); };   // V1.43: dự án Trade lấy từ Hold + Trade
+  const laiOf = p => { const k = cryptoOf(p); if (k) return k.lai + (ledger(p) ? tot(p.money.thu) - tot(p.money.chi) : 0); return ledger(p) ? tot(p.money.thu) - tot(p.money.chi) : (Number(p.lai) || 0); };
   const sum = (L, k) => L.reduce((a, p) => a + (k === 'von' ? vonOf(p) : k === 'lai' ? laiOf(p) : (Number(p[k]) || 0)), 0);
   function areaBar(W) {
     const bar = $('div', 'pj-areas'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', 'Các mảng dự án');
@@ -260,6 +266,9 @@
     const out = [];
     for (const p of data.projects) { if (!ledger(p)) continue; const c = curOf(p);
       for (const k of ['thu', 'chi']) for (const x of (p.money[k] || [])) if (x.v) out.push({ k, v: toVnd(x.v, c), raw: Number(x.v), d: x.d || '', t: x.t || '', p, c }); }
+    for (const p of data.projects) for (const f of p.folders || []) if (f.kind === 'trade' && f.book) {   // V1.43: sổ Trade – ngày lời = thu, ngày lỗ = chi (USDT)
+      bookCalc(f).rows.forEach(r => { if (r.pnl) out.push({ k: r.pnl > 0 ? 'thu' : 'chi', v: toVnd(Math.abs(r.pnl), 'usdt'), raw: Math.abs(r.pnl), d: r.d, t: 'Trade ' + (r.pnl > 0 ? 'lời' : 'lỗ') + ' trong ngày', p, c: 'usdt' }); });
+    }
     return out;
   }
   function overview(W) {
@@ -270,9 +279,12 @@
     const E = all.filter(inR);
     const manual = ovPer === 'all' ? data.projects.filter(p => !ledger(p) && (p.von || p.lai)) : [];
     const mV = (p, k) => toVnd(Number(p[k]) || 0, curOf(p));
-    const thu = E.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von') + mV(p, 'lai'), 0);
-    const chi = E.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von'), 0);
-    const anyU = all.some(x => x.c === 'usdt') || manual.some(p => curOf(p) === 'usdt');
+    let thu = E.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von') + mV(p, 'lai'), 0);
+    let chi = E.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von'), 0);
+    // V1.43: kỳ "Tất cả" cộng thêm danh mục Hold (giá trị hiện tại = thu, giá vốn = chi)
+    const HL = ovPer === 'all' ? data.projects.flatMap(p => (p.folders || []).filter(f => f.kind === 'hold' && (f.holds || []).length).map(f => ({ p, h: holdCalc(f) }))) : [];
+    thu += HL.reduce((a, x) => a + toVnd(x.h.val, 'usdt'), 0); chi += HL.reduce((a, x) => a + toVnd(x.h.cost, 'usdt'), 0);
+    const anyU = all.some(x => x.c === 'usdt') || manual.some(p => curOf(p) === 'usdt') || HL.length > 0;
     const loi = thu - chi, ty = chi ? Math.round(loi / chi * 1000) / 10 : null;
 
     // thanh điều khiển: kỳ · ‹ nhãn › · đơn vị
@@ -340,6 +352,7 @@
     const grid = $('div', 'pj-ovg');
     const byP = new Map(); E.forEach(x => { const o = byP.get(x.p) || { thu: 0, chi: 0 }; o[x.k] += x.v; byP.set(x.p, o); });
     manual.forEach(p => byP.set(p, { thu: mV(p, 'von') + mV(p, 'lai'), chi: mV(p, 'von') }));
+    HL.forEach(({ p, h }) => { const o = byP.get(p) || { thu: 0, chi: 0 }; o.thu += toVnd(h.val, 'usdt'); o.chi += toVnd(h.cost, 'usdt'); byP.set(p, o); });
     const areaL = areas().map(a => { let v = 0; byP.forEach((o, p) => { if (p.area === a.id) v += o.thu - o.chi; }); return { a, v }; }).filter(x => x.v);
     const c1 = $('div', 'pj-ovc'); c1.append($('div', 'pj-ovh', 'Lợi nhuận theo mảng'));
     if (!areaL.length) c1.append($('div', 'pj-ovn', 'Chưa có số trong kỳ'));
@@ -403,8 +416,8 @@
       const sc = $('div', 'c'), sel = $('select', 'pj-st'); for (const [k, lb] of COLS) { const o = $('option', '', lb); o.value = k; o.selected = k === p.col; sel.append(o); }
       sel.addEventListener('change', () => { p.col = sel.value; save(); render(true); }); sc.append(sel);
       const vc = $('div', 'c'), lc = $('div', 'c');
-      if (ledger(p)) {   // V1.30: lấy từ mục 0. Vốn đầu tư
-        const go = () => { openId = p.id; openFolder = MONEY; render(true); window.scrollTo({ top: 0 }); };
+      if (ledger(p) || cryptoOf(p)) {   // V1.30: lấy từ mục 0. Vốn đầu tư · V1.43: hoặc từ Hold + Trade
+        const go = () => { openId = p.id; openFolder = cryptoOf(p) ? ((p.folders.find(f => f.kind === 'hold') || p.folders[0] || {}).id || MONEY) : MONEY; render(true); window.scrollTo({ top: 0 }); };
         const cu = curOf(p), vb = $('button', 'pj-money pj-calc', fmtC(vonOf(p), cu)), l = laiOf(p), lb = $('button', 'pj-money pj-calc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), fmtC(l, cu, true));
         vb.title = lb.title = 'Tính từ mục 0. Vốn đầu tư – bấm để xem thu / chi'; vb.addEventListener('click', go); lb.addEventListener('click', go);
         vc.append(curChip(p), vb); lc.append(lb);
@@ -556,6 +569,122 @@
     upd();
   }
 
+  // V1.43: 📈 mảng Trade – mỗi dự án có 2 mục theo mẫu CRYPTO PLAN SUN79:
+  //   • Hold  = danh mục nắm giữ (coin · số lượng · giá vốn · giá hiện tại · 24h · giá trị · lãi/lỗ · tiến tới giá mục tiêu)
+  //   • Trade = sổ vốn theo ngày (vốn gốc + mục tiêu %/ngày; mỗi ngày ghi số dư cuối → vốn đầu ngày, cần đạt, lãi/lỗ, %, Đạt / Chưa đạt)
+  //   Giá coin lấy Binance (data-api.binance.vision, cặp ...USDT), lưu tạm 60 giây. Đơn vị USDT.
+  const holdFolder = () => ({ id: uid(), name: 'Hold', kind: 'hold', rows: [], holds: [], v28: 1, v29: 1 });
+  const tradeFolder = () => ({ id: uid(), name: 'Trade', kind: 'trade', rows: [], book: { start: 0, pct: 3, days: [] }, v28: 1, v29: 1 });
+  const PRICES = {}; let priceAt = 0, priceBusy = false;
+  async function loadPrices(syms) {
+    const need = [...new Set(syms.map(s => String(s || '').toUpperCase().trim()).filter(Boolean))];
+    if (!need.length || priceBusy || (Date.now() - priceAt < 60000 && need.every(s => PRICES[s]))) return;
+    priceBusy = true;
+    await Promise.all(need.map(s => (s === 'USDT' ? Promise.resolve({ lastPrice: 1, priceChangePercent: 0 }) :
+      fetch('https://data-api.binance.vision/api/v3/ticker/24hr?symbol=' + encodeURIComponent(s) + 'USDT').then(r => r.ok ? r.json() : null))
+      .then(j => { if (j && +j.lastPrice > 0) PRICES[s] = { p: +j.lastPrice, ch: +j.priceChangePercent || 0 }; }).catch(() => {})));
+    priceAt = Date.now(); priceBusy = false;
+    if (ready && !editing()) render(true);
+  }
+  const priceOf = h => (PRICES[String(h.sym || '').toUpperCase()] || {}).p;
+  const usd = (n, d) => (n == null || isNaN(n)) ? '–' : (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: d == null ? 2 : d });
+  const usdP = n => { if (n == null || isNaN(n)) return '–'; const a = Math.abs(n); return '$' + n.toLocaleString('en-US', { maximumFractionDigits: a >= 100 ? 2 : a >= 1 ? 4 : 8 }); };
+  const sgnU = n => (n > 0 ? '+' : '') + usd(n);
+  function holdCalc(f) {
+    let cost = 0, val = 0; (f.holds || []).forEach(h => { const q = +h.qty || 0, c = +h.cost || 0, p = priceOf(h) ?? c; cost += q * c; val += q * p; });
+    return { cost, val, pnl: val - cost };
+  }
+  function bookCalc(f) {
+    const B = f.book || { start: 0, pct: 3, days: [] }, pct = +B.pct || 0, start = +B.start || 0;
+    let prev = start; const rows = [...(B.days || [])].sort((a, b) => a.d.localeCompare(b.d)).map(x => {
+      const open = prev, close = +x.close || 0, tgt = open * (1 + pct / 100), r = { x, d: x.d, note: x.note, open, close, tgt, pnl: close - open, pctd: open ? (close - open) / open * 100 : 0, hit: close >= tgt };
+      prev = close; return r; });
+    const bal = rows.length ? rows[rows.length - 1].close : start;
+    let streak = 0; for (let i = rows.length - 1; i >= 0; i--) { if (rows[i].hit) streak++; else break; }
+    return { rows, pct, start, bal, pnl: bal - start, streak, hits: rows.filter(r => r.hit).length, n: rows.length, next: bal * (1 + pct / 100) };
+  }
+  // vốn / lãi của dự án Trade = Hold (giá vốn, lãi chưa chốt) + Trade (vốn gốc, số dư − vốn gốc)
+  function cryptoOf(p) {
+    let von = 0, lai = 0, any = false;
+    for (const f of p.folders || []) {
+      if (f.kind === 'hold' && (f.holds || []).length) { const h = holdCalc(f); von += h.cost; lai += h.pnl; any = true; }
+      if (f.kind === 'trade' && f.book && (+f.book.start || (f.book.days || []).length)) { const b = bookCalc(f); von += b.start; lai += b.pnl; any = true; }
+    }
+    return any ? { von, lai } : null;
+  }
+  const kpi = (box, lb, v, sub, cls) => { const d = $('div', 'pj-kpi ' + (cls || '')); d.append($('span', '', lb), $('b', '', v)); if (sub) d.append($('small', '', sub)); box.append(d); };
+  const tone = n => n > 0 ? ' pos' : n < 0 ? ' neg' : '';
+
+  function holdView(M, p, f) {
+    if (!Array.isArray(f.holds)) f.holds = [];
+    loadPrices(f.holds.map(h => h.sym));
+    const fh = $('div', 'pj-fh'); fh.append('💎', $('b', 'pj-f0t', 'Danh mục nắm giữ'));
+    const rf = $('button', 'pj-x', '↻ Cập nhật giá'); rf.addEventListener('click', () => { priceAt = 0; loadPrices(f.holds.map(h => h.sym)); }); fh.append(rf); M.append(fh);
+    const c = holdCalc(f), k = $('div', 'pj-kpis');
+    kpi(k, 'Giá vốn', usd(c.cost), f.holds.length + ' khoản'); kpi(k, 'Giá trị hiện tại', usd(c.val), priceAt ? 'giá Binance ' + new Date(priceAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'đang lấy giá…');
+    kpi(k, c.pnl < 0 ? 'Lỗ chưa chốt' : 'Lãi chưa chốt', sgnU(c.pnl), c.cost ? (c.pnl >= 0 ? '+' : '') + (c.pnl / c.cost * 100).toFixed(1) + '%' : '', 'loi' + tone(c.pnl));
+    const tg = f.holds.reduce((a, h) => a + (+h.target || 0) * (+h.qty || 0), 0); kpi(k, 'Giá trị nếu chạm mục tiêu', tg ? usd(tg) : '–', tg ? '×' + (c.val ? (tg / c.val).toFixed(2) : '–') + ' so với hiện tại' : 'đặt giá mục tiêu ở bảng');
+    M.append(k);
+    const T = $('div', 'pj-sheet pj-cs'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh mục nắm giữ');
+    const hd = $('div', 'pj-cr hold hd'); ['Coin', 'Số lượng', 'Giá vốn', 'Giá hiện tại', '24h', 'Giá trị', 'Lãi / lỗ', 'Giá mục tiêu · tiến độ', ''].forEach(t => hd.append($('div', 'c', t))); T.append(hd);
+    const inp = (h, key, ph, mode) => { const i = $('input', 'pj-mt num'); i.value = h[key] ?? ''; i.placeholder = ph; i.inputMode = mode || 'decimal'; i.setAttribute('aria-label', ph);
+      i.addEventListener('input', () => { h[key] = key === 'sym' ? i.value.toUpperCase().trim() : (i.value === '' ? null : parseFloat(i.value.replace(',', '.'))); saveSoon(); });
+      i.addEventListener('change', () => { save(); if (key === 'sym') { priceAt = 0; loadPrices(f.holds.map(x => x.sym)); } render(true); }); return i; };
+    f.holds.forEach(h => {
+      const r = $('div', 'pj-cr hold'), q = +h.qty || 0, cost = +h.cost || 0, P = PRICES[String(h.sym || '').toUpperCase()], pr = P ? P.p : null, v = q * (pr ?? cost), pnl = pr != null ? q * (pr - cost) : 0;
+      const sy = inp(h, 'sym', 'BTC', 'text'); sy.classList.add('sym'); sy.classList.remove('num');
+      const prog = $('div', 'c pg'); const ti = inp(h, 'target', 'Mục tiêu');
+      if (+h.target && pr != null) { const base = cost || pr, pc = Math.max(0, Math.min(100, (pr - base) / ((+h.target) - base) * 100)); const bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = (isFinite(pc) ? pc : 0) + '%'; bar.append(bi); prog.append(ti, bar, $('small', '', isFinite(pc) ? Math.round(pc) + '%' : '')); } else prog.append(ti);
+      const del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá ' + (h.sym || 'khoản')); del.addEventListener('click', () => { f.holds = f.holds.filter(x => x !== h); save(); render(true); });
+      const cell = (el, cls) => { const d = $('div', 'c ' + (cls || '')); typeof el === 'string' ? d.textContent = el : d.append(el); return d; };
+      r.append(cell(sy), cell(inp(h, 'qty', '0')), cell(inp(h, 'cost', 'Giá vốn')), cell(pr != null ? usdP(pr) : (h.sym ? '…' : '–'), 'n'), cell(P ? (P.ch >= 0 ? '+' : '') + P.ch.toFixed(2) + '%' : '–', 'n' + tone(P ? P.ch : 0)),
+        cell(usd(v), 'n'), cell(pr != null ? sgnU(pnl) + (cost ? ' · ' + ((pr - cost) / cost * 100).toFixed(1) + '%' : '') : '–', 'n' + tone(pnl)), prog, cell(del, 'x'));
+      T.append(r);
+    });
+    const add = $('button', 'pj-addline', '＋ Thêm khoản nắm giữ'); add.addEventListener('click', () => { f.holds.push({ id: uid(), sym: '', qty: null, cost: null, target: null }); save(); render(true); setTimeout(() => { const s = [...root.querySelectorAll('.pj-cr.hold .sym')].pop(); if (s) s.focus(); }, 30); });
+    M.append(T, add, $('div', 'pj-hint', 'Gõ mã coin (BTC, ETH, SOL…) · giá lấy từ Binance theo cặp USDT · giá vốn và mục tiêu tính bằng USDT'));
+  }
+
+  function tradeView(M, p, f) {
+    if (!f.book) f.book = { start: 0, pct: 3, days: [] };
+    const B = f.book, b = bookCalc(f);
+    const fh = $('div', 'pj-fh'); fh.append('📒', $('b', 'pj-f0t', 'Sổ vốn theo ngày')); M.append(fh);
+    const set = $('div', 'pj-bset');
+    const st = $('input', 'pj-in'); st.inputMode = 'decimal'; st.value = B.start || ''; st.placeholder = 'Vốn gốc (USDT)'; st.setAttribute('aria-label', 'Vốn gốc');
+    const pc = $('input', 'pj-in'); pc.inputMode = 'decimal'; pc.value = B.pct ?? 3; pc.setAttribute('aria-label', 'Mục tiêu % mỗi ngày');
+    st.addEventListener('change', () => { B.start = parseFloat(st.value.replace(',', '.')) || 0; save(); render(true); });
+    pc.addEventListener('change', () => { B.pct = parseFloat(pc.value.replace(',', '.')) || 0; save(); render(true); });
+    const l1 = $('label', 'pj-bl'); l1.append('Vốn gốc', st); const l2 = $('label', 'pj-bl'); l2.append('Mục tiêu %/ngày', pc);
+    set.append(l1, l2); M.append(set);
+    const k = $('div', 'pj-kpis');
+    kpi(k, 'Số dư hiện tại', usd(b.bal), b.start ? sgnU(b.pnl) + ' · ' + (b.pnl / b.start * 100).toFixed(1) + '%' : 'nhập vốn gốc để bắt đầu', 'loi' + tone(b.pnl));
+    kpi(k, 'Hôm nay cần đạt', b.bal ? usd(b.next) : '–', b.pct + '% / ngày');
+    kpi(k, 'Chuỗi ngày đạt', b.streak + ' ngày', b.n ? b.hits + '/' + b.n + ' ngày đạt · ' + Math.round(b.hits / b.n * 100) + '%' : 'chưa ghi ngày nào');
+    const d2 = b.pct > 0 ? Math.ceil(Math.log(2) / Math.log(1 + b.pct / 100)) : null; kpi(k, 'Ở tốc độ này', d2 ? 'gấp đôi sau ' + d2 + ' ngày' : '–', d2 ? '×10 sau ' + Math.ceil(Math.log(10) / Math.log(1 + b.pct / 100)) + ' ngày' : '');
+    M.append(k);
+    const ar = $('div', 'pj-addrow pj-dayadd');
+    const dd = $('input', 'pj-in'); dd.type = 'date'; dd.value = today(); dd.setAttribute('aria-label', 'Ngày');
+    const dc = $('input', 'pj-in'); dc.inputMode = 'decimal'; dc.placeholder = 'Số dư cuối ngày (USDT)'; dc.setAttribute('aria-label', 'Số dư cuối ngày');
+    const dn = $('input', 'pj-in'); dn.placeholder = 'Ghi chú: hôm nay đánh gì, sai ở đâu'; dn.setAttribute('aria-label', 'Ghi chú');
+    const ok = $('button', 'pj-btn', 'Ghi vào sổ');
+    const addDay = () => { const v = parseFloat(dc.value.replace(',', '.')); if (!dd.value || isNaN(v)) return (isNaN(v) ? dc : dd).focus();
+      const ex = B.days.find(x => x.d === dd.value); if (ex) { ex.close = v; ex.note = dn.value.trim() || ex.note; } else B.days.push({ id: uid(), d: dd.value, close: v, note: dn.value.trim() }); save(); render(true); };
+    ok.addEventListener('click', addDay); [dc, dn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') addDay(); }));
+    ar.append(dd, dc, dn, ok); M.append(ar);
+    const T = $('div', 'pj-sheet pj-cs'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Nhật ký từng ngày');
+    const hd = $('div', 'pj-cr book hd'); ['Ngày', 'Vốn đầu ngày', 'Cần đạt', 'Số dư cuối', 'Lãi / lỗ', '%', 'Kết quả', 'Ghi chú', ''].forEach(t => hd.append($('div', 'c', t))); T.append(hd);
+    [...b.rows].reverse().forEach(r => {
+      const row = $('div', 'pj-cr book'), cell = (t, cls) => { const d = $('div', 'c ' + (cls || '')); d.textContent = t; return d; };
+      const res = $('div', 'c'); res.append($('span', 'pj-hit ' + (r.hit ? 'ok' : 'no'), r.hit ? '✓ Đạt' : '✗ Chưa đạt'));
+      const del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá ngày ' + r.d); del.addEventListener('click', () => { B.days = B.days.filter(x => x !== r.x); save(); render(true); });
+      const xc = $('div', 'c x'); xc.append(del);
+      row.append(cell(new Date(r.d + 'T00:00').toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })), cell(usd(r.open), 'n'), cell(usd(r.tgt), 'n dim'), cell(usd(r.close), 'n'),
+        cell(sgnU(r.pnl), 'n' + tone(r.pnl)), cell((r.pctd >= 0 ? '+' : '') + r.pctd.toFixed(2) + '%', 'n' + tone(r.pctd)), res, cell(r.note || '', 'note'), xc);
+      T.append(row);
+    });
+    M.append(T); if (!b.n) M.append($('div', 'pj-empty', 'Sổ còn trống · ghi số dư cuối ngày đầu tiên để bắt đầu đếm chuỗi.'));
+  }
+
   function detail(W, p) {
     const top = $('div', 'pj-top'), back = $('button', 'pj-btn ghost', '← Về bảng dự án');
     back.addEventListener('click', () => { openId = null; render(true); });
@@ -617,6 +746,8 @@
 
     const f = p.folders.find(x => x.id === openFolder);
     if (openFolder === MONEY) moneyView(M, p);
+    else if (f && f.kind === 'hold') holdView(M, p, f);
+    else if (f && f.kind === 'trade') tradeView(M, p, f);
     else if (!f) M.append($('div', 'pj-empty', 'Gõ tên thư mục con ở cột bên trái rồi Enter để bắt đầu.'));
     else {
       if (!Array.isArray(f.rows)) f.rows = [];
@@ -743,10 +874,16 @@
       const first = f.rows.find(x => x.id === selRow && real(x)) || f.rows.find(real) || null; selRow = null; pick(first);
     }
     D.append(S, M); W.append(D);
+    quickLinks(W, p);   // V1.43: lối tắt riêng của dự án (giống lối tắt mảng) – vd trang airdrop, sàn, Drive
   }
 
+  let rendering = false;
   function render(force) {
+    if (rendering) { setTimeout(() => render(force), 0); return; }   // V1.43: ô đang mất focus (change/blur) lúc vẽ lại → vẽ sau
     if (!ready || (!force && editing())) return;
+    rendering = true; try { render0(); } finally { rendering = false; }
+  }
+  function render0() {
     const W = $('div', 'pj-wrap'), p = openId && proj();
     if (p) detail(W, p); else { openId = null; if (data.cur === '$all' && areas().length) overview(W); else board(W); }
     root.replaceChildren(W);

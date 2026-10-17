@@ -362,3 +362,27 @@
 .pj-atop { margin-bottom: 12px; }
 /* V1.40: dòng tỷ giá quy đổi */
 .pj-rate { font-size: 11.5px; color: var(--pj-soft); margin: -6px 0 10px; }
+/* V1.43: mảng Trade – Hold + Trade theo mẫu CRYPTO PLAN */
+.pj-cs { overflow-x: auto; }
+.pj-cr { display: grid; border-top: 1px solid #EEF0F4; align-items: center; min-width: 870px; }
+.pj-cr:first-child { border-top: 0; } .pj-cr.hd { background: #F7F8FA; }
+.pj-cr.hold { grid-template-columns: 76px 90px 96px 104px 66px 100px minmax(150px, 1fr) 158px 30px; }
+.pj-cr .c.n { white-space: nowrap; }
+.pj-cr.book { grid-template-columns: 104px 104px 104px 104px 104px 76px 96px minmax(140px, 1fr) 34px; }
+.pj-cr .c { padding: 5px 8px; border-left: 1px solid #EEF0F4; min-width: 0; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+.pj-cr .c:first-child { border-left: 0; }
+.pj-cr.hd .c { font-size: 11px; font-weight: 800; color: var(--pj-soft); text-transform: uppercase; letter-spacing: .04em; padding: 7px 8px; white-space: nowrap; }
+.pj-cr .c.n { justify-content: flex-end; font-variant-numeric: tabular-nums; } .pj-cr .c.dim { color: var(--pj-soft); }
+.pj-cr .c.pos { color: #1E7A47; } .pj-cr .c.neg { color: #C4401F; }
+.pj-cr .c.note { color: #4B5563; white-space: normal; font-size: 12.5px; } .pj-cr .c.x { justify-content: center; }
+.pj-cr .pj-mt.num { text-align: right; font-variant-numeric: tabular-nums; } .pj-cr .pj-mt.sym { font-weight: 800; text-transform: uppercase; }
+.pj-cr .c.pg { flex-wrap: nowrap; } .pj-cr .c.pg .pj-mt { flex: 0 0 82px; } .pj-cr .c.pg .pj-bar { flex: 1; min-width: 30px; } .pj-cr .c.pg small { font-size: 11px; color: var(--pj-soft); min-width: 28px; text-align: right; }
+.pj-cr:not(.hd):hover { background: #FAFBFC; }
+.pj-addline { all: unset; cursor: pointer; display: block; margin-top: 8px; font-size: 13px; font-weight: 700; color: #3B6FD8; padding: 6px 10px; border-radius: 8px; }
+.pj-addline:hover { background: #EEF3FD; } .pj-addline:focus-visible { outline: 2px solid var(--pj-acc); }
+.pj-hit { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 99px; } .pj-hit.ok { background: #E6F6EC; color: #1E7A47; } .pj-hit.no { background: #FDECEA; color: #C4401F; }
+.pj-bset { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; }
+.pj-bl { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 800; color: var(--pj-soft); text-transform: uppercase; letter-spacing: .04em; }
+.pj-bl .pj-in { width: 170px; }
+.pj-dayadd { margin: 0 0 10px; } .pj-dayadd .pj-in[type=date] { flex: 0 0 150px; } .pj-dayadd .pj-in:nth-child(2) { flex: 0 0 200px; }
+.pj-hit { white-space: nowrap; }
