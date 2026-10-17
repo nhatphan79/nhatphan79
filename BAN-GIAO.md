@@ -49,7 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
-| V1.55 (1.10.311) | **Trang Dự án mở cho mọi khách hàng** (bỏ điều kiện `spyKeys` ở công tắc Trang chủ ⇄ Dự án trong newtab.js và ở thanh chọn dự án của note). Máy khách mới: trang trống, chỉ có ＋ Thêm mảng (chọn mẫu). Khách hiện còn ở V1.20 – CHƯA phát hành bản mới (cần `_release/dong-goi.py` + khoá ký trên máy anh). |
+| V1.55 (1.10.311) | **Trang Dự án mở cho mọi khách hàng** (bỏ điều kiện `spyKeys` ở công tắc Trang chủ ⇄ Dự án trong newtab.js và ở thanh chọn dự án của note). Máy khách mới: trang trống, chỉ có ＋ Thêm mảng (chọn mẫu). ĐÃ PHÁT HÀNH cho khách 18/10 (dong-goi.py trên máy anh, chữ ký kiểm tra OK, thử nạp gói đã nén chạy được); `downloads/HaoHao-Transfer-Windows.zip` thay bằng exe v52 (có Gửi sang iPhone). |
 | V1.54 (1.10.310) | Thanh chọn dự án của note chọn tới **thư mục con** (nhóm = mảng · dự án, mục = các thư mục con không phải Hold/Trade; dự án chưa có thư mục → tạo `📝 Ghi chú`). Giá trị `p|f`. V1.53: bỏ 📁 lặp. ⚠ Bài học: không chạy `cp` ra outputs và `device_commit_files` song song (lần V1.52 chép nhầm file cũ). |
 | V1.52 (1.10.308) | Note: mỗi note có thanh **📁 Lưu vào dự án…** (chỉ máy chủ app) – chọn dự án → thêm 1 dòng vào mục `📝 Ghi chú` của dự án (tạo nếu chưa có; tiêu đề = tên note/dòng đầu, nội dung vào `html`, link trang); note nhớ `pj{p,f,r}`, đổi dự án thì chuyển dòng, chọn "✕ Bỏ khỏi dự án" thì xoá dòng. Anh Nhật xác nhận Gửi sang iPhone chạy OK. |
 | V1.51 (1.10.307) | Bỏ dòng ghi chú "Nhắc, Todo, Note… cố định" dưới mục Thay đổi giao diện tuỳ chọn. |
@@ -152,7 +152,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
-- [ ] **HaoHao Transfer – 📤 Gửi sang iPhone** (18/10): ĐÃ XONG mã + exe (V1.48–V1.51, Transfer v51/v52 – đóng gói `--no-bytecode --public-packages "*" --public`, subsystem 2). Anh Nhật đã chạy được bản no-bytecode. Còn: anh thay exe v52 (`HaoHao-Transfer-moi.exe`), thử kéo thả vào linh vật; rồi cập nhật `downloads/HaoHao-Transfer-Windows.zip` cho khách (khách phải tải lại app mới có Gửi sang iPhone).
+- [ ] **HaoHao Transfer – 📤 Gửi sang iPhone** (18/10): ĐÃ XONG mã + exe (V1.48–V1.51, Transfer v51/v52 – đóng gói `--no-bytecode --public-packages "*" --public`, subsystem 2). Anh Nhật đã chạy được bản no-bytecode. Còn: anh thay exe v52 (`HaoHao-Transfer-moi.exe`), thử kéo thả vào linh vật; – ĐÃ cập nhật zip cho khách 18/10.
 - [ ] Trang Dự án: nút "📋 Thêm vào dự án" trên HaoHao ở mọi trang web (lưu tên + link trang hiện tại thành 1 dòng trong bảng, chỉ máy chủ app) – chờ anh Nhật xác nhận ý.
 - Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương

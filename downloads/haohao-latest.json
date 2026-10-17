@@ -1,7 +1,7 @@
 {
- "name": "V1.20",
- "version": "1.10.275",
+ "name": "V1.55",
+ "version": "1.10.311",
  "file": "HaoHao-V1.zip",
- "sig": "8qkG6L4sWUQqp95BdRiZm2U/VqLFwIBFZdfwBNW6UWL0pTE40pLx6TF44gcEEiGVpfEfGNOVY40WDsf3+Pf8Aw==",
- "notes": "Sửa nhỏ Tab mới"
+ "sig": "w0s6koYkJbsApAe99LACSNG7DmPMzWzS1ubFL1oXFV8MrX8ke0MgNxznVfAARnZ8NU+4Mg+m5ZIemUatKz08CA==",
+ "notes": "Trang Dự án trong Tab mới, Note lưu vào dự án, gửi ảnh/video sang iPhone"
 }
