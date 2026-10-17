@@ -310,7 +310,8 @@
   //        thì hiện bảng hướng dẫn bật "Cho phép truy cập vào URL tệp" kèm nút mở thẳng trang cài đặt của HaoHao.
   const fileUrl = v => 'file:///' + v.trim().replace(/^file:\/+/i, '').replace(/\\/g, '/').split('/').map(x => encodeURIComponent(x).replace(/%3A/gi, ':')).join('/') + (/[\\/]$/.test(v.trim()) ? '' : '/');
   const fileOk = () => new Promise(res => { try { chrome.extension.isAllowedFileSchemeAccess(ok => res(!!ok)); } catch { res(false); } });
-  async function openDir(v) {
+  async function openDir(v, ref) {
+    if (ref) chrome.storage.local.set({ pjDirPick: { ...ref, at: Date.now() } }).catch(() => {});   // V1.35: tab thư mục hiện nút 💾 Lưu thư mục này (pjdir.js)
     if (await fileOk()) { chrome.tabs.create({ url: fileUrl(v) }).catch(() => toast('⚠ Không mở được thư mục này – kiểm tra lại đường dẫn')); return; }
     try { await navigator.clipboard.writeText(v); } catch {}
     root.querySelectorAll('.pj-need').forEach(x => x.remove());
@@ -459,7 +460,7 @@
           c.replaceChildren(); const v = (r[key] || '').trim(); if (blankRow()) return;
           if (!v) { const a = $('button', 'pj-chip add', '＋'); a.title = key === 'link' ? 'Dán link' : 'Dán link thư mục Drive hoặc đường dẫn trên máy (D:\\...)'; a.addEventListener('click', edit); c.append(a); return; }
           const ic = key === 'link' ? '🔗' : '📁', b = $('button', 'pj-chip', ic); b.title = v;
-          b.addEventListener('click', () => { if (isUrl(v)) window.open(/^https?:/i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); else openDir(v); });
+          b.addEventListener('click', () => { if (isUrl(v)) window.open(/^https?:/i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); else openDir(v, { p: p.id, f: f.id, r: r.id }); });
           const e = $('button', 'pj-chip ed', '✏️'); e.title = 'Sửa'; e.addEventListener('click', edit);
           c.append(b, e);
         };

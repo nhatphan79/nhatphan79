@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.34** (số kỹ thuật 1.10.290)
+Cập nhật: 17/10/2026 · **Bản V1.35** (số kỹ thuật 1.10.291)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.35 (1.10.291) | 📁 mở thư mục trong tab Chrome → góc phải trên có thanh "🐹 HaoHao · việc · dự án" + nút **💾 Lưu thư mục này**: đi vào thư mục con nào rồi bấm Lưu thì đường dẫn đó ghi vào cột Thư mục của việc, lần sau 📁 mở thẳng vào đây. File mới `pjdir.js` (content script chỉ chạy trên `file:///*`, trang danh sách thư mục); proj.js ghi `pjDirPick = {p,f,r,at}` lúc mở (nhớ 2 giờ). |
 | V1.34 (1.10.290) | Bảng dự án có cột thao tác cuối dòng (hiện rõ khi rê chuột): ⏰ **hẹn nhắc** – hộp thoại nội dung (mảng Airdrop mặc định "Claim") + ngày giờ + nút nhanh Mai 9h / 3 ngày / 1 tuần / 1 tháng → tạo việc có giờ trong Todo HaoHao (`todos`, `due`, `pj`), background tự đặt báo thức `todo:` như mọi việc; dưới tên dự án hiện chip "⏰ giờ · nội dung", sửa / Bỏ nhắc được (`p.remindId`; xoá hoặc tick xong bên HaoHao thì chip tự mất). 👁 **ẩn** dự án (`p.hidden`, ẩn khỏi bảng, nút "👁 Hiện N dự án đã ẩn" dưới bảng, dòng Tổng vẫn tính cả dự án ẩn). ✕ **xoá** dự án (bấm 2 lần; việc đã đưa sang Todo HaoHao xoá theo). Bỏ dòng chữ hướng dẫn dưới bảng. |
 | V1.33 (1.10.289) | 📁 đường dẫn trên máy (D:\…) → mở thư mục trong TAB CHROME (`chrome.tabs.create` file:///…, xem danh sách file, PDF/ảnh xem được). Chưa bật quyền (`chrome.extension.isAllowedFileSchemeAccess` = false) → bảng "📁 Cần bật 1 lần để mở thư mục": 3 bước + nút ⚙️ Mở trang cài đặt HaoHao (`chrome://extensions/?id=…`) + link để dán; đường dẫn vẫn được chép sẵn cho File Explorer. Cách 2 (sửa app Transfer mở File Explorer) anh Nhật đã dừng – KHÔNG làm; trên máy anh còn `HaoHao-Transfer.v33.exe` + `src/app.nhung-exe.v33.js` (bản thử, chưa dùng). |
 | V1.32 (1.10.288) | Mỗi mảng (Xây dựng nhà phố, APP HaoHao, Trade, Airdrop, mảng tự thêm) có hàng **🔗 Lối tắt** riêng dưới bảng dự án, kiểu giống lối tắt trang chủ: biểu tượng tròn (favicon `/_favicon/`, lỗi thì chữ cái đầu) + tên, bấm mở tab mới, rê chuột ✕ xoá, ＋ Thêm (tên + link, tự thêm https://). Lưu `area.links = [{id,t,u}]`. |
