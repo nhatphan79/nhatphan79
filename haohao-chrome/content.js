@@ -1149,6 +1149,9 @@
   .npf .cnt { margin-left: auto; font-size: 11.5px; color: #6B7394; }
   .idea .it2 { font-size: 13.5px; line-height: 1.5; margin: 6px 0; white-space: pre-wrap; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .idea.open .it2 { display: block; }
+  .npj { display: flex; align-items: center; gap: 6px; margin: 6px 0 2px; font-size: 12px; color: #6B7394; font-weight: 700; }
+  .npj select { flex: 1; min-width: 0; font: inherit; font-size: 12px; font-weight: 700; color: #23305E; background: #F4F6FB; border: 1px solid #DCE1EE; border-radius: 9px; padding: 4px 6px; cursor: pointer; }
+  .npj.on select { background: #FFF6DE; border-color: #F2B544; } .npj.on { color: #B7791F; }
   .idea .ai { background: #FFF9DB; border-radius: 10px; padding: 8px 10px; margin: 6px 0; font-size: 13px; }
   .idea .ai .lb2 { font-size: 11.5px; font-weight: 800; color: #8A7300; margin: 4px 0 2px; }
   .cp { all: unset; cursor: pointer; display: block; padding: 3px 6px; margin: 1px -6px; border-radius: 6px; }
@@ -2873,7 +2876,34 @@
     try { await navigator.clipboard.writeText(t); if (btn) { const o = btn.textContent; btn.textContent = 'Đã chép ✓'; setTimeout(() => { if (btn.isConnected) btn.textContent = o; }, 1200); } }
     catch { say('Không chép được, bấm vào trang rồi thử lại.', 'alert', '', 'idea'); }
   }
+  // V1.52: note → dự án (chỉ máy chủ app: máy có khoá soi sản phẩm)
+  let pjBoard = null, pjAsked = false;
+  const pjLoad = () => chrome.storage.local.get(['spyKeys', 'projBoard']).then(({ spyKeys: k, projBoard: b }) => { pjBoard = k && (k.at || k.rh) && b ? b : null; return pjBoard; }).catch(() => null);
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.projBoard || ch.spyKeys) && pjAsked) pjLoad(); });
+  const pjEsc = t => String(t).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+  async function noteToProj(id, pid) {
+    const { ideas: all = [], projBoard: B } = await chrome.storage.local.get(['ideas', 'projBoard']);
+    const it = all.find(y => y.id === id); if (!it || !B) return;
+    const uid = () => Math.random().toString(36).slice(2, 9);
+    if (it.pj) {   // bỏ dòng cũ (chuyển dự án / bỏ khỏi dự án)
+      const P = (B.projects || []).find(x => x.id === it.pj.p), F = P && (P.folders || []).find(x => x.id === it.pj.f);
+      if (F) F.rows = (F.rows || []).filter(r => r.id !== it.pj.r);
+      delete it.pj;
+    }
+    const P = pid && (B.projects || []).find(x => x.id === pid);
+    if (P) {
+      P.folders = P.folders || [];
+      let F = P.folders.find(x => !x.kind && x.name === '📝 Ghi chú');
+      if (!F) { F = { id: uid(), name: '📝 Ghi chú', rows: [], v28: 1, v29: 1 }; P.folders.push(F); }
+      const txt = (it.text || '').trim(), t = (it.name || txt.split('\n')[0] || 'Ghi chú').slice(0, 90);
+      const r = { id: uid(), t, done: false, html: pjEsc(txt).replace(/\n/g, '<br>') };
+      if (it.url && /^https?:/.test(it.url)) r.link = it.url;
+      F.rows.push(r); it.pj = { p: P.id, f: F.id, r: r.id };
+    }
+    pjBoard = B; await chrome.storage.local.set({ projBoard: B, ideas: all });
+  }
   function renderIdea(V) {
+    if (!pjAsked) { pjAsked = true; pjLoad().then(b => { if (b && tab === 'idea') renderPanel(); }); }
     const cfg = settings.ideas || {}, hasAi = !!(settings.ai || {}).key;
     const saveCfg = patch => { settings.ideas = { ...(settings.ideas || {}), ...patch }; return chrome.storage.local.set({ settings }); };
     // ghi nhanh
@@ -3251,6 +3281,24 @@
       });
       c.append(tx, fb);
       requestAnimationFrame(() => { const lh = parseFloat(getComputedStyle(tx).lineHeight) || 20; if (tx.scrollHeight > lh * 3 + 4) fb.hidden = false; });
+    }
+    // V1.52: chọn dự án để lưu note (chỉ máy chủ app) → thêm 1 dòng vào mục "📝 Ghi chú" của dự án ở trang Dự án
+    if (pjBoard && (pjBoard.projects || []).length) {
+      const box = el('div', 'npj'), sel = document.createElement('select');
+      sel.setAttribute('aria-label', 'Lưu note vào dự án'); sel.title = 'Lưu note này vào dự án';
+      sel.add(new Option(it.pj ? '✕ Bỏ khỏi dự án' : '📁 Lưu vào dự án…', ''));
+      const areas = pjBoard.areas || [];
+      [...areas, { id: null, name: 'Khác' }].forEach(A => {
+        const ps = (pjBoard.projects || []).filter(x => A.id ? x.area === A.id : !areas.some(z => z.id === x.area)); if (!ps.length) return;
+        const g = document.createElement('optgroup'); g.label = ((A.icon || '') + ' ' + (A.name || '')).trim();
+        ps.forEach(x => g.append(new Option(x.name || 'Dự án', x.id))); sel.append(g);
+      });
+      sel.value = (it.pj && it.pj.p) || '';
+      if (it.pj && sel.value !== it.pj.p) sel.value = '';
+      box.classList.toggle('on', !!(it.pj && sel.value));
+      sel.addEventListener('click', e => e.stopPropagation()); sel.addEventListener('keydown', e => e.stopPropagation());
+      sel.addEventListener('change', () => noteToProj(it.id, sel.value));
+      box.append(el('span', 'npj-i', it.pj && sel.value ? '📁 Đã lưu:' : '📁'), sel); c.append(box);
     }
     const ai = it.ai;
     const shown = aiOpen.has(it.id);
