@@ -7073,7 +7073,6 @@
       r.append(sel);
     });
     box.append(r);
-    box.append(el('div', 'lay-n', 'Nhắc, Todo, Note, Mua sắm, Tiện ích cố định. App không chọn nằm trong Tiện ích.'));
     V.append(box);
     const cp = el('a', 'copyr', HT.COPYRIGHT); cp.href = HT.OWNER.tel; cp.title = 'Liên hệ ' + HT.OWNER.name;
     V.append(cp);
