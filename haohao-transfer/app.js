@@ -210,7 +210,7 @@ ${HH_TOP('up')}<div class="hh-ok">🟢 Đã kết nối với máy tính</div>
   </div>
 </div>
 <div class="card" id="lc" style="display:none"><div id="list"></div></div>
-<div class="card tip">• Giữ màn hình sáng, không tắt Safari khi đang gửi.<br>
+<div class="card tip"><b style="color:#C2410C">• Giữ màn hình sáng, không tắt Safari khi đang gửi.</b><br>
 • Gửi xong: vào Ảnh → chọn các ảnh đã gửi → Xoá, rồi xoá trong "Đã xoá gần đây" để lấy lại dung lượng.<br>
 • File đã gửi rồi sẽ tự bỏ qua.</div>
 <script>
