@@ -42,20 +42,26 @@
 
   // V1.22: chuyển dữ liệu cũ (việc cần làm / ghi chú / link) vào bảng – không mất gì
   // V1.26: 5 mảng chính – 4 mảng cố định + mảng tự thêm (tên tuỳ ý)
+  // V1.36: KHÔNG còn mảng cố định – mặc định chỉ có "＋ Thêm mảng"; bấm vào chọn 1 trong 4 MẪU (kèm thư mục mẫu cho dự án mới) hoặc tự đặt tên
   const AREAS0 = [
-    { id: 'house', name: 'Xây dựng nhà phố', icon: '🏠', color: '#D9822B' },
-    { id: 'app', name: 'APP HaoHao', icon: '🐹', color: '#E0A100' },
-    { id: 'trade', name: 'Trade', icon: '📈', color: '#2E8B57' },
-    { id: 'air', name: 'Airdrop', icon: '🪂', color: '#3B6FD8' }];
+    { id: 'house', name: 'Xây dựng nhà phố', icon: '🏠', color: '#D9822B', folders: ['Báo giá', 'Thiết kế', 'Xin phép', 'Thi công', 'Bàn giao'] },
+    { id: 'app', name: 'APP HaoHao', icon: '🐹', color: '#E0A100', folders: ['Tính năng', 'Lỗi cần sửa', 'Phát hành'] },
+    { id: 'trade', name: 'Trade', icon: '📈', color: '#2E8B57', folders: ['Kế hoạch', 'Nhật ký lệnh', 'Bài học'] },
+    { id: 'air', name: 'Airdrop', icon: '🪂', color: '#3B6FD8', folders: ['Nhiệm vụ', 'Ví & tài khoản', 'Claim'] }];
   const FREE_COLORS = ['#8B5CF6', '#DB2777', '#0D9488', '#64748B', '#B45309'];
   const areas = () => data.areas;
-  const curArea = () => areas().find(a => a.id === data.cur) || areas()[0];
+  const curArea = () => areas().find(a => a.id === data.cur) || areas()[0] || null;
+  const tplOf = a => a && AREAS0.find(t => t.id === (a.tpl || a.id));
   function migrate() {
     let ch = false;
-    if (!Array.isArray(data.areas) || !data.areas.length) { data.areas = AREAS0.map(a => ({ ...a })); ch = true; }
-    for (const a of AREAS0) if (!data.areas.some(x => x.id === a.id)) { data.areas.splice(AREAS0.indexOf(a), 0, { ...a }); ch = true; }
-    if (!data.cur || !data.areas.some(a => a.id === data.cur)) { data.cur = data.areas[0].id; ch = true; }
-    for (const p of data.projects) if (!p.area || !data.areas.some(a => a.id === p.area)) { p.area = /hao\s*hao/i.test(p.name || '') ? 'app' : data.cur; ch = true; }
+    if (!Array.isArray(data.areas)) { data.areas = []; ch = true; }
+    // dự án chưa thuộc mảng nào (dữ liệu cũ) → tạo mảng theo mẫu phù hợp để không mất
+    for (const p of data.projects) if (!p.area || !data.areas.some(a => a.id === p.area)) {
+      const want = AREAS0.find(t => t.id === p.area) || (/hao\s*hao/i.test(p.name || '') ? AREAS0[1] : AREAS0[0]);
+      if (!data.areas.some(a => a.id === want.id)) data.areas.push({ id: want.id, name: want.name, icon: want.icon, color: want.color, tpl: want.id });
+      p.area = want.id; ch = true;
+    }
+    if (data.areas.length && (!data.cur || !data.areas.some(a => a.id === data.cur))) { data.cur = data.areas[0].id; ch = true; }
     for (const p of data.projects) {
       if (!Array.isArray(p.folders)) { p.folders = []; ch = true; }
       if (p.start == null) { p.start = ''; ch = true; }
@@ -97,7 +103,8 @@
   }
 
   function newProject() {
-    const p = { id: uid(), name: 'Dự án mới', area: curArea().id, col: 'doing', start: today(), due: '', at: Date.now(), folders: [newFolder('Việc chính')] };
+    const A = curArea(); if (!A) return; const T = tplOf(A);
+    const p = { id: uid(), name: 'Dự án mới', area: A.id, col: 'doing', start: today(), due: '', at: Date.now(), folders: (T ? T.folders : ['Việc chính']).map(newFolder) };
     data.projects.unshift(p); save(); openId = p.id; openFolder = p.folders[0].id; render(true);
     setTimeout(() => { const n = root.querySelector('.pj-name'); if (n) { n.focus(); n.select(); } }, 30);
   }
@@ -151,16 +158,27 @@
       t.addEventListener('click', () => { if (data.cur !== a.id) { data.cur = a.id; save(); render(true); } });
       bar.append(t);
     });
-    // mảng 5: tự thêm, tên tuỳ ý
+    // ＋ Thêm mảng: chọn mẫu (Xây dựng nhà phố · APP HaoHao · Trade · Airdrop) hoặc tự đặt tên
     const nw = $('button', 'pj-area add'); nw.append($('span', 'ai', '＋'), $('div', 'at', ''));
-    nw.querySelector('.at').append($('b', '', 'Thêm mảng'), $('small', '', 'Đặt tên tự do'));
+    nw.querySelector('.at').append($('b', '', 'Thêm mảng'), $('small', '', 'Chọn mẫu hoặc tự đặt tên'));
+    const addArea = (name, t) => { const id = t && !data.areas.some(x => x.id === t.id) ? t.id : 'a' + uid(), k = data.areas.length;
+      data.areas.push({ id, name, icon: t ? t.icon : '📁', color: t ? t.color : FREE_COLORS[k % FREE_COLORS.length], tpl: t ? t.id : '' }); data.cur = id; save(); render(true); };
     nw.addEventListener('click', () => {
-      const box = $('div', 'pj-area add ed'), inp = $('input', 'pj-in'); inp.placeholder = 'Tên mảng mới…'; inp.setAttribute('aria-label', 'Tên mảng mới');
-      let done = false; const ok = keep => { if (done) return; done = true; const n = inp.value.trim();
-        if (keep && n) { const id = 'a' + uid(), k = data.areas.length - AREAS0.length; data.areas.push({ id, name: n, icon: '📁', color: FREE_COLORS[k % FREE_COLORS.length], free: true }); data.cur = id; save(); }
-        render(true); };
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); inp.addEventListener('blur', () => ok(true));
-      box.append(inp); nw.replaceWith(box); inp.focus();
+      root.querySelectorAll('.pj-need').forEach(x => x.remove());
+      const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc pj-tpl'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Thêm mảng');
+      const close = () => bg.remove();
+      cd.append($('div', 'pj-needt', '＋ Thêm mảng'), $('div', 'pj-needn', 'Chọn mẫu có sẵn (dự án mới tự có thư mục mẫu):'));
+      const g = $('div', 'pj-tplg');
+      AREAS0.forEach(t => { const b = $('button', 'pj-tpli'); b.style.setProperty('--ac', t.color);
+        b.append($('span', 'ai', t.icon), $('b', '', t.name), $('small', '', t.folders.join(' · ')));
+        b.addEventListener('click', () => { close(); addArea(t.name, t); }); g.append(b); });
+      const inp = $('input', 'pj-in'); inp.placeholder = 'Hoặc tự đặt tên mảng…'; inp.setAttribute('aria-label', 'Tên mảng mới');
+      const ok = $('button', 'pj-btn', 'Thêm'), no = $('button', 'pj-btn ghost', 'Huỷ');
+      ok.addEventListener('click', () => { const n = inp.value.trim(); if (!n) return inp.focus(); close(); addArea(n, null); });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok.click(); });
+      no.addEventListener('click', close); bg.addEventListener('click', e => { if (e.target === bg) close(); }); cd.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+      const row = $('div', 'pj-needb'); const sp = $('div'); sp.style.flex = '1'; row.append(sp, no, ok);
+      cd.append(g, $('div', 'pj-needn', 'Tự đặt tên:'), inp, row); bg.append(cd); root.append(bg); (g.firstChild || inp).focus();
     });
     bar.append(nw); W.append(bar);
   }
@@ -170,7 +188,7 @@
     root.querySelectorAll('.pj-need').forEach(x => x.remove());
     const old = todos.find(t => t.id === p.remindId);
     const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Hẹn nhắc');
-    const tx = $('input', 'pj-in'); tx.value = old ? old.text.replace(' · ' + p.name, '') : (p.area === 'air' ? 'Claim' : ''); tx.placeholder = 'Nhắc việc gì? (vd: Claim, nộp hồ sơ, gọi khách)'; tx.setAttribute('aria-label', 'Nội dung nhắc');
+    const tx = $('input', 'pj-in'); tx.value = old ? old.text.replace(' · ' + p.name, '') : ((tplOf(areas().find(a => a.id === p.area)) || {}).id === 'air' ? 'Claim' : ''); tx.placeholder = 'Nhắc việc gì? (vd: Claim, nộp hồ sơ, gọi khách)'; tx.setAttribute('aria-label', 'Nội dung nhắc');
     const dt = $('input', 'pj-in'); dt.type = 'datetime-local'; dt.setAttribute('aria-label', 'Ngày giờ nhắc');
     if (old && old.due) dt.value = old.due.slice(0, 16); else { const d = new Date(Date.now() + 864e5); d.setHours(9, 0, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); dt.value = d.toISOString().slice(0, 16); }
     const quick = $('div', 'pj-rmq'); [['Mai 9h', 1], ['3 ngày', 3], ['1 tuần', 7], ['1 tháng', 30]].forEach(([lb, n]) => { const b = $('button', 'pj-chipq', lb); b.type = 'button'; b.addEventListener('click', () => { const d = new Date(Date.now() + n * 864e5); d.setHours(9, 0, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); dt.value = d.toISOString().slice(0, 16); }); quick.append(b); });
@@ -192,18 +210,20 @@
   }
   function board(W) {
     areaBar(W);
-    const A = curArea(), PL = data.projects.filter(p => p.area === A.id);
+    const A = curArea();
+    if (!A) { const e = $('div', 'pj-empty pj-nempty', 'Chưa có mảng nào · bấm ＋ Thêm mảng để chọn mẫu Xây dựng nhà phố, APP HaoHao, Trade, Airdrop hoặc tự đặt tên.'); W.append(e); return; }
+    const PL = data.projects.filter(p => p.area === A.id);
     const top = $('div', 'pj-top pj-atop'), add = $('button', 'pj-btn', '＋ Dự án mới'); add.addEventListener('click', newProject);
     const h = $('h1'); h.append($('span', 'hi', A.icon), A.name); h.style.setProperty('--ac', A.color);
     top.append(h);
-    if (A.free) {   // mảng tự thêm: đổi tên / xoá (chỉ xoá khi trống)
+    {   // V1.36: mảng nào cũng đổi tên / xoá được (chỉ xoá khi trống)
       const ed = $('button', 'pj-x', '✏️ Đổi tên'); ed.addEventListener('click', () => {
         const inp = $('input', 'pj-in pj-ren'); inp.value = A.name; let done = false;
         const ok = keep => { if (done) return; done = true; const n = inp.value.trim(); if (keep && n) { A.name = n; save(); } render(true); };
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); inp.addEventListener('blur', () => ok(true));
         h.replaceWith(inp); inp.focus(); inp.select(); });
       const dl = $('button', 'pj-x', '🗑 Xoá mảng'); dl.disabled = PL.length > 0; dl.title = PL.length ? 'Chuyển hoặc xoá hết dự án trong mảng trước' : 'Xoá mảng này';
-      dl.addEventListener('click', () => { if (PL.length) return; data.areas = data.areas.filter(x => x !== A); data.cur = data.areas[0].id; save(); render(true); });
+      dl.addEventListener('click', () => { if (PL.length) return; data.areas = data.areas.filter(x => x !== A); data.cur = (data.areas[0] || {}).id || null; save(); render(true); });
       top.append(ed, dl);
     }
     top.append(add); W.append(top);
