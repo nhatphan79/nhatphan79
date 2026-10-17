@@ -447,6 +447,12 @@
   .tfx-st { font-weight: 800; font-size: 13px; } .tfx-st.off { color: #6B7394; } .tfx-st.on { color: #2E9E6B; }
   .tfx-n { color: #6B7394; font-size: 12px; line-height: 1.45; }
   .tfx-steps { margin: 0; padding-left: 18px; color: #4A5275; font-size: 12px; line-height: 1.5; } .tfx-steps b { color: #23305E; }
+.tfx-sw { position: relative; display: flex; margin: 4px 12px 6px; background: #E9EDF6; border-radius: 999px; padding: 3px; }
+.tfx-sw::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); background: #23305E; border-radius: 999px; box-shadow: 0 2px 6px rgba(35,48,94,.25); transition: transform .25s ease; }
+.tfx-sw[data-m=gui]::before { transform: translateX(100%); }
+.tfx-sw button { all: unset; flex: 1; position: relative; z-index: 1; text-align: center; font-size: 12px; font-weight: 700; padding: 7px 4px; color: #4A5275; cursor: pointer; border-radius: 999px; transition: color .2s; }
+.tfx-sw button.on { color: #fff; } .tfx-sw button:focus-visible { outline: 2px solid #2E7DD7; outline-offset: 1px; }
+.tfx-if { display: block; width: 100%; height: 150px; border: 0; background: transparent; color-scheme: normal; }
 .tfx-tip { margin: 4px 12px 0; font-size: 10.5px; font-style: italic; color: #8A90A8; line-height: 1.35; }
 .tfx-slo { margin: -2px 12px 2px; text-align: center; font-size: 12px; font-style: italic; font-weight: 700; color: #2E7DD7; }
 .tfx-slo { margin: -2px 12px 2px; text-align: center; font-size: 12px; font-style: italic; font-weight: 700; color: #2E7DD7; }
@@ -6899,11 +6905,30 @@
     V.append(L);
   }
   // ---------- 📲 HaoHao Transfer (1.10.195): dùng app ChuyenAnh-iPhone (.exe, cổng 8686) chạy trên máy ----------
+  let tfMode = 'nhan';   // V1.48: thanh trượt 📥 iPhone → Máy tính / 📤 Máy tính → iPhone
   function renderTransfer(V) {
-    const L = el('div', 'body-list tfx'); V.append(el('div', 'tfx-slo', 'iPhone nhẹ tênh, kỷ niệm vẫn còn nguyên'), L);
+    const L = el('div', 'body-list tfx'), SW = el('div', 'tfx-sw'), S = el('div', 'tfx-send');
+    const bN = el('button', '', '📥 iPhone → Máy tính'), bG = el('button', '', '📤 Máy tính → iPhone');
+    bN.type = bG.type = 'button'; SW.setAttribute('role', 'tablist'); SW.append(bN, bG); SW.style.display = 'none'; S.style.display = 'none';
+    V.append(el('div', 'tfx-slo', 'iPhone nhẹ tênh, kỷ niệm vẫn còn nguyên'), SW, L, S);
+    let ifr = null, canGui = false;
+    const setMode = m => {
+      tfMode = m; SW.dataset.m = m; bN.classList.toggle('on', m === 'nhan'); bG.classList.toggle('on', m === 'gui');
+      bN.setAttribute('aria-selected', m === 'nhan'); bG.setAttribute('aria-selected', m === 'gui');
+      L.style.display = m === 'gui' ? 'none' : ''; S.style.display = m === 'gui' ? '' : 'none';
+      if (m === 'gui' && !ifr) {
+        ifr = document.createElement('iframe'); ifr.className = 'tfx-if'; ifr.title = 'Gửi ảnh/video sang iPhone'; ifr.src = chrome.runtime.getURL('tfgui.html');
+        const onMsg = e => { if (!ifr.isConnected) return window.removeEventListener('message', onMsg); if (e.source === ifr.contentWindow && e.data && e.data.hhTfH) ifr.style.height = e.data.hhTfH + 'px'; };
+        window.addEventListener('message', onMsg); S.append(ifr);
+      }
+    };
+    bN.addEventListener('click', () => setMode('nhan')); bG.addEventListener('click', () => setMode('gui'));
     let lastUrl = '', qrBox = null;
     const draw = r => {
       if (!L.isConnected) return false;
+      canGui = !!(r && r.ok && r.info && r.info.gui);
+      if (canGui) { if (SW.style.display === 'none') { SW.style.display = ''; setMode(tfMode); } }
+      else { SW.style.display = 'none'; S.style.display = 'none'; L.style.display = ''; }
       if (!r || !r.ok) {
         L.replaceChildren();
         L.append(el('div', 'tfx-st off', '⚪ App chuyển ảnh chưa bật'));
@@ -6936,8 +6961,6 @@
         // 1.10.203: quản lý ngay trong HaoHao, không mở trang riêng
         L.append(el('div', 'tfx-tip', 'Mỗi lần chuyển nên dưới 500 ảnh, hoặc 5–10 video (tuỳ dung lượng)'));
         const dir = el('div', 'tfx-dir'); L.append(dir);
-        // V1.46: 📤 gửi ảnh/video từ máy tính sang iPhone (app Transfer bản mới có I.gui)
-        if (I.gui) { const gw = el('div', 'dbtns'); const gb = el('button', 'b', '📤 Gửi ảnh/video sang iPhone'); gb.style.flex = '1'; gb.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'tf-pc', hash: 'gui' })); gw.append(gb); L.append(gw); }
         const row = el('div', 'dbtns');
         const mo = el('button', 'b ghost', '📂 Mở thư mục ảnh'); mo.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'tf-mo' }));
         const doi = el('button', 'b ghost', '🔁 Đổi thư mục lưu'); doi.addEventListener('click', () => { doi.textContent = '⏳ Đang mở hộp chọn…'; chrome.runtime.sendMessage({ type: 'tf-doi' }).then(x => { doi.textContent = x && x.error ? '⚠️ ' + x.error : '🔁 Đổi thư mục lưu'; tick(); }).catch(() => { doi.textContent = '🔁 Đổi thư mục lưu'; }); });

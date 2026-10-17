@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). V1.48: 📤 gửi ảnh/video máy tính → iPhone ngay trong bảng HaoHao -->
+<style>
+html,body{margin:0;background:transparent;font:13px/1.45 "Segoe UI",system-ui,sans-serif;color:#23305E;overflow:hidden}
+*{box-sizing:border-box}
+.wrap{padding:4px 12px 10px}
+.drop{display:flex;flex-direction:column;align-items:center;gap:6px;border:1.5px dashed #B9C2DD;border-radius:14px;padding:14px 10px;background:#fff;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:#2E7DD7;background:#F3F8FF}
+.drop b{font-size:13.5px}.drop small{color:#6B7394;font-size:11.5px}
+.btn{all:unset;cursor:pointer;background:#23305E;color:#fff;font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:10px}
+.btn:focus-visible{outline:2px solid #2E7DD7;outline-offset:2px}
+.st{margin-top:8px;font-size:12px;color:#4A5275;font-weight:600}
+.bar{height:6px;background:#E3E7F2;border-radius:3px;overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;width:0;background:#2E7DD7;transition:width .2s}
+.qr{display:flex;gap:10px;align-items:center;margin-top:10px;background:#fff;border:1px solid #E3E7F2;border-radius:14px;padding:10px}
+.qr .c{flex:none;width:120px;height:120px}.qr .c svg{width:120px;height:120px;display:block}
+.qr .t{min-width:0}.qr .t b{display:block;font-size:13px}.qr .t small{display:block;color:#6B7394;font-size:11.5px;margin-top:2px}
+.ls{margin-top:6px;font-size:11.5px;color:#23305E;word-break:break-word}
+.lk{all:unset;cursor:pointer;color:#2E7DD7;font-size:11.5px;font-weight:700;margin-top:6px;display:inline-block}
+.err{color:#C2410C}
+[hidden]{display:none!important}
+</style></head><body>
+<div class="wrap">
+  <input type="file" id="f" multiple accept="image/*,video/*" hidden>
+  <div class="drop" id="d" role="button" tabindex="0" aria-label="Chọn ảnh hoặc video để gửi sang iPhone">
+    <b>📤 Gửi ảnh / video sang iPhone</b>
+    <small>Chọn 1 video hoặc vài ảnh – hoặc kéo thả file vào đây</small>
+    <span class="btn" aria-hidden="true">Chọn file</span>
+  </div>
+  <div id="p" hidden><div class="st" id="t"></div><div class="bar"><i id="b"></i></div></div>
+  <div class="qr" id="q" hidden>
+    <div class="c" id="qc" aria-label="Mã QR để iPhone nhận file"></div>
+    <div class="t"><b>iPhone quét mã bằng Camera</b><small>Cùng Wi-Fi với máy tính. Mở ra bấm ⬇️ Tải về từng file.</small>
+      <div class="ls" id="l"></div><button class="lk" id="x" type="button">✕ Xoá danh sách đã gửi</button></div>
+  </div>
+</div>
+<script src="tfgui.js"></script>
+</body></html>
