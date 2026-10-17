@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.40** (số kỹ thuật 1.10.296)
+Cập nhật: 17/10/2026 · **Bản V1.41** (số kỹ thuật 1.10.297)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.41 (1.10.297) | Tổng quan bỏ 3 số 0 cuối: mọi số VND trong trang Tổng quan (ô số, biểu đồ, rê chuột, theo mảng, top dự án, chi lớn) hiện theo nghìn đồng, vd `+2.600.350k` (hàm `fmtK`). Dòng tỷ giá và bảng dự án vẫn hiện đủ số. |
 | V1.40 (1.10.296) | **Tự quy USDT ra VND**: tỷ giá CoinGecko `tether/vnd` (lưu `usdtVnd`, làm mới 6 giờ; lỗi thì lấy `gold.xau.vnd`, cuối cùng 26.000) – hàm `loadRate`, `toVnd`, `sumV`. Tổng quan thành 1 bảng VND duy nhất (bỏ nút VND/USDT), có dòng "💱 Đã quy USDT ra VND · 1 USDT ≈ …"; khoản chi USDT ghi kèm số $ gốc. Dòng Tổng bảng dự án cũng 1 dòng VND ("≈" khi có USDT, rê chuột xem tỷ giá). Từng dự án / mục 0 vẫn giữ đơn vị riêng. |
 | V1.39 (1.10.295) | Bỏ dòng "Lãi/lỗ" trên các thẻ mảng và thẻ Tổng quan (chỉ còn tên + số dự án). Trang Tổng quan thu nhỏ: ô số chữ 18px, khung đệm nhỏ hơn, biểu đồ thấp hơn (VH 190), danh sách chữ 12.5px. |
 | V1.38 (1.10.294) | Thẻ **📊 Tổng quan** đứng đầu hàng mảng (`data.cur = '$all'`, hàm `overview`): chọn kỳ Tuần / Tháng / Năm / Tất cả + ‹ › lùi tới, chọn VND / USDT; 4 ô Tổng thu · Tổng chi · Lợi nhuận · Tỷ suất lãi (lãi/chi); biểu đồ SVG cột Thu (xanh #2F6FD6) – Chi (cam #C8641E, cặp màu đã chạy kiểm tra mù màu) theo ngày / tháng + đường lợi nhuận cộng dồn (không vẽ phần ngày chưa tới), rê chuột hiện số; Lợi nhuận theo mảng (thanh ngang); Top 3 dự án lời / lỗ (bấm mở mục 0 của dự án); 5 khoản chi lớn nhất; Sắp tới hạn 7 ngày (dự án trễ / sắp hết hạn + lịch ⏰). Số theo kỳ lấy từ khoản thu / chi có ngày ở mục 0; kỳ Tất cả cộng thêm vốn / lãi gõ tay. |
