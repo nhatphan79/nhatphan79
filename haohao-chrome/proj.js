@@ -262,8 +262,6 @@
       for (const k of ['thu', 'chi']) for (const x of (p.money[k] || [])) if (x.v) out.push({ k, v: toVnd(x.v, c), raw: Number(x.v), d: x.d || '', t: x.t || '', p, c }); }
     return out;
   }
-  // V1.41: Tổng quan bỏ 3 số 0 cuối – VND hiện theo nghìn đồng (2.600.350k)
-  const fmtK = (n, c, sign) => { const v = Math.round((Number(n) || 0) / 1000), sg = sign && v > 0 ? '+' : v < 0 ? '-' : ''; return sg + Math.abs(v).toLocaleString('vi-VN') + 'k'; };
   function overview(W) {
     areaBar(W);
     const R = ovRange(), all = ovEntries();
@@ -292,8 +290,8 @@
     // 1) 4 ô số
     const k4 = $('div', 'pj-kpis');
     const kp = (lb, v, cls, sub) => { const d = $('div', 'pj-kpi ' + (cls || '')); d.append($('span', '', lb), $('b', '', v)); if (sub) d.append($('small', '', sub)); k4.append(d); };
-    kp('Tổng thu', fmtK(thu, cu), 'thu'); kp('Tổng chi', fmtK(chi, cu), 'chi');
-    kp(loi < 0 ? 'Lỗ' : 'Lợi nhuận', fmtK(loi, cu, true), 'loi' + (loi > 0 ? ' pos' : loi < 0 ? ' neg' : ''), R.label);
+    kp('Tổng thu', fmtC(thu, cu), 'thu'); kp('Tổng chi', fmtC(chi, cu), 'chi');
+    kp(loi < 0 ? 'Lỗ' : 'Lợi nhuận', fmtC(loi, cu, true), 'loi' + (loi > 0 ? ' pos' : loi < 0 ? ' neg' : ''), R.label);
     kp('Tỷ suất lãi', ty == null ? '–' : (ty > 0 ? '+' : '') + ty.toLocaleString('vi-VN') + '%', 'ty' + (ty > 0 ? ' pos' : ty < 0 ? ' neg' : ''), 'lợi nhuận / chi');
     W.append(k4);
     if (!E.length && !manual.length) W.append($('div', 'pj-empty pj-nempty', 'Chưa có khoản thu / chi nào trong kỳ này. Ghi thu / chi ở mục 0. Vốn đầu tư của từng dự án để biểu đồ hiện số.'));
@@ -313,7 +311,7 @@
     const nice = v => { if (v <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
     const step = nice((mx - mn) / 4) || 1, top0 = Math.ceil(mx / step) * step, bot0 = Math.floor(mn / step) * step, Y = v => PT + (top0 - v) / (top0 - bot0) * ih;   // vạch chia tròn, luôn có vạch 0
     const NS = 'http://www.w3.org/2000/svg', sv = document.createElementNS(NS, 'svg'); sv.setAttribute('viewBox', `0 0 ${VW} ${VH}`); sv.setAttribute('class', 'pj-chart'); sv.setAttribute('role', 'img');
-    sv.setAttribute('aria-label', `Biểu đồ thu chi ${R.label}: thu ${fmtK(thu, cu)}, chi ${fmtK(chi, cu)}, lợi nhuận ${fmtK(loi, cu, true)}`);
+    sv.setAttribute('aria-label', `Biểu đồ thu chi ${R.label}: thu ${fmtC(thu, cu)}, chi ${fmtC(chi, cu)}, lợi nhuận ${fmtC(loi, cu, true)}`);
     const el2 = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); sv.append(e); return e; };
     const short = v => { const a = Math.abs(v), s = v < 0 ? '-' : ''; if (cu === 'usdt') return s + '$' + (a >= 1e6 ? (a / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (a / 1e3).toFixed(1).replace(/\.0$/, '') + 'k' : a.toFixed(0)); return s + (a >= 1e9 ? (a / 1e9).toFixed(1).replace(/\.0$/, '') + ' tỷ' : a >= 1e6 ? (a / 1e6).toFixed(1).replace(/\.0$/, '') + 'tr' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : a); };
     for (let v = bot0; v <= top0 + step / 2; v += step) { const y = Y(v); el2('line', { x1: PL, x2: VW - PR, y1: y, y2: y, class: v === 0 ? 'zero' : 'grid' }); const t = el2('text', { x: PL - 8, y: y + 4, class: 'ax', 'text-anchor': 'end' }); t.textContent = short(v); }
@@ -333,7 +331,7 @@
     const wrap = $('div', 'pj-chartw'); wrap.append(sv, tip); card.append(wrap);
     sv.addEventListener('mousemove', e => { const r = sv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * VW, i = Math.floor((x - PL) / bw); if (i < 0 || i >= B.length) { tip.hidden = true; hl.setAttribute('opacity', 0); return; }
       const b = B[i]; hl.setAttribute('x', PL + bw * i); hl.setAttribute('opacity', 1); tip.hidden = false;
-      tip.replaceChildren($('b', '', b.full), $('div', 'r t', 'Thu ' + fmtK(b.thu, cu)), $('div', 'r c', 'Chi ' + fmtK(b.chi, cu)), $('div', 'r l', 'Lãi trong ' + (b.m ? 'tháng ' : 'ngày ') + fmtK(b.thu - b.chi, cu, true)), ...(b.fut ? [] : [$('div', 'r m', 'Cộng dồn ' + fmtK(b.cum, cu, true))]));
+      tip.replaceChildren($('b', '', b.full), $('div', 'r t', 'Thu ' + fmtC(b.thu, cu)), $('div', 'r c', 'Chi ' + fmtC(b.chi, cu)), $('div', 'r l', 'Lãi trong ' + (b.m ? 'tháng ' : 'ngày ') + fmtC(b.thu - b.chi, cu, true)), ...(b.fut ? [] : [$('div', 'r m', 'Cộng dồn ' + fmtC(b.cum, cu, true))]));
       const px = (PL + bw * i + bw / 2) / VW * r.width; tip.style.left = Math.min(Math.max(px, 90), r.width - 90) + 'px'; });
     sv.addEventListener('mouseleave', () => { tip.hidden = true; hl.setAttribute('opacity', 0); });
     W.append(card);
@@ -347,17 +345,17 @@
     if (!areaL.length) c1.append($('div', 'pj-ovn', 'Chưa có số trong kỳ'));
     const am = Math.max(1, ...areaL.map(x => Math.abs(x.v)));
     areaL.sort((x, y) => y.v - x.v).forEach(({ a, v }) => { const r = $('div', 'pj-hb'), bb = $('div', 'pj-hbb'), f = $('i'); f.style.width = Math.abs(v) / am * 100 + '%'; f.style.background = v >= 0 ? C_THU : C_CHI; bb.append(f);
-      r.append($('span', 'n', a.icon + ' ' + a.name), bb, $('b', v > 0 ? 'pos' : v < 0 ? 'neg' : '', fmtK(v, cu, true))); c1.append(r); });
+      r.append($('span', 'n', a.icon + ' ' + a.name), bb, $('b', v > 0 ? 'pos' : v < 0 ? 'neg' : '', fmtC(v, cu, true))); c1.append(r); });
     const c2 = $('div', 'pj-ovc'); c2.append($('div', 'pj-ovh', 'Dự án lời / lỗ nhiều nhất'));
     const PR2 = [...byP.entries()].map(([p, o]) => ({ p, v: o.thu - o.chi })).filter(x => x.v);
     const win = PR2.filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 3), lose = PR2.filter(x => x.v < 0).sort((a, b) => a.v - b.v).slice(0, 3);
-    const li = (x, cls) => { const r = $('button', 'pj-li'); r.append($('span', '', x.p.name || '(chưa đặt tên)'), $('b', cls, fmtK(x.v, cu, true))); r.addEventListener('click', () => { data.cur = x.p.area; openId = x.p.id; openFolder = MONEY; save(); render(true); window.scrollTo({ top: 0 }); }); return r; };
+    const li = (x, cls) => { const r = $('button', 'pj-li'); r.append($('span', '', x.p.name || '(chưa đặt tên)'), $('b', cls, fmtC(x.v, cu, true))); r.addEventListener('click', () => { data.cur = x.p.area; openId = x.p.id; openFolder = MONEY; save(); render(true); window.scrollTo({ top: 0 }); }); return r; };
     c2.append($('div', 'pj-ovs', '🏆 Lời nhiều nhất')); if (win.length) win.forEach(x => c2.append(li(x, 'pos'))); else c2.append($('div', 'pj-ovn', '–'));
     c2.append($('div', 'pj-ovs', '⚠ Lỗ nhiều nhất')); if (lose.length) lose.forEach(x => c2.append(li(x, 'neg'))); else c2.append($('div', 'pj-ovn', 'Không có dự án lỗ 👍'));
     const c3 = $('div', 'pj-ovc'); c3.append($('div', 'pj-ovh', '5 khoản chi lớn nhất'));
     const big = E.filter(x => x.k === 'chi').sort((a, b) => b.v - a.v).slice(0, 5);
     if (!big.length) c3.append($('div', 'pj-ovn', 'Chưa có khoản chi trong kỳ'));
-    big.forEach(x => { const r = $('div', 'pj-li st'); const l = $('span'); l.append(x.t || '(không ghi nội dung)', $('small', '', (x.d ? new Date(x.d + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ' · ' : '') + (x.p.name || ''))); r.append(l, $('b', 'neg', fmtK(x.v, cu) + (x.c === 'usdt' ? ' ($' + x.raw.toLocaleString('en-US') + ')' : ''))); c3.append(r); });
+    big.forEach(x => { const r = $('div', 'pj-li st'); const l = $('span'); l.append(x.t || '(không ghi nội dung)', $('small', '', (x.d ? new Date(x.d + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ' · ' : '') + (x.p.name || ''))); r.append(l, $('b', 'neg', fmtC(x.v, cu) + (x.c === 'usdt' ? ' ($' + x.raw.toLocaleString('en-US') + ')' : ''))); c3.append(r); });
     const c4 = $('div', 'pj-ovc'); c4.append($('div', 'pj-ovh', 'Sắp tới hạn · 7 ngày'));
     const T = today(), T7 = ymd(Date.now() + 7 * 864e5), items = [];
     data.projects.forEach(p => { if (p.due && p.col !== 'done' && p.due <= T7) items.push({ at: p.due, t: (p.due < T ? '🔴 Trễ hạn · ' : '📅 Hết hạn · ') + (p.name || ''), w: fmt(p.due), p }); });

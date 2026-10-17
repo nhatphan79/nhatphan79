@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.41** (số kỹ thuật 1.10.297)
+Cập nhật: 17/10/2026 · **Bản V1.42** (số kỹ thuật 1.10.298)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.42 (1.10.298) | Trả về như V1.40 theo ý anh Nhật: Tổng quan hiện đủ số VND (`+2.600.350.000 ₫`), bỏ kiểu nghìn đồng của V1.41. Chỉ tăng số bản để HaoHao tự nạp lại. |
 | V1.41 (1.10.297) | Tổng quan bỏ 3 số 0 cuối: mọi số VND trong trang Tổng quan (ô số, biểu đồ, rê chuột, theo mảng, top dự án, chi lớn) hiện theo nghìn đồng, vd `+2.600.350k` (hàm `fmtK`). Dòng tỷ giá và bảng dự án vẫn hiện đủ số. |
 | V1.40 (1.10.296) | **Tự quy USDT ra VND**: tỷ giá CoinGecko `tether/vnd` (lưu `usdtVnd`, làm mới 6 giờ; lỗi thì lấy `gold.xau.vnd`, cuối cùng 26.000) – hàm `loadRate`, `toVnd`, `sumV`. Tổng quan thành 1 bảng VND duy nhất (bỏ nút VND/USDT), có dòng "💱 Đã quy USDT ra VND · 1 USDT ≈ …"; khoản chi USDT ghi kèm số $ gốc. Dòng Tổng bảng dự án cũng 1 dòng VND ("≈" khi có USDT, rê chuột xem tỷ giá). Từng dự án / mục 0 vẫn giữ đơn vị riêng. |
 | V1.39 (1.10.295) | Bỏ dòng "Lãi/lỗ" trên các thẻ mảng và thẻ Tổng quan (chỉ còn tên + số dự án). Trang Tổng quan thu nhỏ: ô số chữ 18px, khung đệm nhỏ hơn, biểu đồ thấp hơn (VH 190), danh sách chữ 12.5px. |
