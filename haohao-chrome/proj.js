@@ -288,7 +288,7 @@
     const loi = thu - chi, ty = chi ? Math.round(loi / chi * 1000) / 10 : null;
 
     // thanh điều khiển: kỳ · ‹ nhãn › · đơn vị
-    const top = $('div', 'pj-top pj-atop'), h = $('h1'); h.append($('span', 'hi', '📊'), 'Tổng quan'); h.style.setProperty('--ac', '#3B6FD8'); top.append(h);
+    const top = $('div', 'pj-top pj-atop'), h = $('div', 'pj-sp'); top.append(h);   // V1.45: bỏ tiêu đề (thẻ phía trên đã ghi)
     const ctl = $('div', 'pj-ovctl');
     const seg = $('div', 'pj-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Kỳ xem');
     [['week', 'Tuần'], ['month', 'Tháng'], ['year', 'Năm'], ['all', 'Tất cả']].forEach(([k, lb]) => { const b = $('button', ovPer === k ? 'on' : '', lb); b.setAttribute('aria-pressed', ovPer === k); b.addEventListener('click', () => { ovPer = k; ovOff = 0; render(true); }); seg.append(b); });
@@ -384,7 +384,7 @@
     if (!A) { const e = $('div', 'pj-empty pj-nempty', 'Chưa có mảng nào · bấm ＋ Thêm mảng để chọn mẫu Xây dựng nhà phố, APP HaoHao, Trade, Airdrop hoặc tự đặt tên.'); W.append(e); return; }
     const PL = data.projects.filter(p => p.area === A.id);
     const top = $('div', 'pj-top pj-atop'), add = $('button', 'pj-btn', '＋ Dự án mới'); add.addEventListener('click', newProject);
-    const h = $('h1'); h.append($('span', 'hi', A.icon), A.name); h.style.setProperty('--ac', A.color);
+    const h = $('div', 'pj-sp');   // V1.45: bỏ dòng tiêu đề tên mảng – thẻ mảng phía trên đã ghi
     top.append(h);
     {   // V1.36: mảng nào cũng đổi tên / xoá được (chỉ xoá khi trống)
       const ed = $('button', 'pj-x', '✏️ Đổi tên'); ed.addEventListener('click', () => {

@@ -420,3 +420,4 @@
 .pj-ovc { margin-bottom: 8px; }
 .pj-chart { max-height: 30vh; }
 @media (max-height: 640px) { .proj { overflow: auto; height: auto; } .pj-wrap { height: auto; } }
+.pj-atop .pj-sp { flex: 1; } .pj-atop .pj-ren { max-width: 280px; }
