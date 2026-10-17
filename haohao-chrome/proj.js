@@ -262,6 +262,28 @@
     if (i < s.length) el.append(s.slice(i));
   }
   const toast = t => { let el = root.querySelector('.pj-toast'); if (!el) { el = $('div', 'pj-toast'); el.setAttribute('role', 'status'); root.append(el); } el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 3200); };
+  // V1.33: 📁 đường dẫn trên máy (D:\…) → mở thư mục trong tab Chrome (file:///…). Chrome chưa cho HaoHao đọc file trên máy
+  //        thì hiện bảng hướng dẫn bật "Cho phép truy cập vào URL tệp" kèm nút mở thẳng trang cài đặt của HaoHao.
+  const fileUrl = v => 'file:///' + v.trim().replace(/^file:\/+/i, '').replace(/\\/g, '/').split('/').map(x => encodeURIComponent(x).replace(/%3A/gi, ':')).join('/') + (/[\\/]$/.test(v.trim()) ? '' : '/');
+  const fileOk = () => new Promise(res => { try { chrome.extension.isAllowedFileSchemeAccess(ok => res(!!ok)); } catch { res(false); } });
+  async function openDir(v) {
+    if (await fileOk()) { chrome.tabs.create({ url: fileUrl(v) }).catch(() => toast('⚠ Không mở được thư mục này – kiểm tra lại đường dẫn')); return; }
+    try { await navigator.clipboard.writeText(v); } catch {}
+    root.querySelectorAll('.pj-need').forEach(x => x.remove());
+    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Cần bật quyền mở thư mục');
+    const ext = 'chrome://extensions/?id=' + chrome.runtime.id;
+    const go = $('button', 'pj-btn', '⚙️ Mở trang cài đặt HaoHao'); go.addEventListener('click', () => { chrome.tabs.create({ url: ext }).catch(() => {}); bg.remove(); });
+    const x = $('button', 'pj-btn ghost', 'Để sau'); x.addEventListener('click', () => bg.remove());
+    const st = $('ol', 'pj-needs');
+    [['Bấm nút ', '⚙️ Mở trang cài đặt HaoHao', ' bên dưới.'], ['Kéo xuống, bật ', 'Cho phép truy cập vào URL tệp', ' (Allow access to file URLs).'], ['Quay lại đây, bấm ', '📁', ' lần nữa là thư mục mở ra.']]
+      .forEach(([a, b, c]) => { const li = $('li'); li.append(a, $('b', '', b), c); st.append(li); });
+    const lk = $('code', 'pj-needl', ext);
+    cd.append($('div', 'pj-needt', '📁 Cần bật 1 lần để mở thư mục'), st, $('div', 'pj-needn', 'Hoặc dán link này vào thanh địa chỉ Chrome:'), lk,
+      $('div', 'pj-needn', 'Đường dẫn thư mục đã được chép sẵn – muốn mở bằng File Explorer thì bấm Win + E, Ctrl + L, Ctrl + V.'));
+    const row = $('div', 'pj-needb'); row.append(x, go); cd.append(row); bg.append(cd);
+    bg.addEventListener('click', e => { if (e.target === bg) bg.remove(); });
+    root.append(bg); go.focus();
+  }
   const grow = ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
 
   // V1.30: 💰 mục 0. Vốn đầu tư – 3 ô tổng (Thu · Chi = vốn · Lãi/lỗ) + 2 bảng Nguồn thu / Nguồn chi (Ngày · Nội dung · Số tiền)
@@ -393,11 +415,7 @@
           c.replaceChildren(); const v = (r[key] || '').trim(); if (blankRow()) return;
           if (!v) { const a = $('button', 'pj-chip add', '＋'); a.title = key === 'link' ? 'Dán link' : 'Dán link thư mục Drive hoặc đường dẫn trên máy (D:\\...)'; a.addEventListener('click', edit); c.append(a); return; }
           const ic = key === 'link' ? '🔗' : '📁', b = $('button', 'pj-chip', ic); b.title = v;
-          b.addEventListener('click', async () => {
-            if (isUrl(v)) { window.open(/^https?:/i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); return; }
-            try { await navigator.clipboard.writeText(v); } catch {}
-            toast('📋 Đã chép đường dẫn – dán vào File Explorer (Win + E, Ctrl + L, Ctrl + V)');
-          });
+          b.addEventListener('click', () => { if (isUrl(v)) window.open(/^https?:/i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); else openDir(v); });
           const e = $('button', 'pj-chip ed', '✏️'); e.title = 'Sửa'; e.addEventListener('click', edit);
           c.append(b, e);
         };

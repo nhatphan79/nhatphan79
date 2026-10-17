@@ -258,3 +258,11 @@
 .pj-site.add .ic { background: #F4F5F8; border: 1.5px dashed #CBD0DA; box-shadow: none; font-weight: 500; }
 .pj-qlf { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
 .pj-qlf .pj-in { width: 220px; } .pj-qlf[hidden] { display: none; }
+/* V1.33: bảng "cần bật quyền" khi mở thư mục trên máy */
+.pj-need { position: fixed; inset: 0; background: rgba(20,28,56,.35); display: grid; place-items: center; z-index: 60; padding: 16px; }
+.pj-needc { background: #fff; border-radius: 16px; padding: 22px 24px; width: min(460px, 100%); box-shadow: 0 24px 60px rgba(20,28,56,.25); }
+.pj-needt { font-size: 18px; font-weight: 800; color: var(--pj-ink); margin-bottom: 10px; }
+.pj-needs { margin: 0 0 12px; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #39425F; } .pj-needs b { color: var(--pj-ink); }
+.pj-needn { font-size: 12.5px; color: var(--pj-soft); margin: 8px 0 4px; }
+.pj-needl { display: block; font-size: 12.5px; background: #F4F5F8; border-radius: 8px; padding: 7px 10px; color: #1A56B8; user-select: all; word-break: break-all; }
+.pj-needb { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
