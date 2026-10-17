@@ -25,8 +25,21 @@
   const newFolder = n => ({ id: uid(), name: n, rows: [] });
 
   // V1.22: chuyển dữ liệu cũ (việc cần làm / ghi chú / link) vào bảng – không mất gì
+  // V1.26: 5 mảng chính – 4 mảng cố định + mảng tự thêm (tên tuỳ ý)
+  const AREAS0 = [
+    { id: 'house', name: 'Xây dựng nhà phố', icon: '🏠', color: '#D9822B' },
+    { id: 'app', name: 'APP HaoHao', icon: '🐹', color: '#E0A100' },
+    { id: 'trade', name: 'Trade', icon: '📈', color: '#2E8B57' },
+    { id: 'air', name: 'Airdrop', icon: '🪂', color: '#3B6FD8' }];
+  const FREE_COLORS = ['#8B5CF6', '#DB2777', '#0D9488', '#64748B', '#B45309'];
+  const areas = () => data.areas;
+  const curArea = () => areas().find(a => a.id === data.cur) || areas()[0];
   function migrate() {
     let ch = false;
+    if (!Array.isArray(data.areas) || !data.areas.length) { data.areas = AREAS0.map(a => ({ ...a })); ch = true; }
+    for (const a of AREAS0) if (!data.areas.some(x => x.id === a.id)) { data.areas.splice(AREAS0.indexOf(a), 0, { ...a }); ch = true; }
+    if (!data.cur || !data.areas.some(a => a.id === data.cur)) { data.cur = data.areas[0].id; ch = true; }
+    for (const p of data.projects) if (!p.area || !data.areas.some(a => a.id === p.area)) { p.area = /hao\s*hao/i.test(p.name || '') ? 'app' : data.cur; ch = true; }
     for (const p of data.projects) {
       if (!Array.isArray(p.folders)) { p.folders = []; ch = true; }
       if (p.start == null) { p.start = ''; ch = true; }
@@ -42,7 +55,7 @@
   }
 
   function newProject() {
-    const p = { id: uid(), name: 'Dự án mới', col: 'doing', start: today(), due: '', at: Date.now(), folders: [newFolder('Việc chính')] };
+    const p = { id: uid(), name: 'Dự án mới', area: curArea().id, col: 'doing', start: today(), due: '', at: Date.now(), folders: [newFolder('Việc chính')] };
     data.projects.unshift(p); save(); openId = p.id; openFolder = p.folders[0].id; render(true);
     setTimeout(() => { const n = root.querySelector('.pj-name'); if (n) { n.focus(); n.select(); } }, 30);
   }
@@ -76,14 +89,54 @@
     return i;
   }
   let updTotal = () => {};
+  const sum = (L, k) => L.reduce((a, p) => a + (Number(p[k]) || 0), 0);
+  function areaBar(W) {
+    const bar = $('div', 'pj-areas'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', 'Các mảng dự án');
+    areas().forEach(a => {
+      const L = data.projects.filter(p => p.area === a.id), on = a.id === curArea().id, lai = sum(L, 'lai');
+      const t = $('button', 'pj-area' + (on ? ' on' : '')); t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', on); t.style.setProperty('--ac', a.color);
+      const ic = $('span', 'ai', a.icon), tx = $('div', 'at');
+      tx.append($('b', '', a.name), $('small', '', L.length + ' dự án · ' + L.filter(p => p.col === 'doing').length + ' đang làm'));
+      if (lai) tx.append($('span', 'al' + (lai > 0 ? ' pos' : ' neg'), (lai > 0 ? 'Lãi +' : 'Lỗ ') + money(lai)));
+      t.append(ic, tx);
+      t.addEventListener('click', () => { if (data.cur !== a.id) { data.cur = a.id; save(); render(true); } });
+      bar.append(t);
+    });
+    // mảng 5: tự thêm, tên tuỳ ý
+    const nw = $('button', 'pj-area add'); nw.append($('span', 'ai', '＋'), $('div', 'at', ''));
+    nw.querySelector('.at').append($('b', '', 'Thêm mảng'), $('small', '', 'Đặt tên tự do'));
+    nw.addEventListener('click', () => {
+      const box = $('div', 'pj-area add ed'), inp = $('input', 'pj-in'); inp.placeholder = 'Tên mảng mới…'; inp.setAttribute('aria-label', 'Tên mảng mới');
+      let done = false; const ok = keep => { if (done) return; done = true; const n = inp.value.trim();
+        if (keep && n) { const id = 'a' + uid(), k = data.areas.length - AREAS0.length; data.areas.push({ id, name: n, icon: '📁', color: FREE_COLORS[k % FREE_COLORS.length], free: true }); data.cur = id; save(); }
+        render(true); };
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); inp.addEventListener('blur', () => ok(true));
+      box.append(inp); nw.replaceWith(box); inp.focus();
+    });
+    bar.append(nw); W.append(bar);
+  }
   function board(W) {
-    const top = $('div', 'pj-top'), add = $('button', 'pj-btn', '＋ Dự án mới'); add.addEventListener('click', newProject);
-    top.append($('h1', '', 'Dự án đang làm'), add); W.append(top);
+    areaBar(W);
+    const A = curArea(), PL = data.projects.filter(p => p.area === A.id);
+    const top = $('div', 'pj-top pj-atop'), add = $('button', 'pj-btn', '＋ Dự án mới'); add.addEventListener('click', newProject);
+    const h = $('h1'); h.append($('span', 'hi', A.icon), A.name); h.style.setProperty('--ac', A.color);
+    top.append(h);
+    if (A.free) {   // mảng tự thêm: đổi tên / xoá (chỉ xoá khi trống)
+      const ed = $('button', 'pj-x', '✏️ Đổi tên'); ed.addEventListener('click', () => {
+        const inp = $('input', 'pj-in pj-ren'); inp.value = A.name; let done = false;
+        const ok = keep => { if (done) return; done = true; const n = inp.value.trim(); if (keep && n) { A.name = n; save(); } render(true); };
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); inp.addEventListener('blur', () => ok(true));
+        h.replaceWith(inp); inp.focus(); inp.select(); });
+      const dl = $('button', 'pj-x', '🗑 Xoá mảng'); dl.disabled = PL.length > 0; dl.title = PL.length ? 'Chuyển hoặc xoá hết dự án trong mảng trước' : 'Xoá mảng này';
+      dl.addEventListener('click', () => { if (PL.length) return; data.areas = data.areas.filter(x => x !== A); data.cur = data.areas[0].id; save(); render(true); });
+      top.append(ed, dl);
+    }
+    top.append(add); W.append(top);
     const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh sách dự án');
     const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
     ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ'].forEach(t => hd.append($('div', 'c', t)));
     T.append(hd);
-    data.projects.forEach((p, i) => {
+    PL.forEach((p, i) => {
       const r = $('div', 'pj-lr st-' + p.col); r.setAttribute('role', 'row');
       const no = $('div', 'c c-no', String(i + 1));
       const nmc = $('div', 'c c-nm'), nb = $('button', 'pj-open', p.name || '(chưa đặt tên)'); nb.title = 'Mở dự án';
@@ -98,12 +151,12 @@
       const vc = $('div', 'c'), lc = $('div', 'c'); vc.append(moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai'));
       r.append(no, nmc, ds, de, pc, sc, vc, lc); T.append(r);
     });
-    if (!data.projects.length) T.append($('div', 'pj-empty', 'Bấm ＋ Dự án mới để bắt đầu'));
+    if (!PL.length) T.append($('div', 'pj-empty', 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
     else {
       const ft = $('div', 'pj-lr ft'), tv = $('div', 'c c-sum'), tl = $('div', 'c c-sum');
       ft.append($('div', 'c'), $('div', 'c', 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl);
       updTotal = () => {
-        const sv = data.projects.reduce((a, p) => a + (Number(p.von) || 0), 0), sl = data.projects.reduce((a, p) => a + (Number(p.lai) || 0), 0);
+        const sv = sum(PL, 'von'), sl = sum(PL, 'lai');
         tv.textContent = money(sv) || '0'; tl.textContent = (sl > 0 ? '+' : '') + (money(sl) || '0'); tl.className = 'c c-sum' + (sl > 0 ? ' pos' : sl < 0 ? ' neg' : '');
       };
       updTotal(); T.append(ft);
@@ -129,7 +182,10 @@
     back.addEventListener('click', () => { openId = null; render(true); });
     const del = $('button', 'pj-x', '🗑 Xoá dự án'); let armed = false;
     del.addEventListener('click', () => { if (!armed) { armed = true; del.textContent = 'Bấm lần nữa để xoá hẳn'; setTimeout(() => { armed = false; del.textContent = '🗑 Xoá dự án'; }, 3000); return; } data.projects = data.projects.filter(x => x !== p); save(); openId = null; render(true); });
-    const sp = $('div'); sp.style.flex = '1'; top.append(back, sp, del); W.append(top);
+    // V1.26: chuyển dự án sang mảng khác
+    const am = $('select', 'pj-st pj-amove'); am.setAttribute('aria-label', 'Mảng'); areas().forEach(a => { const o = $('option', '', a.icon + ' ' + a.name); o.value = a.id; o.selected = a.id === p.area; am.append(o); });
+    am.addEventListener('change', () => { p.area = am.value; data.cur = am.value; save(); });
+    const sp = $('div'); sp.style.flex = '1'; top.append(back, am, sp, del); W.append(top);
     const D = $('div', 'pj-det'), S = $('div', 'pj-side'), M = $('div', 'pj-main');
     const fld = (lb, el) => { const l = $('label', 'pj-field'); l.append(lb, el); return l; };
     const nm = $('input', 'pj-name'); nm.value = p.name; nm.setAttribute('aria-label', 'Tên dự án');
