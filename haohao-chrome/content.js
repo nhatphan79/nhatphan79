@@ -3298,7 +3298,7 @@
       box.classList.toggle('on', !!(it.pj && sel.value));
       sel.addEventListener('click', e => e.stopPropagation()); sel.addEventListener('keydown', e => e.stopPropagation());
       sel.addEventListener('change', () => noteToProj(it.id, sel.value));
-      box.append(el('span', 'npj-i', it.pj && sel.value ? '📁 Đã lưu:' : '📁'), sel); c.append(box);
+      if (it.pj && sel.value) box.append(el('span', 'npj-i', '📁 Đã lưu:')); box.append(sel); c.append(box);
     }
     const ai = it.ai;
     const shown = aiOpen.has(it.id);
