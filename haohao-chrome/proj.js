@@ -21,8 +21,9 @@
   const pct = p => { const R = rowsOf(p); return R.length ? Math.round(R.filter(r => r.done).length / R.length * 100) : (p.col === 'done' ? 100 : 0); };
   const nextOf = p => { for (const f of p.folders) { const r = (f.rows || []).find(x => !x.done && real(x)); if (r) return r.t.trim() + ' · ' + f.name; } return ''; };
   const proj = () => data.projects.find(p => p.id === openId);
-  const editing = () => { const a = document.activeElement; return a && root.contains(a) && /INPUT|TEXTAREA/.test(a.tagName) && !/checkbox|date/.test(a.type || ''); };
-  const newFolder = n => ({ id: uid(), name: n, rows: [] });
+  const editing = () => { const a = document.activeElement; return a && root.contains(a) && (a.isContentEditable || (/INPUT|TEXTAREA/.test(a.tagName) && !/checkbox|date/.test(a.type || ''))); };
+  const newFolder = n => ({ id: uid(), name: n, rows: [], html: '', v28: 1 });
+  const escH = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
   // V1.22: chuyển dữ liệu cũ (việc cần làm / ghi chú / link) vào bảng – không mất gì
   // V1.26: 5 mảng chính – 4 mảng cố định + mảng tự thêm (tên tuỳ ý)
@@ -49,6 +50,21 @@
         if ((f.note || '').trim()) f.rows.push({ id: uid(), t: 'Ghi chú', note: f.note.trim(), done: false });
         (f.links || []).forEach(l => f.rows.push({ id: uid(), t: l.t || 'Link', note: l.u || '', done: false }));
         delete f.tasks; delete f.note; delete f.links; ch = true;
+      }
+      // V1.28: dòng = việc cần làm + Link + Thư mục; chữ ở cột Lưu ý cũ chuyển xuống note làm việc của thư mục (không mất)
+      for (const f of p.folders) {
+        if (f.v28) continue;
+        let add = '';
+        for (const r of f.rows || []) {
+          const n = (r.note || '').trim(), m = n.match(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/i);
+          if (m && !r.link) r.link = /^https?:/i.test(m[0]) ? m[0] : 'https://' + m[0];
+          const rest = (m ? n.replace(m[0], '') : n).trim();
+          if (r.html && r.html.replace(/<[^>]+>/g, '').trim()) add += `<div><b>${escH(r.t || '')}</b></div>${r.html}`;
+          else if (rest) add += `<div><b>${escH(r.t || '')}:</b> ${escH(rest)}</div>`;
+          delete r.note; delete r.html; delete r.tidyAsked;
+        }
+        if (add) f.html = (f.html || '') + add;
+        f.v28 = 1; ch = true;
       }
     }
     return ch;
@@ -175,6 +191,7 @@
     });
     if (i < s.length) el.append(s.slice(i));
   }
+  const toast = t => { let el = root.querySelector('.pj-toast'); if (!el) { el = $('div', 'pj-toast'); el.setAttribute('role', 'status'); root.append(el); } el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 3200); };
   const grow = ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
 
   function detail(W, p) {
@@ -240,36 +257,97 @@
       fd.addEventListener('click', () => { if (!arm && f.rows.some(real)) { arm = true; fd.textContent = 'Bấm lần nữa để xoá'; setTimeout(() => { arm = false; fd.textContent = 'Xoá thư mục'; }, 3000); return; } delFolder(f); });
       fh.append('📂', fn, fd); M.append(fh);
 
-      const sheet = $('div', 'pj-sheet'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', 'Bảng hạng mục ' + f.name);
-      const hd = $('div', 'pj-r hd'); hd.setAttribute('role', 'row'); hd.append($('div', 'c c-k', '✓'), $('div', 'c', 'Hạng mục con'), $('div', 'c', 'Lưu ý (dán link được)'), $('div', 'c c-x', '')); sheet.append(hd);
+      // V1.28: danh sách việc đánh số · Link · Thư mục (biểu tượng gọn, bấm là mở)
+      const sheet = $('div', 'pj-sheet'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', 'Việc cần làm ' + f.name);
+      const hd = $('div', 'pj-r hd'); hd.setAttribute('role', 'row');
+      hd.append($('div', 'c c-no', 'STT'), $('div', 'c c-k', '✓'), $('div', 'c', 'Việc cần làm'), $('div', 'c c-ln', 'Link'), $('div', 'c c-ln', 'Thư mục'), $('div', 'c c-x', '')); sheet.append(hd);
+      const renum = () => sheet.querySelectorAll('.pj-r:not(.hd)').forEach((tr, i) => { const c = tr.querySelector('.c-no'); if (c) c.textContent = tr.classList.contains('blank') ? '' : i + 1; });
+      // ô Link / Thư mục: có giá trị → biểu tượng bấm mở (✏️ sửa khi rê chuột); trống → ＋ để dán
+      const chipCell = (r, key, blankRow) => {
+        const c = $('div', 'c c-ln'); const isUrl = v => /^(https?:\/\/|www\.)/i.test(v);
+        const show = () => {
+          c.replaceChildren(); const v = (r[key] || '').trim(); if (blankRow()) return;
+          if (!v) { const a = $('button', 'pj-chip add', '＋'); a.title = key === 'link' ? 'Dán link' : 'Dán link thư mục Drive hoặc đường dẫn trên máy (D:\\...)'; a.addEventListener('click', edit); c.append(a); return; }
+          const ic = key === 'link' ? '🔗' : '📁', b = $('button', 'pj-chip', ic); b.title = v;
+          b.addEventListener('click', async () => {
+            if (isUrl(v)) { window.open(/^https?:/i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); return; }
+            try { await navigator.clipboard.writeText(v); } catch {}
+            toast('📋 Đã chép đường dẫn – dán vào File Explorer (Win + E, Ctrl + L, Ctrl + V)');
+          });
+          const e = $('button', 'pj-chip ed', '✏️'); e.title = 'Sửa'; e.addEventListener('click', edit);
+          c.append(b, e);
+        };
+        const edit = () => {
+          const i = $('input', 'pj-chin'); i.value = r[key] || ''; i.placeholder = key === 'link' ? 'Dán link…' : 'Link Drive hoặc D:\\…'; i.setAttribute('aria-label', key === 'link' ? 'Link' : 'Thư mục');
+          let done = false; const ok = keep => { if (done) return; done = true; if (keep) { r[key] = i.value.trim(); save(); } c.classList.remove('editing'); show(); };
+          i.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); i.addEventListener('blur', () => ok(true));
+          c.replaceChildren(i); c.classList.add('editing'); i.focus(); i.select();
+        };
+        c._show = show; show(); return c;
+      };
       const rowEl = (r, blank) => {
         const tr = $('div', 'pj-r' + (blank ? ' blank' : '') + (r.done ? ' done' : '')); tr.setAttribute('role', 'row');
+        const no = $('div', 'c c-no');
         const ck = $('div', 'c c-k'), cb = $('input'); cb.type = 'checkbox'; cb.checked = !!r.done; cb.setAttribute('aria-label', 'Xong'); cb.disabled = blank; ck.append(cb);
-        const ct = $('div', 'c'), ti = $('textarea', 'c-t'); ti.rows = 1; ti.value = r.t || ''; ti.placeholder = blank ? 'Gõ hạng mục mới…' : ''; ti.setAttribute('aria-label', 'Hạng mục con'); ct.append(ti);
-        const cn = $('div', 'c c-n'), nv = $('div', 'nv'), ne = $('textarea', 'c-ne'); ne.rows = 1; ne.value = r.note || ''; ne.setAttribute('aria-label', 'Lưu ý'); ne.hidden = true;
-        linkify(nv, r.note); if (!r.note) nv.append($('span', 'ph', blank ? '' : 'Bấm để ghi lưu ý, dán link…'));
-        cn.append(nv, ne);
-        // V1.24: 📝 mở hạng mục thành note nổi đầy đủ (màu, định dạng, ảnh, link, sắp xếp) – sticky.html?id=pj:…
-        const cx = $('div', 'c c-x'), op = $('button', 'pj-x pj-op', '📝'); op.title = 'Mở thành note'; op.setAttribute('aria-label', 'Mở hạng mục thành note'); op.hidden = blank;
-        op.addEventListener('click', async () => { clearTimeout(st); await save(); chrome.runtime.sendMessage({ type: 'sticky-open', id: 'pj:' + p.id + ':' + f.id + ':' + r.id }).catch(() => {}); });
-        const x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá dòng'); x.hidden = blank; cx.append(op, x);
-        tr.append(ck, ct, cn, cx);
-        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; op.hidden = false; ti.placeholder = ''; sheet.append(rowEl({ id: uid(), t: '', note: '', done: false }, true)); };
+        const ct = $('div', 'c'), ti = $('textarea', 'c-t'); ti.rows = 1; ti.value = r.t || ''; ti.placeholder = blank ? 'Gõ việc mới…' : ''; ti.setAttribute('aria-label', 'Việc cần làm'); ct.append(ti);
+        const lk = chipCell(r, 'link', () => blank), dr = chipCell(r, 'dir', () => blank);
+        const cx = $('div', 'c c-x'), x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá việc'); x.hidden = blank; cx.append(x);
+        tr.append(no, ck, ct, lk, dr, cx);
+        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; ti.placeholder = ''; lk._show(); dr._show(); sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum(); };
         ti.addEventListener('input', () => { grow(ti); if (ti.value.trim()) make(); r.t = ti.value; saveSoon(); updBar(); });
         ti.addEventListener('blur', () => { if (!blank) save(); });
         ti.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const nx = tr.nextElementSibling; (nx ? nx.querySelector('.c-t') : ti).focus(); } });
-        const openNote = () => { nv.hidden = true; ne.hidden = false; grow(ne); ne.focus(); };
-        nv.addEventListener('click', openNote); nv.tabIndex = 0; nv.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); openNote(); } });
-        ne.addEventListener('input', () => { grow(ne); if (ne.value.trim()) make(); r.note = ne.value; delete r.html; saveSoon(); });   // sửa ở bảng → note nổi lấy chữ mới
-        ne.addEventListener('blur', () => { if (r.note !== ne.value) delete r.html; r.note = ne.value; ne.hidden = true; nv.hidden = false; linkify(nv, r.note); if (!r.note && !blank) nv.append($('span', 'ph', 'Bấm để ghi lưu ý, dán link…')); if (!blank) save(); });
         cb.addEventListener('change', () => { r.done = cb.checked; tr.classList.toggle('done', r.done); save(); updBar(); });
-        x.addEventListener('click', () => { f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); });
+        x.addEventListener('click', () => { f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); renum(); });
         setTimeout(() => grow(ti), 0);
         return tr;
       };
       f.rows.forEach(r => sheet.append(rowEl(r, false)));
-      sheet.append(rowEl({ id: uid(), t: '', note: '', done: false }, true));
-      M.append(sheet, $('div', 'pj-hint', 'Bấm vào ô để sửa · Enter xuống dòng dưới · tự lưu'));
+      sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum();
+      M.append(sheet);
+
+      // V1.28: note làm việc của thư mục (như note nổi: màu, B/I/U/gạch, danh sách, ảnh, ✨ Sắp xếp) – tự lưu vào f.html
+      const NC = { white: '#FFFFFF', yellow: '#FFF8D6', red: '#FFE4EA', blue: '#E3F1FF', green: '#E3F6E8', purple: '#F0E8FD' };
+      const nt = $('div', 'pj-nt'); nt.style.setProperty('--nb', NC[f.color] || NC.white);
+      const tb = $('div', 'pj-ntb');
+      const dots = $('div', 'pj-dots'); Object.entries(NC).forEach(([k, v]) => { const d = $('button', 'pj-dot' + ((f.color || 'white') === k ? ' on' : '')); d.style.background = v; d.setAttribute('aria-label', 'Màu ' + k); d.addEventListener('click', () => { f.color = k; nt.style.setProperty('--nb', v); dots.querySelectorAll('.pj-dot').forEach(z => z.classList.toggle('on', z === d)); save(); }); dots.append(d); });
+      const ed = $('div', 'pj-nted'); ed.contentEditable = 'true'; ed.setAttribute('role', 'textbox'); ed.setAttribute('aria-multiline', 'true'); ed.setAttribute('aria-label', 'Note làm việc ' + f.name);
+      ed.dataset.ph = 'Ghi chú làm việc cho “' + f.name + '”… (dán ảnh, link được)'; ed.innerHTML = f.html || '';
+      const saved = $('span', 'pj-saved');
+      let nts = 0; const saveNote = () => { f.html = ed.innerHTML.replace(/^(<br>|<div><br><\/div>)$/, ''); save(); saved.textContent = '✓ Đã lưu'; setTimeout(() => { saved.textContent = ''; }, 1200); };
+      ed.addEventListener('input', () => { clearTimeout(nts); nts = setTimeout(saveNote, 500); });
+      ed.addEventListener('blur', () => { clearTimeout(nts); saveNote(); });
+      const cmds = [['bold', '<b>B</b>', 'Đậm'], ['italic', '<i>I</i>', 'Nghiêng'], ['underline', '<u>U</u>', 'Gạch chân'], ['strikeThrough', '<s>ab</s>', 'Gạch ngang'], ['insertUnorderedList', '☰', 'Danh sách']];
+      const fmt = $('div', 'pj-fmt');
+      cmds.forEach(([c, h, t]) => { const b = $('button', 'pj-fb'); b.innerHTML = h; b.title = t; b.setAttribute('aria-label', t); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => { ed.focus(); document.execCommand(c); clearTimeout(nts); nts = setTimeout(saveNote, 300); }); fmt.append(b); });
+      const addImg = async file => {
+        const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+        const im = await new Promise((r, j) => { const i = new Image(); i.onload = () => r(i); i.onerror = j; i.src = url; });
+        const k = Math.min(1, 900 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ed.focus(); document.execCommand('insertHTML', false, `<img src="${cv.toDataURL('image/jpeg', 0.85)}">`); saveNote();
+      };
+      const fi = $('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; fi.addEventListener('change', () => { if (fi.files[0]) addImg(fi.files[0]); fi.value = ''; });
+      const ib = $('button', 'pj-fb', '🖼'); ib.title = 'Chèn ảnh'; ib.setAttribute('aria-label', 'Chèn ảnh'); ib.addEventListener('mousedown', e => e.preventDefault()); ib.addEventListener('click', () => fi.click()); fmt.append(ib, fi);
+      ed.addEventListener('paste', e => {
+        const img = [...(e.clipboardData.files || [])].find(x => /^image\//.test(x.type)); if (img) { e.preventDefault(); addImg(img); return; }
+        const t = e.clipboardData.getData('text/plain'); if (!t) return; e.preventDefault();
+        const html = escH(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>');
+        document.execCommand('insertHTML', false, html);
+      });
+      ed.addEventListener('click', e => { const a = e.target.closest('a'); if (a && a.href) { e.preventDefault(); window.open(a.href, '_blank', 'noopener'); } });   // link trong note: bấm là mở
+      let prev = null; const undo = $('button', 'pj-fb wide', '↶ Hoàn tác'); undo.hidden = true;
+      const tidy = $('button', 'pj-fb wide', '✨ Sắp xếp'); tidy.title = 'Sắp xếp nội dung cho gọn (Gemini)';
+      tidy.addEventListener('click', async () => {
+        const txt = ed.innerText.trim(); if (!txt || tidy.disabled) return; tidy.disabled = true; tidy.textContent = '⏳ Đang sắp xếp…';
+        try { const r = await chrome.runtime.sendMessage({ type: 'note-tidy', text: txt }); if (!r || !r.ok) throw new Error(r && r.error === 'nokey' ? 'Cần mã Gemini (HaoHao → Thông tin → Tóm tắt)' : (r && r.error) || 'Mất kết nối');
+          prev = ed.innerHTML; ed.innerHTML = r.html; undo.hidden = false; saveNote(); }
+        catch (e) { saved.textContent = '⚠ ' + e.message; setTimeout(() => { saved.textContent = ''; }, 4000); }
+        tidy.disabled = false; tidy.textContent = '✨ Sắp xếp';
+      });
+      undo.addEventListener('click', () => { if (prev == null) return; ed.innerHTML = prev; prev = null; undo.hidden = true; saveNote(); });
+      tb.append($('b', 'pj-ntt', '🗒 Note làm việc'), dots, $('div', 'pj-sp'), saved);
+      const bt = $('div', 'pj-ntf'); bt.append(fmt, $('div', 'pj-sp'), undo, tidy);
+      nt.append(tb, ed, bt); M.append(nt);
     }
     D.append(S, M); W.append(D);
   }

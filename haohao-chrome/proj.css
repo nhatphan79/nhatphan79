@@ -152,3 +152,46 @@
 .pj-area.on::before { left: 10px; right: 10px; }
 .pj-area.add.ed { min-width: 200px; }
 .pj-atop { margin-bottom: 16px; } .pj-atop h1 { font-size: 23px; } .pj-atop h1 .hi { width: 34px; height: 34px; font-size: 18px; border-radius: 9px; }
+/* V1.28: nền trắng đồng màu · việc cần làm đánh số + Link/Thư mục gọn · note làm việc bên dưới */
+.pj-sheet { background: #fff; border: 1px solid var(--pj-line); border-radius: 12px; box-shadow: none; }
+.pj-r { grid-template-columns: 46px 38px minmax(200px, 1fr) 64px 70px 34px; border-top: 1px solid #EEF0F4; }
+.pj-r .c { border-left: 1px solid #EEF0F4; }
+.pj-r.hd { background: #F7F8FA; } .pj-r.hd .c { color: var(--pj-soft); }
+.pj-r:not(.hd):hover { background: #FAFBFC; }
+.pj-r textarea:focus { background: #FFFDF5; }
+.pj-r.blank textarea::placeholder { color: #A9AFBF; }
+.pj-r .c-no { justify-content: center; padding-top: 9px; color: var(--pj-soft); font-weight: 700; font-size: 13px; }
+.pj-r.hd .c-no { padding-top: 7px; }
+.pj-r .c-ln { justify-content: center; align-items: center; gap: 2px; padding: 4px; }
+.pj-r.hd .c-ln { padding: 7px 4px; }
+.pj-chip { all: unset; cursor: pointer; font-size: 16px; line-height: 1; padding: 5px 6px; border-radius: 8px; }
+.pj-chip:hover { background: #EEF2FF; } .pj-chip:focus-visible { outline: 2px solid var(--pj-acc); }
+.pj-chip.add { font-size: 14px; color: #C2C7D3; opacity: 0; } .pj-r:hover .pj-chip.add, .pj-chip.add:focus-visible { opacity: 1; }
+.pj-chip.ed { font-size: 11px; padding: 4px; opacity: 0; } .pj-r:hover .pj-chip.ed, .pj-chip.ed:focus-visible { opacity: .8; }
+.pj-r .c-ln.editing { position: relative; overflow: visible; }
+.pj-chin { position: absolute; z-index: 5; right: 0; top: 4px; width: 280px; box-sizing: border-box; font: inherit; font-size: 13.5px; padding: 7px 10px; border: 1.5px solid var(--pj-acc); border-radius: 9px; background: #fff; box-shadow: 0 8px 22px rgba(35,48,94,.15); color: var(--pj-ink); }
+.pj-chin:focus { outline: none; }
+.pj-nt { margin-top: 16px; background: var(--nb, #fff); border: 1px solid var(--pj-line); border-radius: 12px; overflow: hidden; transition: background .2s; }
+.pj-ntb, .pj-ntf { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+.pj-ntb { border-bottom: 1px solid rgba(35,48,94,.07); } .pj-ntf { border-top: 1px solid rgba(35,48,94,.07); }
+.pj-ntt { font-size: 13px; font-weight: 800; color: var(--pj-ink); }
+.pj-sp { flex: 1; }
+.pj-dots { display: flex; gap: 6px; margin-left: 6px; }
+.pj-dot { all: unset; cursor: pointer; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #D5D9E2; box-sizing: border-box; }
+.pj-dot.on { border: 2px solid var(--pj-ink); } .pj-dot:focus-visible { outline: 2px solid var(--pj-acc); outline-offset: 1px; }
+.pj-saved { font-size: 12px; color: var(--pj-ok); font-weight: 700; }
+.pj-nted { min-height: 220px; padding: 14px 16px; font-size: 14.5px; line-height: 1.6; color: var(--pj-ink); outline: none; word-break: break-word; }
+.pj-nted:empty::before { content: attr(data-ph); color: #A9AFBF; pointer-events: none; }
+.pj-nted img { max-width: 100%; border-radius: 8px; margin: 6px 0; display: block; }
+.pj-nted a { color: #1A56B8; text-decoration: underline; cursor: pointer; }
+.pj-nted ul { margin: 4px 0; padding-left: 22px; }
+.pj-fmt { display: flex; gap: 2px; }
+.pj-fb { all: unset; cursor: pointer; min-width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; font-size: 14px; color: var(--pj-ink); padding: 0 6px; box-sizing: border-box; }
+.pj-fb:hover { background: rgba(35,48,94,.07); } .pj-fb:focus-visible { outline: 2px solid var(--pj-acc); }
+.pj-fb.wide { font-size: 13px; font-weight: 700; border: 1px solid var(--pj-line); background: #fff; padding: 0 12px; }
+.pj-fb[disabled] { opacity: .6; cursor: progress; }
+.pj-toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--pj-ink); color: #fff; font-size: 13.5px; font-weight: 600; padding: 10px 16px; border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; }
+.pj-toast.on { opacity: 1; transform: translate(-50%, 0); }
+.pj-fi.on, .pj-fl button.on { background: #F1F3F7; }
+@media (max-width: 700px) { .pj-r { grid-template-columns: 34px 32px 1fr 46px 46px 28px; } }
+.pj-fb[hidden], .pj-chip[hidden] { display: none !important; }

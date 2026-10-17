@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 17/10/2026 · **Bản V1.27** (số kỹ thuật 1.10.283)
+Cập nhật: 17/10/2026 · **Bản V1.28** (số kỹ thuật 1.10.284)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.28 (1.10.284) | Chi tiết dự án: bảng = danh sách việc đánh số (STT · ✓ · Việc cần làm · Link · Thư mục), Link/Thư mục chỉ hiện biểu tượng 🔗/📁 (rê chuột ＋ để dán, ✏️ sửa). Bấm 🔗 hoặc 📁 có link (Drive…) → mở tab mới; 📁 là đường dẫn trên máy (D:\…) → chép vào bộ nhớ tạm + báo "dán vào File Explorer" (Chrome không cho mở thẳng thư mục máy). Dưới bảng là NOTE LÀM VIỆC của từng thư mục (contentEditable, `folder.html`, `folder.color`): 6 màu nền, B/I/U/gạch/danh sách/ảnh (dán ảnh được), link bấm mở, ✨ Sắp xếp (Gemini, `note-tidy`) + Hoàn tác. Bỏ cột Lưu ý + nút 📝: chữ Lưu ý cũ chuyển xuống note của thư mục, link trong Lưu ý chuyển sang cột Link (`folder.v28`). Cả trang nền trắng đồng màu. |
 | V1.27 (1.10.283) | Thẻ 5 mảng nhỏ gọn: rộng vừa chữ, xếp 1 hàng (flex), biểu tượng 32px, tên không xuống dòng; tiêu đề mảng nhỏ lại. Chỉ sửa CSS. |
 | V1.26 (1.10.282) | Trang Dự án chia 5 mảng: hàng thẻ trên cùng 🏠 Xây dựng nhà phố · 🐹 APP HaoHao · 📈 Trade · 🪂 Airdrop (cố định) + "＋ Thêm mảng" đặt tên tự do (📁, màu tự chọn; đổi tên / xoá khi trống). Mỗi thẻ: số dự án, số đang làm, Lãi/Lỗ. Bấm thẻ → bảng chỉ hiện dự án của mảng đó, dòng Tổng theo mảng; ＋ Dự án mới vào mảng đang chọn. Trang chi tiết có ô chọn mảng để chuyển dự án. Dữ liệu `projBoard.areas`, `projBoard.cur`, `p.area` (dự án cũ: tên có "HaoHao" → APP HaoHao, còn lại → mảng đầu). |
 | V1.25 (1.10.281) | Trang Dự án: bảng thẻ 3 cột → BẢNG kiểu Excel: STT · Tên dự án (bấm mở, dòng nhỏ "→ việc tiếp theo") · Bắt đầu · Kết thúc (đỏ trễ / cam ≤3 ngày) · Tiến độ (thanh + %, tự tính từ hạng mục đã tick) · Trạng thái (Đang làm / Tạm dừng / Xong, chọn ngay trong bảng) · Vốn đầu tư · Lãi/lỗ (lãi xanh, lỗ đỏ, gõ số âm cho lỗ) + dòng Tổng. Sửa thẳng trong bảng, tự lưu (`p.von`, `p.lai`, `p.start`, `p.due`, `p.col`). Hàm `card()` cũ còn trong code nhưng không dùng. |
