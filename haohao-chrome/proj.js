@@ -165,7 +165,6 @@
     if (areas().length) {   // V1.38: thẻ 📊 Tổng quan đứng đầu
       const on = data.cur === '$all', lo = sumC(data.projects, 'lai'), t = $('button', 'pj-area ov' + (on ? ' on' : '')); t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', on); t.style.setProperty('--ac', '#3B6FD8');
       const tx = $('div', 'at'); tx.append($('b', '', 'Tổng quan'), $('small', '', data.projects.length + ' dự án · ' + areas().length + ' mảng'));
-      if ((lo.vnd || 0) + (lo.usdt || 0)) tx.append($('span', 'al' + tone3(lo), 'Lãi/lỗ ' + fmtSum(lo, true)));
       t.append($('span', 'ai', '📊'), tx); t.addEventListener('click', () => { if (data.cur !== '$all') { data.cur = '$all'; save(); render(true); } }); bar.append(t);
     }
     areas().forEach(a => {
@@ -173,7 +172,7 @@
       const t = $('button', 'pj-area' + (on ? ' on' : '')); t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', on); t.style.setProperty('--ac', a.color);
       const ic = $('span', 'ai', a.icon), tx = $('div', 'at');
       tx.append($('b', '', a.name), $('small', '', L.length + ' dự án · ' + L.filter(p => p.col === 'doing').length + ' đang làm'));
-      if (lai) tx.append($('span', 'al' + tone3(lo), 'Lãi/lỗ ' + fmtSum(lo, true)));
+      // V1.39: bỏ dòng Lãi/lỗ trên thẻ mảng cho gọn
       t.append(ic, tx);
       t.addEventListener('click', () => { if (data.cur !== a.id) { data.cur = a.id; save(); render(true); } });
       bar.append(t);
@@ -292,7 +291,7 @@
     const card = $('div', 'pj-ovc'), ch = $('div', 'pj-ovh'); ch.append($('b', '', 'Thu – chi ' + (ovPer === 'week' || ovPer === 'month' ? 'theo ngày' : 'theo tháng')));
     const lg = $('div', 'pj-lg'); [[C_THU, 'Thu', 'sq'], [C_CHI, 'Chi', 'sq'], [C_INK, 'Lợi nhuận cộng dồn', 'ln']].forEach(([c, t, k]) => { const i = $('span', 'pj-lgi'); const sw = $('i', k); sw.style.background = c; i.append(sw, t); lg.append(i); });
     ch.append(lg); card.append(ch);
-    const VW = 900, VH = 240, PL = 64, PR = 12, PT = 12, PB = 26, iw = VW - PL - PR, ih = VH - PT - PB;
+    const VW = 900, VH = 190, PL = 64, PR = 12, PT = 12, PB = 26, iw = VW - PL - PR, ih = VH - PT - PB;
     const mx = Math.max(1, ...B.map(b => Math.max(b.thu, b.chi, b.cum))), mn = Math.min(0, ...B.map(b => b.cum));
     const nice = v => { if (v <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
     const step = nice((mx - mn) / 4) || 1, top0 = Math.ceil(mx / step) * step, bot0 = Math.floor(mn / step) * step, Y = v => PT + (top0 - v) / (top0 - bot0) * ih;   // vạch chia tròn, luôn có vạch 0

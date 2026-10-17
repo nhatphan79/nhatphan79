@@ -346,3 +346,17 @@
 .pj-li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pj-li small { display: block; font-size: 11.5px; color: var(--pj-soft); }
 .pj-li > small { flex: none; }
 @media (max-width: 1000px) { .pj-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pj-ovg { grid-template-columns: 1fr; } }
+/* V1.39: Tổng quan nhỏ gọn */
+.pj-kpis { gap: 8px; margin-bottom: 10px; }
+.pj-kpi { padding: 9px 12px; border-radius: 11px; gap: 2px; }
+.pj-kpi span { font-size: 10.5px; } .pj-kpi b { font-size: 18px; } .pj-kpi small { font-size: 11px; }
+.pj-ovc { padding: 10px 12px; margin-bottom: 10px; border-radius: 11px; }
+.pj-ovh { font-size: 13px; margin-bottom: 6px; } .pj-lg { font-size: 11.5px; gap: 10px; }
+.pj-chart .ax { font-size: 10px; }
+.pj-ovg { gap: 0 10px; }
+.pj-hb { padding: 4px 0; font-size: 12.5px; } .pj-hbb { height: 8px; }
+.pj-li { padding: 5px 6px; font-size: 12.5px; } .pj-li small { font-size: 10.5px; }
+.pj-ovs { font-size: 11px; margin: 6px 0 0; } .pj-ovn { font-size: 12px; padding: 4px 0; }
+.pj-seg button { padding: 5px 10px; font-size: 12px; } .pj-seg.sm button { padding: 5px 8px; font-size: 11.5px; }
+.pj-ovnav b, .pj-ovlb { font-size: 13px; min-width: 104px; }
+.pj-atop { margin-bottom: 12px; }
