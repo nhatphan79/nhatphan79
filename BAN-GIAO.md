@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.52** (số kỹ thuật 1.10.308)
+Cập nhật: 18/10/2026 · **Bản V1.54** (số kỹ thuật 1.10.310)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.54 (1.10.310) | Thanh chọn dự án của note chọn tới **thư mục con** (nhóm = mảng · dự án, mục = các thư mục con không phải Hold/Trade; dự án chưa có thư mục → tạo `📝 Ghi chú`). Giá trị `p|f`. V1.53: bỏ 📁 lặp. ⚠ Bài học: không chạy `cp` ra outputs và `device_commit_files` song song (lần V1.52 chép nhầm file cũ). |
 | V1.52 (1.10.308) | Note: mỗi note có thanh **📁 Lưu vào dự án…** (chỉ máy chủ app) – chọn dự án → thêm 1 dòng vào mục `📝 Ghi chú` của dự án (tạo nếu chưa có; tiêu đề = tên note/dòng đầu, nội dung vào `html`, link trang); note nhớ `pj{p,f,r}`, đổi dự án thì chuyển dòng, chọn "✕ Bỏ khỏi dự án" thì xoá dòng. Anh Nhật xác nhận Gửi sang iPhone chạy OK. |
 | V1.51 (1.10.307) | Bỏ dòng ghi chú "Nhắc, Todo, Note… cố định" dưới mục Thay đổi giao diện tuỳ chọn. |
 | Transfer v51 | Trang iPhone (Gửi lên / Nhận về) đổi giao diện đồng bộ HaoHao: linh vật, nền kem, viền xanh đậm, bóng lệch vàng cam, thanh chuyển ⬆️/⬇️. Exe `HaoHao-Transfer-moi.exe` (md5 9c2624e9…, no-bytecode, subsystem 2) đặt trong thư mục để anh Nhật tự thay. |

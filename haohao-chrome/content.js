@@ -2890,10 +2890,11 @@
       if (F) F.rows = (F.rows || []).filter(r => r.id !== it.pj.r);
       delete it.pj;
     }
-    const P = pid && (B.projects || []).find(x => x.id === pid);
+    const [pp, ff] = String(pid || '').split('|');
+    const P = pp && (B.projects || []).find(x => x.id === pp);
     if (P) {
       P.folders = P.folders || [];
-      let F = P.folders.find(x => !x.kind && x.name === '📝 Ghi chú');
+      let F = (ff && P.folders.find(x => x.id === ff && !x.kind)) || P.folders.find(x => !x.kind && x.name === '📝 Ghi chú');
       if (!F) { F = { id: uid(), name: '📝 Ghi chú', rows: [], v28: 1, v29: 1 }; P.folders.push(F); }
       const txt = (it.text || '').trim(), t = (it.name || txt.split('\n')[0] || 'Ghi chú').slice(0, 90);
       const r = { id: uid(), t, done: false, html: pjEsc(txt).replace(/\n/g, '<br>') };
@@ -3287,18 +3288,24 @@
       const box = el('div', 'npj'), sel = document.createElement('select');
       sel.setAttribute('aria-label', 'Lưu note vào dự án'); sel.title = 'Lưu note này vào dự án';
       sel.add(new Option(it.pj ? '✕ Bỏ khỏi dự án' : '📁 Lưu vào dự án…', ''));
+      // V1.54: chọn tới thư mục con của dự án (nhóm = mảng · dự án, mục = thư mục con)
       const areas = pjBoard.areas || [];
       [...areas, { id: null, name: 'Khác' }].forEach(A => {
-        const ps = (pjBoard.projects || []).filter(x => A.id ? x.area === A.id : !areas.some(z => z.id === x.area)); if (!ps.length) return;
-        const g = document.createElement('optgroup'); g.label = ((A.icon || '') + ' ' + (A.name || '')).trim();
-        ps.forEach(x => g.append(new Option(x.name || 'Dự án', x.id))); sel.append(g);
+        const ps = (pjBoard.projects || []).filter(x => A.id ? x.area === A.id : !areas.some(z => z.id === x.area));
+        ps.forEach(x => {
+          const fs = (x.folders || []).filter(f => !f.kind);
+          const g = document.createElement('optgroup'); g.label = ((A.icon || '') + ' ' + (x.name || 'Dự án')).trim();
+          if (fs.length) fs.forEach((f, i) => g.append(new Option((i + 1) + '. ' + (f.name || 'Thư mục'), x.id + '|' + f.id)));
+          else g.append(new Option('📝 Ghi chú (tạo mới)', x.id + '|'));
+          sel.append(g);
+        });
       });
-      sel.value = (it.pj && it.pj.p) || '';
-      if (it.pj && sel.value !== it.pj.p) sel.value = '';
+      const curV = it.pj ? it.pj.p + '|' + it.pj.f : '';
+      sel.value = curV; if (sel.value !== curV) sel.value = '';
       box.classList.toggle('on', !!(it.pj && sel.value));
       sel.addEventListener('click', e => e.stopPropagation()); sel.addEventListener('keydown', e => e.stopPropagation());
       sel.addEventListener('change', () => noteToProj(it.id, sel.value));
-      if (it.pj && sel.value) box.append(el('span', 'npj-i', '📁 Đã lưu:')); box.append(sel); c.append(box);
+      if (it.pj && sel.value) { const o = sel.selectedOptions[0], g = o && o.parentNode; box.append(el('span', 'npj-i', '📁 Đã lưu:')); if (g && g.label) sel.title = g.label + ' › ' + o.text; o.text = (g && g.label ? g.label + ' › ' : '') + o.text; } box.append(sel); c.append(box);
     }
     const ai = it.ai;
     const shown = aiOpen.has(it.id);
