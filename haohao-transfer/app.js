@@ -185,7 +185,7 @@ input.hid{display:none}.b2{background:transparent;color:var(--ac);border:1.5px s
 .tx{width:100%;padding:12px;border:1px solid var(--ln);border-radius:10px;font-size:16px;background:var(--bg);color:var(--tx);margin:8px 0 12px}.lb{font-size:14px;font-weight:600}.pct{font-size:36px;font-weight:700;margin-top:14px;font-variant-numeric:tabular-nums}code.cp{display:inline-block;word-break:break-all;background:var(--bg);border:1px solid var(--ln);padding:6px 8px;border-radius:8px;font-size:12px;margin:6px 0;color:var(--tx)}.mini{border:1px solid var(--ac);background:none;color:var(--ac);border-radius:8px;padding:5px 10px;font-size:13px}li{margin-bottom:8px}#list{max-height:45vh;overflow:auto}
 .tip{font-size:13px;color:var(--mu);line-height:1.5}
 </style></head><body>
-<h1>📲 Chuyển ảnh lên PC</h1><div class="mu">Đã kết nối với máy tính</div>
+<h1>📲 Chuyển ảnh lên PC</h1><div class="mu">Đã kết nối với máy tính · <a href="/nhan" style="color:#2563EB">📥 Nhận file từ máy tính</a></div>
 <div class="card">
   <div class="lb">Lưu vào thư mục trên máy tính <span class="mu">(bỏ trống = tự chia theo tháng)</span></div>
   <input id="fd" class="tx" placeholder="VD: Công trình Hoà Xuân" autocomplete="off">
@@ -246,6 +246,46 @@ async function send(inp){
 
 // ---- trang trên máy tính (mã QR) ----
 const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// 📤 GỬI SANG iPHONE (V1.46): máy tính chọn 1 video hoặc vài ảnh → lưu tạm → iPhone quét QR mở /nhan → xem / tải về
+const GUI_DIR = path.join(os.tmpdir(), 'haohao-gui');
+let GUI = [];   // [{id, name, size, type, file}]
+const URL_NHAN = `http://${IP}:${PORT}/nhan?k=${TK}`;
+function guiClear() { GUI = []; try { fs.rmSync(GUI_DIR, { recursive: true, force: true }); } catch {} try { fs.mkdirSync(GUI_DIR, { recursive: true }); } catch {} }
+const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp', '.heic': 'image/heic', '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.m4v': 'video/mp4', '.webm': 'video/webm' };
+function guiPut(req, res) {
+  const q = new URL(req.url, 'http://x').searchParams, name = safeName(q.get('name') || 'file'), id = require('crypto').randomBytes(5).toString('hex');
+  if (GUI.length >= 30) { res.writeHead(400); return res.end('{"error":"Tối đa 30 file mỗi lần"}'); }
+  try { fs.mkdirSync(GUI_DIR, { recursive: true }); } catch {}
+  const file = path.join(GUI_DIR, id + path.extname(name).toLowerCase()), out = fs.createWriteStream(file); let got = 0;
+  req.on('data', c => { got += c.length; }); req.pipe(out);
+  out.on('finish', () => { GUI.push({ id, name, size: got, type: MIME[path.extname(name).toLowerCase()] || 'application/octet-stream', file }); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, id })); });
+  out.on('error', e => { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); });
+}
+function guiGet(req, res, id, dl) {
+  const f = GUI.find(x => x.id === id); if (!f) { res.writeHead(404); return res.end(); }
+  let st; try { st = fs.statSync(f.file); } catch { res.writeHead(404); return res.end(); }
+  const h = { 'Content-Type': f.type, 'Accept-Ranges': 'bytes', 'Content-Disposition': (dl ? 'attachment' : 'inline') + "; filename*=UTF-8''" + encodeURIComponent(f.name) };
+  const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+  if (m) { const a = m[1] ? +m[1] : Math.max(0, st.size - (+m[2] || 0)), b = m[1] && m[2] ? Math.min(+m[2], st.size - 1) : st.size - 1;   // video trên iPhone cần tải từng đoạn
+    res.writeHead(206, { ...h, 'Content-Range': `bytes ${a}-${b}/${st.size}`, 'Content-Length': b - a + 1 }); return fs.createReadStream(f.file, { start: a, end: b }).pipe(res); }
+  res.writeHead(200, { ...h, 'Content-Length': st.size }); fs.createReadStream(f.file).pipe(res);
+}
+function nhanHtml() {
+  const it = GUI.map(f => { const u = '/tai/' + f.id, img = /^image\//.test(f.type), vid = /^video\//.test(f.type);
+    return `<div class="it">${img ? `<img src="${u}" alt="">` : vid ? `<video src="${u}" controls playsinline preload="metadata"></video>` : '<div class="fi">📄</div>'}
+<div class="nm">${esc(f.name)} <span>${fmt(f.size)}</span></div><a class="b" href="${u}?dl=1" download="${esc(f.name)}">⬇️ Tải về</a></div>`; }).join('');
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nhận từ máy tính</title>
+<style>body{margin:0;font:16px -apple-system,system-ui,sans-serif;background:#F5F6F8;color:#111;padding:18px}h1{font-size:21px;margin:0 0 4px}.mu{color:#6B7280;font-size:14px;margin-bottom:14px}
+.it{background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:10px;margin-bottom:12px}.it img,.it video{width:100%;border-radius:10px;display:block;background:#000}
+.fi{font-size:48px;text-align:center;padding:20px}.nm{font-size:14px;margin:8px 2px;word-break:break-all}.nm span{color:#6B7280}
+.b{display:block;text-align:center;background:#2563EB;color:#fff;text-decoration:none;font-weight:600;padding:12px;border-radius:10px}
+.tip{background:#FFF7E6;border-radius:12px;padding:12px;font-size:14px;line-height:1.5;margin-bottom:14px}.e{text-align:center;color:#6B7280;margin-top:30vh}</style></head><body>
+<h1>📥 Nhận từ máy tính</h1><div class="mu">${GUI.length ? GUI.length + ' file · ' + fmt(GUI.reduce((a, f) => a + f.size, 0)) : ''}</div>
+${GUI.length ? `<div class="tip">🖼 <b>Ảnh:</b> chạm giữ vào ảnh → <b>Lưu vào Ảnh</b>.<br>🎬 <b>Video:</b> bấm <b>Tải về</b> → khi tải xong mở app <b>Tệp</b> → chạm giữ video → <b>Chia sẻ → Lưu video</b>.</div>${it}`
+  : '<div class="e">Máy tính chưa gửi file nào.<br>Trên máy tính bấm <b>📤 Gửi sang iPhone</b>.</div>'}
+<a href="/" style="display:block;text-align:center;color:#2563EB;margin-top:10px">⬆️ Chuyển ảnh từ iPhone lên máy tính</a></body></html>`;
+}
+
 async function pcHtml() {
   const svg = await QRCode.toString(URL_PHONE, { type: 'svg', margin: 1, width: 260 });
   return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Chuyển Ảnh iPhone</title>
@@ -271,6 +311,10 @@ table{width:100%;margin-top:16px;border-collapse:collapse;font-size:13px;text-al
 <button onclick="fetch('/mo',{headers:{'x-haohao':'1'}})">📂 Mở thư mục ảnh</button>
 <button id="khac">🔁 Đổi thư mục lưu</button>
 <table id="t"></table>
+<div class="nl" id="gui"><div class="nlh">📤 Gửi sang iPhone</div><div class="mu">Chọn 1 video hoặc vài ảnh. iPhone quét mã là xem và tải về được.</div>
+<input type="file" id="gf" multiple accept="image/*,video/*" style="display:none"><button id="gb">📤 Chọn file để gửi</button>
+<div id="gp" style="display:none;margin-top:10px"><div class="mu" id="gt"></div><div class="bar"><i id="gbar"></i></div></div>
+<div id="gq" style="display:none;text-align:center"><div class="qr" id="gqr"></div><div class="mu">iPhone quét mã này bằng Camera để nhận file</div><div id="gl" class="mu" style="margin-top:6px"></div></div></div>
 
 </div><script>
 async function r(){try{const j=await (await fetch('/tt',{headers:{'x-haohao':'1'}})).json();
@@ -283,6 +327,17 @@ if(j.live){lv.style.display='block';const a=j.live.all!=null?j.live.all:j.live.f
 document.getElementById('s').textContent=j.files?('Đã nhận '+j.files+' file · '+j.size):'Đang chờ iPhone…';
 document.getElementById('t').innerHTML=j.recent.map(x=>'<tr><td>'+x.sub+' / '+x.name.replace(/</g,'')+'</td><td>'+x.size+'</td></tr>').join('');}catch(e){}}
 r();setInterval(r,1000);
+const gf=document.getElementById('gf');document.getElementById('gb').onclick=()=>gf.click();
+if(location.hash==='#gui')setTimeout(()=>{document.getElementById('gui').scrollIntoView({behavior:'smooth'});},300);
+gf.onchange=async()=>{const fs=[...gf.files];if(!fs.length)return;const tot=fs.reduce((a,f)=>a+f.size,0);let done=0;
+ document.getElementById('gp').style.display='block';document.getElementById('gq').style.display='none';
+ await fetch('/gui-moi',{method:'POST',headers:{'x-haohao':'1'}});
+ for(const [i,f] of fs.entries()){await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST','/gui?name='+encodeURIComponent(f.name));x.setRequestHeader('x-haohao','1');
+  x.upload.onprogress=e=>{const a=Math.floor((done+e.loaded)/tot*100);document.getElementById('gbar').style.width=a+'%';document.getElementById('gt').textContent='Đang chuẩn bị '+(i+1)+'/'+fs.length+' · '+a+'%';};
+  x.onload=()=>x.status==200?ok():no(new Error(x.responseText));x.onerror=()=>no(new Error('Mất kết nối'));x.send(f);});done+=f.size;}
+ document.getElementById('gt').textContent='✓ Sẵn sàng '+fs.length+' file';document.getElementById('gbar').style.width='100%';
+ const j=await (await fetch('/gui-ds',{headers:{'x-haohao':'1'}})).json();document.getElementById('gqr').innerHTML=j.qr;
+ document.getElementById('gl').textContent=j.files.map(f=>f.name).join(' · ');document.getElementById('gq').style.display='block';gf.value='';};
 async function dat(p){const j=await (await fetch('/noi-luu?path='+encodeURIComponent(p),{method:'POST',headers:{'x-haohao':'1'}})).json();if(j.error)alert(j.error);else location.reload();}
 document.getElementById('khac').onclick=async e=>{e.target.textContent='Đang mở hộp chọn thư mục…';
  const j=await (await fetch('/chon-thu-muc',{method:'POST',headers:{'x-haohao':'1'}})).json();if(j.path)dat(j.path);else e.target.textContent='🔁 Đổi thư mục lưu';};
@@ -297,7 +352,7 @@ const server = http.createServer(async (req, res) => {
     && (!req.headers.origin || req.headers.origin === `http://127.0.0.1:${PORT}` || /^chrome-extension:\/\//.test(req.headers.origin));
   const ctl = isLocal && req.headers['x-haohao'] === '1';   // lệnh điều khiển: chỉ HaoHao / trang /pc (trang web lạ không gửi được header này)
   if (p === '/pc' && isLocal) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(await pcHtml()); }
-  if (p === '/info' && ctl) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ url: URL_PHONE, host: os.hostname(), up: 1 })); }
+  if (p === '/info' && ctl) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ url: URL_PHONE, host: os.hostname(), up: 1, gui: 1 })); }
   if (p === '/tt' && ctl) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     let lv = null;
@@ -324,6 +379,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/capnhat' && ctl) { let r; try { r = await capNhat(new URL(req.url, 'http://x').searchParams.get('id') || ''); } catch (e) { r = { error: String(e && e.message || e) }; } res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(r)); }
   if (p === '/thoat' && ctl) { res.writeHead(200); res.end('{}'); setTimeout(() => process.exit(0), 200); return; }
+  if (p === '/gui-moi' && req.method === 'POST' && ctl) { guiClear(); res.writeHead(200); return res.end('{}'); }
+  if (p === '/gui' && req.method === 'POST' && ctl) return guiPut(req, res);
+  if (p === '/gui-ds' && ctl) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ url: URL_NHAN, qr: await QRCode.toString(URL_NHAN, { type: 'svg', margin: 1, width: 240 }), files: GUI.map(f => ({ id: f.id, name: f.name, size: fmt(f.size) })) })); }
+  if (p === '/nhan') { if (!paired) { res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<meta name=viewport content="width=device-width"><h3 style="font-family:system-ui;text-align:center;margin-top:40vh">🔒 Quét lại mã QR trên máy tính nhé</h3>'); }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': `hk=${TK}; Path=/; HttpOnly; SameSite=Strict`, 'Cache-Control': 'no-store' }); return res.end(nhanHtml()); }
+  if (p.startsWith('/tai/')) { if (!paired && !isLocal) { res.writeHead(403); return res.end(); } return guiGet(req, res, p.slice(5).replace(/[^0-9a-f]/g, ''), new URL(req.url, 'http://x').searchParams.get('dl') === '1'); }
   if (p === '/mo' && ctl) { exec(`explorer "${ROOT}"`); res.writeHead(204); return res.end(); }
   if (p === '/') { if (!paired) { res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<meta name=viewport content="width=device-width"><h3 style="font-family:system-ui;text-align:center;margin-top:40vh">🔒 Quét lại mã QR trên máy tính nhé</h3>'); } res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': `hk=${TK}; Path=/; HttpOnly; SameSite=Strict` }); return res.end(PHONE_HTML); }
   res.writeHead(404); res.end();
