@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.69** (số kỹ thuật 1.10.325)
+Cập nhật: 18/10/2026 · **Bản V1.70** (số kỹ thuật 1.10.326)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.70 (1.10.326) | Dự án: 💸 **Rút tiền** theo mảng (`area.rut[{id,d,v,c,t}]`, hộp ghi ngày/số tiền/VND-USDT/ghi chú, nút trên bảng hiện "Đã rút X"); Tổng quan thêm ô **💸 Đã rút** theo kỳ (không trừ vào thu/chi/lợi nhuận). Mẫu mảng **💡 Ý tưởng** (`tpl:'idea'`): không tính vào Tổng quan / số dự án, bảng cột **Ghi chú** (`p.note`) thay Vốn + Lãi, không có mục 0. Vốn đầu tư, không có dòng Tổng. Hộp Rút tiền giữ được khi trang vẽ lại (`rutBg`). Chưa phát hành. |
 | V1.69 (1.10.325) | Bong bóng: (1) bỏ bong bóng "video không có phụ đề" + "đang tắt CC" (video tiếng Việt không còn bị nhắc); (2) `autoGate()` – bong bóng tự hiện (chào, nhắc nhẹ Tab mới, tin mới, voucher sắp hết, mời ghé TikTok Shop) tối đa 1 lần/giờ chung mọi tab, trừ nhắc đúng giờ, Todo tới hạn, báo giá, Pomodoro, kiểm tra hàng, theo dõi giá, việc khách bấm, cà phê thứ Ba, dòng xây nhà 16:30, bản mới; (3) nhắc lặp lại (uống nước, tan làm…) không còn hiện trước trong bong bóng Tab mới – chỉ báo đúng giờ; (4) Tab mới luôn mở Trang chủ. Chưa phát hành. |
 | V1.68 (1.10.324) | Bỏ dòng đếm ngày dùng thử ("🎁 còn N ngày") ở Tiện ích và ở trang Pro (chỉ ghi "Đang mở khoá toàn bộ") – anh Nhật: tới ngày thì hết. Chưa phát hành. |
 | V1.67 (1.10.323) | Trang Pro: đã mua Pro / chủ app → ẩn bảng giá + chuyển khoản, chỉ còn trạng thái + mã máy; gói có hạn có nút 🔄 Gia hạn / đổi gói, còn ≤ 7 ngày thì tự hiện lại bảng giá. Bảng Pro trong HaoHao/Dự án vốn chỉ hiện khi hết hạn chưa mua. Chưa phát hành. |

@@ -436,3 +436,18 @@
 .pj-pro-g { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
 .pj-pro-pl { background: #fff; border: 1.5px solid #E3E7F2; border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; gap: 3px; }
 .pj-pro-pl b { font-size: 12.5px; color: #23305E; } .pj-pro-pl span { font-weight: 800; color: #D98E1F; } .pj-pro-pl.hot { border-color: #F2B544; background: #FFF6DE; }
+
+/* V1.70: 💸 Rút tiền + mảng Ý tưởng */
+.pj-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pj-kpi.rut b { color: #7C3AED; }
+.pj-rutb { color: #7C3AED !important; font-weight: 700; }
+.pj-rut { width: min(560px, 94vw); }
+.pj-rutl { max-height: 240px; overflow: auto; border: 1px solid var(--pj-line); border-radius: 12px; margin: 10px 0; }
+.pj-rutr { display: grid; grid-template-columns: 92px 140px 1fr 34px; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid #F1F2F6; }
+.pj-rutr:first-child { border-top: 0; } .pj-rutr .d { color: var(--pj-soft); } .pj-rutr b { color: #7C3AED; text-align: right; font-variant-numeric: tabular-nums; } .pj-rutr .t { color: var(--pj-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pj-rutf { display: grid; grid-template-columns: 140px 1fr 80px 1.4fr auto; gap: 6px; }
+.pj-ruts { font-weight: 800; color: #7C3AED; align-self: center; }
+.pj-note { width: 100%; box-sizing: border-box; }
+@media (max-width: 1100px) { .pj-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .pj-rutf { grid-template-columns: 1fr 1fr; } }
+.c-note { display: flex; align-items: center; } .pj-lr .pj-note { height: 34px; min-height: 0; }
