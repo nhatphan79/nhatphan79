@@ -183,9 +183,8 @@
     let on = false; set(false);
     // V1.55: trang Dự án mở cho mọi người dùng (trước V1.17–V1.54 chỉ máy chủ app)
     sw.hidden = false;
-    try { on = localStorage.getItem('hh-ntPage') === 'proj'; } catch {}
-    set(on);
-    sw.addEventListener('click', () => { on = !on; set(on); try { localStorage.setItem('hh-ntPage', on ? 'proj' : 'home'); } catch {} });
+    set(false);   // V1.69: mở Tab mới luôn về Trang chủ (không nhớ trang Dự án)
+    sw.addEventListener('click', () => { on = !on; set(on); });
   }
   // nút nhanh: mở đúng mục trong HaoHao (HaoHao chạy ngay trên trang này)
   document.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () =>

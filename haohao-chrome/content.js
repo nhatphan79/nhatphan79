@@ -1842,8 +1842,10 @@
   // lời nhắn từ video trong khung nhúng (iframe) do nền chuyển lên
   const SHOP_SITE = /(^|\.)(shopee\.[a-z.]+|tiktok\.com|lazada\.[a-z.]+|tiki\.vn|sendo\.vn|amazon\.[a-z.]+|aliexpress\.[a-z.]+|temu\.com|shein\.com|taobao\.com|tmall\.com|1688\.com|ebay\.[a-z.]+|susercontent\.com|ibyteimg\.com|tiktokcdn[\w-]*\.com)$/.test(location.hostname);   // 1.10.116: trang mua bán → không mời / không báo song ngữ
   chrome.runtime.onMessage.addListener(msg => { if (!SHOP_SITE && msg && msg.type === 'subs-ev' && /^hh-subs-(offer|active|status|hint|nosub)$/.test(msg.ev)) window.dispatchEvent(new CustomEvent(msg.ev, { detail: msg.detail })); });
-  if (!SHOP_SITE) window.addEventListener('hh-subs-nosub', () => say('Video này không có phụ đề nên HaoHao chưa dịch được. HaoHao đang nâng cấp tự nghe và dịch, hẹn bạn ở bản Pro sớm nhé! 😉', 'happy', '🎬 Song ngữ', 'info'));
-  if (!SHOP_SITE) window.addEventListener('hh-subs-hint', () => say('Video này đang tắt phụ đề. Bấm nút CC (phụ đề) trên video, HaoHao sẽ dịch song ngữ ngay nhé!', 'happy', '🎬 Song ngữ', 'info'));
+  // V1.69: bỏ bong bóng này (video tiếng Việt thường không có phụ đề / tắt CC → HaoHao không cần nhắc)
+  if (false) window.addEventListener('hh-subs-nosub', () => say('Video này không có phụ đề nên HaoHao chưa dịch được. HaoHao đang nâng cấp tự nghe và dịch, hẹn bạn ở bản Pro sớm nhé! 😉', 'happy', '🎬 Song ngữ', 'info'));
+  // V1.69: bỏ bong bóng này (video tiếng Việt thường không có phụ đề / tắt CC → HaoHao không cần nhắc)
+  if (false) window.addEventListener('hh-subs-hint', () => say('Video này đang tắt phụ đề. Bấm nút CC (phụ đề) trên video, HaoHao sẽ dịch song ngữ ngay nhé!', 'happy', '🎬 Song ngữ', 'info'));
   if (!SHOP_SITE) window.addEventListener('hh-subs-active', e => {
     const d = e.detail || {}; const lo = x => String(x || '').replace(/^Tiếng/, 'tiếng');
     say(`Bạn đang được HaoHao dịch song ngữ ${lo(d.from)} – ${lo(d.to)} đấy, hehe 😄`, 'happy', '🈯 Phụ đề song ngữ', 'info');
@@ -1915,7 +1917,7 @@
     if (!ui || SHOP_SITE || !ui.panel.hidden || !ui.bubble.hidden || !isUnlocked()) return;
     const url = HT.ttShowcase(); if (!url) return;
     const { ttWeekAt = 0 } = await chrome.storage.local.get('ttWeekAt');
-    if (Date.now() - ttWeekAt < 7 * 864e5) return;
+    if (Date.now() - ttWeekAt < 7 * 864e5 || !(await autoGate())) return;
     await chrome.storage.local.set({ ttWeekAt: Date.now() });
     if (!ttWeekAt) return;   // tuần đầu sau khi mở khoá: chưa mời
     say('Tuần này TikTok Shop HaoHao có hàng mới, ghé xem nhé!', 'happy', '🛍️ HaoHao tuyển chọn', 'shop', [{ label: 'Xem ngay', fn: () => openDeal(url) }, { label: 'Để sau', ghost: true, fn: () => {} }]);
@@ -4410,7 +4412,7 @@
   async function voucherExpiryNudge() {
     const W = walletMine || walletApp; if (!ui || !W || Date.now() - W.at > 30 * 864e5 || !ui.panel.hidden || !ui.bubble.hidden || menuOpen) return;
     const day = new Date().toDateString(), { vexpDay = '' } = await chrome.storage.local.get('vexpDay').catch(() => ({}));
-    if (vexpDay === day) return;
+    if (vexpDay === day || !(await autoGate())) return;
     const d0 = new Date(); d0.setHours(0, 0, 0, 0);
     const soon = (W.list || []).map(v => { const e = walletExp(v); if (!e || e < Date.now()) return null; const dd = Math.floor((e - d0) / 864e5); return dd >= 0 && dd <= 1 ? { v, dd } : null; }).filter(Boolean);
     if (!soon.length) return;
@@ -7860,6 +7862,9 @@
   // mẹo xoay vòng mỗi lần chào, để lời chào không lặp lại y hệt
   const GREET_TIPS = ['💡 Bôi đen chữ bất kỳ để tôi dịch hoặc giải thích.', '🛍️ Mở sản phẩm Shopee, TikTok: tôi tìm shop rẻ hơn cho bạn.', '📝 Có việc cần nhớ? Bấm vào tôi để thêm vào Todolist.',
     '🍅 Cần tập trung? Thử chế độ Tập trung 25 phút nhé.', '🔎 Bấm vào tôi, chọn Mua sắm để tìm hàng uy tín trên Shopee.', '⏰ Bấm vào tôi để đặt nhắc nhở uống nước, nghỉ mắt.'];
+  // V1.69: bong bóng TỰ HIỆN (chào, nhắc nhẹ Tab mới, tin mới, bản mới, mời ghé shop, voucher sắp hết) tối đa 1 lần/giờ – chung mọi tab.
+  //        Không áp cho: nhắc đúng giờ, Todo tới hạn, báo giá, Pomodoro, kiểm tra hàng Shopee, theo dõi giá món đã lưu, việc khách vừa bấm.
+  async function autoGate() { const { autoBubbleAt = 0 } = await chrome.storage.local.get('autoBubbleAt').catch(() => ({})); if (Date.now() - autoBubbleAt < 3600e3) return false; await chrome.storage.local.set({ autoBubbleAt: Date.now() }).catch(() => {}); return true; }
   async function greet() {
     if (!ui || !active() || settings.greet === false || !ui.panel.hidden || menuOpen || trust) return;
     const { greetAt = 0 } = await chrome.storage.local.get('greetAt');
@@ -7871,6 +7876,7 @@
     // chào lại theo cài đặt (mặc định 15 phút/lần) để người dùng khỏi quên HaoHao; có việc gấp thì nhắc ít nhất 30 phút/lần
     const gap = Math.max(5, +settings.greetMin || 15) * 60e3;
     if (now - greetAt < (urgent ? Math.min(gap, 30 * 60e3) : gap)) return;
+    if (!(await autoGate())) return;
     await chrome.storage.local.set({ greetAt: now });
     const hr = new Date().getHours();
     const hi = hr < 5 ? 'Khuya rồi' : hr < 11 ? 'Chào buổi sáng' : hr < 14 ? 'Chào buổi trưa' : hr < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
@@ -7932,7 +7938,7 @@
       if (!r.enabled || r.type !== 'reminder') continue;
       const nx = nextFire(r); if (!nx) continue;
       const ms = nx.getTime(), routine = r.kind === 'daily' || r.kind === 'interval';
-      if (night && routine) continue;
+      if (routine) continue;   // V1.69: nhắc lặp lại (uống nước, tan làm…) chỉ báo đúng giờ, không nhắc trước trong bong bóng
       const it = { at: ms, icon: r.icon || '🔔', txt: r.name || r.message, tab: 'bell' };
       if (!night && ms <= soon) near.push(it);
       else if (!routine && ms <= nextDayEnd && (evening || night)) later.push(it);
@@ -8086,9 +8092,9 @@
     buildUI();
     // Tab mới: không mở bảng, HaoHao chỉ "nghĩ" 1 bong bóng nhỏ nhắc việc sắp tới; trang khác: chào như cũ
     const isNewtab = location.protocol === 'chrome-extension:' && /\/newtab\.html$/.test(location.pathname);
-    setTimeout(isNewtab ? thinkBubble : greet, isNewtab ? 900 : 1500);
+    setTimeout(isNewtab ? () => autoGate().then(ok => { if (ok) thinkBubble(); }) : greet, isNewtab ? 900 : 1500);
     setTimeout(focusNudge, 2000);
-    setTimeout(newsBubble, 4500); setTimeout(updBubble, 9000);   // V1.1
+    setTimeout(() => autoGate().then(ok => { if (ok) newsBubble(); }), 4500); setTimeout(updBubble, 9000);   // V1.1
     setTimeout(voucherExpiryNudge, 12000);
     setTimeout(readVoucherWallet, 2500);
     // setInterval(liveWatch, 2500);   // 1.10.249: bỏ Săn live
