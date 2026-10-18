@@ -329,7 +329,7 @@ HT.vietQR = (bin, acc, amount, note) => {
   let c = 0xFFFF; for (let i = 0; i < s.length; i++) { c ^= s.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF; }
   return s + c.toString(16).toUpperCase().padStart(4, '0');
 };
-HT.STORE = false;   // V1.56: bản Chrome Web Store (haohao-store) – script đóng gói tự đổi thành true
+HT.STORE = true;   // V1.78: chỉ còn 1 bản = bản Chrome Web Store (bản cài tay lưu ở nhánh ban-cai-tay-V1.77)
 HT.AFF_NOTE = 'Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm.';
 HT.SPY_API = 'https://haohao-gia.nhatphan79.workers.dev';   // 1.10.250: khách dùng Soi sản phẩm luôn, khoá nằm trên máy chủ
 // 🧾 Máy chủ kho giá chung (1.10.122): mọi máy HaoHao gửi mã sản phẩm + giá (không thông tin cá nhân) → khách mới mở món là thấy lịch sử giá. Để trống = tắt.

@@ -17,7 +17,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
             p = os.path.join(r, f); rel = os.path.relpath(p, src).replace(os.sep, '/')
             data = open(p, 'rb').read()
             if rel == 'common.js':
-                t = data.decode('utf-8'); assert 'HT.STORE = false;' in t; data = t.replace('HT.STORE = false;', 'HT.STORE = true;', 1).encode('utf-8')
+                t = data.decode('utf-8'); assert 'HT.STORE = true;' in t or 'HT.STORE = false;' in t; data = t.replace('HT.STORE = false;', 'HT.STORE = true;', 1).encode('utf-8')   # V1.78: mã chính đã là bản Store
             elif rel == 'manifest.json':
                 m = json.loads(data.decode('utf-8'))
                 m['name'] = 'HaoHao – Trợ lý cá nhân'   # V1.76: khớp tên trên trang Store

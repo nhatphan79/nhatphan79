@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "HaoHao – trợ lý ngay trên Chrome",
-  "version": "1.10.333",
-  "version_name": "V1.77",
+  "name": "HaoHao – Trợ lý cá nhân",
+  "version": "1.10.334",
+  "version_name": "V1.78",
   "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, kiểm tra hàng & mã giảm giá Shopee, TikTok Shop, canh email.",
   "permissions": [
     "storage",
@@ -16,7 +16,6 @@
     "search",
     "topSites",
     "favicon",
-    "geolocation",
     "declarativeNetRequest",
     "offscreen",
     "activeTab"
@@ -50,7 +49,15 @@
     "service_worker": "background.js"
   },
   "content_scripts": [
-    { "matches": ["file:///*"], "js": ["pjdir.js"], "run_at": "document_idle" },
+    {
+      "matches": [
+        "file:///*"
+      ],
+      "js": [
+        "pjdir.js"
+      ],
+      "run_at": "document_idle"
+    },
     {
       "matches": [
         "<all_urls>"
@@ -157,5 +164,14 @@
       }
     ]
   },
-  "web_accessible_resources": [{ "resources": ["tfgui.html"], "matches": ["<all_urls>"] }]
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "tfgui.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }
