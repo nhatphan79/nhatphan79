@@ -14,6 +14,7 @@
   <p class="tag">Chú hamster canh tin, canh giá và nhắc việc cho bạn trong Chrome.</p>
   <nav>
     <button data-tab="about" class="on">Giới thiệu</button>
+    <button data-tab="pro">⭐ HaoHao Pro</button>
     <button data-tab="rules">Điều kiện</button>
     <button data-tab="log">Nhật ký</button>
     <button data-tab="settings">Cài đặt chung</button>
@@ -115,6 +116,32 @@
     <h3>© Bản quyền</h3>
     <div class="ab-copy"><p>© 2026 <b>HaoHao</b> · Bản quyền thuộc <b>Phan Thanh Nhật</b> · Liên hệ: <a href="tel:+84366159790">+84 366.159.790</a></p>
       <p class="sub">Không sao chép, sửa đổi để bán lại hoặc phát hành dưới tên khác khi chưa được phép. Chỉ cài HaoHao từ người phát hành chính thức; bản do người khác sửa có thể không an toàn.</p></div>
+  </section>
+
+  <section id="tab-pro" hidden>
+    <header class="top"><div><h2>⭐ HaoHao Pro</h2><p class="sub" id="proSub">Đang kiểm tra…</p></div></header>
+    <div class="pro-card">
+      <p>2 tháng đầu HaoHao mở khoá toàn bộ. Sau đó <b>Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung</b> vẫn dùng miễn phí; <b>Tiện ích</b> (Thị trường, Chặn quảng cáo, HaoHao Transfer) và <b>trang Dự án</b> cần gói Pro.</p>
+      <div class="pro-mid"><span>Mã máy của bạn</span><b id="proCode">…</b><button type="button" class="btn ghost" id="proCodeCopy">📋 Chép mã máy</button></div>
+    </div>
+    <h3>1. Chọn gói</h3>
+    <div class="pro-plans" id="proPlans" role="radiogroup" aria-label="Chọn gói Pro"></div>
+    <h3>2. Chuyển khoản</h3>
+    <div class="pro-pay">
+      <div class="pro-qr"><img id="proQr" alt="Mã QR chuyển khoản"><p class="sub" id="proQrNote">Quét bằng app ngân hàng</p></div>
+      <div class="pro-bank">
+        <div><span>Ngân hàng</span><b id="proBank">BIDV</b></div>
+        <div><span>Số tài khoản</span><b id="proAcc">(đang cập nhật)</b></div>
+        <div><span>Chủ tài khoản</span><b id="proOwner">PHAN THANH NHAT</b></div>
+        <div><span>Số tiền</span><b id="proAmt">–</b></div>
+        <div><span>Nội dung</span><b id="proNote">–</b></div>
+      </div>
+    </div>
+    <h3>3. Gửi mã máy, nhận mã kích hoạt</h3>
+    <p class="sub">Chuyển khoản xong, nhắn Zalo cho tác giả kèm <b>mã máy</b> ở trên. Tác giả gửi lại <b>mã kích hoạt</b>, bạn dán vào ô dưới là xong.</p>
+    <div class="pro-act"><a class="btn" href="https://zalo.me/0366159790" target="_blank" rel="noopener">💬 Nhắn Zalo +84 366.159.790</a></div>
+    <div class="pro-act"><input id="proInput" placeholder="Dán mã kích hoạt HHP1.…" aria-label="Mã kích hoạt" autocomplete="off"><button type="button" class="btn" id="proGo">Kích hoạt</button></div>
+    <p class="sub" id="proMsg" role="status"></p>
   </section>
 
   <section id="tab-rules" hidden>
@@ -262,6 +289,7 @@
 <script src="common.js"></script>
 <script src="i18n.js"></script>
 <script src="i18n-page.js"></script>
+<script src="qrcode.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

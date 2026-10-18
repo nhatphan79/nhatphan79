@@ -26,7 +26,7 @@ const DEFAULT_RULES = [
 async function applyAdBlock() {
   try {
     const { settings = {} } = await chrome.storage.local.get('settings');
-    const on = settings.adBlock !== false;
+    const { proLock } = await chrome.storage.local.get('proLock'), on = settings.adBlock !== false && !proLock;   // V1.65: hết dùng thử, chưa mua Pro → tắt chặn quảng cáo
     await chrome.declarativeNetRequest.updateEnabledRulesets(on ? { enableRulesetIds: ['ads'] } : { disableRulesetIds: ['ads'] });
     // chừa trang tiếp thị + 1.10.174: trang làm việc (AI Studio, Cloudflare, GitHub, Google tài khoản…) – chặn ở đây làm hỏng nút, hộp thoại
     const allow = ['shopee.vn', 'shope.ee', 'tiktok.com', 'collshp.com', 'aistudio.google.com', 'cloud.google.com', 'accounts.google.com', 'myaccount.google.com', 'mail.google.com', 'docs.google.com', 'drive.google.com', 'calendar.google.com', 'gemini.google.com', 'dash.cloudflare.com', 'github.com', 'claude.ai', 'chatgpt.com', 'notion.so', 'figma.com', 'canva.com', 'microsoft.com', 'live.com', 'office.com', 'apple.com', 'zalo.me', 'chat.zalo.me', 'accesstrade.vn', 'riohub.vn', 'affiliate.shopee.vn', 'seller.shopee.vn', 'banhang.shopee.vn'];
@@ -63,7 +63,7 @@ chrome.tabs.onUpdated.addListener(async (id, ch, tab) => {
   if (!popWatch.has(id)) return;
   const url = ch.url || tab.pendingUrl || tab.url || ''; if (!/^https?:/.test(url)) return;
   const host = hostOf(url); if (!host || SAFE_HOST.test(host) || ALLOW_HOST.test(host)) return;          // trang quen thuộc: để yên (vẫn canh tiếp nếu nó chuyển hướng sang web cờ bạc)
-  const { settings = {} } = await chrome.storage.local.get('settings'); if (settings.adBlock === false) return;
+  const { settings = {}, proLock } = await chrome.storage.local.get(['settings', 'proLock']); if (settings.adBlock === false || proLock) return;
   // 1.9.56: trong lúc chờ đọc cài đặt, tab có thể đã bị bỏ khỏi danh sách canh (đóng tab, chuyển trang) → không còn mã tab mở ra nó: thôi
   const opener = popWatch.get(id); if (typeof opener !== 'number') return;
   let op = null; try { op = await chrome.tabs.get(opener); } catch {}
@@ -90,6 +90,32 @@ chrome.storage.onChanged.addListener((ch, area) => {
 
 const DEFAULT_WATCH = [{ source: 'coingecko', coin: 'bitcoin', sym: 'BTC' }, { source: 'coingecko', coin: 'ethereum', sym: 'ETH' }, { source: 'coingecko', coin: 'solana', sym: 'SOL' }];
 
+// ⭐ V1.65: HaoHao Pro – trạng thái mở khoá (dùng thử 2 tháng / mã kích hoạt / máy chủ app)
+const b64d = s => Uint8Array.from(atob(String(s).replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(String(s).length / 4) * 4, '=')), c => c.charCodeAt(0));
+async function proVerify(code, mid) {
+  try {
+    const [h, b, g] = String(code || '').trim().split('.'); if (h !== 'HHP1' || !b || !g) return null;
+    const data = b64d(b), key = await crypto.subtle.importKey('raw', b64d(HT.PRO.pub), { name: 'Ed25519' }, false, ['verify']);
+    if (!(await crypto.subtle.verify({ name: 'Ed25519' }, key, b64d(g), data))) return null;
+    const j = JSON.parse(new TextDecoder().decode(data)); return j && j.m === mid ? j : null;
+  } catch { return null; }
+}
+async function proStatus() {
+  const { proStart, proLic, spyKeys } = await chrome.storage.local.get(['proStart', 'proLic', 'spyKeys']);
+  const now = Date.now(), id = await hhId(), mid = id.slice(0, 12).toUpperCase();
+  const owner = !!(spyKeys && (spyKeys.at || spyKeys.rh)), start = proStart || now, trialEnd = start + HT.PRO.trialDays * 864e5;
+  const lic = proLic ? await proVerify(proLic, mid) : null, pro = !!(lic && (lic.e === 0 || lic.e > now)), trial = now < trialEnd;
+  return { ok: owner || pro || trial, owner, trial, trialEnd, trialLeft: Math.max(0, Math.ceil((trialEnd - now) / 864e5)), pro, plan: lic && lic.p, exp: lic ? lic.e : null, code: HT.machineCode(id) };
+}
+async function proSync() {
+  const { proStart } = await chrome.storage.local.get('proStart'); if (!proStart) await chrome.storage.local.set({ proStart: Date.now() });
+  const st = await proStatus(), { proLock } = await chrome.storage.local.get('proLock');
+  if (!!proLock !== !st.ok) { await chrome.storage.local.set({ proLock: !st.ok }); applyAdBlock(); }
+  return st;
+}
+chrome.runtime.onStartup.addListener(() => { proSync(); chrome.alarms.create('pro-check', { periodInMinutes: 360 }); });
+chrome.runtime.onInstalled.addListener(details => { proSync(); chrome.alarms.create('pro-check', { periodInMinutes: 360 }); });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'pro-check') proSync(); });
 chrome.runtime.onInstalled.addListener(async details => {
   if (details && details.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('options.html#about') }).catch(() => {});   // cài lần đầu: mở trang Giới thiệu
   if (details && details.reason === 'install') { const { unlock } = await chrome.storage.local.get('unlock'); if (!unlock) await chrome.storage.local.set({ unlock: { steps: {}, until: Date.now() + 7 * 864e5, trial: true } }); }   // V1.10: máy cài mới dùng ngay 7 ngày, chưa cần mở khoá
@@ -435,6 +461,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
   if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
   // 💬 V1.8: góp ý → máy chủ HaoHao (chỉ chủ app đọc)
+  if (msg.type === 'pro-st') { proSync().then(send).catch(() => send(null)); return true; }
+  if (msg.type === 'pro-activate') { (async () => { const id = await hhId(), j = await proVerify(msg.code, id.slice(0, 12).toUpperCase()); if (!j) return send({ ok: false, error: 'Mã không đúng hoặc không phải của máy này' }); await chrome.storage.local.set({ proLic: String(msg.code).trim() }); send({ ok: true, st: await proSync() }); })().catch(() => send({ ok: false, error: 'Lỗi kiểm tra mã' })); return true; }
   if (msg.type === 'gopy') { (async () => { try { const m = chrome.runtime.getManifest(), r = await fetch(HT.PRICE_API.replace(/\/$/, '') + '/gopy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ by: await hhId(), txt: String(msg.txt || '').slice(0, 1000), v: m.version_name || m.version }) }).then(r => r.json()); send(r); } catch { send({ ok: false }); } })(); return true; }
   if (msg.type === 'tf-st') {
     const T = 'http://127.0.0.1:8686', g = p => fetch(T + p, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2500) }).then(r => r.json());

@@ -314,6 +314,21 @@ HT.shopSearch = (id, q) => { const s = HT.SHOPS.find(x => x.id === id) || HT.SHO
 // Kho mã của bạn: sửa file haohao-extension/coupons.json trên GitHub, mọi người dùng tự nhận mã mới (1 giờ/lần), không cần ra bản mới.
 // 🔎 Máy chủ soi sản phẩm (Cloudflare Worker của chủ app): giữ khoá AccessTrade/RioHub, trả danh sách hàng Shopee + TikTok.
 //   Để trống = tắt (ô tìm mở thẳng Shopee như cũ). Điền link worker, vd 'https://haohao-api.<tên>.workers.dev'
+// ⭐ V1.65: HaoHao Pro – 2 tháng đầu mở khoá toàn bộ; sau đó Tiện ích + Dự án cần mã kích hoạt (ký Ed25519 trên máy chủ app, gắn mã máy)
+HT.PRO = {
+  pub: 'XU118CDS/gQLwdRGEBoxlYlpKaT+f/ciLIjIIb6Hoyc=', trialDays: 60,
+  plans: [['m1', '1 tháng', 20000, 30], ['m3', '3 tháng', 50000, 90], ['m6', '6 tháng', 90000, 180], ['y1', '1 năm', 199000, 365], ['life', 'Trọn đời', 499000, 0]],
+  bank: { name: 'BIDV', bin: '970418', acc: '', owner: 'PHAN THANH NHAT' }   // acc: anh Nhật gửi số tài khoản BIDV rồi điền vào đây
+};
+HT.machineCode = id => 'HH-' + String(id || '').slice(0, 12).toUpperCase().replace(/(.{4})(?=.)/g, '$1-');
+// mã QR chuyển khoản VietQR (chuẩn NAPAS/EMVCo) – app ngân hàng nào cũng quét được
+HT.vietQR = (bin, acc, amount, note) => {
+  const f = (id, v) => id + String(v.length).padStart(2, '0') + v;
+  const acct = f('00', 'A000000727') + f('01', f('00', bin) + f('01', acc)) + f('02', 'QRIBFTTA');
+  let s = f('00', '01') + f('01', amount ? '12' : '11') + f('38', acct) + f('53', '704') + (amount ? f('54', String(amount)) : '') + f('58', 'VN') + (note ? f('62', f('08', note)) : '') + '6304';
+  let c = 0xFFFF; for (let i = 0; i < s.length; i++) { c ^= s.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF; }
+  return s + c.toString(16).toUpperCase().padStart(4, '0');
+};
 HT.STORE = false;   // V1.56: bản Chrome Web Store (haohao-store) – script đóng gói tự đổi thành true
 HT.AFF_NOTE = 'Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm.';
 HT.SPY_API = 'https://haohao-gia.nhatphan79.workers.dev';   // 1.10.250: khách dùng Soi sản phẩm luôn, khoá nằm trên máy chủ

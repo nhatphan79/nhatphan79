@@ -280,4 +280,37 @@ $('#zaloCopy').addEventListener('click', () => copyBtn($('#zaloCopy'), ZALO0, '�
 // ---------- Giới thiệu: phiên bản đang cài; #about mở thẳng tab này ----------
 try { const mf = chrome.runtime.getManifest(); $('#abVer').textContent = `Phiên bản ${mf.version_name || mf.version} · Bản quyền thuộc Phan Thanh Nhật`; } catch {}
 if (location.hash === '#about') document.querySelector('nav button[data-tab="about"]').click();
+// ⭐ V1.65: trang HaoHao Pro – chọn gói, QR chuyển khoản BIDV (VietQR), mã máy, dán mã kích hoạt
+{
+  let st = null, sel = 'y1';
+  const P = HT.PRO, vnd = n => n.toLocaleString('vi-VN') + 'đ';
+  const fmtD = t => new Date(t).toLocaleDateString('vi-VN');
+  const short = () => (st && st.code || '').replace(/^HH-/, '').replace(/-/g, '');
+  const drawPay = () => {
+    const pl = P.plans.find(x => x[0] === sel), note = 'HH ' + short() + ' ' + sel.toUpperCase();
+    $('#proAmt').textContent = vnd(pl[2]); $('#proNote').textContent = note; $('#proBank').textContent = P.bank.name; $('#proOwner').textContent = P.bank.owner;
+    $('#proAcc').textContent = P.bank.acc || '(đang cập nhật)';
+    if (P.bank.acc && typeof qrcode === 'function') { const q = qrcode(0, 'M'); q.addData(HT.vietQR(P.bank.bin, P.bank.acc, pl[2], note)); q.make(); $('#proQr').src = q.createDataURL(5, 2); $('#proQr').hidden = false; $('#proQrNote').textContent = 'Quét bằng app ngân hàng – đã điền sẵn số tiền và nội dung'; }
+    else { $('#proQr').hidden = true; $('#proQrNote').textContent = 'Mã QR hiện khi có số tài khoản'; }
+    document.querySelectorAll('#proPlans button').forEach(b => { const on = b.dataset.k === sel; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  };
+  P.plans.forEach(([k, l, p, d]) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'radio'); b.className = 'pro-pl' + (k === 'y1' ? ' hot' : '');
+    b.innerHTML = `<b>${l}</b><span>${vnd(p)}</span>` + (d ? `<small>≈ ${vnd(Math.round(p / (d / 30) / 1000) * 1000)}/tháng</small>` : '<small>dùng mãi mãi</small>');
+    b.addEventListener('click', () => { sel = k; drawPay(); }); $('#proPlans').append(b); });
+  const show = s => {
+    st = s; if (!s) { $('#proSub').textContent = 'Chưa kiểm tra được, tải lại trang nhé.'; return; }
+    $('#proCode').textContent = s.code;
+    const pl = s.plan && P.plans.find(x => x[0] === s.plan);
+    $('#proSub').textContent = s.owner ? '✓ Máy chủ app – mở khoá toàn bộ' : s.pro ? `✓ Đang dùng Pro${pl ? ' · gói ' + pl[1] : ''}${s.exp ? ' · đến ' + fmtD(s.exp) : ' · trọn đời'}` : s.trial ? `🎁 Đang mở khoá toàn bộ · còn ${s.trialLeft} ngày (đến ${fmtD(s.trialEnd)})` : '🔒 Đã hết 2 tháng mở khoá toàn bộ · Tiện ích và Dự án cần gói Pro';
+    drawPay();
+  };
+  chrome.runtime.sendMessage({ type: 'pro-st' }).then(show).catch(() => show(null));
+  $('#proCodeCopy').addEventListener('click', () => copyBtn($('#proCodeCopy'), (st && st.code) || '', '📋 Chép mã máy'));
+  $('#proGo').addEventListener('click', async () => {
+    const v = $('#proInput').value.trim(), m = $('#proMsg'); if (!v) return $('#proInput').focus();
+    m.textContent = 'Đang kiểm tra…'; const r = await chrome.runtime.sendMessage({ type: 'pro-activate', code: v }).catch(() => null);
+    if (r && r.ok) { $('#proInput').value = ''; m.textContent = '🎉 Kích hoạt thành công. Cảm ơn bạn đã ủng hộ HaoHao!'; show(r.st); } else m.textContent = '⚠ ' + ((r && r.error) || 'Chưa kích hoạt được');
+  });
+}
+if (location.hash === '#pro') document.querySelector('nav button[data-tab="pro"]').click();
 if (/^#(rules|log|settings)$/.test(location.hash)) document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`).click();

@@ -91,9 +91,10 @@
       fast = false; timer = setInterval(tick, 1000); tick(); watchPage();
     } else { if (style) style.remove(); style = null; clearInterval(timer); timer = null; if (obs) obs.disconnect(); obs = null; }
   }
-  const decide = s => { try { localStorage.setItem('hh-ad', s.adBlock !== false ? '1' : '0'); } catch {} apply(s.adBlock !== false); };   // yt-main.js đọc cờ này
-  chrome.storage.local.get('settings').then(({ settings = {} }) => decide(settings)).catch(() => {});
-  chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.settings) decide(ch.settings.newValue || {}); });
+  let S0 = {}, LOCK = false;   // V1.65: hết dùng thử chưa mua Pro (proLock) → không chặn
+  const decide = s => { if (s) S0 = s; const on = S0.adBlock !== false && !LOCK; try { localStorage.setItem('hh-ad', on ? '1' : '0'); } catch {} apply(on); };   // yt-main.js đọc cờ này
+  chrome.storage.local.get(['settings', 'proLock']).then(({ settings = {}, proLock }) => { LOCK = !!proLock; decide(settings); }).catch(() => {});
+  chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local') return; if (ch.proLock) LOCK = !!ch.proLock.newValue; if (ch.settings || ch.proLock) decide(ch.settings ? ch.settings.newValue || {} : null); });
   // đếm cho bảng HaoHao
   window.addEventListener('hh-ad-count', () => {
     let n = 0; try { n = on ? document.querySelectorAll(CSS.split('{')[0]).length : 0; } catch {}

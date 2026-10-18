@@ -152,3 +152,19 @@ form { background: var(--paper); border: 2px solid var(--ink); border-radius: 20
 .gp-box h3 { margin: 0 0 4px; font-size: 16px; }
 .gp-box textarea { width: 100%; box-sizing: border-box; margin-top: 10px; padding: 10px 12px; border: 1px solid #DCE1EE; border-radius: 12px; font: inherit; resize: vertical; }
 .gp-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+
+/* V1.65: HaoHao Pro */
+.pro-card { background: #FFFDF6; border: 2px solid var(--ink); border-radius: 16px; padding: 16px 20px; box-shadow: 5px 5px 0 #F2B544; }
+.pro-card p { margin: 0 0 10px; line-height: 1.55; }
+.pro-mid { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: #EEF2FF; }
+.pro-mid b { font-size: 18px; letter-spacing: 1px; font-family: ui-monospace, Consolas, monospace; } .pro-mid .btn { margin-left: auto; }
+.pro-plans { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.pro-pl { all: unset; cursor: pointer; background: #fff; border: 2px solid #E3E6F0; border-radius: 14px; padding: 12px 8px; text-align: center; display: flex; flex-direction: column; gap: 3px; }
+.pro-pl b { font-size: 14px; } .pro-pl span { font-size: 17px; font-weight: 800; color: #D98E1F; } .pro-pl small { font-size: 11.5px; color: var(--ink-soft); }
+.pro-pl.hot { background: #FFF6DE; } .pro-pl.on { border-color: var(--ink); box-shadow: 3px 3px 0 #F2B544; } .pro-pl:focus-visible { outline: 2px solid #2E7DD7; }
+.pro-pay { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; background: #fff; border: 1px solid #E3E6F0; border-radius: 16px; padding: 16px 20px; }
+.pro-qr { text-align: center; } .pro-qr img { width: 180px; height: 180px; image-rendering: pixelated; }
+.pro-bank { flex: 1 1 260px; display: grid; gap: 8px; } .pro-bank div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed #E3E6F0; padding-bottom: 6px; }
+.pro-bank span { color: var(--ink-soft); } .pro-bank b { text-align: right; }
+.pro-act { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; } .pro-act input { flex: 1 1 320px; padding: 10px 12px; border: 1px solid #DCE1EE; border-radius: 12px; font: inherit; font-family: ui-monospace, Consolas, monospace; }
+@media (max-width: 900px) { .pro-plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

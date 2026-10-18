@@ -55,9 +55,10 @@
       document.querySelectorAll('[data-hh-ad]').forEach(e => e.removeAttribute('data-hh-ad'));
     }
   };
-  const decide = s => apply(s.adBlock !== false);   // không còn "tắt trên trang này": bật là chặn mọi trang
-  chrome.storage.local.get('settings').then(({ settings = {} }) => decide(settings)).catch(() => {});
-  chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.settings) decide(ch.settings.newValue || {}); });
+  let S0 = {}, LOCK = false;   // V1.65: hết dùng thử chưa mua Pro (proLock) → không chặn
+  const decide = s => { if (s) S0 = s; apply(S0.adBlock !== false && !LOCK); };   // không còn "tắt trên trang này": bật là chặn mọi trang
+  chrome.storage.local.get(['settings', 'proLock']).then(({ settings = {}, proLock }) => { LOCK = !!proLock; decide(settings); }).catch(() => {});
+  chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local') return; if (ch.proLock) LOCK = !!ch.proLock.newValue; if (ch.settings || ch.proLock) decide(ch.settings ? ch.settings.newValue || {} : null); });
 
   // ---------- 2) tự nhận quảng cáo ----------
   // ⚠ không bao giờ ẩn trình phát phim: khung đang chứa <video>, khung trình phát quen thuộc, hoặc iframe phim lớn

@@ -1443,6 +1443,14 @@
   .szr { font-size: 12.5px; color: #1F2A44; font-weight: 600; }
   /* 1.10.127 Mở khoá Tiện ích */
   .unl { padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .pro-lock { padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+  .pro-t { font-size: 17px; font-weight: 800; color: #23305E; } .pro-s { font-size: 12.5px; color: #4A5275; line-height: 1.5; }
+  .pro-plans { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .pro-pl { background: #fff; border: 1.5px solid #E3E7F2; border-radius: 10px; padding: 7px 2px; display: flex; flex-direction: column; gap: 2px; }
+  .pro-pl b { font-size: 11px; color: #23305E; } .pro-pl span { font-size: 11.5px; font-weight: 800; color: #D98E1F; }
+  .pro-pl.hot { border-color: #F2B544; background: #FFF6DE; }
+  .pro-n { font-size: 11px; color: #8A91AE; }
+  .pro-trial { all: unset; cursor: pointer; display: block; margin: 6px 12px 0; padding: 6px 10px; border-radius: 10px; background: #FFF6DE; color: #B7791F; font-size: 11.5px; font-weight: 700; text-align: center; }
   .unl-t { font: 800 15px/1.3 inherit; color: #1F2A44; text-align: center; }
   .unl-s { font-size: 12px; color: #64748B; text-align: center; line-height: 1.45; margin-bottom: 4px; }
   .unl-r { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid #E2E8F0; border-radius: 12px; background: #fff; cursor: pointer; font: inherit; color: #1F2A44; }
@@ -1879,7 +1887,21 @@
   const UNLOCK_DAYS = 7;   // 1.10.134: mở khoá 7 ngày; hết hạn khách tự bấm lại TikTok Shop + Cửa hàng Shopee (fanpage chỉ 1 lần đầu)
   let unlockSt = { steps: {}, until: 0 };
   chrome.storage.local.get('unlock').then(d => { if (d.unlock) { unlockSt = d.unlock; if (unlockSt.until > Date.now() + UNLOCK_DAYS * 864e5) unlockSt.until = Date.now() + UNLOCK_DAYS * 864e5; } }).catch(() => {});
-  const isUnlocked = () => HT.STORE || unlockSt.until > Date.now() || !!(spyKeys && (spyKeys.at || spyKeys.rh));   // máy chủ app (có khoá soi sản phẩm) luôn mở
+  // ⭐ V1.65: thay Bảng mở khoá bằng HaoHao Pro – 2 tháng đầu mở toàn bộ, sau đó Tiện ích + Dự án cần mã kích hoạt (nền kiểm tra chữ ký)
+  let proSt = null;
+  const proLoad = () => chrome.runtime.sendMessage({ type: 'pro-st' }).then(s => { if (s) proSt = s; }).catch(() => {});
+  proLoad();
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.proLic || ch.proLock || ch.proStart)) proLoad().then(() => { if (ui && !ui.panel.hidden) renderPanel(); }); });
+  const isUnlocked = () => !proSt || !!proSt.ok;
+  function renderProLock(V) {
+    const box = el('div', 'pro-lock');
+    box.append(el('div', 'pro-t', '⭐ HaoHao Pro'), el('div', 'pro-s', 'Bạn đã dùng hết 2 tháng mở khoá toàn bộ. Tiện ích (Thị trường, Chặn quảng cáo, HaoHao Transfer) và trang Dự án cần gói Pro.'));
+    const g = el('div', 'pro-plans');
+    HT.PRO.plans.forEach(([k, l, p]) => { const c = el('div', 'pro-pl' + (k === 'y1' ? ' hot' : '')); c.append(el('b', '', l), el('span', '', p.toLocaleString('vi-VN') + 'đ')); g.append(c); });
+    const b = el('button', 'b', '⭐ Mua / Kích hoạt Pro'); b.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {}));
+    box.append(g, b, el('div', 'pro-n', 'Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung vẫn dùng miễn phí.'));
+    V.append(box);
+  }
   function unlockSteps() {
     const fb = (couponFeed && couponFeed.fanpage) || HT.FANPAGE || '';
     return [
@@ -1948,7 +1970,8 @@
     if (!ui || ui.panel.hidden) { updateBadge(); return; }
     const V = ui.view; V.innerHTML = '';
     if (helloMode) { renderHello(V); updateBadge(); return; }
-    if (((tab === 'market' || tab === 'tools' || tab === 'adblock' || tab === 'transfer') && !isUnlocked()) || (tab === 'tools' && toolsSub === 'unl')) { renderUnlock(V); updateBadge(); return; }   // 1.10.127: Thị trường (vàng, chứng khoán, crypto) mở khoá bằng 3 bước
+    if ((tab === 'market' || tab === 'tools' || tab === 'adblock' || tab === 'transfer') && !isUnlocked()) { renderProLock(V); updateBadge(); return; }   // V1.65: hết dùng thử → gói Pro
+    if (tab === 'tools' && toolsSub === 'unl') { renderUnlock(V); updateBadge(); return; }   // 1.10.127: Thị trường (vàng, chứng khoán, crypto) mở khoá bằng 3 bước
     ({ todo: renderTodo, idea: renderIdea, bell: renderBell, focus: renderFocus, info: renderInfo, shop: renderShop, tools: renderTools, market: renderCrypto, adblock: renderAdblock, transfer: renderTransfer }[tab] || renderTodo)(V);
     { const tp = tipEl(); if (tp) V.prepend(tp); }
     updateBadge();
@@ -7091,6 +7114,7 @@
     V.append(L);
   }
   function renderTools(V) {
+    if (proSt && proSt.trial && !proSt.pro && !proSt.owner) { const n = el('button', 'pro-trial', `🎁 Đang mở khoá toàn bộ · còn ${proSt.trialLeft} ngày · Xem gói Pro ›`); n.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {})); V.append(n); }   // V1.65
     const cur = TOOLS.find(t => t.id === toolsSub);
     if (cur) {
       // đang dùng 1 tiện ích: chỉ hiện tiện ích đó, thanh đầu gọn 1 dòng

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HaoHao Pro – Tạo mã kích hoạt (chỉ máy chủ app)</title>
+<!-- © 2026 HaoHao – Phan Thanh Nhật. Công cụ RIÊNG của chủ app: file trên máy có chứa KHOÁ RIÊNG – KHÔNG gửi, KHÔNG đưa lên GitHub. -->
+<style>
+body{margin:0;background:#FFF6E3;color:#23305E;font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:28px 16px}
+.w{max-width:640px;margin:0 auto;background:#FFFDF6;border:2px solid #23305E;border-radius:18px;box-shadow:6px 6px 0 #F2B544;padding:22px 24px}
+h1{margin:0 0 4px;font-size:22px}.mu{color:#6B7394;font-size:13px}label{display:block;font-weight:700;margin:14px 0 6px}
+input,select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #DCE1EE;border-radius:12px;font:inherit;font-family:ui-monospace,Consolas,monospace}
+button{all:unset;cursor:pointer;background:#23305E;color:#fff;font-weight:800;padding:10px 18px;border-radius:12px;box-shadow:3px 3px 0 #F2B544;margin-top:14px}
+textarea{width:100%;box-sizing:border-box;margin-top:12px;padding:10px;border:1px solid #DCE1EE;border-radius:12px;font:13px ui-monospace,Consolas,monospace;min-height:84px}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}td,th{border-bottom:1px solid #EEE;padding:6px 4px;text-align:left}.err{color:#C2410C;font-weight:700}
+</style></head><body><div class="w">
+<h1>⭐ Tạo mã kích hoạt HaoHao Pro</h1><div class="mu">Chỉ dùng trên máy anh Nhật. Khách gửi <b>mã máy</b> (HH-XXXX-XXXX-XXXX) + đã chuyển khoản → chọn gói → Tạo mã → gửi lại khách.</div>
+<label for="mid">Mã máy của khách</label><input id="mid" placeholder="HH-XXXX-XXXX-XXXX" autocomplete="off">
+<label for="plan">Gói</label><select id="plan">
+<option value="m1|30">1 tháng – 20.000đ</option><option value="m3|90">3 tháng – 50.000đ</option><option value="m6|180">6 tháng – 90.000đ</option>
+<option value="y1|365" selected>1 năm – 199.000đ</option><option value="life|0">Trọn đời – 499.000đ</option></select>
+<label for="note">Ghi chú (tên khách, số điện thoại…)</label><input id="note" placeholder="VD: Chị Lan 0905…">
+<button id="go" type="button">Tạo mã</button> <span id="msg" class="mu"></span>
+<textarea id="out" readonly placeholder="Mã kích hoạt sẽ hiện ở đây"></textarea>
+<button id="cp" type="button">📋 Chép mã</button>
+<h3>Đã tạo</h3><table><thead><tr><th>Ngày</th><th>Mã máy</th><th>Gói</th><th>Hết hạn</th><th>Ghi chú</th></tr></thead><tbody id="log"></tbody></table>
+</div>
+<script>
+const PEM = `__PEM__`;
+const $ = id => document.getElementById(id), b64u = u => btoa(String.fromCharCode(...u)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+let key = null;
+async function getKey() { if (key) return key; const der = Uint8Array.from(atob(PEM.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')), c => c.charCodeAt(0)); key = await crypto.subtle.importKey('pkcs8', der, { name: 'Ed25519' }, false, ['sign']); return key; }
+const LOG = () => { try { return JSON.parse(localStorage.getItem('hhpro-log') || '[]'); } catch { return []; } };
+const drawLog = () => { $('log').innerHTML = LOG().slice().reverse().map(x => `<tr><td>${new Date(x.t).toLocaleDateString('vi-VN')}</td><td>${x.m}</td><td>${x.p}</td><td>${x.e ? new Date(x.e).toLocaleDateString('vi-VN') : 'Trọn đời'}</td><td>${(x.n || '').replace(/</g, '')}</td></tr>`).join(''); };
+$('go').onclick = async () => {
+  const m = $('mid').value.toUpperCase().replace(/^HH-?/, '').replace(/[^A-Z0-9]/g, ''), [p, d] = $('plan').value.split('|');
+  if (m.length !== 12) { $('msg').textContent = 'Mã máy phải có 12 ký tự sau HH-'; $('msg').className = 'err'; return; }
+  try {
+    const t = Date.now(), e = +d ? t + d * 864e5 : 0, data = new TextEncoder().encode(JSON.stringify({ m, p, e, t }));
+    const sig = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, await getKey(), data));
+    $('out').value = 'HHP1.' + b64u(data) + '.' + b64u(sig); $('msg').textContent = '✓ Đã tạo'; $('msg').className = 'mu';
+    const L = LOG(); L.push({ t, m: 'HH-' + m.replace(/(.{4})(?=.)/g, '$1-'), p, e, n: $('note').value.trim() }); localStorage.setItem('hhpro-log', JSON.stringify(L)); drawLog();
+  } catch (err) { $('msg').textContent = 'Lỗi: ' + err.message + ' (cần Chrome mới)'; $('msg').className = 'err'; }
+};
+$('cp').onclick = () => { $('out').select(); navigator.clipboard.writeText($('out').value).then(() => { $('msg').textContent = '✓ Đã chép, dán gửi khách qua Zalo'; }); };
+drawLog();
+</script></body></html>

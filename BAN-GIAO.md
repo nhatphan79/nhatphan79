@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.64** (số kỹ thuật 1.10.320)
+Cập nhật: 18/10/2026 · **Bản V1.65** (số kỹ thuật 1.10.321)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.65 (1.10.321) | ⭐ **HaoHao Pro**: `HT.PRO` (common.js: khoá công khai, 60 ngày dùng thử, 5 gói 20k/50k/90k/199k/499k, BIDV – `acc` CHƯA điền), `HT.vietQR` (QR chuyển khoản NAPAS). Nền: `proStatus/proSync/proVerify` (Ed25519, mã gắn 12 ký tự đầu `hhId`; máy có spyKeys = chủ app luôn mở), `proStart` đặt lần đầu chạy (khách cũ = ngày cài bản này), `proLock` → tắt chặn QC (DNR + adhide + yt-ads), kiểm 6 giờ/lần. Bảng HaoHao: Tiện ích/Thị trường/Chặn QC/Transfer hết hạn → bảng Pro (thay Bảng mở khoá cũ); trong hạn dùng thử hiện "🎁 còn N ngày". Trang Dự án khoá kèm thẻ Pro (dữ liệu giữ nguyên). Cài đặt → tab ⭐ HaoHao Pro: mã máy, chọn gói, QR, dán mã kích hoạt. Công cụ tạo mã: máy anh `_release/khoa-pro/tao-ma-pro.html` (có KHOÁ RIÊNG – không đưa GitHub); mẫu không khoá: `_cong-cu/tao-ma-pro.mau.html`. Đã thử trọn vòng bằng khoá thử. Chưa phát hành. |
 | V1.64 (1.10.320) | Dự án: số VND không còn lẻ thập phân khi quy USDT; nút ⧉ nhân bản thư mục con (chép hết việc/ghi chú/sổ, mã mới, bỏ liên kết Todo); biểu tượng **HaoHao · Quản lý dự án** góc trái (màn ≤1640px thì nằm trên). 💬 Góp ý bỏ khỏi Tiện ích, chuyển vào trang Giới thiệu. Đã chép sang máy anh, chưa phát hành. |
 | V1.63 (1.10.319) | Số điện thoại hiện theo mã quốc tế **+84 366.159.790** (bản quyền, Giới thiệu, Tab mới, quảng cáo xây nhà, nút Zalo; link tel:+84366159790; chính sách + hồ sơ Store). Link Zalo giữ zalo.me/0366159790. Đã chép sang máy anh, chưa phát hành. |
 | V1.62 (1.10.318) | Anh Nhật không làm miễn phí nữa: bỏ trang ☕ Ủng hộ (MoMo QR) và nút Ủng hộ ở Tab mới + Cài đặt; bỏ chữ "Miễn phí" ở Giới thiệu; khung "💻 Đặt viết phần mềm theo yêu cầu" chuyển sang cuối trang Giới thiệu. Còn chữ "duy trì miễn phí… ghé shop ủng hộ" ở Bảng mở khoá + cà phê thứ Ba (chờ anh quyết). Đã chép sang máy anh; CHƯA phát hành (gói chờ 9h 19/10 vẫn là V1.61 – hỏi anh có gộp V1.62 không). |
@@ -165,7 +166,7 @@ Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 - [ ] Trang Dự án: nút "📋 Thêm vào dự án" trên HaoHao ở mọi trang web (lưu tên + link trang hiện tại thành 1 dòng trong bảng, chỉ máy chủ app) – chờ anh Nhật xác nhận ý.
 - Trang Kế hoạch dự án (Tab mới → 📋 Dự án, chỉ máy chủ app): chờ anh Nhật gửi mẫu kế hoạch rồi mới làm nội dung. anh duyệt
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
-- [ ] **THU PHÍ HaoHao (anh Nhật chốt 18/10)**: 2 tháng đầu từ ngày cài mở khoá toàn bộ (khách cũ tính từ ngày phát hành). Sau đó FREE: Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung. TRẢ PHÍ: Tiện ích (Thị trường, Chặn QC, Transfer) + Tab Dự án. Giá: 1 tháng 20k · 3 tháng 50k · 6 tháng 90k · 1 năm 199k · trọn đời 499k. Mua: bảng giá + mã máy + QR BIDV (anh sẽ gửi số TK) → khách chuyển + gửi mã máy qua Zalo → anh tạo mã kích hoạt (ký Ed25519 trên máy anh, gắn mã máy) → khách dán mã. Góp ý → trang Giới thiệu (✅ V1.64). Bảng 🔓 Mở khoá cũ + cà phê thứ Ba: anh nói "free nên vẫn giữ nguyên" (chưa bỏ). Chờ: số TK BIDV.
+- [ ] **THU PHÍ HaoHao (anh Nhật chốt 18/10)**: 2 tháng đầu từ ngày cài mở khoá toàn bộ (khách cũ tính từ ngày phát hành). Sau đó FREE: Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung. TRẢ PHÍ: Tiện ích (Thị trường, Chặn QC, Transfer) + Tab Dự án. Giá: 1 tháng 20k · 3 tháng 50k · 6 tháng 90k · 1 năm 199k · trọn đời 499k. Mua: bảng giá + mã máy + QR BIDV (anh sẽ gửi số TK) → khách chuyển + gửi mã máy qua Zalo → anh tạo mã kích hoạt (ký Ed25519 trên máy anh, gắn mã máy) → khách dán mã. Góp ý → trang Giới thiệu (✅ V1.64). Bảng 🔓 Mở khoá cũ + cà phê thứ Ba: anh nói "free nên vẫn giữ nguyên" (chưa bỏ). ✅ Đã làm V1.65 – chờ số TK BIDV để hiện QR.
 - [ ] **Lên Chrome Web Store – hướng a "Trợ lý cá nhân"**: hồ sơ ĐÃ SẴN trong `haohao-store/` (V1.56). Quyết định anh Nhật: A1,A2,A3,A5 ✅; A4 cà phê thứ Ba TẠM GIỮ; B6 ✅ B8 ✅ B9 ✅; B7 Gmail TẠM GIỮ (phân tích thêm); C10 ✅. Còn: anh quyết Soi sản phẩm (khách đang dùng qua máy chủ – không phải khoá của anh như em nói nhầm); anh điền email hỗ trợ; anh nộp zip trên Developer Dashboard.
 - [ ] Làm gọn khung Voucher trang sản phẩm (gộp 2 khung đầu thành 1 dòng, rút chữ giải thích, kết quả 1 dòng/mã, mỗi phần 3 mã + Xem thêm)
 - [ ] Phần đọc toàn bộ đánh giá (Kiểm tra chi tiết) cho Shopee tiếng Anh

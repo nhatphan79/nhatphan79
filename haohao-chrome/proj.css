@@ -429,3 +429,10 @@
 .pj-brand b { display: block; font-size: 18px; font-weight: 800; color: #23305E; line-height: 1.1; }
 .pj-brand small { display: block; font-size: 12px; font-weight: 700; color: #E08A00; letter-spacing: .3px; }
 @media (max-width: 1640px) { .pj-brand { position: static; margin: 0 0 10px; } }
+
+/* V1.65: khoá trang Dự án khi hết dùng thử */
+.pj-pro { margin: 60px auto 0; max-width: 560px; text-align: center; background: #FFFDF6; border: 2px solid #23305E; border-radius: 18px; box-shadow: 6px 6px 0 #F2B544; padding: 26px 24px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.pj-pro-t { font-size: 20px; font-weight: 800; color: #23305E; } .pj-pro-s { color: #4A5275; line-height: 1.55; }
+.pj-pro-g { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+.pj-pro-pl { background: #fff; border: 1.5px solid #E3E7F2; border-radius: 12px; padding: 10px 4px; display: flex; flex-direction: column; gap: 3px; }
+.pj-pro-pl b { font-size: 12.5px; color: #23305E; } .pj-pro-pl span { font-weight: 800; color: #D98E1F; } .pj-pro-pl.hot { border-color: #F2B544; background: #FFF6DE; }

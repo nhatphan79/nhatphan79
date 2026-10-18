@@ -887,9 +887,22 @@
     if (!ready || (!force && editing())) return;
     rendering = true; try { render0(); } finally { rendering = false; }
   }
+  // ⭐ V1.65: HaoHao Pro – trang Dự án cần Pro sau 2 tháng mở khoá toàn bộ
+  let proLocked = false;
+  const proCheck = () => chrome.runtime.sendMessage({ type: 'pro-st' }).then(s => { const L = !!(s && !s.ok); if (L !== proLocked) { proLocked = L; if (ready) render(true); } }).catch(() => {});
+  proCheck();
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.proLock || ch.proLic)) proCheck(); });
+  function proLockCard(W) {
+    const c = $('div', 'pj-pro');
+    c.append($('div', 'pj-pro-t', '⭐ Trang Dự án thuộc gói HaoHao Pro'), $('div', 'pj-pro-s', 'Bạn đã dùng hết 2 tháng mở khoá toàn bộ. Dữ liệu dự án của bạn vẫn còn nguyên – kích hoạt Pro là mở lại ngay.'));
+    const g = $('div', 'pj-pro-g'); HT.PRO.plans.forEach(([k, l, p]) => { const x = $('div', 'pj-pro-pl' + (k === 'y1' ? ' hot' : '')); x.append($('b', '', l), $('span', '', p.toLocaleString('vi-VN') + 'đ')); g.append(x); });
+    const b = $('button', 'pj-btn', '⭐ Mua / Kích hoạt Pro'); b.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {}));
+    c.append(g, b); W.append(c);
+  }
   function render0() {
     const W = $('div', 'pj-wrap'), p = openId && proj();
     { const br = $('div', 'pj-brand'), im = document.createElement('img'); im.src = 'icons/icon48.png'; im.alt = ''; const tx = $('div', ''); tx.append($('b', '', 'HaoHao'), $('small', '', 'Quản lý dự án')); br.append(im, tx); W.append(br); }   // V1.64: biểu tượng HaoHao góc trái
+    if (proLocked) { proLockCard(W); root.replaceChildren(W); return; }   // V1.65: hết 2 tháng dùng thử, chưa mua Pro
     if (p) detail(W, p); else { openId = null; if (data.cur === '$all' && areas().length) overview(W); else board(W); }
     root.replaceChildren(W);
   }
