@@ -2,7 +2,7 @@
 #  - KHÔNG làm rối mã (Store cấm mã bị làm rối), file nằm ngay gốc zip (Store yêu cầu manifest.json ở gốc)
 #  - bật HT.STORE = true (common.js): xem kiểm tra không gắn link tiếp thị, lấy mã chỉ gắn link khi có mã thật,
 #    báo link tiếp thị trong giao diện, không khoá Tiện ích, không tự cập nhật, không có ô khoá soi sản phẩm của chủ app
-#  - manifest: bỏ quyền geolocation, bỏ cổng app HaoHao 3D (127.0.0.1:47321) chưa phát hành
+#  - manifest: tên 'HaoHao – Trợ lý cá nhân', bỏ quyền geolocation, bỏ cổng app HaoHao 3D (127.0.0.1:47321) chưa phát hành
 #  Chạy: python3 haohao-store/dong-goi-store.py   (từ gốc kho)
 import json, os, zipfile, re
 here = os.path.dirname(os.path.abspath(__file__)); src = os.path.join(os.path.dirname(here), 'haohao-chrome')
@@ -20,6 +20,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
                 t = data.decode('utf-8'); assert 'HT.STORE = false;' in t; data = t.replace('HT.STORE = false;', 'HT.STORE = true;', 1).encode('utf-8')
             elif rel == 'manifest.json':
                 m = json.loads(data.decode('utf-8'))
+                m['name'] = 'HaoHao – Trợ lý cá nhân'   # V1.76: khớp tên trên trang Store
                 m['permissions'] = [x for x in m['permissions'] if x != 'geolocation']
                 m['host_permissions'] = [x for x in m['host_permissions'] if '127.0.0.1:47321' not in x]
                 data = (json.dumps(m, ensure_ascii=False, indent=2) + '\n').encode('utf-8')

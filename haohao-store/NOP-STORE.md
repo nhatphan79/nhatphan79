@@ -24,6 +24,8 @@ HaoHao là chú hamster trợ lý nhỏ ngay trên Chrome, giúp bạn bớt qu�
 🛍️ Mua sắm – chấm điểm shop Shopee / TikTok Shop, so giá, lịch sử giá, mã giảm giá.
 🧩 Tiện ích – giá vàng, chứng khoán, crypto; chặn quảng cáo; chuyển ảnh iPhone ⇄ máy tính (app HaoHao Transfer).
 
+🗂️ Lưu ý: HaoHao thay trang Tab mới của Chrome bằng trang HaoHao (đồng hồ, thời tiết, ô tìm kiếm dùng công cụ tìm kiếm mặc định của bạn, lối tắt, việc cần làm, bảng Dự án). Muốn dùng lại Tab mới gốc thì tắt hoặc gỡ HaoHao.
+
 Không cần tài khoản. Dữ liệu của bạn nằm trong Chrome trên máy bạn.
 
 ⭐ 2 tháng đầu mở khoá toàn bộ. Sau đó Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung vẫn miễn phí; Tiện ích (Thị trường, Chặn quảng cáo, HaoHao Transfer) và trang Dự án cần gói HaoHao Pro: 1 tháng 20.000đ · 3 tháng 50.000đ · 6 tháng 90.000đ · 1 năm 199.000đ · trọn đời 499.000đ (chuyển khoản, nhận mã kích hoạt).
@@ -54,6 +56,7 @@ Liên hệ: Phan Thanh Nhật – +84 366.159.790 – nhatphan79@gmail.com
 | declarativeNetRequest | Chặn quảng cáo (danh sách luật có sẵn trong gói), người dùng bật/tắt được. |
 | offscreen | Phát nhạc nền Pomodoro và âm báo nhắc nhở. |
 | identity | Đăng nhập Outlook chính thức của Microsoft để đếm thư chưa đọc (người dùng tự bật). |
+| chrome_url_overrides (newtab) | HaoHao thay trang Tab mới bằng trang trợ lý: đồng hồ, thời tiết, ô tìm kiếm, lối tắt, việc cần làm, bảng Dự án (đã ghi rõ trong mô tả). |
 | search | Ô tìm kiếm trên Tab mới dùng công cụ tìm kiếm mặc định của người dùng. |
 | topSites | Hiện các trang hay vào trên Tab mới. |
 | favicon | Hiện biểu tượng trang web trong Tab mới, link nhanh của dự án. |
