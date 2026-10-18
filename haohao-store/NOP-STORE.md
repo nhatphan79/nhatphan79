@@ -31,7 +31,7 @@ Không cần tài khoản. Dữ liệu của bạn nằm trong Chrome trên máy
 ⭐ 2 tháng đầu mở khoá toàn bộ. Sau đó Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung vẫn miễn phí; Tiện ích (Thị trường, Chặn quảng cáo, HaoHao Transfer) và trang Dự án cần gói HaoHao Pro: 1 tháng 20.000đ · 3 tháng 50.000đ · 6 tháng 90.000đ · 1 năm 199.000đ · trọn đời 499.000đ (chuyển khoản, nhận mã kích hoạt).
 
 🛍️ Mỗi tuần HaoHao có thể mời 1 lần ghé HaoHao Store xem hàng mới (bạn tự bấm mới mở, bấm Để sau là thôi).
-🛍️ Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm. Link chỉ dùng khi bạn tự bấm "Mua qua HaoHao" hoặc lấy mã giảm giá có thật.
+🛍️ Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm. Khi bạn tự bấm các nút mở Shopee / TikTok Shop trong HaoHao (tìm hàng, mua, lấy mã, shop tuyển chọn), link có gắn mã tiếp thị của HaoHao – đây là kinh phí để HaoHao duy trì. HaoHao không tự mở link khi bạn chưa bấm.
 
 Liên hệ: Phan Thanh Nhật – +84 366.159.790 – nhatphan79@gmail.com
 ```

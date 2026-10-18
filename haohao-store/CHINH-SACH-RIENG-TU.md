@@ -25,7 +25,7 @@ Bạn tắt được trong **Cài đặt → Cài đặt chung**: ô "Gửi th�
 - **App HaoHao Transfer** (nếu bạn cài): chỉ nói chuyện với máy tính của bạn qua `127.0.0.1`, không ra Internet.
 
 ## 4. Link tiếp thị
-**Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm.** Link tiếp thị (Shopee, TikTok Shop) chỉ được dùng khi bạn tự bấm – ví dụ "🛒 Mua qua HaoHao" hoặc lấy mã giảm giá có thật – HaoHao nhận hoa hồng từ sàn, bạn không mất thêm tiền.
+**Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm.** Khi bạn tự bấm các nút mở Shopee / TikTok Shop trong HaoHao (tìm hàng, "🛒 Mua qua HaoHao", lấy mã giảm giá, shop tuyển chọn), link có gắn mã tiếp thị của HaoHao – HaoHao nhận hoa hồng từ sàn để duy trì, bạn không mất thêm tiền. HaoHao không tự mở link khi bạn chưa bấm.
 
 ## 4b. HaoHao Pro
 2 tháng đầu HaoHao mở khoá toàn bộ; sau đó Tiện ích và trang Dự án cần gói Pro. Khi mua, bạn gửi **mã máy** (chuỗi ngẫu nhiên do tiện ích tạo, ví dụ HH-XXXX-XXXX-XXXX) cho tác giả để nhận **mã kích hoạt**. Mã kích hoạt được kiểm tra ngay trên máy bạn, không gửi về máy chủ. Thanh toán bằng chuyển khoản ngân hàng trực tiếp cho tác giả – HaoHao không thu, không lưu thông tin thẻ hay tài khoản ngân hàng của bạn.
