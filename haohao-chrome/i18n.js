@@ -2671,6 +2671,7 @@
 ].map(([r, t]) => [new RegExp(r, 's'), t]);
   // V1.61: tiếng Anh cho trang Dự án, chọn dự án trong Note, Giới thiệu mới, gửi ảnh sang iPhone, giấy note nổi
   const EXTRA_D = {
+    "Thư mục lưu đang bị khoá (Google Drive / OneDrive đang đồng bộ?)": "The save folder is locked (Google Drive / OneDrive syncing?)", "Ổ đĩa đầy": "Disk full", "Không thấy thư mục lưu": "Save folder not found",
     // —— V1.73: Gmail hỏi đồng ý, mời ghé HaoHao Store ——
     "🔒 Cho phép HaoHao đọc Gmail?": "🔒 Allow HaoHao to read Gmail?",
     "HaoHao đọc người gửi, tiêu đề và vài dòng đầu của thư CHƯA ĐỌC trong Gmail bạn đang đăng nhập trên Chrome, để báo thư mới và mã OTP. Việc đọc làm ngay trên máy bạn, không gửi nội dung thư đi đâu. Tắt lúc nào cũng được.": "HaoHao reads the sender, subject and first lines of UNREAD mail in the Gmail account signed in to Chrome, to alert you of new mail and OTP codes. Reading happens on your computer only; mail content is never sent anywhere. Turn it off anytime.",

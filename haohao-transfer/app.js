@@ -83,7 +83,24 @@ try { seen = JSON.parse(fs.readFileSync(INDEX, 'utf8')); } catch {}
 const saveIndex = () => { try { fs.writeFileSync(INDEX, JSON.stringify(seen)); } catch {} };
 const keyOf = (name, size) => `${name}|${size}`;
 
-let stats = { files: 0, bytes: 0, recent: [] };
+let stats = { files: 0, bytes: 0, recent: [], skip: 0, err: '' };
+// V1.53: ổ Google Drive / OneDrive hay khoá file đang đồng bộ → file tạm ghi ở thư mục Temp của máy, xong mới chuyển vào nơi lưu
+//        (đổi tên trước, lỗi thì chép sang rồi xoá file tạm, thử lại vài lần)
+const TMP_DIR = path.join(os.tmpdir(), 'haohao-transfer'); try { fs.mkdirSync(TMP_DIR, { recursive: true }); } catch {}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function moveIn(tmp, dest) {
+  let last;
+  for (let i = 0; i < 6; i++) {
+    try { await fs.promises.rename(tmp, dest); return; } catch (e) { last = e; if (e.code === 'EXDEV') break; }
+    await sleep(300 * (i + 1));
+  }
+  for (let i = 0; i < 6; i++) {
+    try { await fs.promises.copyFile(tmp, dest); fs.unlink(tmp, () => {}); return; } catch (e) { last = e; }
+    await sleep(500 * (i + 1));
+  }
+  throw last;
+}
+const errVi = e => { const c = e && e.code; return c === 'ENOSPC' ? 'Ổ đĩa đầy' : c === 'EPERM' || c === 'EACCES' || c === 'EBUSY' ? 'Thư mục lưu đang bị khoá (Google Drive / OneDrive đang đồng bộ?)' : c === 'ENOENT' ? 'Không thấy thư mục lưu' : (e && e.message) || 'lỗi ghi file'; };
 let live = null;
 
 function safeName(n) {
@@ -116,7 +133,8 @@ function handleUpload(req, res) {
     : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const dir = path.join(ROOT, sub);
   if (!dir.startsWith(ROOT)) { res.writeHead(400); return res.end('{}'); }
-  fs.mkdirSync(dir, { recursive: true });
+  try { fs.mkdirSync(dir, { recursive: true }); }
+  catch (e) { stats.err = errVi(e); req.resume(); res.writeHead(500, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: stats.err })); }
 
   let bb;
   try { bb = Busboy({ headers: req.headers, limits: { files: 1 }, defParamCharset: 'utf8' }); }
@@ -130,22 +148,25 @@ function handleUpload(req, res) {
     L.name = name;
     file.on('data', c => { L.got += c.length; L.t = Date.now(); });
     let k = keyOf(segs.length ? sub + path.sep + name : name, size);
-    if (size && seen[k]) { file.resume(); result = { skip: true, name }; return; }
-    const finalPath = uniquePath(dir, name);
-    const tmp = finalPath + '.dang-tai';
+    if (size && seen[k]) { file.resume(); stats.skip++; result = { skip: true, name }; return; }
+    const tmp = path.join(TMP_DIR, Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.dang-tai');
     const ws = fs.createWriteStream(tmp);
     let got = 0;
     file.on('data', c => (got += c.length));
     file.pipe(ws);
-    ws.on('finish', () => {
+    ws.on('finish', async () => {
       if (size && got !== size) { fs.unlink(tmp, () => {}); result = { error: 'thiếu dữ liệu' }; return finish(); }
       if (!size) {
         const k2 = keyOf(segs.length ? sub + path.sep + name : name, got);
-        if (seen[k2]) { fs.unlink(tmp, () => {}); result = { skip: true, name }; return finish(); }
+        if (seen[k2]) { fs.unlink(tmp, () => {}); stats.skip++; result = { skip: true, name }; return finish(); }
         k = k2;
       }
-      fs.renameSync(tmp, finalPath);
+      if (q.get('mtime')) { try { fs.utimesSync(tmp, d, d); } catch {} }   // đặt ngày chụp trước khi chuyển (ổ đám mây hay không cho sửa sau)
+      let finalPath;
+      try { finalPath = uniquePath(dir, name); await moveIn(tmp, finalPath); }
+      catch (e) { fs.unlink(tmp, () => {}); stats.err = errVi(e); result = { error: stats.err }; return finish(); }
       if (q.get('mtime')) { try { fs.utimesSync(finalPath, d, d); } catch {} }
+      stats.err = '';
       seen[k] = path.relative(ROOT, finalPath); saveIndex();
       stats.files++; stats.bytes += got;
       stats.recent.unshift({ name: path.basename(finalPath), size: got, sub });
@@ -154,7 +175,7 @@ function handleUpload(req, res) {
       result = { ok: true, name: path.basename(finalPath) };
       finish();
     });
-    ws.on('error', e => { result = { error: e.message }; finish(); });
+    ws.on('error', e => { stats.err = errVi(e); result = { error: stats.err }; finish(); });
     req.on('aborted', () => { ws.destroy(); fs.unlink(tmp, () => {}); });
   });
   bb.on('close', () => { if (result && (result.skip || result.error)) finish(); });
@@ -248,7 +269,7 @@ async function send(inp){
     doneB+=x.size;
     if(res.ok){ok++;row.lastChild.textContent='✓';row.lastChild.className='ok'}
     else if(res.skip){sk++;row.lastChild.textContent='đã có';row.lastChild.className='sk'}
-    else{er++;row.lastChild.textContent='lỗi';row.lastChild.className='er'}
+    else{er++;row.lastChild.textContent='lỗi';row.lastChild.className='er';if(res.error)row.title=res.error;if(res.error&&!document.getElementById('erm')){const m=document.createElement('div');m.id='erm';m.style.cssText='color:#C2410C;font-weight:700;margin:8px 0';m.textContent='⚠️ '+res.error;list.before(m)}}
   }
   pb.style.width='100%';pc.textContent='100%';
   sum.innerHTML='Xong: <b class="ok">'+ok+' đã gửi</b>'+(sk?' · '+sk+' đã có':'')+(er?' · <b class="er">'+er+' lỗi</b>':'')+' · '+fmt(total);
@@ -376,7 +397,7 @@ const server = http.createServer(async (req, res) => {
         all: live.tot ? Math.min(100, Math.floor((live.pre + cur) / live.tot * 100)) : null,
         got: fmt(live.pre + cur), tot: live.tot ? fmt(live.tot) : '' };
     }
-    return res.end(JSON.stringify({ root: ROOT, live: lv, files: stats.files, size: fmt(stats.bytes), recent: stats.recent.map(x => ({ ...x, size: fmt(x.size) })) }));
+    return res.end(JSON.stringify({ root: ROOT, live: lv, files: stats.files, size: fmt(stats.bytes), recent: stats.recent.map(x => ({ ...x, size: fmt(x.size) })), skip: stats.skip, err: stats.err }));
   }
   if (p === '/noi-luu' && req.method === 'POST' && ctl) {
     const np = new URL(req.url, 'http://x').searchParams.get('path') || '';

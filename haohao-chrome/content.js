@@ -646,6 +646,7 @@
   .mail-in .chip, .mail-in .b { font-size: 12.5px !important; padding: 5px 12px !important; }
   .mail-in .line { gap: 6px; align-items: center; }
   .mail-in { padding: 6px 2px 2px; }
+  .tfx-err { color: #C2410C !important; font-weight: 700; }
   .gm-ask { margin: 6px 0; padding: 9px 10px; border-radius: 12px; background: #FFF8E1; border: 1px solid #F5D78E; font: 500 12px/1.5 system-ui; color: #5B4A12; display: grid; gap: 6px; } .gm-ask b { font-size: 12.5px; color: #23305E; }
   .foot { font-size: 11px; color: #9AA1BE; text-align: center; margin-top: 10px; }
   .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 10px; }   /* V1.9: ô gọn */
@@ -7096,6 +7097,8 @@
         const bar = el('div', 'tfx-bar'), f = el('i'); f.style.width = pct + '%'; bar.append(f); lv.append(bar);
       }
       sm.textContent = T.files ? `✅ Đã nhận ${T.files} file · ${T.size}` : 'Chưa nhận file nào trong lần bật này';
+      if (T.skip) sm.textContent += ` · bỏ qua ${T.skip} file đã có`;   // V1.75
+      if (T.err) { sm.textContent += ' · ⚠️ ' + T.err; sm.classList.add('tfx-err'); } else sm.classList.remove('tfx-err');
       rc.replaceChildren(); (T.recent || []).slice(0, 4).forEach(x => { const d = el('div', 'tfx-it'); d.append(el('span', '', x.name), el('small', '', x.size)); rc.append(d); });
       return true;
     };
