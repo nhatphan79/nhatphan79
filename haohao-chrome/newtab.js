@@ -167,11 +167,9 @@
   // ☕ Ủng hộ: dữ liệu chủ app cập nhật từ GitHub (coupons.json). Tab mới để dành cho người dùng, không đặt deal ở đây.
   async function showDeals() {
     const { couponFeed: f = {} } = await chrome.storage.local.get('couponFeed');
-    $('#supbtn').hidden = false;   // ủng hộ: QR MoMo cố định trong bộ cài
   }
   showDeals();
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.couponFeed) showDeals(); });
-  $('#supbtn').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'ungho' }).catch(() => {}));
 
 
   // V1.16: công tắc Trang chủ ⇄ Dự án (V1.55: mọi người dùng); nhớ trang đang chọn (lần sau mở Tab mới vào đúng trang đó)

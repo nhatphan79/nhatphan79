@@ -260,21 +260,15 @@ if (location.hash === '#ai') document.querySelector('nav button[data-tab="settin
 // phiên bản: V1 = tiện ích Chrome (V2 = máy tính, V3 = điện thoại)
 try { const mf = chrome.runtime.getManifest(); $('#ver').textContent = 'HaoHao ' + (mf.version_name || mf.version); } catch {}
 
-// ---------- ☕ Ủng hộ: trang riêng – thông tin cố định trong bộ cài (không sửa từ xa, tránh bị đổi QR) ----------
-const QR0 = $('#suQrImg').src, MOMO0 = '0934057892', ZALO0 = '0366159790';
-$('#suDl').href = QR0;
-$('#suMomoNum').textContent = MOMO0.replace(/(\d{4})(\d{3})(\d+)/, '$1 $2 $3');
-const openUH = () => { document.querySelector('nav button[data-tab="ungho"]').click(); scrollTo({ top: 0, behavior: 'smooth' }); };
-$('#supbtn').addEventListener('click', openUH);
+// V1.62: bỏ trang ☕ Ủng hộ (anh Nhật không làm miễn phí nữa); khung "Đặt viết phần mềm" chuyển sang Giới thiệu
+const ZALO0 = '0366159790';
 async function copyBtn(btn, text, label) {
   try { await navigator.clipboard.writeText(text); btn.textContent = '✓ Đã chép'; } catch { btn.textContent = '⚠ Chép tay giúp mình'; }
   setTimeout(() => { btn.textContent = label; }, 1600);
 }
-$('#suCopy').addEventListener('click', () => copyBtn($('#suCopy'), MOMO0, '📋 Sao chép'));
 $('#zaloCopy').addEventListener('click', () => copyBtn($('#zaloCopy'), ZALO0, '📋 Chép số'));
 
 // ---------- Giới thiệu: phiên bản đang cài; #about mở thẳng tab này ----------
-try { const mf = chrome.runtime.getManifest(); $('#abVer').textContent = `Phiên bản ${mf.version_name || mf.version} · Miễn phí · Bản quyền thuộc Phan Thanh Nhật`; } catch {}
+try { const mf = chrome.runtime.getManifest(); $('#abVer').textContent = `Phiên bản ${mf.version_name || mf.version} · Bản quyền thuộc Phan Thanh Nhật`; } catch {}
 if (location.hash === '#about') document.querySelector('nav button[data-tab="about"]').click();
-if (location.hash === '#ungho') openUH();
 if (/^#(rules|log|settings)$/.test(location.hash)) document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`).click();
