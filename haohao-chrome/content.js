@@ -7093,7 +7093,7 @@
       lv.replaceChildren();
       if (T.live && !T.live.done) {
         const pct = T.live.all != null ? T.live.all : T.live.file;
-        lv.append(el('div', 'tfx-ln', `⬆️ Đang nhận ${T.live.i || 1}/${T.live.n || 1} · ${pct}% · ${T.live.got}${T.live.tot ? ' / ' + T.live.tot : ''}`));
+        lv.append(el('div', 'tfx-ln', T.live.saving ? `💾 Đang lưu file ${T.live.i || 1}/${T.live.n || 1} vào thư mục… (${T.live.name || ''})` : `⬆️ Đang nhận ${T.live.i || 1}/${T.live.n || 1} · ${pct}% · ${T.live.got}${T.live.tot ? ' / ' + T.live.tot : ''}`));   // V1.76
         const bar = el('div', 'tfx-bar'), f = el('i'); f.style.width = pct + '%'; bar.append(f); lv.append(bar);
       }
       sm.textContent = T.files ? `✅ Đã nhận ${T.files} file · ${T.size}` : 'Chưa nhận file nào trong lần bật này';

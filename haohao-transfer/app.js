@@ -162,9 +162,10 @@ function handleUpload(req, res) {
         k = k2;
       }
       if (q.get('mtime')) { try { fs.utimesSync(tmp, d, d); } catch {} }   // đặt ngày chụp trước khi chuyển (ổ đám mây hay không cho sửa sau)
-      let finalPath;
+      let finalPath; L.saving = true; L.t = Date.now(); const ka = setInterval(() => { L.t = Date.now(); }, 5000);   // chép video lớn vào ổ Drive lâu: giữ trạng thái "đang lưu" trên bảng HaoHao
       try { finalPath = uniquePath(dir, name); await moveIn(tmp, finalPath); }
-      catch (e) { fs.unlink(tmp, () => {}); stats.err = errVi(e); result = { error: stats.err }; return finish(); }
+      catch (e) { clearInterval(ka); L.saving = false; fs.unlink(tmp, () => {}); stats.err = errVi(e); result = { error: stats.err }; return finish(); }
+      clearInterval(ka); L.saving = false;
       if (q.get('mtime')) { try { fs.utimesSync(finalPath, d, d); } catch {} }
       stats.err = '';
       seen[k] = path.relative(ROOT, finalPath); saveIndex();
@@ -216,6 +217,10 @@ h1{font-size:20px;margin:0 0 4px}.mu{color:var(--mu);font-size:14px}
 input.hid{display:none}.b2{background:transparent;color:var(--ac);border:1.5px solid var(--ac);margin-top:10px}
 .tx{width:100%;padding:12px;border:1px solid var(--ln);border-radius:10px;font-size:16px;background:var(--bg);color:var(--tx);margin:8px 0 12px}.lb{font-size:14px;font-weight:600}.pct{font-size:36px;font-weight:700;margin-top:14px;font-variant-numeric:tabular-nums}code.cp{display:inline-block;word-break:break-all;background:var(--bg);border:1px solid var(--ln);padding:6px 8px;border-radius:8px;font-size:12px;margin:6px 0;color:var(--tx)}.mini{border:1px solid var(--ac);background:none;color:var(--ac);border-radius:8px;padding:5px 10px;font-size:13px}li{margin-bottom:8px}#list{max-height:45vh;overflow:auto}
 .tip{font-size:13px;color:var(--mu);line-height:1.5}
+.prep{position:relative;margin-top:12px;padding:12px 34px 12px 12px;border-radius:14px;background:#FFF1D6;border:1.5px dashed #F2B544;font-size:14px;line-height:1.45}
+.prep b{display:block;font-size:15px}.prep small{display:block;color:var(--mu);margin-top:4px}.prep button{all:unset;position:absolute;top:8px;right:10px;font-size:16px;color:var(--mu);padding:4px}
+.ind{height:8px;background:var(--ln);border-radius:4px;overflow:hidden;margin-top:8px;position:relative}.ind i{position:absolute;top:0;bottom:0;width:35%;background:#F2B544;border-radius:4px;animation:ind 1.2s ease-in-out infinite}
+@keyframes ind{0%{left:-35%}100%{left:100%}}
 ${HH_CSS}
 </style></head><body>
 ${HH_TOP('up')}<div class="hh-ok">🟢 Đã kết nối với máy tính</div>
@@ -224,6 +229,7 @@ ${HH_TOP('up')}<div class="hh-ok">🟢 Đã kết nối với máy tính</div>
   <input id="fd" class="tx" placeholder="VD: Công trình Hoà Xuân" autocomplete="off">
   <label class="btn" for="f">🖼️ Chọn từ thư viện Ảnh</label>
   <input id="f" class="hid" type="file" multiple accept="image/heic,image/heif,image/*,video/*">
+  <div class="prep" id="prep" hidden><b id="prt">⏳ iPhone đang chuẩn bị file…</b><div class="ind"><i></i></div><small>Video nặng hoặc ảnh nằm trên iCloud: iPhone phải tải về / nén xong mới gửi, có thể mất vài phút. Giữ màn hình sáng nhé.</small><button type="button" id="prx" aria-label="Ẩn">✕</button></div>
   <div id="st" style="display:none">
     <div class="pct" id="pct">0%</div>
     <div class="bar"><i id="pb"></i></div>
@@ -249,7 +255,15 @@ function up(file,onp,extra){return new Promise(r=>{
 try{fd.value=localStorage.getItem('fd')||''}catch(e){}
 fd.oninput=()=>{try{localStorage.setItem('fd',fd.value)}catch(e){}};
 let busy=false;
-['f'].forEach(id=>{const el=document.getElementById(id);el.onchange=()=>send(el)});
+// V1.53: từ lúc bấm chọn tới khi iPhone đưa file cho Safari (tải iCloud, nén video) trang không biết %, nên hiện "đang chuẩn bị" + đếm giây
+const prep=document.getElementById('prep'),prt=document.getElementById('prt');let prT=null,pr0=0;
+function prepOn(){if(busy)return;pr0=Date.now();prep.hidden=false;prt.textContent='⏳ Chọn ảnh / video xong, iPhone sẽ chuẩn bị file…';clearInterval(prT);
+  prT=setInterval(()=>{const s=Math.floor((Date.now()-pr0)/1000);if(s>=3)prt.textContent='⏳ iPhone đang chuẩn bị file… '+(s>=60?Math.floor(s/60)+' phút '+(s%60)+' giây':s+' giây')},1000);wake();}
+function prepOff(){clearInterval(prT);prep.hidden=true;}
+document.querySelector('label[for=f]').addEventListener('click',prepOn);
+document.getElementById('prx').onclick=prepOff;
+f.addEventListener('cancel',prepOff);
+['f'].forEach(id=>{const el=document.getElementById(id);el.onchange=()=>{prepOff();send(el)}});
 async function send(inp){
   const files=[...inp.files].filter(x=>!/^[.]/.test(x.name));if(!files.length||busy)return;busy=true;
   document.getElementById('st').style.display='block';document.getElementById('lc').style.display='block';
@@ -259,12 +273,12 @@ async function send(inp){
   const rows=files.map(x=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span>'+x.name+'</span><span class="mu">'+fmt(x.size)+'</span>';list.appendChild(d);return d});
   for(let i=0;i<files.length;i++){
     const x=files[i],row=rows[i];row.lastChild.textContent='0%';
-    const upd=l=>{const fp=x.size?Math.min(100,Math.floor(l/x.size*100)):0;row.lastChild.textContent=fp+'%';
+    const upd=l=>{const fp=x.size?Math.min(100,Math.floor(l/x.size*100)):0;row.lastChild.textContent=fp>=100?'💾 đang lưu':fp+'%';
       const bytes=doneB+Math.min(l,x.size);const p=total?Math.min(100,bytes/total*100):100;
       pb.style.width=p+'%';pc.textContent=Math.floor(p)+'%';
       const sec=(Date.now()-t0)/1000;const sp=sec>2?bytes/sec:0;let eta='';
       if(sp>0){const r=Math.max(0,(total-bytes)/sp);eta=' · còn ~'+(r>=90?Math.ceil(r/60)+' phút':Math.ceil(r)+' giây')}
-      sum.textContent='File '+(i+1)+'/'+files.length+' · '+fmt(bytes)+' / '+fmt(total)+(sp?' · '+fmt(sp)+'/s':'')+eta};
+      sum.textContent=(fp>=100?'💾 Máy tính đang lưu file '+(i+1)+'/'+files.length+'…':'File '+(i+1)+'/'+files.length+' · '+fmt(bytes)+' / '+fmt(total)+(sp?' · '+fmt(sp)+'/s':'')+eta)};
     let res;for(let t=0;t<3;t++){res=await up(x,upd,'&tot='+total+'&pre='+doneB+'&n='+files.length+'&i='+(i+1));if(!res.error)break;}
     doneB+=x.size;
     if(res.ok){ok++;row.lastChild.textContent='✓';row.lastChild.className='ok'}
@@ -392,7 +406,7 @@ const server = http.createServer(async (req, res) => {
     let lv = null;
     if (live && Date.now() - live.t < 20000) {
       const cur = live.size ? Math.min(live.got, live.size) : live.got;
-      lv = { name: live.name, n: live.n, i: live.idx, done: live.done,
+      lv = { name: live.name, n: live.n, i: live.idx, done: live.done, saving: !!live.saving,
         file: live.size ? Math.min(100, Math.floor(cur / live.size * 100)) : 0,
         all: live.tot ? Math.min(100, Math.floor((live.pre + cur) / live.tot * 100)) : null,
         got: fmt(live.pre + cur), tot: live.tot ? fmt(live.tot) : '' };
