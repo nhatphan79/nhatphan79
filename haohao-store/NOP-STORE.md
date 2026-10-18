@@ -24,7 +24,9 @@ HaoHao là chú hamster trợ lý nhỏ ngay trên Chrome, giúp bạn bớt qu�
 🛍️ Mua sắm – chấm điểm shop Shopee / TikTok Shop, so giá, lịch sử giá, mã giảm giá.
 🧩 Tiện ích – giá vàng, chứng khoán, crypto; chặn quảng cáo; chuyển ảnh iPhone ⇄ máy tính (app HaoHao Transfer).
 
-Dùng miễn phí, không cần tài khoản. Dữ liệu của bạn nằm trong Chrome trên máy bạn.
+Không cần tài khoản. Dữ liệu của bạn nằm trong Chrome trên máy bạn.
+
+⭐ 2 tháng đầu mở khoá toàn bộ. Sau đó Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung vẫn miễn phí; Tiện ích (Thị trường, Chặn quảng cáo, HaoHao Transfer) và trang Dự án cần gói HaoHao Pro: 1 tháng 20.000đ · 3 tháng 50.000đ · 6 tháng 90.000đ · 1 năm 199.000đ · trọn đời 499.000đ (chuyển khoản, nhận mã kích hoạt).
 
 🛍️ Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm. Link chỉ dùng khi bạn tự bấm "Mua qua HaoHao" hoặc lấy mã giảm giá có thật.
 
@@ -62,6 +64,10 @@ Liên hệ: Phan Thanh Nhật – +84 366.159.790
 - **Dữ liệu thu thập (tick):** Website content (giá sản phẩm đang xem, nội dung gửi Gemini khi người dùng yêu cầu) · User activity (từ khoá tìm kiếm trên trang mua sắm, ẩn danh) · Location (vị trí gần đúng theo IP cho thời tiết).
 - **Cam kết (tick cả 3):** không bán/chuyển dữ liệu cho bên thứ ba ngoài mục đích đã nêu; không dùng cho mục đích không liên quan; không dùng để xét tín dụng/cho vay.
 - **URL chính sách quyền riêng tư:** `https://github.com/nhatphan79/nhatphan79/blob/HEAD/haohao-store/CHINH-SACH-RIENG-TU.md`
+
+## 3b. Tính năng trả phí
+- Trong mục khai báo, chọn **có tính năng trả phí / mua trong ứng dụng** (in-app purchases) và ghi: *"Tiện ích và trang Dự án cần HaoHao Pro sau 2 tháng dùng thử; thanh toán bằng chuyển khoản ngân hàng, nhận mã kích hoạt."*
+- Chrome Web Store không thu tiền hộ – HaoHao tự thu, mã kích hoạt kiểm tra ngay trên máy (không gửi đi đâu).
 
 ## 4. Anh tự điền
 - Email hỗ trợ (hiện công khai) – sửa luôn trong CHINH-SACH-RIENG-TU.md mục 6.
