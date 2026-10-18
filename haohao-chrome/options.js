@@ -301,10 +301,14 @@ if (location.hash === '#about') document.querySelector('nav button[data-tab="abo
     st = s; if (!s) { $('#proSub').textContent = 'Chưa kiểm tra được, tải lại trang nhé.'; return; }
     $('#proCode').textContent = s.code;
     const pl = s.plan && P.plans.find(x => x[0] === s.plan);
+    // V1.66: đã mua Pro / máy chủ app → ẩn bảng giá + chuyển khoản; gói có hạn còn ≤ 7 ngày thì hiện lại để gia hạn
+    const paid = s.owner || s.pro, soon = s.pro && s.exp && s.exp - Date.now() < 7 * 864e5;
+    $('#proBuy').hidden = paid && !soon; $('#proRenewBox').hidden = !(s.pro && s.exp) || soon;
     $('#proSub').textContent = s.owner ? '✓ Máy chủ app – mở khoá toàn bộ' : s.pro ? `✓ Đang dùng Pro${pl ? ' · gói ' + pl[1] : ''}${s.exp ? ' · đến ' + fmtD(s.exp) : ' · trọn đời'}` : s.trial ? `🎁 Đang mở khoá toàn bộ · còn ${s.trialLeft} ngày (đến ${fmtD(s.trialEnd)})` : '🔒 Đã hết 2 tháng mở khoá toàn bộ · Tiện ích và Dự án cần gói Pro';
     drawPay();
   };
   chrome.runtime.sendMessage({ type: 'pro-st' }).then(show).catch(() => show(null));
+  $('#proRenew').addEventListener('click', () => { $('#proBuy').hidden = false; $('#proRenewBox').hidden = true; });
   $('#proCodeCopy').addEventListener('click', () => copyBtn($('#proCodeCopy'), (st && st.code) || '', '📋 Chép mã máy'));
   $('#proGo').addEventListener('click', async () => {
     const v = $('#proInput').value.trim(), m = $('#proMsg'); if (!v) return $('#proInput').focus();
