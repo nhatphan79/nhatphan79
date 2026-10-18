@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – Trợ lý cá nhân",
-  "version": "1.10.334",
-  "version_name": "V1.78",
-  "description": "Chú hamster trợ lý: Nhắc, Todo, Note, Focus, Dịch – Tóm tắt – Giải thích, kiểm tra hàng & mã giảm giá Shopee, TikTok Shop, canh email.",
+  "version": "1.10.335",
+  "version_name": "V1.79",
+  "description": "Chú hamster trợ lý trên Chrome: việc cần làm, nhắc nhở, ghi chú, dự án, tập trung, dịch nhanh. Bớt quên, bớt rối.",
   "permissions": [
     "storage",
     "unlimitedStorage",
