@@ -318,7 +318,7 @@ HT.shopSearch = (id, q) => { const s = HT.SHOPS.find(x => x.id === id) || HT.SHO
 HT.PRO = {
   pub: 'XU118CDS/gQLwdRGEBoxlYlpKaT+f/ciLIjIIb6Hoyc=', trialDays: 60,
   plans: [['m1', '1 tháng', 20000, 30], ['m3', '3 tháng', 50000, 90], ['m6', '6 tháng', 90000, 180], ['y1', '1 năm', 199000, 365], ['life', 'Trọn đời', 499000, 0]],
-  bank: { name: 'BIDV', bin: '970418', acc: '', owner: 'PHAN THANH NHAT' }   // acc: anh Nhật gửi số tài khoản BIDV rồi điền vào đây
+  bank: { name: 'BIDV', bin: '970418', acc: '8889763829', owner: 'PHAN THANH NHAT' }   // BIDV – PGD Cẩm Lệ
 };
 HT.machineCode = id => 'HH-' + String(id || '').slice(0, 12).toUpperCase().replace(/(.{4})(?=.)/g, '$1-');
 // mã QR chuyển khoản VietQR (chuẩn NAPAS/EMVCo) – app ngân hàng nào cũng quét được
