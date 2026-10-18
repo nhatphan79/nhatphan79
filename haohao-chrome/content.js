@@ -1920,6 +1920,7 @@
   async function storeWeekly() {
     if (!ui || SHOP_SITE || !ui.panel.hidden || !ui.bubble.hidden) return;
     const sp = (HT.SP && HT.SP.showcase) || '', tt = HT.ttShowcase() || ''; if (!sp && !tt) return;
+    { const ps = await chrome.runtime.sendMessage({ type: 'pro-st' }).catch(() => null); if (ps && ps.pro) return; }   // V1.77: khách đã mua Pro thì không mời
     const { ttWeekAt = 0 } = await chrome.storage.local.get('ttWeekAt').catch(() => ({}));
     if (!ttWeekAt) { await chrome.storage.local.set({ ttWeekAt: Date.now() }).catch(() => {}); return; }
     if (Date.now() - ttWeekAt < 7 * 864e5 || !(await autoGate())) return;
