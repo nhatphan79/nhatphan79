@@ -7114,7 +7114,6 @@
     V.append(L);
   }
   function renderTools(V) {
-    if (proSt && proSt.trial && !proSt.pro && !proSt.owner) { const n = el('button', 'pro-trial', `🎁 Đang mở khoá toàn bộ · còn ${proSt.trialLeft} ngày · Xem gói Pro ›`); n.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {})); V.append(n); }   // V1.65
     const cur = TOOLS.find(t => t.id === toolsSub);
     if (cur) {
       // đang dùng 1 tiện ích: chỉ hiện tiện ích đó, thanh đầu gọn 1 dòng

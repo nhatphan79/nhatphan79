@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.67** (số kỹ thuật 1.10.323)
+Cập nhật: 18/10/2026 · **Bản V1.68** (số kỹ thuật 1.10.324)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.68 (1.10.324) | Bỏ dòng đếm ngày dùng thử ("🎁 còn N ngày") ở Tiện ích và ở trang Pro (chỉ ghi "Đang mở khoá toàn bộ") – anh Nhật: tới ngày thì hết. Chưa phát hành. |
 | V1.67 (1.10.323) | Trang Pro: đã mua Pro / chủ app → ẩn bảng giá + chuyển khoản, chỉ còn trạng thái + mã máy; gói có hạn có nút 🔄 Gia hạn / đổi gói, còn ≤ 7 ngày thì tự hiện lại bảng giá. Bảng Pro trong HaoHao/Dự án vốn chỉ hiện khi hết hạn chưa mua. Chưa phát hành. |
 | V1.66 (1.10.322) | Điền TK BIDV 8889763829 (PHAN THANH NHAT, PGD Cẩm Lệ) → trang Pro hiện QR VietQR có sẵn số tiền + nội dung "HH <mã máy> <gói>". Anh Nhật đã quét thử QR mẫu 20k: OK. Chưa phát hành. |
 | V1.65 (1.10.321) | ⭐ **HaoHao Pro**: `HT.PRO` (common.js: khoá công khai, 60 ngày dùng thử, 5 gói 20k/50k/90k/199k/499k, BIDV – `acc` CHƯA điền), `HT.vietQR` (QR chuyển khoản NAPAS). Nền: `proStatus/proSync/proVerify` (Ed25519, mã gắn 12 ký tự đầu `hhId`; máy có spyKeys = chủ app luôn mở), `proStart` đặt lần đầu chạy (khách cũ = ngày cài bản này), `proLock` → tắt chặn QC (DNR + adhide + yt-ads), kiểm 6 giờ/lần. Bảng HaoHao: Tiện ích/Thị trường/Chặn QC/Transfer hết hạn → bảng Pro (thay Bảng mở khoá cũ); trong hạn dùng thử hiện "🎁 còn N ngày". Trang Dự án khoá kèm thẻ Pro (dữ liệu giữ nguyên). Cài đặt → tab ⭐ HaoHao Pro: mã máy, chọn gói, QR, dán mã kích hoạt. Công cụ tạo mã: máy anh `_release/khoa-pro/tao-ma-pro.html` (có KHOÁ RIÊNG – không đưa GitHub); mẫu không khoá: `_cong-cu/tao-ma-pro.mau.html`. Đã thử trọn vòng bằng khoá thử. Chưa phát hành. |
