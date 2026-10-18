@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HaoHao Store – Thời trang chọn lọc</title>
+<meta name="description" content="HaoHao Store: thời trang chọn lọc, giá tốt, mua trên Shopee.">
+<meta name="theme-color" content="#FFF8EC">
+<link rel="icon" href="__HHICON__">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- © 2026 HaoHao – Phan Thanh Nhật. HaoHao Store: web mua sắm tiếp thị (Shopee) -->
+<style>
+:root{--bg:#FFF8EC;--card:#FFFFFF;--ink:#23305E;--mu:#7A8099;--ln:#EFE6D4;--or:#F28C28;--or2:#FFB347;--orS:#FFF1DF;--red:#E2463B;--r:18px;--sh:0 6px 20px rgba(35,48,94,.07)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Be Vietnam Pro",system-ui,-apple-system,sans-serif;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit;cursor:pointer}
+img{display:block;max-width:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+/* header */
+.hd{position:sticky;top:0;z-index:20;background:rgba(255,248,236,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
+.hd.sc{border-color:var(--ln)}
+.hd .wrap{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.logo{display:flex;align-items:center;gap:9px;flex:none}
+.logo img{width:38px;height:38px}
+.logo b{font-size:18px;font-weight:800;letter-spacing:-.3px;line-height:1}.logo small{display:block;font-size:11px;font-weight:600;color:var(--or);letter-spacing:.4px;margin-top:2px}
+.sr{order:3;flex:1 1 100%;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--ln);border-radius:999px;padding:0 14px;height:42px}
+.sr input{flex:1;border:0;outline:0;background:none;font:inherit;color:var(--ink);min-width:0}
+.sr svg{flex:none;opacity:.55}
+.nav{display:none;gap:4px;margin-left:8px}
+.nav a{padding:9px 14px;border-radius:999px;font-weight:600;font-size:14px;color:var(--mu)}
+.nav a.on{background:var(--ink);color:#fff}
+.favb{position:relative;display:none}
+.badge{position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:999px;min-width:17px;height:17px;display:grid;place-items:center;padding:0 4px}
+/* chips */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--ln);font-weight:600;font-size:13.5px;white-space:nowrap}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+/* banner */
+.bn{position:relative;border-radius:22px;overflow:hidden;margin:6px 0 22px;box-shadow:var(--sh)}
+.bn-tr{display:flex;transition:transform .5s cubic-bezier(.4,.1,.2,1)}
+.bn-it{flex:none;width:100%;aspect-ratio:2.3/1;min-height:170px;position:relative;display:flex;align-items:center;padding:22px 26px;overflow:hidden}
+.bn-it .tx{position:relative;z-index:1;max-width:62%}
+.bn-it small{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:rgba(255,255,255,.75);padding:4px 10px;border-radius:999px}
+.bn-it h2{margin:10px 0 6px;font-size:clamp(20px,4.4vw,34px);line-height:1.15;font-weight:800;letter-spacing:-.5px}
+.bn-it p{margin:0 0 14px;font-size:13.5px;opacity:.8}
+.bn-it .go{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:#fff;font-weight:700;font-size:13.5px;padding:10px 16px;border-radius:999px}
+.bn-it .art{position:absolute;right:-10px;bottom:-10px;height:115%;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-size:clamp(70px,14vw,130px)}
+.bn-dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px}
+.bn-dots i{width:7px;height:7px;border-radius:9px;background:rgba(35,48,94,.25);transition:all .3s}.bn-dots i.on{width:20px;background:var(--ink)}
+/* sections */
+.sec{margin:0 0 26px}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;margin:0 0 12px}
+.sh h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.3px}.sh h3 span{font-size:13px;font-weight:600;color:var(--mu);margin-left:6px}
+.sh a{font-size:13.5px;font-weight:700;color:var(--or)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.row{display:grid;grid-auto-flow:column;grid-auto-columns:44%;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;scroll-snap-type:x mandatory}.row::-webkit-scrollbar{display:none}.row>*{scroll-snap-align:start}
+/* product card */
+.pc{position:relative;background:var(--card);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);display:flex;flex-direction:column;transition:transform .2s}
+.pc:active{transform:scale(.98)}
+.pc .im{position:relative;aspect-ratio:1/1.15;overflow:hidden;background:var(--orS)}
+.pc .im img{width:100%;height:100%;object-fit:cover}
+.ph{width:100%;height:100%;display:grid;place-items:center;font-size:58px}
+.tag{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;background:var(--red);color:#fff}
+.tag.new{background:var(--ink)}
+.hrt{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.9);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.hrt svg{width:18px;height:18px;fill:none;stroke:var(--ink);stroke-width:2}
+.hrt.on svg{fill:var(--red);stroke:var(--red)}
+.pc .bd{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
+.pc .nm{font-size:13.5px;font-weight:500;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.pr{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:auto}
+.pr b{font-size:16px;font-weight:800;color:var(--or)}.pr s{font-size:12px;color:var(--mu)}
+.mt{font-size:11.5px;color:var(--mu)}
+/* detail */
+.dt{display:grid;gap:18px;padding-top:6px}
+.gal{position:relative;border-radius:22px;overflow:hidden;background:var(--orS);box-shadow:var(--sh)}
+.gal-tr{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.gal-tr::-webkit-scrollbar{display:none}
+.gal-tr>*{flex:none;width:100%;aspect-ratio:1/1.1;scroll-snap-align:start}
+.gal-tr img{width:100%;height:100%;object-fit:cover}
+.gal .ph{font-size:110px}
+.gal-n{position:absolute;right:12px;bottom:12px;background:rgba(35,48,94,.8);color:#fff;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px}
+.back{position:absolute;left:12px;top:12px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.info h1{margin:0 0 8px;font-size:21px;line-height:1.3;font-weight:700;letter-spacing:-.2px}
+.info .pr b{font-size:26px}.info .pr s{font-size:14px}
+.off{font-size:12px;font-weight:700;color:var(--red);background:#FDECEA;padding:3px 8px;border-radius:8px}
+.box{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-top:14px}
+.box h4{margin:0 0 10px;font-size:15px;font-weight:800}
+.pros{margin:0;padding:0;list-style:none;display:grid;gap:9px}
+.pros li{display:flex;gap:10px;font-size:14px}.pros li::before{content:"";flex:none;width:20px;height:20px;border-radius:50%;background:var(--orS) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F28C28' stroke-width='3'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/12px no-repeat;margin-top:1px}
+.desc{font-size:14px;color:#3C4670;white-space:pre-line;margin:0}
+.buyb{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--ln);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center}
+.buy{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;border:0;background:linear-gradient(135deg,#F28C28,#EE4D2D);color:#fff;font-weight:800;font-size:16px;box-shadow:0 8px 20px rgba(238,77,45,.28)}
+.fv2{flex:none;width:50px;height:50px;border-radius:14px;border:1.5px solid var(--ln);background:#fff;display:grid;place-items:center}
+.fv2 svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:2}.fv2.on svg{fill:var(--red);stroke:var(--red)}
+.aff{font-size:11.5px;color:var(--mu);text-align:center;margin-top:10px}
+/* tabbar */
+.tb{position:fixed;left:0;right:0;bottom:0;z-index:25;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--ln);display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+.tb a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--mu);position:relative}
+.tb a svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9}
+.tb a.on{color:var(--ink)}.tb a.on svg{stroke:var(--or)}
+.tb .badge{top:-2px;right:calc(50% - 20px)}
+/* misc */
+.empty{text-align:center;padding:50px 20px;color:var(--mu)}.empty img{width:90px;margin:0 auto 12px;opacity:.9}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.cat{background:var(--card);border-radius:var(--r);padding:18px 16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:8px;min-height:120px;position:relative;overflow:hidden}
+.cat .e{font-size:38px}.cat b{font-size:15px;font-weight:700}.cat small{color:var(--mu);font-size:12.5px}
+.cat::after{content:"";position:absolute;right:-30px;bottom:-30px;width:110px;height:110px;border-radius:50%;background:var(--orS)}
+.cat>*{position:relative;z-index:1}
+.ft{text-align:center;font-size:12px;color:var(--mu);padding:20px 16px 30px}
+.ft img{width:34px;margin:0 auto 6px;opacity:.85}
+.ttl{margin:4px 0 14px;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:var(--ink);color:#fff;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:999px;opacity:0;transition:all .25s;z-index:50;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (min-width:760px){
+  body{padding-bottom:0}
+  .tb{display:none}.nav,.favb{display:flex}
+  .hd .wrap{flex-wrap:nowrap;height:66px;padding-top:0;padding-bottom:0}.sr{order:0;flex:1;max-width:520px;margin-left:auto}
+  .grid{grid-template-columns:repeat(4,1fr);gap:18px}
+  .row{grid-auto-columns:calc((100% - 54px)/4);gap:18px}
+  .cats{grid-template-columns:repeat(4,1fr);gap:18px}
+  .dt{grid-template-columns:1.05fr 1fr;gap:34px;align-items:start;padding-top:18px}
+  .gal{position:sticky;top:80px}
+  .buyb{position:static;background:none;border:0;padding:16px 0 0;backdrop-filter:none}
+  .back{display:none}
+  .info h1{font-size:26px}
+  .bn-it{aspect-ratio:3.2/1;padding:34px 48px}
+}
+</style>
+</head>
+<body>
+<header class="hd" id="hd"><div class="wrap">
+  <a class="logo" href="#/" aria-label="HaoHao Store – Trang chủ"><img src="__HHICON__" alt=""><span><b>HaoHao Store</b><small>THỜI TRANG CHỌN LỌC</small></span></a>
+  <nav class="nav" id="nav"><a href="#/" data-r="home">Trang chủ</a><a href="#/danh-muc" data-r="cats">Danh mục</a></nav>
+  <label class="sr"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Tìm áo, váy, túi…" aria-label="Tìm sản phẩm" autocomplete="off"></label>
+  <a class="favb" href="#/yeu-thich" aria-label="Yêu thích"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg><span class="badge" id="fb1" hidden></span></a>
+</div></header>
+<main class="wrap" id="app"></main>
+<nav class="tb" id="tb">
+  <a href="#/" data-r="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Trang chủ</a>
+  <a href="#/danh-muc" data-r="cats"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>Danh mục</a>
+  <a href="#/yeu-thich" data-r="fav"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>Yêu thích<span class="badge" id="fb2" hidden></span></a>
+</nav>
+<div class="toast" id="toast"></div>
+<script>
+const ICON = '__HHICON__';
+// ---- dữ liệu: máy chủ trả /api/store; chưa có máy chủ thì dùng dữ liệu mẫu ----
+const SAMPLE = {
+  cats: [
+    { id: 'ao', name: 'Áo', e: '👚', sub: 'Áo thun, sơ mi, croptop' },
+    { id: 'vay', name: 'Váy đầm', e: '👗', sub: 'Đầm dự tiệc, váy công sở' },
+    { id: 'quan', name: 'Quần', e: '👖', sub: 'Jean, ống rộng, short' },
+    { id: 'tre-em', name: 'Trẻ em', e: '🧸', sub: 'Đồ bé trai, bé gái' },
+    { id: 'tui', name: 'Túi xách', e: '👜', sub: 'Túi đeo vai, tote' },
+    { id: 'phu-kien', name: 'Phụ kiện', e: '🧢', sub: 'Mũ, kính, trang sức' },
+  ],
+  banners: [
+    { t: 'Đầm dự tiệc cuối tuần', s: 'Chọn lọc dáng đẹp, chất mát', k: 'Bộ sưu tập mới', go: '#/c/vay', bg: 'linear-gradient(120deg,#FFE3C4,#FFF4E4)', art: '👗', artBg: '#FFD3A3' },
+    { t: 'Áo thun basic dưới 150k', s: 'Mặc mỗi ngày, dễ phối', k: 'Giá tốt', go: '#/c/ao', bg: 'linear-gradient(120deg,#E4ECFF,#F4F7FF)', art: '👕', artBg: '#CFDCFF' },
+    { t: 'Đồ bé xinh cho mùa mới', s: 'Mềm, thoáng, an toàn cho bé', k: 'Trẻ em', go: '#/c/tre-em', bg: 'linear-gradient(120deg,#FFE4EC,#FFF4F7)', art: '🧸', artBg: '#FFCADB' },
+  ],
+  products: [
+    { id: 'p1', cat: 'vay', name: 'Đầm babydoll tay phồng cổ vuông, chất voan 2 lớp', price: 189000, old: 289000, sold: 1200, hot: 1, img: [], e: '👗', pros: ['Voan 2 lớp không lộ', 'Dáng xoè che bụng', 'Có 3 màu pastel'], desc: 'Size S–XL. Dài 95cm. Giặt tay nhẹ.', url: 'https://s.shopee.vn/' },
+    { id: 'p2', cat: 'ao', name: 'Áo thun cotton form rộng unisex, 100% cotton 250gsm', price: 129000, old: 199000, sold: 5400, hot: 1, img: [], e: '👕', pros: ['Cotton dày dặn, không xù', 'Form rộng dễ mặc', '8 màu cơ bản'], desc: 'Freesize 45–75kg.', url: 'https://s.shopee.vn/' },
+    { id: 'p3', cat: 'quan', name: 'Quần jean ống rộng lưng cao, co giãn nhẹ', price: 245000, old: 350000, sold: 890, hot: 1, img: [], e: '👖', pros: ['Lưng cao tôn dáng', 'Co giãn nhẹ', 'Không phai màu'], desc: 'Size 26–32.', url: 'https://s.shopee.vn/' },
+    { id: 'p4', cat: 'tui', name: 'Túi tote canvas đeo vai, có ngăn khoá kéo', price: 99000, old: 159000, sold: 3100, hot: 1, img: [], e: '👜', pros: ['Vải canvas dày', 'Đựng vừa laptop 14"', 'Có ngăn khoá kéo'], desc: '38 × 32 × 10 cm.', url: 'https://s.shopee.vn/' },
+    { id: 'p5', cat: 'tre-em', name: 'Bộ đồ bé gái cotton tay ngắn in hình thỏ', price: 119000, old: 0, sold: 640, isNew: 1, img: [], e: '🧸', pros: ['Cotton mềm cho da bé', 'Hình in không bong', 'Size 1–8 tuổi'], desc: 'Giặt máy được.', url: 'https://s.shopee.vn/' },
+    { id: 'p6', cat: 'ao', name: 'Áo sơ mi linen nữ tay lửng, mát mùa hè', price: 175000, old: 230000, sold: 410, isNew: 1, img: [], e: '👚', pros: ['Linen thoáng mát', 'Ít nhăn', 'Dáng suông thanh lịch'], desc: 'Size S–L.', url: 'https://s.shopee.vn/' },
+    { id: 'p7', cat: 'phu-kien', name: 'Mũ bucket vải kaki chống nắng, gấp gọn', price: 69000, old: 99000, sold: 2200, isNew: 1, img: [], e: '🧢', pros: ['Vành rộng che nắng', 'Gấp gọn bỏ túi', 'Unisex'], desc: 'Vòng đầu 56–58cm.', url: 'https://s.shopee.vn/' },
+    { id: 'p8', cat: 'vay', name: 'Chân váy chữ A xếp ly dáng dài, lưng thun', price: 155000, old: 210000, sold: 770, isNew: 1, img: [], e: '👗', pros: ['Ly giữ nếp', 'Lưng thun thoải mái', 'Dễ phối áo'], desc: 'Dài 80cm.', url: 'https://s.shopee.vn/' },
+    { id: 'p9', cat: 'tre-em', name: 'Set áo + quần short bé trai, vải thun lạnh', price: 135000, old: 180000, sold: 980, img: [], e: '🧒', pros: ['Thun lạnh mát', 'Co giãn 4 chiều'], desc: 'Size 10–30kg.', url: 'https://s.shopee.vn/' },
+    { id: 'p10', cat: 'phu-kien', name: 'Kính râm gọng tròn chống tia UV400', price: 89000, old: 149000, sold: 1500, img: [], e: '🕶️', pros: ['Chống UV400', 'Gọng nhẹ'], desc: 'Kèm hộp và khăn lau.', url: 'https://s.shopee.vn/' },
+  ],
+};
+const PASTEL = ['#FFE3C4', '#E4ECFF', '#FFE4EC', '#E3F5EA', '#F1E6FF', '#FFF0C9'];
+let D = SAMPLE;
+const $ = s => document.querySelector(s), app = $('#app');
+const vnd = n => Number(n || 0).toLocaleString('vi-VN') + 'đ';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kfmt = n => n >= 1000 ? (n / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'k' : String(n || 0);
+const off = p => p.old > p.price ? Math.round((1 - p.price / p.old) * 100) : 0;
+// ---- yêu thích: lưu trên máy khách ----
+let favs = []; try { favs = JSON.parse(localStorage.getItem('hhFav') || '[]'); } catch {}
+const isFav = id => favs.includes(id);
+function togFav(id) {
+  favs = isFav(id) ? favs.filter(x => x !== id) : [id, ...favs];
+  try { localStorage.setItem('hhFav', JSON.stringify(favs)); } catch {}
+  badge(); toast(isFav(id) ? '❤️ Đã lưu vào Yêu thích' : 'Đã bỏ khỏi Yêu thích');
+}
+function badge() { ['#fb1', '#fb2'].forEach(s => { const b = $(s); b.hidden = !favs.length; b.textContent = favs.length; }); }
+let tT; function toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(tT); tT = setTimeout(() => e.classList.remove('on'), 1600); }
+// ---- thống kê: lượt xem, lượt bấm mua ----
+const ping = (type, id) => { try { navigator.sendBeacon('/api/ev', JSON.stringify({ type, id })); } catch {} };
+// ---- giao diện ----
+const HEART = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg>';
+const imgOf = (p, i = 0, big) => p.img && p.img[i] ? `<img src="${esc(p.img[i])}" alt="${esc(p.name)}" loading="lazy">` : `<div class="ph" style="background:${PASTEL[(p.id.charCodeAt(p.id.length - 1) + i) % PASTEL.length]}">${esc(p.e || '🛍️')}</div>`;
+function card(p) {
+  const o = off(p);
+  return `<a class="pc" href="#/p/${esc(p.id)}"><div class="im">${imgOf(p)}${o ? `<span class="tag">-${o}%</span>` : p.isNew ? '<span class="tag new">Mới</span>' : ''}
+    <button class="hrt${isFav(p.id) ? ' on' : ''}" data-fav="${esc(p.id)}" aria-label="Yêu thích">${HEART}</button></div>
+    <div class="bd"><div class="nm">${esc(p.name)}</div><div class="pr"><b>${vnd(p.price)}</b>${p.old > p.price ? `<s>${vnd(p.old)}</s>` : ''}</div>${p.sold ? `<div class="mt">Đã bán ${kfmt(p.sold)}</div>` : ''}</div></a>`;
+}
+const foot = () => `<div class="ft"><img src="${ICON}" alt="">HaoHao Store chọn lọc sản phẩm trên Shopee. Bấm "Mua trên Shopee" để đặt hàng và thanh toán trên Shopee.<br>Link tiếp thị · Giá không đổi · © 2026 HaoHao</div>`;
+let bnI = 0, bnT;
+function home() {
+  const hot = D.products.filter(p => p.hot), nw = D.products.filter(p => p.isNew);
+  app.innerHTML = `
+    <div class="chips">${D.cats.map(c => `<a class="chip" href="#/c/${c.id}">${c.e} ${esc(c.name)}</a>`).join('')}</div>
+    <div class="bn" id="bn"><div class="bn-tr">${D.banners.map(b => `<a class="bn-it" href="${esc(b.go)}" style="background:${b.bg}"><div class="tx"><small>${esc(b.k)}</small><h2>${esc(b.t)}</h2><p>${esc(b.s)}</p><span class="go">Xem ngay →</span></div><div class="art" style="background:${b.artBg}">${b.art}</div></a>`).join('')}</div>
+      <div class="bn-dots">${D.banners.map((_, i) => `<i class="${i === bnI ? 'on' : ''}"></i>`).join('')}</div></div>
+    <section class="sec"><div class="sh"><h3>🔥 Nổi bật</h3><a href="#/c/all">Xem tất cả</a></div><div class="row">${hot.map(card).join('')}</div></section>
+    <section class="sec"><div class="sh"><h3>✨ Hàng mới về</h3></div><div class="grid">${nw.map(card).join('')}</div></section>
+    <section class="sec"><div class="sh"><h3>🛍️ Gợi ý cho bạn</h3></div><div class="grid">${D.products.map(card).join('')}</div></section>${foot()}`;
+  const bn = $('#bn'), tr = bn.querySelector('.bn-tr'), dots = bn.querySelectorAll('.bn-dots i');
+  const go = i => { bnI = (i + D.banners.length) % D.banners.length; tr.style.transform = `translateX(-${bnI * 100}%)`; dots.forEach((d, k) => d.classList.toggle('on', k === bnI)); };
+  go(bnI); clearInterval(bnT); bnT = setInterval(() => go(bnI + 1), 4500);
+  let x0 = null; bn.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+  bn.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) { go(bnI + (dx < 0 ? 1 : -1)); clearInterval(bnT); } x0 = null; });
+}
+function cats() {
+  app.innerHTML = `<h1 class="ttl">Danh mục</h1><div class="cats">${D.cats.map(c => `<a class="cat" href="#/c/${c.id}"><span class="e">${c.e}</span><b>${esc(c.name)}</b><small>${esc(c.sub || '')} · ${D.products.filter(p => p.cat === c.id).length} món</small></a>`).join('')}</div>${foot()}`;
+}
+function list(cid, q) {
+  const c = D.cats.find(x => x.id === cid);
+  const f = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+  let L = D.products.filter(p => cid === 'all' || !cid || p.cat === cid);
+  if (q) { const k = f(q); L = D.products.filter(p => f(p.name + ' ' + (p.pros || []).join(' ')).includes(k)); }
+  const title = q ? `Kết quả cho “${esc(q)}”` : c ? `${c.e} ${esc(c.name)}` : 'Tất cả sản phẩm';
+  app.innerHTML = `<div class="chips"><a class="chip${cid === 'all' && !q ? ' on' : ''}" href="#/c/all">Tất cả</a>${D.cats.map(x => `<a class="chip${x.id === cid ? ' on' : ''}" href="#/c/${x.id}">${x.e} ${esc(x.name)}</a>`).join('')}</div>
+    <div class="sh"><h3>${title}<span>${L.length} món</span></h3></div>
+    ${L.length ? `<div class="grid">${L.map(card).join('')}</div>` : `<div class="empty"><img src="${ICON}" alt=""><b>Chưa có món nào</b>Thử từ khoá khác nhé.</div>`}${foot()}`;
+}
+function fav() {
+  const L = favs.map(id => D.products.find(p => p.id === id)).filter(Boolean);
+  app.innerHTML = `<h1 class="ttl">❤️ Yêu thích</h1>${L.length ? `<div class="grid">${L.map(card).join('')}</div>` : `<div class="empty"><img src="${ICON}" alt=""><b>Chưa lưu món nào</b>Bấm ♡ trên sản phẩm để lưu lại, lúc nào muốn mua thì vào đây.</div>`}${foot()}`;
+}
+function detail(id) {
+  const p = D.products.find(x => x.id === id); if (!p) return list('all');
+  ping('view', p.id);
+  const n = Math.max(1, (p.img || []).length), o = off(p), c = D.cats.find(x => x.id === p.cat);
+  const same = D.products.filter(x => x.cat === p.cat && x.id !== p.id).slice(0, 4);
+  app.innerHTML = `<div class="dt">
+    <div class="gal"><div class="gal-tr" id="gt">${Array.from({ length: n }, (_, i) => `<div>${imgOf(p, i, 1)}</div>`).join('')}</div>${n > 1 ? `<span class="gal-n" id="gn">1/${n}</span>` : ''}
+      <button class="back" onclick="history.length > 1 ? history.back() : (location.hash = '#/')" aria-label="Quay lại"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button></div>
+    <div class="info">
+      ${c ? `<a class="chip" href="#/c/${c.id}" style="display:inline-flex;margin-bottom:10px">${c.e} ${esc(c.name)}</a>` : ''}
+      <h1>${esc(p.name)}</h1>
+      <div class="pr"><b>${vnd(p.price)}</b>${p.old > p.price ? `<s>${vnd(p.old)}</s><span class="off">-${o}%</span>` : ''}</div>
+      ${p.sold ? `<div class="mt" style="margin-top:4px">Đã bán ${kfmt(p.sold)} trên Shopee</div>` : ''}
+      ${(p.pros || []).length ? `<div class="box"><h4>Vì sao HaoHao chọn</h4><ul class="pros">${p.pros.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${p.desc ? `<div class="box"><h4>Thông tin</h4><p class="desc">${esc(p.desc)}</p></div>` : ''}
+      <div class="buyb"><button class="fv2${isFav(p.id) ? ' on' : ''}" data-fav="${esc(p.id)}" aria-label="Yêu thích">${HEART}</button>
+        <a class="buy" href="${esc(p.url)}" target="_blank" rel="noopener sponsored" data-buy="${esc(p.id)}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M5 8h14l-1.5 11h-11z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>Mua trên Shopee</a></div>
+      <div class="aff">Bạn sẽ đặt hàng và thanh toán trên Shopee · Link tiếp thị, giá không đổi</div>
+    </div></div>
+    ${same.length ? `<section class="sec" style="margin-top:26px"><div class="sh"><h3>Cùng danh mục</h3></div><div class="grid">${same.map(card).join('')}</div></section>` : ''}${foot()}`;
+  const gt = $('#gt'), gn = $('#gn'); if (gt && gn) gt.addEventListener('scroll', () => { gn.textContent = Math.round(gt.scrollLeft / gt.clientWidth) + 1 + '/' + n; }, { passive: true });
+}
+// ---- điều hướng ----
+function route() {
+  const h = location.hash.replace(/^#\/?/, ''), [a, b] = h.split('/');
+  clearInterval(bnT);
+  let r = 'home';
+  if (a === 'p' && b) { r = 'p'; detail(decodeURIComponent(b)); }
+  else if (a === 'c') { r = 'cats'; list(decodeURIComponent(b || 'all')); }
+  else if (a === 'danh-muc') { r = 'cats'; cats(); }
+  else if (a === 'yeu-thich') { r = 'fav'; fav(); }
+  else if (a === 'tim') { r = 'home'; list('', decodeURIComponent(b || '')); }
+  else home();
+  document.querySelectorAll('[data-r]').forEach(x => x.classList.toggle('on', x.dataset.r === r));
+  $('#tb').style.display = r === 'p' && innerWidth < 760 ? 'none' : '';
+  if (a !== 'tim') window.scrollTo(0, 0);
+}
+document.addEventListener('click', e => {
+  const f = e.target.closest('[data-fav]'); if (f) { e.preventDefault(); e.stopPropagation(); togFav(f.dataset.fav); f.classList.toggle('on', isFav(f.dataset.fav)); return; }
+  const b = e.target.closest('[data-buy]'); if (b) ping('buy', b.dataset.buy);
+});
+let qT; $('#q').addEventListener('input', e => { clearTimeout(qT); const v = e.target.value.trim(); qT = setTimeout(() => { location.hash = v ? '#/tim/' + encodeURIComponent(v) : '#/'; }, 250); });
+addEventListener('scroll', () => $('#hd').classList.toggle('sc', scrollY > 4), { passive: true });
+addEventListener('hashchange', route);
+badge();
+fetch('/api/store', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && Array.isArray(j.products) && j.products.length) { D = j; route(); } }).catch(() => {});
+route();
+</script>
+</body>
+</html>
