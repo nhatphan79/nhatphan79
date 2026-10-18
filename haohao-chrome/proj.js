@@ -111,6 +111,20 @@
         delete f.html; delete f.color; f.v29 = 1; ch = true;
       }
     }
+    // V1.71: anh Nhật nhờ chép 8 ý tưởng (đang nằm ở mảng khác) sang mảng 💡 Ý tưởng – chạy 1 lần, giữ nguyên bản gốc
+    if (!data.v71idea) {
+      const KEYS = ['haohao fun', 'haohao airdrop', 'sửa chữa – cải tạo nhà phố trọn gói', 'haohao thiền', 'haohao spy', 'haohao kid mode', 'haohao share', 'haohao boss'];
+      const norm = t => String(t || '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const src = data.projects.filter(p => !isIdea(p) && KEYS.includes(norm(p.name)));
+      if (src.length) {
+        let A = data.areas.find(isIdeaA);
+        if (!A) { const t = AREAS0.find(x => x.id === 'idea'); A = { id: data.areas.some(a => a.id === 'idea') ? 'a' + uid() : 'idea', name: t.name, icon: t.icon, color: t.color, tpl: 'idea' }; data.areas.push(A); }
+        const have = new Set(data.projects.filter(p => p.area === A.id).map(p => norm(p.name)));
+        src.forEach(p => { if (have.has(norm(p.name))) return; const c = JSON.parse(JSON.stringify(p)); c.id = uid(); c.area = A.id; delete c.remindId;
+          (c.folders || []).forEach(f => { f.id = uid(); (f.rows || []).forEach(r => { r.id = uid(); delete r.todoId; }); }); data.projects.push(c); have.add(norm(p.name)); });
+        data.v71idea = 1; ch = true;
+      }
+    }
     return ch;
   }
 
