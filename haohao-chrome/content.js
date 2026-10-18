@@ -646,6 +646,7 @@
   .mail-in .chip, .mail-in .b { font-size: 12.5px !important; padding: 5px 12px !important; }
   .mail-in .line { gap: 6px; align-items: center; }
   .mail-in { padding: 6px 2px 2px; }
+  .gm-ask { margin: 6px 0; padding: 9px 10px; border-radius: 12px; background: #FFF8E1; border: 1px solid #F5D78E; font: 500 12px/1.5 system-ui; color: #5B4A12; display: grid; gap: 6px; } .gm-ask b { font-size: 12.5px; color: #23305E; }
   .foot { font-size: 11px; color: #9AA1BE; text-align: center; margin-top: 10px; }
   .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 10px; }   /* V1.9: ô gọn */
   .tool { all: unset; cursor: pointer; border: 1.5px solid #E6E9F2; border-radius: 12px; padding: 8px 9px; background: #fff; display: flex; flex-direction: row; gap: 8px; align-items: center; min-width: 0;
@@ -1703,7 +1704,7 @@
   let helloDay = '', helloMode = false, tired = false;
   chrome.storage.local.get('shopHelloDay').then(d => { helloDay = d.shopHelloDay || ''; }).catch(() => {});
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.shopHelloDay) { helloDay = ch.shopHelloDay.newValue || ''; if (helloDay === new Date().toDateString()) setTired(false); } });
-  const coffeeDue = () => { const N = new Date(); return N.getDay() === 2 && helloDay !== N.toDateString() && !!(HT.SP && HT.SP.showcase); };
+  const coffeeDue = () => false;   // V1.73: anh Nhật bỏ hẳn bong bóng cà phê Thứ Ba
   function setTired(on) {
     tired = !!on; if (!ui) return;
     ui.wrap.classList.toggle('tired', tired);
@@ -1711,6 +1712,7 @@
   }
   const doneCoffee = () => { helloDay = new Date().toDateString(); chrome.storage.local.set({ shopHelloDay: helloDay }).catch(() => {}); setTired(false); };
   async function tiredAsk(force) {
+    return;   // V1.73: bỏ hẳn
     if (!ui || (!force && (!coffeeDue() || SHOP_SITE || !ui.panel.hidden || menuOpen))) return;
     setTired(true);
     const day = new Date().toDateString(), { coffeeAskDay = '' } = await chrome.storage.local.get('coffeeAskDay').catch(() => ({}));
@@ -1912,15 +1914,17 @@
       ...(fb ? [{ id: 'fb', label: 'Thích fanpage HaoHao', sub: 'Nhận tin deal & tính năng mới', url: fb }] : [])
     ];
   }
-  // 🛍️ 7 ngày 1 lần: bong bóng mời ghé TikTok Shop HaoHao (khách tự bấm mới mở – không tự mở link tiếp thị)
-  async function ttWeekly() {
-    if (!ui || SHOP_SITE || !ui.panel.hidden || !ui.bubble.hidden || !isUnlocked()) return;
-    const url = HT.ttShowcase(); if (!url) return;
-    const { ttWeekAt = 0 } = await chrome.storage.local.get('ttWeekAt');
+  // 🛍️ V1.73: 7 ngày 1 lần mời ghé HaoHao Store xem hàng mới (duy trì kinh phí HaoHao). Khách tự bấm mới mở, ghi rõ link tiếp thị.
+  //    Tuần đầu sau khi cài chưa mời; tính chung giới hạn 1 bong bóng tự hiện / giờ (autoGate); không hiện trên trang mua sắm
+  async function storeWeekly() {
+    if (!ui || SHOP_SITE || !ui.panel.hidden || !ui.bubble.hidden) return;
+    const sp = (HT.SP && HT.SP.showcase) || '', tt = HT.ttShowcase() || ''; if (!sp && !tt) return;
+    const { ttWeekAt = 0 } = await chrome.storage.local.get('ttWeekAt').catch(() => ({}));
+    if (!ttWeekAt) { await chrome.storage.local.set({ ttWeekAt: Date.now() }).catch(() => {}); return; }
     if (Date.now() - ttWeekAt < 7 * 864e5 || !(await autoGate())) return;
-    await chrome.storage.local.set({ ttWeekAt: Date.now() });
-    if (!ttWeekAt) return;   // tuần đầu sau khi mở khoá: chưa mời
-    say('Tuần này TikTok Shop HaoHao có hàng mới, ghé xem nhé!', 'happy', '🛍️ HaoHao tuyển chọn', 'shop', [{ label: 'Xem ngay', fn: () => openDeal(url) }, { label: 'Để sau', ghost: true, fn: () => {} }]);
+    await chrome.storage.local.set({ ttWeekAt: Date.now() }).catch(() => {});
+    const acts = [...(sp ? [{ label: '🛍️ Shopee', fn: () => openDeal(sp) }] : []), ...(tt ? [{ label: '🎵 TikTok Shop', fn: () => openDeal(tt) }] : []), { label: 'Để sau', ghost: true, fn: () => {} }];
+    say('HaoHao Store tuần này có hàng mới tuyển chọn, ghé xem nhé! Mua qua đây là góp kinh phí nuôi HaoHao, giá không đổi.' + (HT.STORE ? ' (link tiếp thị)' : ''), 'happy', '🛍️ HaoHao Store', 'shop', acts);
   }
   async function saveUnlock() { await chrome.storage.local.set({ unlock: unlockSt }).catch(() => {}); }
   let unlPrev = '';   // máy chủ app xem thử: '' = lần đầu, 'renew' = hết 7 ngày (vẫn mở link, không lưu)
@@ -1933,7 +1937,6 @@
     if (preview) {
       const bar = el('div', 'unl-pv'); const bk = el('button', 'tb-back', '‹ Tiện ích'); bk.addEventListener('click', () => { toolsSub = null; renderPanel(); }); bar.append(bk);
       [['', 'Lần đầu'], ['renew', 'Hết 7 ngày']].forEach(([k, t]) => { const c = el('button', 'chip sm' + (unlPrev === k ? ' on' : ''), t); c.addEventListener('click', () => { unlPrev = k; renderUnlock.fake = null; renderPanel(); }); bar.append(c); });
-      { const c = el('button', 'chip sm', 'Thứ Ba'); c.addEventListener('click', () => { closePanel(); setTimeout(() => tiredAsk(true), 200); }); bar.append(c); }
       box.append(bar);
     }
     box.append(el('div', 'unl-t', st.renew ? '⏰ Hết 7 ngày dùng miễn phí' : st.trialEnd ? '⏰ Hết 7 ngày dùng thử' : '🔓 Mở khoá Tiện ích miễn phí'),
@@ -2306,6 +2309,7 @@
     if (acctsBusy) return; acctsBusy = true;
     chrome.runtime.sendMessage({ type: 'mail-accounts' }).then(r => { acctsBusy = false; if (r) { mailAccts = r; renderPanel(); } }).catch(() => { acctsBusy = false; });
   };
+  let gmAsk = false;   // V1.73: bản Store – hỏi khách đồng ý trước khi HaoHao đọc Gmail
   let mailHidden = []; chrome.storage.local.get('mailHidden').then(d => { mailHidden = d.mailHidden || []; }).catch(() => {});
   function mailBlock() {
     const m = settings.mail || {}, prov = m.provider || 'gmail', isMs = prov === 'outlook';
@@ -2324,6 +2328,7 @@
     const inner = el('div', 'mail-in'); g.append(inner);
     const on = el('label', 'rule'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!m.enabled;
     cb.addEventListener('change', async () => {
+      if (cb.checked && HT.STORE && !isMs && !m.gmOk) { cb.checked = false; gmAsk = true; return renderPanel(); }
       await chrome.storage.local.set({ mailSeen: null });   // chỉ báo thư đến SAU lúc bật
       await save({ enabled: cb.checked });
       if (cb.checked) recheck();
@@ -2337,6 +2342,15 @@
       pv.append(c);
     });
     inner.append(pv);
+    if (gmAsk && !isMs) {
+      const ask = el('div', 'gm-ask');
+      ask.append(el('b', '', '🔒 Cho phép HaoHao đọc Gmail?'),
+        el('div', '', 'HaoHao đọc người gửi, tiêu đề và vài dòng đầu của thư CHƯA ĐỌC trong Gmail bạn đang đăng nhập trên Chrome, để báo thư mới và mã OTP. Việc đọc làm ngay trên máy bạn, không gửi nội dung thư đi đâu. Tắt lúc nào cũng được.'));
+      const ln = el('div', 'line'), ok = el('button', 'b', 'Đồng ý, bật'), no = el('button', 'b ghost', 'Không');
+      ok.addEventListener('click', async () => { gmAsk = false; await chrome.storage.local.set({ mailSeen: null, mailStatus: null }); await save({ enabled: true, provider: 'gmail', gmOk: Date.now() }); recheck(); renderPanel(); });
+      no.addEventListener('click', () => { gmAsk = false; renderPanel(); });
+      ln.append(ok, no); ask.append(ln); inner.append(ask);
+    }
     // trạng thái đăng nhập
     const st = el('div', 'empty'), ms = mailStatus && (mailStatus.provider || 'gmail') === prov ? mailStatus : null;
     const hm = x => new Date(x).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -2345,6 +2359,7 @@
       const who = isMs ? msAccount : ms.account;
       st.textContent = `✓ ${who || (isMs ? 'Outlook' : 'Gmail')} · ${ms.count} chưa đọc · ${hm(ms.at)}`; st.className = 'empty mail-st';
     }
+    else if (ms && ms.error === 'perm') st.textContent = '🔒 Bạn chưa cho phép HaoHao đọc Gmail.';
     else if (ms && ms.error === 'login') st.textContent = isMs ? '⚠ Chưa đăng nhập Outlook, hoặc phiên đã hết hạn.' : '⚠ Chưa đăng nhập Gmail trên Chrome này, hoặc sai số thứ tự tài khoản.';
     else if (ms) st.textContent = '⚠ Không lấy được hộp thư (mất mạng?). HaoHao sẽ thử lại sau 1 phút.';
     else st.textContent = isMs && !msAccount ? 'Chưa đăng nhập Outlook.' : 'Chưa kiểm tra lần nào.';
@@ -2384,6 +2399,10 @@
       });
       acts.append(b);
       if (msAccount) { const o = el('button', 'b ghost', 'Đăng xuất'); o.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'ms-logout' }).catch(() => {})); acts.append(o); }
+    } else if (ms && ms.error === 'perm' && !gmAsk) {
+      const b = el('button', 'b', 'Cho phép đọc Gmail');
+      b.addEventListener('click', () => { gmAsk = true; renderPanel(); });
+      acts.append(b);
     } else if (ms && ms.error === 'login') {
       const b = el('button', 'b', 'Mở Gmail để đăng nhập');
       b.addEventListener('click', () => window.open('https://mail.google.com/', '_blank'));
@@ -8101,7 +8120,7 @@
     setTimeout(voucherExpiryNudge, 12000);
     setTimeout(readVoucherWallet, 2500);
     // setInterval(liveWatch, 2500);   // 1.10.249: bỏ Săn live
-    setTimeout(tiredAsk, 7000);
+    setTimeout(storeWeekly, 7000);   // V1.73: 7 ngày 1 lần mời ghé HaoHao Store xem hàng mới (thay cà phê Thứ Ba)
     setTimeout(trackPrice, 3000);
     setTimeout(loadAllReviews, 1500);   // 1.10.162: tự đọc đánh giá ngay (không cần kéo xuống)
     if (isCmpPage()) setTimeout(compareRun, 1200);

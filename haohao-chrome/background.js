@@ -140,7 +140,7 @@ chrome.runtime.onInstalled.addListener(async details => {
   }
   // 1.9.74: chưa từng cài đặt email → tự bật báo Gmail (chỉ báo thư đến sau lúc bật)
   { const { settings: s2, mailDefaultV1 } = await chrome.storage.local.get(['settings', 'mailDefaultV1']);
-    if (!mailDefaultV1) { if (s2 && !s2.mail) { await chrome.storage.local.set({ settings: { ...s2, mail: { enabled: true, provider: 'gmail', primary: true, skipJunk: true, mode: 'all' } }, mailSeen: null }); } await chrome.storage.local.set({ mailDefaultV1: true }); }
+    if (!mailDefaultV1) { if (s2 && !s2.mail) { await chrome.storage.local.set({ settings: { ...s2, mail: { enabled: !HT.STORE, provider: 'gmail', primary: true, skipJunk: true, mode: 'all' } }, mailSeen: null }); } await chrome.storage.local.set({ mailDefaultV1: true }); }
   }
   // 🛡️ chặn quảng cáo tự động mọi trang: bỏ danh sách "tắt trên trang này" cũ, bật lại chặn
   { const { settings: s0 } = await chrome.storage.local.get('settings'); if (s0 && (s0.adAllow || s0.adCustom || s0.adBlock === false)) { const s1 = { ...s0, adBlock: true }; delete s1.adAllow; delete s1.adCustom; await chrome.storage.local.set({ settings: s1 }); } }
@@ -151,7 +151,7 @@ chrome.runtime.onInstalled.addListener(async details => {
   if (!rules) {
     await chrome.storage.local.set({
       rules: DEFAULT_RULES,
-      settings: { mascotEnabled: true, hiddenSites: [], mail: { enabled: true, provider: 'gmail', primary: true, skipJunk: true, mode: 'all' } },   // 📧 cài mới: tự bật báo Gmail (tài khoản đang đăng nhập trên Chrome)
+      settings: { mascotEnabled: true, hiddenSites: [], mail: { enabled: !HT.STORE, provider: 'gmail', primary: true, skipJunk: true, mode: 'all' } },   // 📧 cài mới: tự bật báo Gmail (tài khoản đang đăng nhập trên Chrome)
       log: [], priceState: {}
     });
   }
@@ -774,6 +774,7 @@ function mailMatch(m, e) {
   return senders.some(x => who.includes(x)) || words.some(x => body.includes(x));
 }
 async function fetchGmail(m) {
+  if (HT.STORE && !m.gmOk) throw new Error('perm');   // V1.73: bản Store – khách chưa bấm đồng ý cho đọc Gmail
   const get = async label => {
     const r = await fetch(`https://mail.google.com/mail/u/${Number(m.account) || 0}/feed/atom${label}`, { credentials: 'include', cache: 'no-store' });
     const txt = await r.text();
@@ -872,7 +873,7 @@ async function checkMail(manual) {
       for (const e of hits) await fire({ name: 'Email mới', type: 'mail', id: 'mail' }, `📧 ${e.name || e.email}: ${e.title}`, 'alert', { url: e.url });
     }
   } catch (e) {
-    status = { ok: false, error: ['login', 'noclient'].includes(e.message) ? e.message : 'net', at: Date.now(), provider: m.provider || 'gmail' };
+    status = { ok: false, error: ['login', 'noclient', 'perm'].includes(e.message) ? e.message : 'net', at: Date.now(), provider: m.provider || 'gmail' };
   }
   mailBusy = false;
   await chrome.storage.local.set({ mailStatus: status });
@@ -881,6 +882,7 @@ async function checkMail(manual) {
 // Dò các tài khoản Gmail đang đăng nhập trên Chrome (u/0..u/3) để hiện đúng địa chỉ email thay vì "Gmail thứ 1, 2…"
 async function mailAccounts() {
   const list = [];
+  if (HT.STORE) { const { settings: s9 } = await chrome.storage.local.get('settings'); if (!(s9 && s9.mail && s9.mail.gmOk)) return { at: Date.now(), list }; }   // V1.73
   for (let i = 0; i < 4; i++) {
     try {
       const r = await fetch(`https://mail.google.com/mail/u/${i}/feed/atom`, { credentials: 'include', cache: 'no-store' });

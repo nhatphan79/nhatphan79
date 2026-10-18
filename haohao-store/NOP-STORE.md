@@ -28,6 +28,7 @@ Không cần tài khoản. Dữ liệu của bạn nằm trong Chrome trên máy
 
 ⭐ 2 tháng đầu mở khoá toàn bộ. Sau đó Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung vẫn miễn phí; Tiện ích (Thị trường, Chặn quảng cáo, HaoHao Transfer) và trang Dự án cần gói HaoHao Pro: 1 tháng 20.000đ · 3 tháng 50.000đ · 6 tháng 90.000đ · 1 năm 199.000đ · trọn đời 499.000đ (chuyển khoản, nhận mã kích hoạt).
 
+🛍️ Mỗi tuần HaoHao có thể mời 1 lần ghé HaoHao Store xem hàng mới (bạn tự bấm mới mở, bấm Để sau là thôi).
 🛍️ Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm. Link chỉ dùng khi bạn tự bấm "Mua qua HaoHao" hoặc lấy mã giảm giá có thật.
 
 Liên hệ: Phan Thanh Nhật – +84 366.159.790 – nhatphan79@gmail.com
@@ -62,6 +63,7 @@ Liên hệ: Phan Thanh Nhật – +84 366.159.790 – nhatphan79@gmail.com
 
 - **Mã từ xa (Remote code):** *Không* – mọi mã nằm trong gói; chỉ tải dữ liệu JSON (giá, danh sách mã giảm giá).
 - **Dữ liệu thu thập (tick):** Website content (giá sản phẩm đang xem, nội dung gửi Gemini khi người dùng yêu cầu) · User activity (từ khoá tìm kiếm trên trang mua sắm, ẩn danh) · Location (vị trí gần đúng theo IP cho thời tiết).
+  · **Personal communications** (email): chỉ khi người dùng tự bật Canh email và bấm *Đồng ý* – đọc người gửi, tiêu đề, vài dòng đầu thư chưa đọc, xử lý ngay trên máy, không gửi đi. Bản Store mặc định TẮT.
 - **Cam kết (tick cả 3):** không bán/chuyển dữ liệu cho bên thứ ba ngoài mục đích đã nêu; không dùng cho mục đích không liên quan; không dùng để xét tín dụng/cho vay.
 - **URL chính sách quyền riêng tư:** `https://github.com/nhatphan79/nhatphan79/blob/HEAD/haohao-store/CHINH-SACH-RIENG-TU.md`
 

@@ -2671,6 +2671,13 @@
 ].map(([r, t]) => [new RegExp(r, 's'), t]);
   // V1.61: tiếng Anh cho trang Dự án, chọn dự án trong Note, Giới thiệu mới, gửi ảnh sang iPhone, giấy note nổi
   const EXTRA_D = {
+    // —— V1.73: Gmail hỏi đồng ý, mời ghé HaoHao Store ——
+    "🔒 Cho phép HaoHao đọc Gmail?": "🔒 Allow HaoHao to read Gmail?",
+    "HaoHao đọc người gửi, tiêu đề và vài dòng đầu của thư CHƯA ĐỌC trong Gmail bạn đang đăng nhập trên Chrome, để báo thư mới và mã OTP. Việc đọc làm ngay trên máy bạn, không gửi nội dung thư đi đâu. Tắt lúc nào cũng được.": "HaoHao reads the sender, subject and first lines of UNREAD mail in the Gmail account signed in to Chrome, to alert you of new mail and OTP codes. Reading happens on your computer only; mail content is never sent anywhere. Turn it off anytime.",
+    "Đồng ý, bật": "Agree, turn on", "Không": "No", "Cho phép đọc Gmail": "Allow reading Gmail", "🔒 Bạn chưa cho phép HaoHao đọc Gmail.": "🔒 You haven't allowed HaoHao to read Gmail yet.",
+    "HaoHao Store tuần này có hàng mới tuyển chọn, ghé xem nhé! Mua qua đây là góp kinh phí nuôi HaoHao, giá không đổi.": "HaoHao Store has new hand-picked items this week, take a look! Buying here helps fund HaoHao, at the same price.",
+    "HaoHao Store tuần này có hàng mới tuyển chọn, ghé xem nhé! Mua qua đây là góp kinh phí nuôi HaoHao, giá không đổi. (link tiếp thị)": "HaoHao Store has new hand-picked items this week, take a look! Buying here helps fund HaoHao, at the same price. (affiliate link)",
+    "🛍️ HaoHao Store": "🛍️ HaoHao Store", "🎵 TikTok Shop": "🎵 TikTok Shop", "🛍️ Shopee": "🛍️ Shopee",
     // —— Trang Dự án ——
     "Tổng quan": "Overview", "Các mảng dự án": "Project areas", "Thêm mảng": "Add area", "＋ Thêm mảng": "＋ Add area",
     "Chọn mẫu hoặc tự đặt tên": "Pick a template or name it", "Kỳ xem": "Period", "Kỳ trước": "Previous period", "Kỳ sau": "Next period",

@@ -20,7 +20,7 @@ Bạn tắt được trong **Cài đặt → Cài đặt chung**: ô "Gửi th�
 - **Google Gemini** (`generativelanguage.googleapis.com`): đoạn chữ / nội dung trang bạn yêu cầu dịch, tóm tắt, giải thích, gửi bằng khoá Gemini **của chính bạn**.
 - **Thời tiết**: vị trí gần đúng theo địa chỉ mạng (ipwho.is, bigdatacloud.net) và toạ độ đó tới open-meteo.com để lấy dự báo.
 - **Giá vàng, chứng khoán, tiền điện tử**: chỉ tải giá từ sjc.com.vn, vnappmob, SSI, VNDirect, CoinGecko, DexScreener – không gửi dữ liệu của bạn.
-- **Email**: đếm thư chưa đọc ngay trên máy bạn – Gmail đọc qua phiên đăng nhập sẵn có trong Chrome; Outlook qua đăng nhập chính thức của Microsoft (graph.microsoft.com). Nội dung thư không gửi về HaoHao.
+- **Email** (mặc định tắt, chỉ chạy khi bạn tự bật và bấm *Đồng ý*): đọc người gửi, tiêu đề, vài dòng đầu thư chưa đọc ngay trên máy bạn – Gmail đọc qua phiên đăng nhập sẵn có trong Chrome; Outlook qua đăng nhập chính thức của Microsoft (graph.microsoft.com). Nội dung thư không gửi về HaoHao.
 - **Soi / so sánh sản phẩm, mã giảm giá**: từ khoá sản phẩm gửi tới máy chủ HaoHao để tra AccessTrade / RioHub.
 - **App HaoHao Transfer** (nếu bạn cài): chỉ nói chuyện với máy tính của bạn qua `127.0.0.1`, không ra Internet.
 
