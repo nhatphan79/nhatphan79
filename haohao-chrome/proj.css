@@ -421,3 +421,11 @@
 .pj-chart { max-height: 30vh; }
 @media (max-height: 640px) { .proj { overflow: auto; height: auto; } .pj-wrap { height: auto; } }
 .pj-atop .pj-sp { flex: 1; } .pj-atop .pj-ren { max-width: 280px; }
+
+/* V1.64: biểu tượng HaoHao – Quản lý dự án ở góc trái trên */
+.proj { position: relative; }
+.pj-brand { position: absolute; left: 24px; top: 16px; display: flex; align-items: center; gap: 10px; z-index: 2; }
+.pj-brand img { width: 40px; height: 40px; filter: drop-shadow(2px 2px 0 #23305E); }
+.pj-brand b { display: block; font-size: 18px; font-weight: 800; color: #23305E; line-height: 1.1; }
+.pj-brand small { display: block; font-size: 12px; font-weight: 700; color: #E08A00; letter-spacing: .3px; }
+@media (max-width: 1640px) { .pj-brand { position: static; margin: 0 0 10px; } }

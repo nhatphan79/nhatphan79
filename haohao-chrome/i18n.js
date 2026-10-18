@@ -2732,7 +2732,7 @@
     "theo ngày": "by day", "theo tháng": "by month", "1 tuần": "1 week", "1 tháng": "1 month", "3 ngày": "3 days", "% / ngày": "% / day",
     // —— Note → dự án ——
     "Lưu note này vào dự án": "Save this note to a project", "Lưu note vào dự án": "Save note to a project", "📁 Lưu vào dự án…": "📁 Save to project…",
-    "✕ Bỏ khỏi dự án": "✕ Remove from project", "📁 Đã lưu:": "📁 Saved:", "📝 Ghi chú (tạo mới)": "📝 Notes (new)", "Khác": "Other",
+    "✕ Bỏ khỏi dự án": "✕ Remove from project", "📁 Đã lưu:": "📁 Saved:", "📝 Ghi chú (tạo mới)": "📝 Notes (new)", "Khác": "Other", "Quản lý dự án": "Project manager", "💬 Góp ý cho HaoHao": "💬 Feedback for HaoHao", "Bạn muốn HaoHao có thêm gì, hay chỗ nào chưa tiện? Góp ý gửi thẳng cho tác giả, người khác không xem được.": "What would you like HaoHao to have, or what feels awkward? Feedback goes straight to the author – nobody else can see it.", "Nội dung góp ý": "Feedback", "✓ Đã gửi. Cảm ơn bạn!": "✓ Sent. Thank you!", "⚠ Chưa gửi được, thử lại sau nhé.": "⚠ Couldn't send, please try again later.", "Nhân bản thư mục": "Duplicate folder",
     // —— Mua sắm / link tiếp thị ——
     "Mở cửa hàng HaoHao trên Shopee": "Open the HaoHao store on Shopee", "Mở hàng HaoHao tuyển chọn trên TikTok Shop": "Open HaoHao picks on TikTok Shop",
     "Mở cửa hàng HaoHao trên Shopee · Link tiếp thị, giá không đổi": "Open the HaoHao store on Shopee · Affiliate link, same price",
@@ -2797,7 +2797,7 @@
     ["^Hẹn nhắc cho (.*)$", "Set a reminder for {1}"], ["^⏰ Hẹn nhắc · (.*)$", "⏰ Reminder · {1}"], ["^⏰ Đã hẹn (.*)$", "⏰ Set for {1}"],
     ["^🗑 Đã xoá dự án “(.*)”(.*)$", "🗑 Deleted project “{1}”{2}"], ["^👁 Hiện (.*)$", "👁 Show {1}"], ["^🙈 Ẩn lại (.*)$", "🙈 Hide {1}"],
     ["^Hiện lại (.*)$", "Show {1} again"], ["^Ẩn (\\d+) dự án$", "Hide {1} projects"], ["^\\((\\d+) dự án ẩn\\)$", "({1} hidden projects)"],
-    ["^Xoá ngày (.*)$", "Delete day {1}"], ["^Đổi đơn vị tiền, đang là (.*)$", "Change currency, now {1}"],
+    ["^Xoá ngày (.*)$", "Delete day {1}"], ["^Nhân bản thư mục (.*)$", "Duplicate folder {1}"], ["^(.*) \\(bản sao\\)$", "{1} (copy)"], ["^Đổi đơn vị tiền, đang là (.*)$", "Change currency, now {1}"],
     ["^Tổng \\(gồm cả (.*)\\)$", "Total (including {1})"], ["^Cộng dồn (.*)$", "Cumulative {1}"], ["^Lãi trong (.*)$", "Profit in {1}"],
     ["^giá Binance (.*)$", "Binance price {1}"], ["^gấp đôi sau (.*)$", "doubles after {1}"], ["^(\\d+) ngày$", "{1} days"], ["^(\\d+) khoản$", "{1} items"],
     ["^(.*) ngày đạt · (.*)$", "{1} days hit · {2}"], ["^(.*) so với hiện tại$", "{1} vs now"], ["^(.*) · cập nhật (.*)$", "{1} · updated {2}"],

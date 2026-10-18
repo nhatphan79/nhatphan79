@@ -138,7 +138,7 @@
   const curOf = p => p.cur || (['trade', 'air'].includes((tplOf(areas().find(a => a.id === p.area)) || {}).id) ? 'usdt' : 'vnd');
   const numTxt = (n, c) => (n == null || n === '' || isNaN(n)) ? '' : c === 'usdt' ? Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) : Number(n).toLocaleString('vi-VN');
   const fmtC = (n, c, sign) => { if (n == null || n === '' || isNaN(n)) n = 0; const v = Number(n), sg = sign && v > 0 ? '+' : v < 0 ? '-' : '';
-    return c === 'usdt' ? sg + '$' + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : sg + Math.abs(v).toLocaleString('vi-VN') + ' ₫'; };
+    return c === 'usdt' ? sg + '$' + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : sg + Math.round(Math.abs(v)).toLocaleString('vi-VN') + ' ₫'; };   // V1.64: VND không lẻ (bỏ phần thập phân khi quy từ USDT)
   const parseC = (t, c) => { if (c !== 'usdt') return parseMoney(t); const x = String(t || '').replace(/[^\d.\-]/g, ''); if (!x || x === '-' || x === '.') return null; const n = parseFloat(x); return isNaN(n) ? null : Math.round(n * 100) / 100; };
   const sumC = (L, k) => { const o = { vnd: 0, usdt: 0 }; L.forEach(p => { o[curOf(p)] += k === 'von' ? vonOf(p) : laiOf(p); }); return o; };
   const fmtSum = (o, sign, sep) => { const parts = ['vnd', 'usdt'].filter(c => o[c]).map(c => fmtC(o[c], c, sign)); return parts.join(sep || ' · ') || '0'; };
@@ -713,6 +713,8 @@
       it.append(b); FL.append(it);
     }
     // V1.23: mỗi thư mục có ✏️ đổi tên (hoặc bấm đúp) và 🗑 xoá ngay trên dòng
+    // V1.64: nhân bản thư mục – chép hết việc, ghi chú, sổ Hold/Trade; mã mới, không kéo theo nhắc Todo cũ
+    const cloneFolder = f => { const c = JSON.parse(JSON.stringify(f)); c.id = uid(); c.name = (f.name || 'Thư mục') + ' (bản sao)'; (c.rows || []).forEach(r => { r.id = uid(); delete r.todoId; }); (c.holds || []).forEach(h => { if (h && typeof h === 'object' && 'id' in h) h.id = uid(); }); return c; };
     const delFolder = f => { p.folders = p.folders.filter(x => x !== f); if (openFolder === f.id) openFolder = (p.folders[0] || {}).id || null; save(); render(true); };
     p.folders.forEach((f, i) => {
       const it = $('div', 'pj-fi' + (f.id === openFolder ? ' on' : ''));
@@ -721,6 +723,8 @@
       b.addEventListener('click', () => { if (openFolder !== f.id) { openFolder = f.id; render(true); } });
       const ed = $('button', 'pj-ic', '✏️'); ed.title = 'Đổi tên'; ed.setAttribute('aria-label', 'Đổi tên thư mục ' + f.name);
       const dl = $('button', 'pj-ic', '🗑'); dl.title = 'Xoá thư mục'; dl.setAttribute('aria-label', 'Xoá thư mục ' + f.name);
+      const cp = $('button', 'pj-ic', '⧉'); cp.title = 'Nhân bản thư mục'; cp.setAttribute('aria-label', 'Nhân bản thư mục ' + f.name);   // V1.64: chế độ copy
+      cp.addEventListener('click', e => { e.stopPropagation(); const c = cloneFolder(f); p.folders.splice(p.folders.indexOf(f) + 1, 0, c); openFolder = c.id; save(); render(true); });
       const rename = () => {
         const inp = $('input', 'pj-in pj-ren'); inp.value = f.name; inp.setAttribute('aria-label', 'Tên mới');
         let done = false; const ok = keep => { if (done) return; done = true; if (keep) { const n = inp.value.trim(); if (n) { f.name = n; save(); } } render(true); };
@@ -735,7 +739,7 @@
         if (!arm && (f.rows || []).some(real)) { arm = true; dl.textContent = 'Xoá?'; dl.classList.add('arm'); setTimeout(() => { arm = false; dl.textContent = '🗑'; dl.classList.remove('arm'); }, 3000); return; }
         delFolder(f);
       });
-      it.append(b, ed, dl); FL.append(it);
+      it.append(b, ed, cp, dl); FL.append(it);
     });
     // V1.22: gõ tên + Enter (hoặc ＋) → thêm thư mục con và tự mở luôn, con trỏ nằm sẵn ở bảng
     const af = $('div', 'pj-addrow'), ai = $('input', 'pj-in'); ai.placeholder = 'Thêm thư mục con…'; ai.setAttribute('aria-label', 'Tên thư mục con mới');
@@ -885,6 +889,7 @@
   }
   function render0() {
     const W = $('div', 'pj-wrap'), p = openId && proj();
+    { const br = $('div', 'pj-brand'), im = document.createElement('img'); im.src = 'icons/icon48.png'; im.alt = ''; const tx = $('div', ''); tx.append($('b', '', 'HaoHao'), $('small', '', 'Quản lý dự án')); br.append(im, tx); W.append(br); }   // V1.64: biểu tượng HaoHao góc trái
     if (p) detail(W, p); else { openId = null; if (data.cur === '$all' && areas().length) overview(W); else board(W); }
     root.replaceChildren(W);
   }

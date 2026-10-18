@@ -262,6 +262,15 @@ try { const mf = chrome.runtime.getManifest(); $('#ver').textContent = 'HaoHao '
 
 // V1.62: bỏ trang ☕ Ủng hộ (anh Nhật không làm miễn phí nữa); khung "Đặt viết phần mềm" chuyển sang Giới thiệu
 const ZALO0 = '+84366159790';
+// V1.64: 💬 Góp ý nằm ở trang Giới thiệu
+$('#gpSend').addEventListener('click', async () => {
+  const t = $('#gpTxt').value.trim(), m = $('#gpMsg'), b = $('#gpSend');
+  if (t.length < 5) { m.textContent = 'Viết thêm chút nữa nhé (ít nhất 5 chữ).'; return $('#gpTxt').focus(); }
+  b.disabled = true; m.textContent = 'Đang gửi…';
+  const r = await chrome.runtime.sendMessage({ type: 'gopy', txt: t }).catch(() => null);
+  b.disabled = false;
+  if (r && r.ok) { $('#gpTxt').value = ''; m.textContent = '✓ Đã gửi. Cảm ơn bạn!'; } else m.textContent = '⚠ Chưa gửi được, thử lại sau nhé.';
+});
 async function copyBtn(btn, text, label) {
   try { await navigator.clipboard.writeText(text); btn.textContent = '✓ Đã chép'; } catch { btn.textContent = '⚠ Chép tay giúp mình'; }
   setTimeout(() => { btn.textContent = label; }, 1600);

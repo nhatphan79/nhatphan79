@@ -146,3 +146,9 @@ form { background: var(--paper); border: 2px solid var(--ink); border-radius: 20
 .su-order-a { display: flex; gap: 8px; flex-wrap: wrap; }
 #zaloBtn { background: #0068FF; border-color: #0068FF; color: #fff; text-decoration: none; }
 @media (max-width: 760px) { .su-card { grid-template-columns: 1fr; } }
+
+/* V1.64: Góp ý ở trang Giới thiệu */
+.gp-box { margin-top: 18px; padding: 18px 22px; border-radius: 16px; background: #fff; border: 2px solid var(--ink); }
+.gp-box h3 { margin: 0 0 4px; font-size: 16px; }
+.gp-box textarea { width: 100%; box-sizing: border-box; margin-top: 10px; padding: 10px 12px; border: 1px solid #DCE1EE; border-radius: 12px; font: inherit; resize: vertical; }
+.gp-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }

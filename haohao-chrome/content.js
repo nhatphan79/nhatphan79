@@ -118,7 +118,8 @@
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
-  TOOLS.push({ id: 'gopy', label: 'Góp ý', emoji: '💬', color: '#7C3AED', desc: 'Gửi mong muốn của bạn cho HaoHao', icon: '<path d="M4 5h16v11H9l-5 4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M8 9.5h8M8 12.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' });   // V1.8
+  // V1.64: Góp ý chuyển sang trang Giới thiệu (Cài đặt) – không còn trong Tiện ích
+  if (false) TOOLS.push({ id: 'gopy', label: 'Góp ý', emoji: '💬', color: '#7C3AED', desc: 'Gửi mong muốn của bạn cho HaoHao', icon: '<path d="M4 5h16v11H9l-5 4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M8 9.5h8M8 12.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' });   // V1.8
   const LAYOUT_OPT = ['focus', 'info', 'market', 'adblock', 'transfer'];   // 1.10.253: thêm Chặn quảng cáo, HaoHao Transfer
   for (const id of ['adblock', 'transfer']) { const t = TOOLS.find(x => x.id === id); if (t && !BRANCHES.some(b => b.id === id)) BRANCHES.splice(BRANCHES.findIndex(b => b.id === 'shop'), 0, { id, label: id === 'transfer' ? 'Transfer' : 'Chặn QC', color: t.color, angle: -18, icon: t.icon, menuIcon: t.icon.replace(/currentColor/g, '#fff') }); }
   const slots = () => { const s = settings && settings.slots; return Array.isArray(s) && s.length === 2 && s[0] !== s[1] && s.every(x => LAYOUT_OPT.includes(x)) ? s : ['focus', 'info']; };
