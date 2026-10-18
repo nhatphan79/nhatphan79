@@ -456,8 +456,8 @@
     top.append(add); W.append(top);
     const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh sách dự án');
     const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
-    const IDEA = isIdeaA(A);
-    (IDEA ? ['STT', 'Tên ý tưởng', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Ghi chú', ''] : ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', '']).forEach(t => { const c = $('div', 'c', t); if (IDEA && t === 'Ghi chú') c.style.gridColumn = 'span 2'; hd.append(c); });
+    const IDEA = isIdeaA(A), AIR = (tplOf(A) || {}).id === 'air';   // V1.72: mảng Airdrop – 5 ô tích cho 5 trình duyệt (p.br)
+    (IDEA ? ['STT', 'Tên ý tưởng', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Ghi chú', ''] : ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', AIR ? '5 trình duyệt' : 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', '']).forEach(t => { const c = $('div', 'c', t); if (IDEA && t === 'Ghi chú') c.style.gridColumn = 'span 2'; hd.append(c); });
     T.append(hd);
     // V1.34: 👁 ẩn dự án đã xong / không cần xem (p.hidden) – mặc định không hiện; ✕ xoá dự án (bấm 2 lần)
     const nHid = PL.filter(p => p.hidden).length, VL = showHidden ? PL : PL.filter(p => !p.hidden);
@@ -471,6 +471,14 @@
       const ds = date('start'), de = date('due');
       if (p.due && p.col !== 'done') { const t = today(); if (p.due < t) de.classList.add('late'); else if (p.due <= ymd(Date.now() + 3 * 864e5)) de.classList.add('soon'); }
       const v = pct(p), pc = $('div', 'c c-pg'), bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = v + '%'; bar.append(bi); pc.append(bar, $('b', '', v + '%'));
+      if (AIR) {   // 5 ô tích: làm xong trên trình duyệt nào thì tích ô đó
+        if (!Array.isArray(p.br)) p.br = [0, 0, 0, 0, 0];
+        const box = $('div', 'pj-br'), cnt = $('b', '', '');
+        const upd = () => { const n = p.br.filter(Boolean).length; cnt.textContent = n + '/5'; cnt.className = n === 5 ? 'ok' : ''; };
+        for (let k = 0; k < 5; k++) { const t = $('button', 'pj-brt' + (p.br[k] ? ' on' : ''), p.br[k] ? '✓' : String(k + 1)); t.type = 'button'; t.title = 'Trình duyệt ' + (k + 1); t.setAttribute('aria-pressed', !!p.br[k]); t.setAttribute('aria-label', 'Trình duyệt ' + (k + 1));
+          t.addEventListener('click', () => { p.br[k] = p.br[k] ? 0 : 1; t.classList.toggle('on', !!p.br[k]); t.textContent = p.br[k] ? '✓' : String(k + 1); t.setAttribute('aria-pressed', !!p.br[k]); upd(); save(); }); box.append(t); }
+        upd(); box.title = cnt.textContent + ' trình duyệt đã làm'; pc.replaceChildren(box);
+      }
       const sc = $('div', 'c'), sel = $('select', 'pj-st'); for (const [k, lb] of COLS) { const o = $('option', '', lb); o.value = k; o.selected = k === p.col; sel.append(o); }
       sel.addEventListener('change', () => { p.col = sel.value; save(); render(true); }); sc.append(sel);
       const vc = $('div', 'c'), lc = $('div', 'c');

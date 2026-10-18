@@ -451,3 +451,10 @@
 @media (max-width: 1100px) { .pj-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .pj-rutf { grid-template-columns: 1fr 1fr; } }
 .c-note { display: flex; align-items: center; } .pj-lr .pj-note { height: 34px; min-height: 0; }
+
+/* V1.72: Airdrop – 5 ô tích trình duyệt */
+.pj-br { display: flex; gap: 3px; flex: none; }
+.pj-brt { all: unset; cursor: pointer; width: 19px; height: 22px; border-radius: 6px; border: 1.5px solid #C9CEDF; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #9AA1BE; background: #fff; }
+.pj-brt.on { background: #3B6FD8; border-color: #3B6FD8; color: #fff; }
+.pj-brt:focus-visible { outline: 2px solid #2E7DD7; outline-offset: 1px; }
+.pj-lr .c-pg b.ok { color: #2E8B57; }

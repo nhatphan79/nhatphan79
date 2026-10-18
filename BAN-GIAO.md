@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.71** (số kỹ thuật 1.10.327)
+Cập nhật: 18/10/2026 · **Bản V1.72** (số kỹ thuật 1.10.328)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.72 (1.10.328) | Mảng mẫu Airdrop: cột Tiến độ thay bằng **5 ô tích "5 trình duyệt"** (`p.br=[0/1 ×5]`), anh tự tích, không tự xoá theo ngày, không liên kết hồ sơ Chrome (anh chọn tự tích). Chưa phát hành. |
 | V1.71 (1.10.327) | Chạy 1 lần (`data.v71idea`): chép 8 dự án HaoHao Fun, Airdrop, Sửa chữa – Cải tạo nhà phố trọn gói, Thiền, Spy, KID Mode, Share, Boss sang mảng 💡 Ý tưởng (tạo mảng nếu chưa có; bản gốc giữ nguyên; mã mới, bỏ liên kết Todo/nhắc). Ý "APP HaoHao chỉ lưu hạng mục APP": anh Nhật bỏ, không làm. Chưa phát hành. |
 | V1.70 (1.10.326) | Dự án: 💸 **Rút tiền** theo mảng (`area.rut[{id,d,v,c,t}]`, hộp ghi ngày/số tiền/VND-USDT/ghi chú, nút trên bảng hiện "Đã rút X"); Tổng quan thêm ô **💸 Đã rút** theo kỳ (không trừ vào thu/chi/lợi nhuận). Mẫu mảng **💡 Ý tưởng** (`tpl:'idea'`): không tính vào Tổng quan / số dự án, bảng cột **Ghi chú** (`p.note`) thay Vốn + Lãi, không có mục 0. Vốn đầu tư, không có dòng Tổng. Hộp Rút tiền giữ được khi trang vẽ lại (`rutBg`). Chưa phát hành. |
 | V1.69 (1.10.325) | Bong bóng: (1) bỏ bong bóng "video không có phụ đề" + "đang tắt CC" (video tiếng Việt không còn bị nhắc); (2) `autoGate()` – bong bóng tự hiện (chào, nhắc nhẹ Tab mới, tin mới, voucher sắp hết, mời ghé TikTok Shop) tối đa 1 lần/giờ chung mọi tab, trừ nhắc đúng giờ, Todo tới hạn, báo giá, Pomodoro, kiểm tra hàng, theo dõi giá, việc khách bấm, cà phê thứ Ba, dòng xây nhà 16:30, bản mới; (3) nhắc lặp lại (uống nước, tan làm…) không còn hiện trước trong bong bóng Tab mới – chỉ báo đúng giờ; (4) Tab mới luôn mở Trang chủ. Chưa phát hành. |
