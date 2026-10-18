@@ -28,7 +28,7 @@ Dùng miễn phí, không cần tài khoản. Dữ liệu của bạn nằm tron
 
 🛍️ Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm. Link chỉ dùng khi bạn tự bấm "Mua qua HaoHao" hoặc lấy mã giảm giá có thật.
 
-Liên hệ: Phan Thanh Nhật – 0366.159.790
+Liên hệ: Phan Thanh Nhật – +84 366.159.790
 ```
 
 - **Ảnh chụp (1280×800):** `haohao-store/anh/1-viec-can-lam.png` … `5-du-an.png`

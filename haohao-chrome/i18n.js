@@ -1740,7 +1740,7 @@
 "Phần mềm miễn phí cho cá nhân. Không sao chép, sửa đổi để bán lại hoặc phát hành dưới tên khác khi chưa được phép. Chỉ cài HaoHao từ người phát hành chính thức; bản do người khác sửa có thể không an toàn.": "Free software for personal use. Do not copy, modify to resell, or publish under another name without permission. Only install HaoHao from the official publisher; versions modified by others may be unsafe.",
 "hoặc app ngân hàng →": "or a banking app →",
 "Quét mã": "Scan",
-"💬 Nhắn Zalo 0366.159.790": "💬 Zalo 0366.159.790",
+"💬 Nhắn Zalo +84 366.159.790": "💬 Zalo +84 366.159.790",
 "🌐 Ngôn ngữ giao diện / Language": "🌐 Language",
 "· © 2026 HaoHao · Bản quyền thuộc": "· © 2026 HaoHao · Copyright",
 "✨ Note hơi dài và rối, để HaoHao sắp xếp nội dung chính cho gọn?": "✨ This note is long and messy. Let HaoHao tidy up the main points?",

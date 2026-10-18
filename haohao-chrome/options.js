@@ -261,7 +261,7 @@ if (location.hash === '#ai') document.querySelector('nav button[data-tab="settin
 try { const mf = chrome.runtime.getManifest(); $('#ver').textContent = 'HaoHao ' + (mf.version_name || mf.version); } catch {}
 
 // V1.62: bỏ trang ☕ Ủng hộ (anh Nhật không làm miễn phí nữa); khung "Đặt viết phần mềm" chuyển sang Giới thiệu
-const ZALO0 = '0366159790';
+const ZALO0 = '+84366159790';
 async function copyBtn(btn, text, label) {
   try { await navigator.clipboard.writeText(text); btn.textContent = '✓ Đã chép'; } catch { btn.textContent = '⚠ Chép tay giúp mình'; }
   setTimeout(() => { btn.textContent = label; }, 1600);

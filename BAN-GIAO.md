@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.62** (số kỹ thuật 1.10.318)
+Cập nhật: 18/10/2026 · **Bản V1.63** (số kỹ thuật 1.10.319)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -49,6 +49,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.63 (1.10.319) | Số điện thoại hiện theo mã quốc tế **+84 366.159.790** (bản quyền, Giới thiệu, Tab mới, quảng cáo xây nhà, nút Zalo; link tel:+84366159790; chính sách + hồ sơ Store). Link Zalo giữ zalo.me/0366159790. Đã chép sang máy anh, chưa phát hành. |
 | V1.62 (1.10.318) | Anh Nhật không làm miễn phí nữa: bỏ trang ☕ Ủng hộ (MoMo QR) và nút Ủng hộ ở Tab mới + Cài đặt; bỏ chữ "Miễn phí" ở Giới thiệu; khung "💻 Đặt viết phần mềm theo yêu cầu" chuyển sang cuối trang Giới thiệu. Còn chữ "duy trì miễn phí… ghé shop ủng hộ" ở Bảng mở khoá + cà phê thứ Ba (chờ anh quyết). Đã chép sang máy anh; CHƯA phát hành (gói chờ 9h 19/10 vẫn là V1.61 – hỏi anh có gộp V1.62 không). |
 | V1.61 (1.10.317) | Tiếng Anh: thêm `EXTRA_D` + `EXTRA_P` trong i18n.js (trang Dự án đầy đủ, chọn dự án trong Note, Giới thiệu mới, 2 ô thống kê, tiêu đề Cửa hàng HaoHao, dòng Canh email, Transfer 2 chiều, khung gửi iPhone, giấy note nổi, lịch nhắc mẫu; sửa lỗi "Session bản" → "Version"). tfgui.html + sticky.html nạp thêm common.js/i18n.js/i18n-page.js. Kiểm bằng trình duyệt thử: chỉ còn dữ liệu người dùng là tiếng Việt. Đã chép sang máy anh (45 file khớp md5). Anh Nhật muốn phát hành 9h sáng 19/10 → đã rút về V1.60; gói V1.61 đã ký nằm chờ ở `_cho-phat-hanh/` (9h mai chép 2 file vào `downloads/` rồi đẩy lên). |
 | V1.60 (1.10.316) | Trang Giới thiệu cập nhật: lời giới thiệu có Dự án + Transfer; 12 ô tính năng (thêm Dự án, Transfer, Thị trường, Giọng nói); quyền riêng tư nói đúng thực tế (thống kê ẩn danh – tắt được; bỏ câu "không có máy chủ riêng"); bảng dữ liệu thêm Máy chủ HaoHao + App Transfer; bảng quyền thêm Vị trí (lấy theo mạng nếu không có quyền) + Thay trang Tab mới. Đã phát hành cho khách. ⚠ Lại lỡ chạy chép song song 1 lần – phát hiện nhờ so md5, đã chép lại. |

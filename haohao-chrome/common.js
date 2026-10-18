@@ -256,7 +256,7 @@ HT.parseWhen = function (input, now = new Date()) {
 HT.localISO = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
 
 // ---------- ©️ Bản quyền ----------
-HT.OWNER = { name: 'Phan Thanh Nhật', phone: '0366.159.790', tel: 'tel:0366159790', year: 2026 };
+HT.OWNER = { name: 'Phan Thanh Nhật', phone: '+84 366.159.790', tel: 'tel:+84366159790', year: 2026 };
 HT.COPYRIGHT = `© ${HT.OWNER.year} HaoHao · Bản quyền thuộc ${HT.OWNER.name} · ${HT.OWNER.phone}`;
 
 // Bỏ dấu tiếng Việt để so khớp (gõ không dấu vẫn ra)
@@ -531,7 +531,7 @@ HT.sameKind = (a, b) => {
   return head.length > 0 && head.every(w => spHas(fb, w));
 };
 // 🏠 Công việc của tác giả (hiện trong bong bóng suy nghĩ 16:30–17:00, mỗi ngày 1 lần, 5 phút tự tắt)
-HT.WORK_AD = { text: 'Xây nhà phố trọn gói Huế · Đà Nẵng · Quảng Nam', who: 'KS Nhật 0366.159.790', phone: '0366.159.790', url: 'https://zalo.me/0366159790' };
+HT.WORK_AD = { text: 'Xây nhà phố trọn gói Huế · Đà Nẵng · Quảng Nam', who: 'KS Nhật +84 366.159.790', phone: '+84 366.159.790', url: 'https://zalo.me/0366159790' };
 HT.shopeeSearchUrl = q => 'https://shopee.vn/search?keyword=' + encodeURIComponent(q) + '&order=asc&page=0&sortBy=price';
 // Tên sản phẩm gọn để tìm ở sàn khác
 HT.cleanTitle = title => String(title || '').replace(/\[[^\]]*\]|\([^)]*\)|【[^】]*】/g, ' ')
