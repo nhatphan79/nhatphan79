@@ -36,4 +36,4 @@ Bạn tắt được trong **Cài đặt → Cài đặt chung**: ô "Gửi th�
 - Không bán, không cho thuê dữ liệu; không dùng dữ liệu để chấm điểm tín dụng hay quảng cáo theo dõi.
 
 ## 6. Liên hệ
-Phan Thanh Nhật · ĐT/Zalo +84 366.159.790 · Email: *(email hỗ trợ – điền khi nộp Store)*
+Phan Thanh Nhật · ĐT/Zalo +84 366.159.790 · Email: nhatphan79@gmail.com

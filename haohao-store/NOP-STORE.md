@@ -30,7 +30,7 @@ Không cần tài khoản. Dữ liệu của bạn nằm trong Chrome trên máy
 
 🛍️ Trong cửa hàng HaoHao có link tiếp thị, giá không đổi so với khi bạn tự mua sắm. Link chỉ dùng khi bạn tự bấm "Mua qua HaoHao" hoặc lấy mã giảm giá có thật.
 
-Liên hệ: Phan Thanh Nhật – +84 366.159.790
+Liên hệ: Phan Thanh Nhật – +84 366.159.790 – nhatphan79@gmail.com
 ```
 
 - **Ảnh chụp (1280×800):** `haohao-store/anh/1-viec-can-lam.png` … `5-du-an.png`
@@ -70,6 +70,6 @@ Liên hệ: Phan Thanh Nhật – +84 366.159.790
 - Chrome Web Store không thu tiền hộ – HaoHao tự thu, mã kích hoạt kiểm tra ngay trên máy (không gửi đi đâu).
 
 ## 4. Anh tự điền
-- Email hỗ trợ (hiện công khai) – sửa luôn trong CHINH-SACH-RIENG-TU.md mục 6.
+- ✅ Email hỗ trợ: **nhatphan79@gmail.com** (đã điền vào mô tả và CHINH-SACH-RIENG-TU.md mục 6) – ô "Email hỗ trợ" trong Dashboard cũng dán email này.
 - Khu vực phát hành: Việt Nam (hoặc tất cả).
 - Phí đăng ký 5 USD (nếu tài khoản chưa đóng).
