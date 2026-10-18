@@ -4623,13 +4623,15 @@
     if (spyOn()) { spyFind(q); return; }
     // tìm nhanh: mở thẳng trang kết quả Shopee ở tab mới (qua link tiếp thị), không lọc, không chờ
     findState = null;
-    openDeal('https://shopee.vn/search?keyword=' + encodeURIComponent(q));   // xếp theo Shopee (Liên quan)
+    spyOpen('https://shopee.vn/search?keyword=' + encodeURIComponent(q));   // xếp theo Shopee (Liên quan); V1.73: bản Store mở link thường
     if (tab === 'shop' && ui && !ui.panel.hidden) renderPanel();
   }
   // ---------- 🔎 Soi sản phẩm (Shopee qua AccessTrade, TikTok qua RioHub – chỉ lấy dữ liệu, link mua là link của chủ app) ----------
   let spy = null, spySrc = 'all', spySort = 'hot', spyKeys = null, spyKeyOpen = false;
   chrome.storage.local.get('spyKeys').then(r => { spyKeys = r.spyKeys || null; }).catch(() => {});
   const spyOn = () => !!(HT.SPY_API || (spyKeys && (spyKeys.at || spyKeys.rh)));
+  // V1.73: bản Store – Soi sản phẩm mở link thường (không gắn link tiếp thị), ẩn % hoa hồng
+  const spyOpen = url => HT.STORE ? chrome.runtime.sendMessage({ type: 'prod-open', url }).catch(() => window.open(url, '_blank')) : openDeal(url);
   // 🔑 chủ app dán khoá 1 lần (lưu trong Chrome máy này, không gửi đi đâu ngoài AccessTrade/RioHub)
   function spyKeyBox() {
     const w = el('div', 'spy-key'); if (HT.STORE) return w;   // V1.56: bản Store không có ô khoá chủ app
@@ -4685,7 +4687,8 @@
     tabs.append(el('button', 'chip sm on', 'TikTok'));
 
     tabs.append(el('span', 'spy-sp'));
-    [['hot', 'Bán chạy'], ['cheap', 'Rẻ'], ['rate', '% HH']].forEach(([k, t]) => { const b = el('button', 'chip sm' + (spySort === k ? ' on' : ''), t); b.addEventListener('click', () => { spySort = k; renderPanel(); }); tabs.append(b); });
+    if (HT.STORE && spySort === 'rate') spySort = 'hot';
+    [['hot', 'Bán chạy'], ['cheap', 'Rẻ'], ...(HT.STORE ? [] : [['rate', '% HH']])].forEach(([k, t]) => { const b = el('button', 'chip sm' + (spySort === k ? ' on' : ''), t); b.addEventListener('click', () => { spySort = k; renderPanel(); }); tabs.append(b); });
     L.append(tabs);
     if (s.loading) { L.append(el('div', 'optwait', `Đang soi “${s.q}” trên TikTok…`)); return; }
     if (s.error) { L.append(el('div', 'optwait', s.error === 'off' ? 'Chưa bật máy chủ soi sản phẩm.' : 'Chưa soi được lần này: ' + s.error)); }
@@ -4697,7 +4700,7 @@
     const spNone = spySrc !== 'tiktok' && !s.error && !s.items.some(x => x.src === 'shopee');
     if (spNone) {   // kho AccessTrade chỉ có hàng 1 số shop đối tác → mở thẳng Shopee (vẫn gắn mã tiếp thị)
       const w = el('div', 'spy-none'); w.append(el('span', '', `Kho soi Shopee chưa có “${s.q}”.`));
-      const b = el('button', 'chip on', `Tìm “${s.q}” trên Shopee ›`); b.addEventListener('click', () => openDeal('https://shopee.vn/search?keyword=' + encodeURIComponent(s.q)));
+      const b = el('button', 'chip on', `Tìm “${s.q}” trên Shopee ›`); b.addEventListener('click', () => spyOpen('https://shopee.vn/search?keyword=' + encodeURIComponent(s.q)));
       w.append(b); L.append(w);
     }
     if (!items.length && !s.error && !spNone) L.append(el('div', 'optwait', 'Chưa thấy món nào. Thử từ khoá ngắn hơn.'));
@@ -4713,9 +4716,9 @@
       const rt = el('span', 'spy-r'); rt.append(el('b', '', vnd(x.price)));
       if (x.oldPrice > x.price) rt.append(el('s', '', vnd(x.oldPrice)));
       if (x.discount) rt.append(el('span', 'spy-off', '-' + x.discount + '%'));
-      if (x.rate) rt.append(el('span', 'spy-hh', 'HH ' + x.rate.toLocaleString('vi-VN') + '%'));
+      if (x.rate && !HT.STORE) rt.append(el('span', 'spy-hh', 'HH ' + x.rate.toLocaleString('vi-VN') + '%'));
       r.append(mid, rt);
-      r.addEventListener('click', () => openDeal(x.url));   // Shopee: gắn mã tiếp thị của chủ app; TikTok: link @haohaomall nếu đã có
+      r.addEventListener('click', () => spyOpen(x.url));   // Shopee: gắn mã tiếp thị của chủ app; TikTok: link @haohaomall nếu đã có
       L.append(r);
     }
   }
