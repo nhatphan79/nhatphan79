@@ -279,7 +279,7 @@ function P(n,price,old,good,rating,sold,shape,tint,ink,sw,plat){return {n:n,pric
 var SP='sp',TT='tt';
 
 var NICHES=[
- {id:'thoi-trang',label:'Thời trang',sub:'Nữ · Nam · Túi & Giày',shape:S.DRESS,bg:'#FFF0DC',ink:'#E8962E',kc:'#A65A06',vids:['tt-banner-1.mp4','tt-banner-2.mp4','tt-banner-3.mp4'],
+ {id:'thoi-trang',label:'Thời trang',sub:'Nữ · Nam · Túi & Giày',shape:S.DRESS,bg:'#FFF0DC',ink:'#E8962E',kc:'#A65A06',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-1.mp4','https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-2.mp4','https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-3.mp4'],
   slides:[
    {k:'Thời trang · Thu Đông 2026',t:'Mặc đẹp\nGiá đúng',x:'Áo quần nữ, nam, túi ví, giày dép từ Shopee và TikTok Shop — HaoHao so giá và kiểm tra sale thật giúp bạn.',bg:'#1E1A17',fg:'#FFFFFF',ac:'#F59A5C',bf:'#1E1A17',art:[['#3A2E27',S.DRESS,'#F59A5C'],['#FDE2E7',S.SHIRT,'#F29BB0'],['#F3E6CF',S.BAG,'#C9A06B']]},
    {k:'Thời trang nữ',t:'Váy đẹp\ndưới 200k',x:'Váy suông, chân váy, áo kiểu đang được lưu nhiều — chỉ hiện giá thật, có lịch sử giá 30 ngày.',bg:'#FBEFD9',fg:'#1E1A17',ac:'#D9480F',bf:'#FFFFFF',art:[['#FFFFFF',S.DRESS,'#E9C27F'],['#FDE2E7',S.DRESS,'#F29BB0'],['#E9E4F7',S.SHIRT,'#9C8BD0']]},
@@ -452,7 +452,7 @@ function card(p,deal){
     (off>0?'<span class="off">−'+off+'%</span>':'')+(p.good?'<span class="good">Giá tốt</span>':'')+(deal?'':'<a class="see" href="'+esc(url)+'" target="_blank" rel="noopener sponsored">Xem trên '+pl[1]+'</a>')+'</div>'+
     (deal?'':'<div class="p-row">'+(p.sw||[]).map(function(c){return '<span class="sw" style="background:'+c+'"></span>';}).join('')+'<span class="plat"><i style="background:'+pl[2]+'">'+pl[0]+'</i>'+pl[1]+'</span></div>')+
     '<span class="p-name">'+esc(p.n)+'</span><div class="price"><b>'+vnd(p.price)+'</b>'+(off>0?'<s>'+vnd(p.old)+'</s>':'')+'</div>'+
-    (deal?'<div class="meta ok">HaoHao: giá gốc đúng, không đẩy giá trước sale</div>':(p.sold?'<div class="meta">'+(p.mine?'':'★ '+(p.rating||'4.8')+' · ')+'Đã bán '+k(p.sold)+(p.mine?'+':'')+'</div>':''))+'</article>';
+    (deal?'<div class="meta ok">HaoHao: giá gốc đúng, không đẩy giá trước sale</div>':(p.sold?'<div class="meta">'+(p.rating?'★ '+esc(p.rating)+' · ':'')+'Đã bán '+k(p.sold)+(p.mine?'+':'')+'</div>':''))+'</article>';
 }
 var cur='';
 function FOOT(){ return '<footer class="foot"><div class="wrap"><div><span class="brand"><em>Hao</em>Hao</span><p style="margin:0;line-height:1.7">HaoHao không bán hàng trực tiếp. Bạn thanh toán trên Shopee / TikTok Shop; HaoHao có thể nhận hoa hồng giới thiệu mà giá của bạn không đổi.</p></div>'+
@@ -496,7 +496,7 @@ function renderNiche(n){
     var src=mode==='deal'?n.deals.map(function(p){return Object.assign({},p,{rating:p.rating||'4.8',sold:p.sold||1200});}).concat(all):(tab<0?mineAll(n).concat(all).sort(function(a,b){return (+b.sold||0)-(+a.sold||0);}):n.tabs[tab][1]);
     var seen={}; src=src.filter(function(p){if(seen[p.n])return false; seen[p.n]=1; return true;});
     var pages=Math.max(1,Math.ceil(src.length/4)); page=(page%pages+pages)%pages;
-    best.innerHTML=src.slice(page*4,page*4+4).map(function(p){return card(p,false);}).join('');
+    best.innerHTML=src.slice(page*4,page*4+4).map(function(p){return card(p,false);}).join('')||'<p class="cat-empty">HaoHao đang chọn món cho ngách này, bạn quay lại sau nhé.</p>';
     pgp.hidden=pgn.hidden=pages<2;
   }
   nh.addEventListener('click',function(e){
@@ -522,7 +522,7 @@ function renderNiche(n){
       '<div class="grid">'+list.slice(tp[i]*4,tp[i]*4+4).map(function(p){return card(p,false);}).join('')+'</div></div>';
   }
   function buildThemes(){
-    TH=themesFor(n.id); tp=TH.map(function(){return 0;});
+    TH=themesFor(n.id).filter(function(t){return themeList(t).length;}); tp=TH.map(function(){return 0;});
     themesEl.innerHTML=TH.map(function(t,i){return '<section class="sec theme" id="th'+i+'"></section>';}).join('')+
       (ADMIN&&THDB?'<div class="th-add"><button type="button" data-add="1">＋ Thêm chủ đề</button><a href="#quan-ly">Mở trang quản lý</a><span>Chỉ bạn (chủ trang) thấy phần này</span></div>':'');
     TH.forEach(function(t,i){drawTheme(i);});
@@ -628,7 +628,7 @@ function productsOf(n,ci){
   (PRDB||[]).filter(function(d){return d.niche===n.id&&d.cat===lab;}).sort(function(a,b){return (b.order||0)-(a.order||0);}).forEach(function(d){
     var c=n.cats[ci]; out.push({id:d.id,n:String(d.n||''),price:+d.price||0,old:+d.old||+d.price||0,plat:d.plat===TT?TT:SP,link:d.link||'',img:d.img||'',good:!!d.good,shape:c[1],tint:c[2],ink:c[3],sw:[],sold:+d.sold||0,cat:lab,order:d.order||0,mine:true}); seen[String(d.n)]=1; });
   var pool=[]; n.tabs.forEach(function(t){pool=pool.concat(t[1]);}); pool=pool.concat(n.deals||[]);
-  pool.forEach(function(p){ if(!seen[p.n]&&catIndexOf(n,p)===ci){ seen[p.n]=1; out.push(Object.assign({sold:1200,rating:'4.8'},p)); } });
+  pool.forEach(function(p){ if(!seen[p.n]&&(p.cat!=null?p.cat===lab:catIndexOf(n,p)===ci)){ seen[p.n]=1; out.push(Object.assign({sold:1200,rating:'4.8'},p)); } });
   return out;
 }
 function mineAll(n){ var o=[]; n.cats.forEach(function(c,ci){ o=o.concat(productsOf(n,ci).filter(function(p){return p.mine;})); }); return o; }
@@ -742,7 +742,24 @@ function route(){
   else { document.body.style.background=''; renderHome(); }
 }
 window.addEventListener('hashchange',route);
-route();
+/* ===== 19/10: SẢN PHẨM THẬT từ máy chủ (/store – đọc danh mục HaoHao Store trên Shopee, 6 giờ/lần) ===== */
+var STORE_API=(/workers\.dev$/.test(location.hostname)?'':'https://haohao-gia.nhatphan79.workers.dev')+'/store';
+function applyStore(d){
+  var disc=function(a,b){return (1-b.price/b.old)-(1-a.price/a.old);};
+  NICHES.forEach(function(n){
+    var ps=d.items.filter(function(x){return x.niche===n.id&&!x.soldOut&&x.price>0;}).map(function(x){
+      var c=null; n.cats.forEach(function(cc){if(cc[0]===x.cat) c=cc;});
+      return {n:x.n,price:x.price,old:x.old>x.price?x.old:x.price,good:x.old>x.price*1.2?1:0,rating:x.rating?String(x.rating).replace('.',','):'',sold:x.sold||0,
+        shape:c?c[1]:null,tint:c?c[2]:'#F2F0EE',ink:c?c[3]:'#C9C2BC',sw:[],plat:SP,link:x.link,img:x.img,cat:c?c[0]:''};
+    }).sort(function(a,b){return b.sold-a.sold;});
+    var tabs=[]; n.cats.forEach(function(c){var l=ps.filter(function(p){return p.cat===c[0];}); if(l.length) tabs.push([c[0],l]);});
+    var other=ps.filter(function(p){return !p.cat;}); if(other.length) tabs.push(['Khác',other]);
+    n.tabs=tabs; n.deals=ps.filter(function(p){return p.old>p.price;}).sort(disc).slice(0,8);
+  });
+}
+var started=false; function start(){ if(started) return; started=true; route(); }
+fetch(STORE_API).then(function(r){return r.json();}).then(function(d){ if(d&&d.items&&d.items.length) applyStore(d); start(); }).catch(start);
+setTimeout(start,4000);
 })();
 </script>
 
