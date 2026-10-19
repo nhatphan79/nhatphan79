@@ -445,7 +445,7 @@ ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchP
 // Danh mục → 5 ngách web theo từ khoá tên danh mục; danh mục không khớp ngách nào thì bỏ qua.
 // Món → mục nhỏ của ngách theo từ khoá trong tên món (không khớp thì cat = '' : vẫn hiện ở "Bán chạy nhất").
 // Cron 15 phút gọi storeMaybe → chạy thật 6 giờ/lần. GET /store → JSON cho web. GET /store?run=1&key=STATS_KEY → chạy ngay.
-const STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
+const STORE_V = 2, STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
 const STORE_QG = 'query StorefrontGroupListQuery($urlSuffix: String, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupList(urlSuffix: $urlSuffix, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { groupList { groupId groupName totalCount } pagination { hasMore totalCount } } }';
 const STORE_QP = 'query StorefrontGroupProductListQuery($urlSuffix: String, $keyword: String, $groupId: Long, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupProductList(urlSuffix: $urlSuffix, keyword: $keyword, groupId: $groupId, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { itemList { link linkName image linkType itemId itemCard } pagination { hasMore totalCount } } }';
 // thứ tự quan trọng: gia-dung trước xay-dung ("Nhà cửa & Gia dụng" / "Xây dựng & Dụng cụ")
@@ -513,7 +513,7 @@ async function storeSync(env) {
       if (!(pl.pagination || {}).hasMore) break;
     }
   }
-  const data = { ok: true, at: Date.now(), groups, items };
+  const data = { ok: true, v: STORE_V, at: Date.now(), groups, items };
   await setSt(env, 'store', data);
   await save(env, items.filter(x => x.shop).map(x => ({ k: `sp:${x.shop}.${x.id}`, p: x.price, b: x.old > x.price ? x.old : 0 }))).catch(() => {});   // ghi luôn vào kho giá
   return data;
@@ -528,7 +528,7 @@ async function storeMaybe(env, force) {
 }
 async function storeGet(env) {
   let d = await getSt(env, 'store');
-  if (!d) { await storeMaybe(env, true); d = await getSt(env, 'store'); }
+  if (!d || d.v !== STORE_V) { await storeMaybe(env, true); d = await getSt(env, 'store') || d; }   // dữ liệu bản cũ → đọc lại ngay
   const run = await getSt(env, 'storeRun').catch(() => null);
   return d ? { ...d, run } : { ok: false, error: (run && run.err) || 'chưa có dữ liệu', items: [], groups: [] };
 }
