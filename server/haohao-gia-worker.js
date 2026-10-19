@@ -9,6 +9,7 @@
 //   POST /ping { id, v }                  → đếm máy đang dùng (id ngẫu nhiên, KHÔNG thông tin cá nhân), mỗi máy 1 lần/ngày
 //   GET  /bye?id=&v=                      → Chrome mở khi khách gỡ HaoHao: ghi 1 lượt gỡ + hỏi lý do (POST /bye { id, why })
 //   GET  /thongke?key=                    → trang thống kê cho chủ app (đặt biến STATS_KEY trên Cloudflare để khoá bằng mật khẩu)
+//   GET  /store                           → sản phẩm HaoHao Store (5 ngách) đọc từ collshp.com/haohaostore, tự cập nhật 6 giờ/lần
 // "ngày" = số ngày tính từ 1/1/1970 theo giờ Việt Nam. Mỗi món mỗi ngày 1 mốc (giữ giá thấp nhất trong ngày), giữ 120 ngày.
 
 const KEEP_DAYS = 120, MAX_IN = 60, MAX_OUT = 20;
@@ -438,9 +439,99 @@ ${isAdmin(env, u) ? await gopyBox(env) : '<div class="box"><b>💬 Góp ý của
 ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchParams.get('ngay') : 7)}`);
 }
 
+// ---------- 🏬 HaoHao Store web (19/10): đọc danh mục CHỦ APP tạo trên cửa hàng Shopee Affiliate (collshp.com/haohaostore) ----------
+// Chỉ lấy món nằm trong danh mục anh Nhật tạo (bỏ "Có thể bạn thích" / quảng cáo Shopee tự chèn).
+// Danh mục → 5 ngách web theo từ khoá tên danh mục; danh mục không khớp ngách nào thì bỏ qua.
+// Món → mục nhỏ của ngách theo từ khoá trong tên món (không khớp thì cat = '' : vẫn hiện ở "Bán chạy nhất").
+// Cron 15 phút gọi storeMaybe → chạy thật 6 giờ/lần. GET /store → JSON cho web. GET /store?run=1&key=STATS_KEY → chạy ngay.
+const STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
+const STORE_QG = 'query StorefrontGroupListQuery($urlSuffix: String, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupList(urlSuffix: $urlSuffix, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { groupList { groupId groupName totalCount } pagination { hasMore totalCount } } }';
+const STORE_QP = 'query StorefrontGroupProductListQuery($urlSuffix: String, $keyword: String, $groupId: Long, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupProductList(urlSuffix: $urlSuffix, keyword: $keyword, groupId: $groupId, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { itemList { link linkName image linkType itemId itemCard } pagination { hasMore totalCount } } }';
+// thứ tự quan trọng: gia-dung trước xay-dung ("Nhà cửa & Gia dụng" / "Xây dựng & Dụng cụ")
+const STORE_NICHE = [['thoi-trang', /thoi trang/], ['me-be', /(^|[^a-z])(me|be)([^a-z]|$)|tre em|so sinh/], ['gia-dung', /nha cua|gia dung/], ['xay-dung', /xay dung|dung cu/], ['qua-tang', /qua tang|(^|[^a-z])qua([^a-z]|$)/]];
+// mục nhỏ – PHẢI trùng tên mục trên web (cats của từng ngách)
+const STORE_CATS = {
+  'thoi-trang': [['Váy nữ', ['vay', 'dam ', 'chan vay']], ['Áo thun', ['ao thun', 'ao phong', 'polo', 'ao so mi', 'so mi', 'ao ', 'tee']], ['Quần', ['quan ']], ['Áo khoác', ['ao khoac', 'khoac', 'hoodie', 'jacket', 'ao gio']], ['Túi ví', ['tui ', 'vi da', 'vi nam', 'vi nu', 'balo', 'ba lo']], ['Giày dép', ['giay', 'dep ', 'sandal', 'dep', 'guoc']]],
+  'me-be': [['Đồ bé gái', ['be gai']], ['Đồ bé trai', ['be trai']], ['Sơ sinh', ['so sinh', 'newborn', 'body chip', 'bodysuit']], ['Bỉm sữa', ['bim', 'ta dan', 'ta quan', 'sua ', 'sua', 'binh sua', 'bo ve sinh', 'ghe bo']], ['Xe đẩy', ['xe day', 'xe dap', 'xe tap di', 'goi di xe', 'dai dia', 'dai do', 'noi ', 'cui ']], ['Đồ chơi', ['do choi', 'xep hinh', 'bup be', 'lego', 'gau bong', 'thu bong', 'dat nan']]],
+  'gia-dung': [['Nồi chảo', ['noi ', 'chao ', 'xoong']], ['Nồi chiên không dầu', ['noi chien', 'chien khong dau']], ['Ấm siêu tốc', ['am sieu toc', 'am dun', 'binh dun', 'am dien']], ['Quạt', ['quat']], ['Máy hút bụi', ['hut bui', 'lau nha', 'cay lau']], ['Kệ & hộp đựng', ['ke ', 'hop ', 'gia de', 'moc ', 'thung dung', 'tu nhua', 'gio ']], ['Túi rác & giấy', ['tui rac', 'giay ve sinh', 'khan giay', 'giay rut', 'giay lau']]],
+  'xay-dung': [['Máy khoan', ['khoan']], ['Máy cắt', ['may cat', 'may cua', 'cua go', 'cua xich', 'may mai', 'luoi cat']], ['Thước laser', ['thuoc', 'laser', 'can bang']], ['Mũ bảo hộ', ['mu bao ho', 'non bao ho', 'mu cong trinh']], ['Găng tay', ['gang tay', 'bao tay']], ['Sơn & keo', ['son ', 'keo ', 'silicon', 'chong tham', 'bot tret']], ['Đèn & phụ kiện', ['den ', 'quat tran', 'o cam', 'cong tac', 'day dien', 'hit cua', 'chan cua', 'giu cua', 'hut chan', 'khan che', 'khau trang']]],
+  'qua-tang': [['Hộp quà', ['hop qua', 'qua tang', 'set qua']], ['Hoa & thiệp', ['hoa ', 'thiep']], ['Ấm chén', ['am chen', 'bo am', 'tach tra', 'chen tra', 'bo tra']], ['Đèn thờ', ['den tho', 'ban tho', 'nhang', 'huong tram', 'lu huong']], ['Khung ảnh', ['khung anh', 'khung hinh']], ['Gấu bông', ['gau bong', 'thu bong', 'gau ']]],
+};
+const storeNiche = name => { const f = fold(name); for (const [id, re] of STORE_NICHE) if (re.test(f)) return id; return ''; };
+function storeCat(niche, name) {
+  const t = ' ' + fold(name).replace(/[^a-z0-9]+/g, ' ') + ' ';
+  let best = '', at = 1e9, len = 0;
+  for (const [lab, kws] of STORE_CATS[niche] || []) for (const kw of kws) {
+    const i = t.indexOf(' ' + kw.trim() + ' '); if (i < 0) continue;
+    if (i < at || (i === at && kw.length > len)) { best = lab; at = i; len = kw.length; }
+  }
+  return best;
+}
+async function storeGql(op, query, extra) {
+  const id = crypto.randomUUID();
+  const variables = { urlSuffix: STORE_SUFFIX, affiliateMeta: { affiliateId: STORE_AFF }, cid: 'vn', language: 'vi', uuId: id, deviceId: id.replace(/-/g, '').toUpperCase(), ...extra };
+  const r = await fetch('https://collshp.com/api/v3/gql/graphql', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/plain, */*', origin: 'https://collshp.com', referer: 'https://collshp.com/' + STORE_SUFFIX, 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' }, body: JSON.stringify({ operationName: op, query, variables }) });
+  if (!r.ok) throw new Error('collshp ' + r.status);
+  const j = await r.json();
+  if (j.errors && j.errors.length) throw new Error('collshp ' + String(j.errors[0].message || '').slice(0, 80));
+  return j.data || {};
+}
+function storeItem(x, niche, group) {
+  let c = x.itemCard || {}; if (typeof c === 'string') { try { c = JSON.parse(c); } catch { c = {}; } }
+  const d = c.itemData || {}, a = c.itemCardDisplayedAsset || {}, pr = d.itemCardDisplayPrice || {};
+  const price = Math.round(Number(pr.price || 0) / 1e5), oldp = Math.round(Number(pr.strikethroughPrice || pr.originalPrice || 0) / 1e5);
+  const r = d.itemRating && Number(d.itemRating.ratingStar);
+  const img = String(x.image || a.image || '');
+  return {
+    id: String(x.itemId || d.itemid || ''), shop: String(d.shopid || ''), n: String(x.linkName || a.name || '').slice(0, 200),
+    price, old: oldp > price ? oldp : price, sold: Number((d.itemCardDisplaySoldCount || {}).historicalSoldCount || 0) || 0,
+    soldTxt: String((a.soldCount || {}).text || ''), rating: r ? Math.round(r * 10) / 10 : 0,
+    img: /^https:\/\//.test(img) ? img : '', imgs: (a.images || []).slice(0, 4).map(h => 'https://down-vn.img.susercontent.com/file/' + h),
+    link: /^https:\/\//.test(String(x.link || '')) ? String(x.link) : '', soldOut: !!d.isSoldOut,
+    niche, cat: storeCat(niche, x.linkName || a.name), group,
+  };
+}
+async function storeSync(env) {
+  const gl = await storeGql('StorefrontGroupListQuery', STORE_QG, { page: { offset: '0', limit: '50' } });
+  const groups = ((gl.storefrontGroupList || {}).groupList || []).map(g => ({ id: String(g.groupId), name: String(g.groupName || ''), niche: storeNiche(g.groupName), total: Number(g.totalCount) || 0 }));
+  if (!groups.length) throw new Error('collshp: không thấy danh mục');
+  const items = [], seen = new Set();
+  for (const g of groups) {
+    g.n = 0; if (!g.niche) continue;   // danh mục ngoài 5 ngách → bỏ
+    for (let off = 0; off < 500; off += 50) {
+      const pl = (await storeGql('StorefrontGroupProductListQuery', STORE_QP, { groupId: g.id, keyword: '', page: { offset: String(off), limit: '50' } })).storefrontGroupProductList || {};
+      for (const x of pl.itemList || []) {
+        if (x.linkType && x.linkType !== 'ITEM') continue;
+        const it = storeItem(x, g.niche, g.name);
+        if (!it.id || !it.price || seen.has(it.id)) continue;
+        seen.add(it.id); items.push(it); g.n++;
+      }
+      if (!(pl.pagination || {}).hasMore) break;
+    }
+  }
+  const data = { ok: true, at: Date.now(), groups, items };
+  await setSt(env, 'store', data);
+  await save(env, items.filter(x => x.shop).map(x => ({ k: `sp:${x.shop}.${x.id}`, p: x.price, b: x.old > x.price ? x.old : 0 }))).catch(() => {});   // ghi luôn vào kho giá
+  return data;
+}
+async function storeMaybe(env, force) {
+  const st = await getSt(env, 'storeRun').catch(() => null);
+  if (!force && st && Date.now() - (st.at || 0) < STORE_EVERY) return null;
+  if (force && st && Date.now() - (st.at || 0) < 60000) return { ok: false, error: 'đợi 1 phút' };
+  await setSt(env, 'storeRun', { at: Date.now() });
+  try { const d = await storeSync(env); await setSt(env, 'storeRun', { at: Date.now(), n: d.items.length }); return { ok: true, n: d.items.length, groups: d.groups }; }
+  catch (e) { const err = String(e && e.message || e).slice(0, 200); await setSt(env, 'storeRun', { at: Date.now(), err }); return { ok: false, error: err }; }
+}
+async function storeGet(env) {
+  let d = await getSt(env, 'store');
+  if (!d) { await storeMaybe(env, true); d = await getSt(env, 'store'); }
+  const run = await getSt(env, 'storeRun').catch(() => null);
+  return d ? { ...d, run } : { ok: false, error: (run && run.err) || 'chưa có dữ liệu', items: [], groups: [] };
+}
+
 const CAI_DAT_HTML = "<!doctype html>\n<html lang=\"vi\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Cài HaoHao – 4 bước, 1 phút</title>\n<meta name=\"description\" content=\"Hướng dẫn cài HaoHao – trợ lý mua sắm, nhắc việc, chặn quảng cáo ngay trên Chrome. Miễn phí.\">\n<style>\n:root{--o:#F2A71B;--o2:#EE4D2D;--n:#23305E;--m:#5B6478;--bg:#FFF8EC;--c:#fff;--b:#EADFCB}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--bg);color:var(--n);font:16px/1.55 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}\na{color:inherit}\n.w{max-width:880px;margin:0 auto;padding:0 16px}\nheader{padding:36px 0 18px;text-align:center}\n.logo{width:76px;height:76px}\nh1{font-size:30px;line-height:1.2;margin:10px 0 6px}\n.lead{color:var(--m);margin:0 auto;max-width:560px}\n.cta{display:inline-flex;align-items:center;gap:10px;margin:20px 0 6px;padding:14px 26px;border-radius:999px;background:var(--o2);color:#fff;font-weight:800;font-size:18px;text-decoration:none;box-shadow:0 8px 22px rgba(238,77,45,.3)}\n.cta:hover{filter:brightness(1.05)}\n.small{font-size:13px;color:var(--m)}\n.steps{display:grid;gap:16px;margin:26px 0}\n.st{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:center;background:var(--c);border:1.5px solid var(--b);border-radius:18px;padding:18px}\n.n{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--o);color:#fff;font-weight:900;margin-right:8px}\n.st h2{font-size:19px;margin:0 0 6px;display:flex;align-items:center}\n.st p{margin:6px 0;color:var(--m)}\n.st svg{width:100%;height:auto;border-radius:12px;border:1px solid #E6E9F2;background:#F7F8FC}\ncode{background:#FFF1D6;border:1px solid #F5D78E;border-radius:6px;padding:1px 6px;font-size:14px}\n.cp{margin-left:6px;border:0;background:var(--n);color:#fff;border-radius:8px;padding:4px 10px;font:700 12.5px system-ui;cursor:pointer}\n.faq{background:var(--c);border:1.5px solid var(--b);border-radius:18px;padding:6px 18px;margin:0 0 26px}\n.faq details{border-bottom:1px solid #F0E7D6;padding:12px 0}.faq details:last-child{border:0}\n.faq summary{font-weight:800;cursor:pointer}\n.faq p{color:var(--m);margin:8px 0 2px}\nfooter{text-align:center;padding:10px 0 34px;font-size:13px;color:var(--m)}\n@media (max-width:680px){.st{grid-template-columns:1fr}h1{font-size:25px}}\n</style>\n</head>\n<body>\n<div class=\"w\">\n<header>\n  <svg class=\"logo\" viewBox=\"0 0 100 100\" aria-hidden=\"true\"><circle cx=\"28\" cy=\"24\" r=\"11\" fill=\"#D98E1F\"/><circle cx=\"72\" cy=\"24\" r=\"11\" fill=\"#D98E1F\"/><ellipse cx=\"50\" cy=\"56\" rx=\"42\" ry=\"38\" fill=\"#F2B544\"/><ellipse cx=\"50\" cy=\"66\" rx=\"26\" ry=\"22\" fill=\"#FFF3DC\"/><circle cx=\"37\" cy=\"50\" r=\"5.5\" fill=\"#23305E\"/><circle cx=\"63\" cy=\"50\" r=\"5.5\" fill=\"#23305E\"/><ellipse cx=\"50\" cy=\"59\" rx=\"3\" ry=\"2.2\" fill=\"#23305E\"/><path d=\"M45 63.5q5 4.5 10 0\" fill=\"none\" stroke=\"#23305E\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>\n  <h1>Cài HaoHao trong 1 phút</h1>\n  <p class=\"lead\">Trợ lý ngay trên Chrome: kiểm tra shop &amp; bắt sale ảo khi mua Shopee, nhắc việc, ghi chú, chặn quảng cáo YouTube. Miễn phí.</p>\n  <a class=\"cta\" id=\"dl\" href=\"https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-V1.zip\">⬇️ Tải HaoHao <span id=\"ver\"></span></a>\n  <div class=\"small\">Dùng được trên Chrome, Cốc Cốc, Edge (máy tính). Gói có chữ ký số, không thu thập mật khẩu.</div>\n</header>\n\n<section class=\"vid\"><video controls playsinline preload=\"metadata\" poster=\"\" style=\"width:100%;border-radius:18px;border:1.5px solid #EADFCB;background:#fff;display:block\"><source src=\"https://cdn.jsdelivr.net/gh/nhatphan79/nhatphan79@1da54ac5b9f8e9a13837f7f3c00a507af234ae5a/downloads/huong-dan-cai-haohao.mp4\" type=\"video/mp4\"></video><div class=\"small\" style=\"text-align:center;margin-top:6px\">▶️ Xem video 1 phút (có lồng tiếng) – làm theo đúng 4 bước bên dưới</div></section>\n<section class=\"steps\">\n  <div class=\"st\">\n    <div><h2><span class=\"n\">1</span>Giải nén file vừa tải</h2>\n      <p>Mở thư mục <b>Tải về (Downloads)</b>, chuột phải vào <b>HaoHao-V1.zip</b> → <b>Giải nén tất cả (Extract All)</b>. Bạn sẽ có thư mục <b>HaoHao-V1</b> chứa các file của HaoHao.</p>\n      <p>Để thư mục giải nén ở chỗ cố định (ví dụ <b>Tài liệu</b>), <b>không xoá</b> sau khi cài.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"16\" y=\"18\" width=\"288\" height=\"26\" rx=\"10\" fill=\"#EEF1F8\"/><text x=\"30\" y=\"36\" font-size=\"12\" fill=\"#5B6478\">Downloads</text><rect x=\"36\" y=\"62\" width=\"34\" height=\"40\" rx=\"4\" fill=\"#F2B544\"/><text x=\"30\" y=\"118\" font-size=\"11\" fill=\"#23305E\">HaoHao-V1.zip</text><rect x=\"120\" y=\"70\" width=\"160\" height=\"78\" rx=\"8\" fill=\"#fff\" stroke=\"#C9D0E0\"/><text x=\"134\" y=\"92\" font-size=\"12\" fill=\"#5B6478\">Mở</text><rect x=\"126\" y=\"102\" width=\"148\" height=\"22\" rx=\"5\" fill=\"#FFE8C2\"/><text x=\"134\" y=\"117\" font-size=\"12\" font-weight=\"700\" fill=\"#23305E\">Giải nén tất cả…</text><text x=\"134\" y=\"140\" font-size=\"12\" fill=\"#5B6478\">Xoá</text><path d=\"M96 98l22 10\" stroke=\"#EE4D2D\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">2</span>Mở trang Tiện ích</h2>\n      <p>Mở tab mới, dán địa chỉ <code>chrome://extensions</code><button class=\"cp\" data-t=\"chrome://extensions\">Chép</button> rồi Enter.</p>\n      <p class=\"small\">Cốc Cốc: <code>coccoc://extensions</code> · Edge: <code>edge://extensions</code></p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"16\" y=\"18\" width=\"288\" height=\"34\" rx=\"10\" fill=\"#EEF1F8\"/><rect x=\"30\" y=\"26\" width=\"220\" height=\"18\" rx=\"9\" fill=\"#fff\" stroke=\"#C9D0E0\"/><text x=\"40\" y=\"39\" font-size=\"12\" font-weight=\"700\" fill=\"#23305E\">chrome://extensions</text><text x=\"30\" y=\"84\" font-size=\"15\" font-weight=\"800\" fill=\"#23305E\">Tiện ích</text><rect x=\"30\" y=\"98\" width=\"120\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/><rect x=\"30\" y=\"116\" width=\"170\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">3</span>Bật \"Chế độ dành cho nhà phát triển\"</h2>\n      <p>Góc <b>trên bên phải</b> trang Tiện ích có công tắc <b>Chế độ dành cho nhà phát triển (Developer mode)</b>. Bật lên.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><text x=\"30\" y=\"46\" font-size=\"15\" font-weight=\"800\" fill=\"#23305E\">Tiện ích</text><text x=\"150\" y=\"47\" font-size=\"11\" fill=\"#5B6478\">Nhà phát triển</text><rect x=\"258\" y=\"34\" width=\"34\" height=\"18\" rx=\"9\" fill=\"#1A73E8\"/><circle cx=\"283\" cy=\"43\" r=\"7\" fill=\"#fff\"/><circle cx=\"275\" cy=\"43\" r=\"22\" fill=\"none\" stroke=\"#EE4D2D\" stroke-width=\"3\"/><rect x=\"30\" y=\"80\" width=\"250\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/><rect x=\"30\" y=\"100\" width=\"200\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">4</span>Bấm \"Tải tiện ích đã giải nén\"</h2>\n      <p>Bấm nút <b>Tải tiện ích đã giải nén (Load unpacked)</b> → chọn thư mục <b>HaoHao-V1</b> (thư mục có file <code>manifest.json</code> bên trong) → <b>Chọn thư mục</b>.</p>\n      <p class=\"small\">Nếu thấy 2 thư mục HaoHao-V1 lồng nhau, chọn thư mục <b>bên trong</b>.</p>\n      <p>Chú hamster HaoHao hiện ở góc màn hình là xong! Bấm biểu tượng 🧩 trên thanh Chrome → <b>ghim 📌 HaoHao</b> cho tiện.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"30\" y=\"34\" width=\"150\" height=\"26\" rx=\"6\" fill=\"#E8F0FE\" stroke=\"#1A73E8\"/><text x=\"40\" y=\"51\" font-size=\"12\" font-weight=\"700\" fill=\"#1A73E8\">Tải tiện ích đã giải nén</text><rect x=\"186\" y=\"34\" width=\"70\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#C9D0E0\"/><rect x=\"30\" y=\"76\" width=\"250\" height=\"70\" rx=\"10\" fill=\"#FFF8EC\" stroke=\"#F5D78E\"/><circle cx=\"58\" cy=\"111\" r=\"18\" fill=\"#F2B544\"/><circle cx=\"52\" cy=\"107\" r=\"2.5\" fill=\"#23305E\"/><circle cx=\"64\" cy=\"107\" r=\"2.5\" fill=\"#23305E\"/><text x=\"86\" y=\"106\" font-size=\"13\" font-weight=\"800\" fill=\"#23305E\">HaoHao V1</text><text x=\"86\" y=\"124\" font-size=\"11\" fill=\"#5B6478\">Đã cài · đang bật</text><rect x=\"246\" y=\"102\" width=\"24\" height=\"14\" rx=\"7\" fill=\"#1A73E8\"/></svg>\n  </div>\n</section>\n\n<section class=\"faq\">\n  <details><summary>Chrome báo \"Tắt tiện ích ở chế độ nhà phát triển\"?</summary><p>Đó là lời nhắc chung của Chrome với tiện ích cài từ file. Bấm <b>✕ / Huỷ</b> để giữ HaoHao. HaoHao sẽ sớm có trên Chrome Web Store để cài 1 bấm.</p></details>\n  <details><summary>Có bản mới thì sao?</summary><p>HaoHao tự báo \"🎉 Có bản mới\". Bấm Tải về, giải nén rồi chép các file trong thư mục HaoHao-V1 mới đè vào thư mục cũ, rồi F5 trang (máy có app HaoHao Transfer thì bấm Cập nhật ngay là tự cài).</p></details>\n  <details><summary>HaoHao có an toàn không?</summary><p>Gói cài có chữ ký số của tác giả. HaoHao không đọc mật khẩu, không thu thập thông tin cá nhân; ghi chú, việc cần làm lưu ngay trên máy bạn. Link mua hàng là link tiếp thị – giá không đổi.</p></details>\n  <details><summary>Chuyển ảnh, video iPhone sang máy tính?</summary><p>Tải thêm app <a href=\"https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-Transfer-Windows.zip\">HaoHao Transfer (Windows)</a>, mở app rồi quét mã QR bằng iPhone.</p></details>\n  <details><summary>Cần hỗ trợ?</summary><p>Trong HaoHao mở <b>Tiện ích → 💬 Góp ý</b>, hoặc nhắn fanpage <a href=\"https://www.facebook.com/trolyHaoHao\">HaoHao</a>.</p></details>\n</section>\n<footer>© 2026 HaoHao – Phan Thanh Nhật</footer>\n</div>\n<script>\ndocument.querySelectorAll('.cp').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.dataset.t).then(()=>{b.textContent='Đã chép ✓';setTimeout(()=>b.textContent='Chép',1500)})});\nfetch('https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/haohao-latest.json').then(r=>r.json()).then(j=>{if(j.name)document.getElementById('ver').textContent=j.name}).catch(()=>{});\n</script>\n</body>\n</html>\n";   // 14/10: trang hướng dẫn cài – nguồn: server/cai-dat.html
 export default {
-  async scheduled(evt, env, ctx) { ctx.waitUntil(feedSafe(env)); },
+  async scheduled(evt, env, ctx) { ctx.waitUntil(storeMaybe(env).catch(() => {})); ctx.waitUntil(feedSafe(env)); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url);
@@ -475,6 +566,10 @@ export default {
         return json({ ok: true, q: u.searchParams.get('q'), items: items.map(({ brand, ...x }) => x) });
       }
       if (u.pathname === '/hot') { if (u.searchParams.get('run') && !isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
+      if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
+        if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }
+        return json(await storeGet(env), 200, { 'cache-control': 'public, max-age=300' });
+      }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/search') return json(await spySearch(env, u), 200, { 'cache-control': 'public, max-age=300' });
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
