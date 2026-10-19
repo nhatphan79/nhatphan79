@@ -85,10 +85,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 /* niche page */
 .n-hero{position:relative;overflow:hidden}
 .n-hero .wrap{position:relative;z-index:1}
-.hvs{position:absolute;inset:0;transition:opacity .9s ease}.hv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 30%;opacity:0;transition:opacity 1.1s ease}.hv.on{opacity:1}
+.hvs{position:absolute;inset:0;transition:opacity .9s ease}.hv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center;opacity:0;transition:opacity 1.1s ease}.hv.on{opacity:1}
 .n-hero{transition:background-color .8s ease,color .8s ease}.hcont{position:static}.hcont .n-text{animation:hfade .7s ease both}@keyframes hfade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .hcont .arr,.hcont .n-dots{z-index:3}
-.hv-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,14,8,.82) 0%,rgba(24,14,8,.55) 38%,rgba(24,14,8,.05) 68%)}
+.hv-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(24,14,8,.78) 0%,rgba(24,14,8,.5) 32%,rgba(24,14,8,0) 52%)}
 @media (max-width:760px){.hv-shade{background:rgba(24,14,8,.55)}}
 .n-hero .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:40px;padding-block:48px 84px}
 .n-text{flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:16px}
@@ -327,7 +327,7 @@ function P(n,price,old,good,rating,sold,shape,tint,ink,sw,plat){return {n:n,pric
 var SP='sp',TT='tt';
 
 var NICHES=[
- {id:'thoi-trang',label:'Thời trang',sub:'Nữ · Nam · Túi & Giày',shape:S.DRESS,bg:'#FFF0DC',ink:'#E8962E',kc:'#A65A06',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-1.mp4','https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-2.mp4','https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-3.mp4'],
+ {id:'thoi-trang',label:'Thời trang',sub:'Nữ · Nam · Túi & Giày',shape:S.DRESS,bg:'#FFF0DC',ink:'#E8962E',kc:'#A65A06',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-1.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-2.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/tt-banner-3.mp4?v=3'],
   slides:[
    {k:'Thời trang · Thu Đông 2026',t:'Mặc đẹp\nGiá đúng',x:'Áo quần nữ, nam, túi ví, giày dép từ Shopee và TikTok Shop — HaoHao so giá và kiểm tra sale thật giúp bạn.',bg:'#1E1A17',fg:'#FFFFFF',ac:'#F59A5C',bf:'#1E1A17',art:[['#3A2E27',S.DRESS,'#F59A5C'],['#FDE2E7',S.SHIRT,'#F29BB0'],['#F3E6CF',S.BAG,'#C9A06B']]},
    {k:'Thời trang nữ',t:'Váy đẹp\ndưới 200k',x:'Váy suông, chân váy, áo kiểu đang được lưu nhiều — chỉ hiện giá thật, có lịch sử giá 30 ngày.',bg:'#FBEFD9',fg:'#1E1A17',ac:'#D9480F',bf:'#FFFFFF',art:[['#FFFFFF',S.DRESS,'#E9C27F'],['#FDE2E7',S.DRESS,'#F29BB0'],['#E9E4F7',S.SHIRT,'#9C8BD0']]},
@@ -340,7 +340,7 @@ var NICHES=[
   banners:[['Thời trang nữ','Váy nữ\ndưới 200k','#FDE2E7','#1E1A17','#A3324F'],['Thời trang nam','Basic nam\ntừ 99k','#1E1A17','#FFFFFF','#F59A5C']],
   deals:[P('Áo khoác nữ dù 2 lớp',189000,299000,0,'',0,S.JACKET,'#E3EEFB','#6E97CF',[],SP),P('Giày sneaker trắng unisex',249000,350000,0,'',0,S.SHOE,'#F2F0EE','#3A3532',[],SP),P('Chân váy nữ chữ A',139000,199000,0,'',0,S.DRESS,'#FBEFD9','#E9C27F',[],TT),P('Mũ lưỡi trai cotton',59000,89000,0,'',0,S.CAP,'#E9E4F7','#6A4CC2',[],TT)],
   tip:['#FFEBDA','Mẹo chọn size','Không chắc size? Để HaoHao nhắc trước khi mua','Xem bảng size của shop và đánh giá có ảnh thật. Bấm tim để lưu món ưng ý — khi giá giảm thật, HaoHao báo ngay.']},
- {id:'me-be',label:'Mẹ & Bé',sub:'Đồ bé · Bỉm sữa · Đồ chơi',shape:S.BOTTLE,bg:'#FFE6E2',ink:'#F28C82',kc:'#A8433A',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/mb-banner-1.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/mb-banner-2.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/mb-banner-3.mp4?v=2'],
+ {id:'me-be',label:'Mẹ & Bé',sub:'Đồ bé · Bỉm sữa · Đồ chơi',shape:S.BOTTLE,bg:'#FFE6E2',ink:'#F28C82',kc:'#A8433A',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/mb-banner-1.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/mb-banner-2.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/mb-banner-3.mp4?v=3'],
   slides:[
    {k:'Ngách Mẹ & Bé',t:'Bé mặc xinh\nMẹ mua khéo',x:'Đồ bé gái, bé trai, sơ sinh, bỉm sữa và đồ chơi — HaoHao chỉ hiện giá thật, có lịch sử giá 30 ngày.',bg:'#E4F4EC',fg:'#1E1A17',ac:'#D9480F',bf:'#FFFFFF',art:[['#FFFFFF',S.DRESS,'#F29BB0'],['#E3EEFB',S.BOTTLE,'#8DB3E8'],['#FFF1CF',S.TOY,'#D9A63A']]},
    {k:'Đồ bé gái',t:'Váy & bộ đồ\ncho bé gái',x:'Bộ cotton, váy hoa, đồ ngủ cho bé từ 1–12 tuổi. Chọn size theo cân nặng, xem đánh giá có ảnh thật.',bg:'#FDE2E7',fg:'#1E1A17',ac:'#1E1A17',bf:'#FFFFFF',art:[['#FFFFFF',S.SHIRT,'#F29BB0'],['#EDE6FB',S.DRESS,'#B9A3EC'],['#FBEFD9',S.BEAR,'#D9A63A']]},
@@ -353,7 +353,7 @@ var NICHES=[
   banners:[['Đồ bé gái','Đồ bé gái\nmặc hè','#FDE2E7','#1E1A17','#A3324F'],['Cho mẹ','Bỉm sữa\ngiá tốt mỗi tháng','#1E1A17','#FFFFFF','#7CC4A0']],
   deals:[P('Bộ đồ bé gái cotton thỏ hồng',99000,149000,0,'',0,S.SHIRT,'#FDE2E7','#F29BB0',[],SP),P('Áo khoác bé gái lông cừu',159000,219000,0,'',0,S.JACKET,'#FDE2E7','#EFA4B6',[],TT),P('Bộ xếp hình gỗ 100 chi tiết',119000,169000,0,'',0,S.TOY,'#FFF1CF','#D9A63A',[],TT),P('Gấu bông hamster 40cm',129000,169000,0,'',0,S.BEAR,'#E9E4F7','#9C8BD0',[],SP)],
   tip:['#E4F4EC','Mẹo cho mẹ','Chọn size theo cân nặng của bé, không theo tuổi','Mỗi shop có bảng size riêng. Lưu món bé cần — bỉm, sữa, đồ mặc — HaoHao báo khi giá giảm thật.']},
- {id:'gia-dung',label:'Nhà cửa & Gia dụng',sub:'Nhà bếp · Đồ điện · Dọn dẹp',shape:S.POT,bg:'#FFF4D6',ink:'#E0A31E',kc:'#8A5F00',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/gd-banner-1.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/gd-banner-2.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/gd-banner-3.mp4?v=2'],
+ {id:'gia-dung',label:'Nhà cửa & Gia dụng',sub:'Nhà bếp · Đồ điện · Dọn dẹp',shape:S.POT,bg:'#FFF4D6',ink:'#E0A31E',kc:'#8A5F00',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/gd-banner-1.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/gd-banner-2.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/gd-banner-3.mp4?v=3'],
   slides:[
    {k:'Ngách Nhà cửa & Gia dụng',t:'Nhà gọn\nBếp xinh',x:'Nồi chảo, đồ điện, dụng cụ dọn dẹp và sắp xếp — HaoHao so cùng loại, cùng thông số để bạn không mua hớ.',bg:'#FFF1CF',fg:'#1E1A17',ac:'#D9480F',bf:'#FFFFFF',art:[['#FFFFFF',S.POT,'#D9A63A'],['#E3EEFB',S.KETTLE,'#6E97CF'],['#F5E6DA',S.BOX,'#9A5B33']]},
    {k:'Điện gia dụng',t:'Đồ điện\ngiá đúng',x:'Nồi chiên, quạt, ấm siêu tốc, máy hút bụi — xem công suất, bảo hành và lịch sử giá trước khi chốt.',bg:'#1E1A17',fg:'#FFFFFF',ac:'#F0B429',bf:'#1E1A17',art:[['#3A3226',S.FAN,'#F0B429'],['#F2F0EE',S.POT,'#3A3532'],['#E4F4EC',S.VACUUM,'#2E8A5B']]},
@@ -366,7 +366,7 @@ var NICHES=[
   banners:[['Nhà bếp','Bộ nồi chảo\ntừ 189k','#FFF1CF','#1E1A17','#A66A00'],['Điện gia dụng','Quạt mát\nmùa nóng','#1E1A17','#FFFFFF','#F0B429']],
   deals:[P('Quạt mini cầm tay sạc pin',89000,149000,0,'',0,S.FAN,'#E4F4EC','#7CC4A0',[],TT),P('Chảo chống dính đáy từ 28cm',189000,259000,0,'',0,S.POT,'#F2F0EE','#3A3532',[],SP),P('Móc dán tường chịu lực 10 cái',39000,59000,0,'',0,S.BOX,'#E3EEFB','#6E97CF',[],TT),P('Máy hút bụi cầm tay không dây',690000,890000,0,'',0,S.VACUUM,'#E9E4F7','#9C8BD0',[],SP)],
   tip:['#FFF1CF','Mẹo mua gia dụng','Xem công suất và bảo hành trước khi so giá','Hai món trông giống nhau có thể khác công suất hoặc bảo hành. Lưu món đang cân nhắc — HaoHao báo khi giá giảm thật.']},
- {id:'xay-dung',label:'Xây dựng',sub:'Đồ nghề · Bảo hộ · Sửa nhà',shape:S.HELMET,bg:'#FFEBD1',ink:'#E8760C',kc:'#A65A06',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/xd-banner-1.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/xd-banner-2.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/xd-banner-3.mp4?v=2'],
+ {id:'xay-dung',label:'Xây dựng',sub:'Đồ nghề · Bảo hộ · Sửa nhà',shape:S.HELMET,bg:'#FFEBD1',ink:'#E8760C',kc:'#A65A06',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/xd-banner-1.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/xd-banner-2.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/xd-banner-3.mp4?v=3'],
   slides:[
    {k:'Ngách Xây dựng · Kỹ sư Nhật chọn',t:'Đồ nghề\nchuẩn thợ',x:'Máy khoan, máy cắt, thước laser, đồ bảo hộ — chọn theo kinh nghiệm công trường, so giá Shopee và TikTok Shop.',bg:'#1E1A17',fg:'#FFFFFF',ac:'#F0B429',bf:'#1E1A17',art:[['#3A3226',S.DRILL,'#F0B429'],['#E3EEFB',S.LASER,'#2F6DB5'],['#FFF1CF',S.HELMET,'#D9A63A']]},
    {k:'Bảo hộ lao động',t:'An toàn\ntrên công trường',x:'Mũ, găng tay, giày bảo hộ đạt chuẩn — món rẻ nhưng không được ẩu.',bg:'#FFF1CF',fg:'#1E1A17',ac:'#1E1A17',bf:'#FFFFFF',art:[['#FFFFFF',S.HELMET,'#F0B429'],['#E4F4EC',S.GLOVE,'#2E8A5B'],['#F2F0EE',S.BOX,'#3A3532']]},
@@ -379,7 +379,7 @@ var NICHES=[
   banners:[['Kỹ sư Nhật chọn','Đồ nghề\nthợ hay dùng','#1E1A17','#FFFFFF','#F0B429'],['Bảo hộ','An toàn\ntừ 49k','#FFF1CF','#1E1A17','#A66A00']],
   deals:[P('Máy khoan pin cầm tay 21V',590000,790000,0,'',0,S.DRILL,'#E3EEFB','#2F6DB5',[],SP),P('Áo phản quang công trường',49000,69000,0,'',0,S.JACKET,'#FFF1CF','#F0B429',[],TT),P('Bộ dụng cụ sửa nhà 46 món',259000,339000,0,'',0,S.BOX,'#E6E2DE','#5A4E46',[],TT),P('Giày bảo hộ mũi thép',329000,420000,0,'',0,S.SHOE,'#F2F0EE','#3A3532',[],SP)],
   tip:['#E3EEFB','Tư vấn thi công','Cần xây, sửa nhà phố? Hỏi kỹ sư Nhật','Thi công nhà phố khu vực Đà Nẵng, Quảng Nam. Gọi +84 366.159.790 để được tư vấn — hoặc lưu đồ nghề cần mua, HaoHao canh giá giúp bạn.']},
- {id:'qua-tang',label:'Quà tặng',sub:'Sinh nhật · Bố mẹ · Lễ Tết',shape:S.GIFT,bg:'#FFE1D2',ink:'#E5653A',kc:'#A8432A',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/qt-banner-1.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/qt-banner-2.mp4?v=2','https://haohao-gia.nhatphan79.workers.dev/shop/qt-banner-3.mp4?v=2'],
+ {id:'qua-tang',label:'Quà tặng',sub:'Sinh nhật · Bố mẹ · Lễ Tết',shape:S.GIFT,bg:'#FFE1D2',ink:'#E5653A',kc:'#A8432A',vids:['https://haohao-gia.nhatphan79.workers.dev/shop/qt-banner-1.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/qt-banner-2.mp4?v=3','https://haohao-gia.nhatphan79.workers.dev/shop/qt-banner-3.mp4?v=3'],
   slides:[
    {k:'Ngách Quà tặng & Gia đình',t:'Quà ý nghĩa\ncho người thân',x:'Quà sinh nhật, quà cho bố mẹ, quà cho bé, đồ thờ cúng và trang trí nhà — chọn theo dịp, HaoHao so giá giúp bạn.',bg:'#FDE3D6',fg:'#1E1A17',ac:'#D9480F',bf:'#FFFFFF',art:[['#FFFFFF',S.GIFT,'#D9480F'],['#FDE2E7',S.FLOWER,'#F29BB0'],['#E9E4F7',S.BEAR,'#9C8BD0']]},
    {k:'Quà cho bố mẹ',t:'Quà cho\nbố mẹ',x:'Ấm chén, gối massage, đồ dùng sức khoẻ — món dùng được lâu, giá rõ ràng, không lo mua hớ.',bg:'#1E1A17',fg:'#FFFFFF',ac:'#F59A5C',bf:'#1E1A17',art:[['#3A2E27',S.POT,'#F59A5C'],['#F3E6CF',S.BOX,'#9A5B33'],['#FFF1CF',S.LAMP,'#D9A63A']]},
