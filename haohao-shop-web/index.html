@@ -207,7 +207,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .foot .wrap{display:flex;flex-wrap:wrap;gap:24px 48px;padding-block:40px;font-size:14px}
 .foot .wrap>div{flex:0 1 200px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .foot .wrap>div:first-child{flex:1 1 560px}
-.foot a{color:#D8CCC2;text-decoration:none}
+.foot a{color:#D8CCC2;text-decoration:none}.foot a.sc{display:flex;align-items:center;gap:10px}.foot a.sc:hover{color:#fff}
 .foot b{color:var(--white);text-transform:uppercase;font-size:13px;letter-spacing:1px}
 .foot .brand{font-size:24px;font-weight:900;color:var(--white)}
 .foot .brand em{font-style:normal;color:#F59A5C}
@@ -521,7 +521,7 @@ function card(p,deal){
 var cur='';
 function FOOT(){ return '<footer class="foot"><div class="wrap"><div><span class="brand"><img src="'+HH+'" alt="" width="40" height="42"><span><em>Hao</em>Hao</span></span><div class="about"><b class="t">HaoHao – Chọn kỹ, mua an tâm 🐹</b><p>Mình không giới thiệu sản phẩm một cách đại trà. Mỗi sản phẩm đều được mình tìm hiểu, chọn lọc kỹ về chất lượng, đánh giá người mua, độ uy tín của shop và mức giá trước khi chia sẻ đến mọi người.</p><p>HaoHao hoạt động theo hình thức tiếp thị liên kết (Affiliate). Nếu bạn mua qua link giới thiệu, mình có thể nhận một khoản hoa hồng nhỏ mà bạn không phải trả thêm chi phí.</p></div></div>'+
    '<div><b>5 ngách</b>'+NICHES.map(function(x){return '<a href="#'+x.id+'">'+esc(x.label)+'</a>';}).join('')+'</div>'+
-   '<div><b>Kết nối</b><a href="https://www.tiktok.com/@haohaomall">TikTok @haohaomall</a><a href="https://www.facebook.com/trolyHaoHao">Fanpage trolyHaoHao</a><span>+84 366.159.790</span></div></div></footer>'; }
+   '<div><b>Kết nối</b><a class="sc" href="https://www.tiktok.com/@haohaomall" target="_blank" rel="noopener"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="flex: none"><rect width="24" height="24" rx="6" fill="#000000"></rect><path d="M15.6 5.5c.4 1.4 1.4 2.4 2.8 2.6v2.3a5.6 5.6 0 0 1-2.8-.9v4.6a4.1 4.1 0 1 1-4.1-4.1h.3v2.3h-.3a1.8 1.8 0 1 0 1.8 1.8V5.5z" fill="#FFFFFF"></path></svg>TikTok @haohaomall</a><a class="sc" href="https://www.facebook.com/trolyHaoHao" target="_blank" rel="noopener"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="flex: none"><circle cx="12" cy="12" r="12" fill="#1877F2"></circle><path d="M13.2 19v-6h2l.3-2.4h-2.3V9.2c0-.7.2-1.2 1.2-1.2h1.2V5.9a16 16 0 0 0-1.8-.1c-1.8 0-3 1.1-3 3.1v1.7h-2V13h2v6z" fill="#FFFFFF"></path></svg>Fanpage trolyHaoHao</a><a class="sc" href="https://zalo.me/84366159790" target="_blank" rel="noopener"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" style="flex: none"><rect width="24" height="24" rx="6" fill="#0068FF"></rect><text x="12" y="15.5" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF">Zalo</text></svg>Zalo 0366.159.790</a></div></div></footer>'; }
 function renderNiche(n){
   cur=n.id; renderNav(n.id);
   var slide=0, tab=-1, mode='best', page=0, vl=null, hc=null;
