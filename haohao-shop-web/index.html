@@ -233,16 +233,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 }
 /* ===== Trang chi tiết sản phẩm (#sp/<id>) – theo 5sfashion.vn ===== */
 .pd5-info{grid-column:3;grid-row:1/3}
-.pd5-deal{grid-column:1/3;display:flex;gap:14px;align-items:flex-start;padding:16px;border:1.5px solid #F3D9A6;border-radius:12px;background:#FFF8EC}
-.pd5-deal .mh{flex:none;width:86px;text-align:center}.pd5-deal .mh img{width:78px;height:auto;display:block;margin:0 auto;animation:bob 3.4s ease-in-out infinite}
-.pd5-deal .bx{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
-.pd5-deal .say{position:relative;align-self:flex-start;padding:9px 14px;border-radius:14px 14px 14px 4px;background:#fff;box-shadow:0 6px 18px rgba(194,94,10,.12);font-size:14px;font-weight:600;color:#3A2414}
-.pd5-deal .rw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:10px;border-top:1px dashed #EBCB8F}
-.pd5-deal .rw:first-of-type{border-top:0;padding-top:0}
-.pd5-deal .rl{min-width:0}.pd5-deal .rl b{display:block;font-size:13px;font-weight:700;color:#3A2414}.pd5-deal .rl strong{display:block;font-size:20px;font-weight:800;color:#23305E;line-height:1.25}.pd5-deal .rl small{display:block;font-size:12px;color:#7A6A5C}
-.pd5-deal .rw a,.pd5-deal .rw button{flex:none;height:40px;padding:0 16px;border:0;border-radius:20px;background:#23305E;color:#fff;font:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;white-space:nowrap}
-.pd5-deal .rw a:hover,.pd5-deal .rw button:hover{background:#16204A}
-.pd5-deal .nt{font-size:11.5px;color:#9A8676}
+.pd5-deal{grid-column:1/3;align-self:stretch;display:flex;align-items:center;gap:12px;padding:10px 14px;box-sizing:border-box;border:1px solid #F1C9CB;border-radius:8px;background:#FFF5F5}
+.pd5-deal img{width:52px;height:auto;flex:none;display:block}
+.pd5-deal .bx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.pd5-deal .say{align-self:flex-start;padding:5px 10px;border-radius:12px 12px 12px 3px;background:#fff;box-shadow:0 4px 12px rgba(173,0,0,.10);font-size:13px;font-weight:600;color:#231F20}
+.pd5-deal .ap{font-size:13px;color:#231F20}.pd5-deal .ap b{font-size:18px;font-weight:800;color:#AD0000}
+.pd5-deal button{flex:none;height:36px;padding:0 14px;border:0;border-radius:8px;background:#BF272D;color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}.pd5-deal button:hover{background:#A51F25}
 .pd5-qr{position:fixed;inset:0;z-index:120;background:rgba(20,14,10,.55);display:grid;place-items:center;padding:16px}
 .pd5-qr div{width:min(340px,100%);background:#fff;border-radius:16px;padding:22px;text-align:center;font-family:Inter,sans-serif}.pd5-qr b{display:block;font-size:17px;margin-bottom:12px}.pd5-qr img{width:240px;height:240px;image-rendering:pixelated}.pd5-qr p{font-size:13px;color:#555;margin:12px 0 14px}.pd5-qr button{height:40px;padding:0 22px;border:0;border-radius:20px;background:#23305E;color:#fff;font-weight:700;cursor:pointer}
 @media (max-width:900px){.pd5-info{grid-row:auto;grid-column:auto}.pd5-deal{grid-column:auto;order:3}}
@@ -250,7 +246,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .pd5{font-family:Inter,'Be Vietnam Pro',sans-serif;color:#0F0F0F;background:#fff}
 .pd5 .w5{max-width:1026px;margin:0 auto;padding:0 16px}
 .pd5-crumb{padding:28px 0 20px;font-size:14px;font-weight:500;color:#0F0F0F}.pd5-crumb a{color:#0F0F0F;text-decoration:none}.pd5-crumb a:hover{color:#BF272D}
-.pd5-top{display:grid;grid-template-columns:64px minmax(0,480px) minmax(0,1fr);gap:44px;align-items:start}
+.pd5-top{display:grid;grid-template-columns:64px minmax(0,480px) minmax(0,1fr);gap:0 44px;align-items:start}
 .pd5-th{display:flex;flex-direction:column;gap:18px;max-height:640px;overflow-y:auto;scrollbar-width:none}
 .pd5-th button{width:64px;height:64px;padding:0;border:1px solid #D9D9D9;border-radius:4px;background:#F5F5F5;cursor:pointer;overflow:hidden;flex:none}
 .pd5-th button.on{border:1.5px solid #AD0000}.pd5-th img{width:100%;height:100%;object-fit:cover;display:block}
@@ -816,11 +812,7 @@ function renderProduct(id){
   function kS(n){ return n>=1000?Math.round(n/1000)+'k':n+'đ'; }
   function dealHtml(){
     if(!x.link) return '';
-    return '<div class="pd5-deal"><div class="mh"><img src="'+HH+'" alt="Mascot HaoHao"></div><div class="bx">'+
-      '<div class="say">HaoHao lựa chọn sản phẩm rất kỹ, bạn yên tâm mua nhé! 🐹</div>'+
-      '<div class="rw"><div class="rl"><b>📱 Mua trên app</b><strong>≈ '+vnd(appP)+'</strong><small>có mã vận chuyển · ship giảm</small></div><button type="button" id="pd-app">📱 Mở app rẻ hơn '+kS(appOff)+'</button></div>'+
-      '<div class="rw"><div class="rl"><b>💻 Mua trên web</b><strong>≈ '+vnd(x.price)+'</strong><small>áp mã freeship khi thanh toán</small></div><a href="'+esc(sp)+'" target="_blank" rel="noopener sponsored">🎟️ Tìm voucher</a></div>'+
-      '<div class="nt">Giá app là ước tính, có thể rẻ hơn tuỳ mã trong ví Shopee của bạn.</div></div></div>';
+    return '<div class="pd5-deal"><img src="'+HH+'" alt="Mascot HaoHao"><div class="bx"><span class="say">HaoHao chọn kỹ, bạn yên tâm mua nhé!</span><span class="ap">Mua trên app <b>≈ '+vnd(appP)+'</b></span></div><button type="button" id="pd-app">Mở app rẻ hơn '+kS(appOff)+'</button></div>';
   }
   function openApp(){
     if(window.matchMedia('(max-width:900px)').matches||/Android|iPhone|iPad/i.test(navigator.userAgent)){ window.open(sp,'_blank'); return; }
