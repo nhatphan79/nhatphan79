@@ -593,8 +593,9 @@ function renderNiche(n){
   }
   function drawTheme(i){
     var t=TH[i], list=themeList(t,i), ps=Math.max(1,Math.ceil(list.length/4)); tp[i]=((tp[i]||0)%ps+ps)%ps;
-    var el=document.getElementById('th'+i), img=safeImg(t.img), real=list.some(function(p){return p.img;}), from=real?String(Math.floor(Math.min.apply(null,list.map(function(p){return p.price;}))/1000)):t.from;
-    var art=list.slice(0,3).map(function(p){ return '<a class="pr-it" href="'+(p.pid?'#sp/'+esc(p.pid):'#ban-chay')+'" aria-label="'+esc(p.n)+'"><span class="im"'+(p.img?'':' style="background:'+esc(p.tint||'#F2F0EE')+'"')+'>'+(p.img?'<img src="'+esc(p.img)+'" alt="" loading="lazy">':svg(p.shape||S.SHIRT,p.ink))+'</span><span class="tx"><span>'+esc(p.n)+'</span><b>'+vnd(p.price)+'</b></span></a>'; }).join('');
+    var el=document.getElementById('th'+i), img=safeImg(t.img), real=list.some(function(p){return p.img;}), cheap=list.reduce(function(m,x){return !m||x.price<m.price?x:m;},null), from=real&&cheap?String(Math.floor(cheap.price/1000)):t.from;
+    var hot=list.filter(function(x){return x!==cheap;}).sort(function(a,b){return (+b.sold||0)-(+a.sold||0);}), top3=(cheap?[cheap]:[]).concat(hot.slice(0,2));
+    var art=top3.map(function(p){ return '<a class="pr-it" href="'+(p.pid?'#sp/'+esc(p.pid):'#ban-chay')+'" aria-label="'+esc(p.n)+'"><span class="im"'+(p.img?'':' style="background:'+esc(p.tint||'#F2F0EE')+'"')+'>'+(p.img?'<img src="'+esc(p.img)+'" alt="" loading="lazy">':svg(p.shape||S.SHIRT,p.ink))+'</span><span class="tx"><span>'+esc(p.n)+'</span><b>'+vnd(p.price)+'</b></span></a>'; }).join('');
     el.innerHTML=(ADMIN&&t.id?'<div class="th-tools"><button type="button" data-edit="'+i+'">Sửa chủ đề</button><button type="button" data-del="'+i+'">Xoá</button></div>':'')+
       '<div class="promo" style="background:'+t.bg+'">'+
       (img?'<img src="'+esc(img)+'" alt="">':'')+'<div class="pr-art">'+art+'</div>'+
