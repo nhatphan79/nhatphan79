@@ -232,6 +232,21 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   .ctrl{left:0}
 }
 /* ===== Trang chi tiết sản phẩm (#sp/<id>) – theo 5sfashion.vn ===== */
+.pd5-info{grid-row:span 2}
+.pd5-deal{grid-column:1/3;display:flex;gap:14px;align-items:flex-start;padding:16px;border:1.5px solid #F3D9A6;border-radius:12px;background:#FFF8EC}
+.pd5-deal .mh{flex:none;width:86px;text-align:center}.pd5-deal .mh img{width:78px;height:auto;display:block;margin:0 auto;animation:bob 3.4s ease-in-out infinite}
+.pd5-deal .bx{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.pd5-deal .say{position:relative;align-self:flex-start;padding:9px 14px;border-radius:14px 14px 14px 4px;background:#fff;box-shadow:0 6px 18px rgba(194,94,10,.12);font-size:14px;font-weight:600;color:#3A2414}
+.pd5-deal .rw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:10px;border-top:1px dashed #EBCB8F}
+.pd5-deal .rw:first-of-type{border-top:0;padding-top:0}
+.pd5-deal .rl{min-width:0}.pd5-deal .rl b{display:block;font-size:13px;font-weight:700;color:#3A2414}.pd5-deal .rl strong{display:block;font-size:20px;font-weight:800;color:#23305E;line-height:1.25}.pd5-deal .rl small{display:block;font-size:12px;color:#7A6A5C}
+.pd5-deal .rw a,.pd5-deal .rw button{flex:none;height:40px;padding:0 16px;border:0;border-radius:20px;background:#23305E;color:#fff;font:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;white-space:nowrap}
+.pd5-deal .rw a:hover,.pd5-deal .rw button:hover{background:#16204A}
+.pd5-deal .nt{font-size:11.5px;color:#9A8676}
+.pd5-qr{position:fixed;inset:0;z-index:120;background:rgba(20,14,10,.55);display:grid;place-items:center;padding:16px}
+.pd5-qr div{width:min(340px,100%);background:#fff;border-radius:16px;padding:22px;text-align:center;font-family:Inter,sans-serif}.pd5-qr b{display:block;font-size:17px;margin-bottom:12px}.pd5-qr img{width:240px;height:240px;image-rendering:pixelated}.pd5-qr p{font-size:13px;color:#555;margin:12px 0 14px}.pd5-qr button{height:40px;padding:0 22px;border:0;border-radius:20px;background:#23305E;color:#fff;font-weight:700;cursor:pointer}
+@media (max-width:900px){.pd5-info{grid-row:auto}.pd5-deal{grid-column:auto;order:3}}
+
 .pd5{font-family:Inter,'Be Vietnam Pro',sans-serif;color:#0F0F0F;background:#fff}
 .pd5 .w5{max-width:1026px;margin:0 auto;padding:0 16px}
 .pd5-crumb{padding:28px 0 20px;font-size:14px;font-weight:500;color:#0F0F0F}.pd5-crumb a{color:#0F0F0F;text-decoration:none}.pd5-crumb a:hover{color:#BF272D}
@@ -796,6 +811,25 @@ function renderProduct(id){
   function colHtml(){ if(colT<0) return ''; var v=tiers[colT]; return '<div class="pd5-cl">'+v.options.map(function(o,i){ var im=v.images&&v.images[i]; return '<button type="button" class="'+(im?'':'tx')+(pick[colT]===i?' on':'')+'" data-t="'+colT+'" data-o="'+i+'" aria-pressed="'+(pick[colT]===i)+'" aria-label="'+esc(o)+'" title="'+esc(o)+'">'+(im?'<img src="'+esc(im)+'" alt="">':esc(o))+'</button>'; }).join('')+'</div>'; }
   function szHtml(){ if(szT<0) return ''; var v=tiers[szT]; return '<div class="pd5-sz">'+v.options.map(function(o,i){ return '<button type="button" class="'+(pick[szT]===i?'on':'')+'" data-t="'+szT+'" data-o="'+i+'" aria-pressed="'+(pick[szT]===i)+'">'+esc(o)+'</button>'; }).join('')+'</div>'; }
   function buyHtml(){ return '<div class="pd5-buy">'+(x.link?'<a class="b1" href="'+esc(sp)+'" target="_blank" rel="noopener sponsored">'+BAG+'Mua trên Shopee</a>':'')+(x.tt?'<a class="b2" href="'+esc(tt)+'" target="_blank" rel="noopener sponsored">MUA TRÊN TIKTOK</a>':'')+'</div>'; }
+  /* ô Mua trên app / web + mascot – cách tính giá app giống tiện ích HaoHao: trừ ~15% mã vận chuyển, tối đa 60k */
+  var appOff=Math.min(Math.round(x.price*0.15),60000), appP=x.price-appOff;
+  function kS(n){ return n>=1000?Math.round(n/1000)+'k':n+'đ'; }
+  function dealHtml(){
+    if(!x.link) return '';
+    return '<div class="pd5-deal"><div class="mh"><img src="'+HH+'" alt="Mascot HaoHao"></div><div class="bx">'+
+      '<div class="say">HaoHao lựa chọn sản phẩm rất kỹ, bạn yên tâm mua nhé! 🐹</div>'+
+      '<div class="rw"><div class="rl"><b>📱 Mua trên app</b><strong>≈ '+vnd(appP)+'</strong><small>có mã vận chuyển · ship giảm</small></div><button type="button" id="pd-app">📱 Mở app rẻ hơn '+kS(appOff)+'</button></div>'+
+      '<div class="rw"><div class="rl"><b>💻 Mua trên web</b><strong>≈ '+vnd(x.price)+'</strong><small>áp mã freeship khi thanh toán</small></div><a href="'+esc(sp)+'" target="_blank" rel="noopener sponsored">🎟️ Tìm voucher</a></div>'+
+      '<div class="nt">Giá app là ước tính, có thể rẻ hơn tuỳ mã trong ví Shopee của bạn.</div></div></div>';
+  }
+  function openApp(){
+    if(window.matchMedia('(max-width:900px)').matches||/Android|iPhone|iPad/i.test(navigator.userAgent)){ window.open(sp,'_blank'); return; }
+    var show=function(){ var w=document.createElement('div'); w.className='pd5-qr'; var src=''; try{ var q=qrcode(0,'M'); q.addData(sp); q.make(); src=q.createDataURL(6,2); }catch(e){}
+      w.innerHTML='<div role="dialog" aria-modal="true" aria-label="Mở trên app Shopee"><b>📱 Mở món này trên app Shopee</b>'+(src?'<img src="'+src+'" alt="Mã QR mở sản phẩm">':'')+'<p>Mở Camera điện thoại quét mã → app Shopee mở đúng món này, tự áp mã freeship và mã tốt nhất của bạn.</p><button type="button">Đóng</button></div>';
+      w.onclick=function(e){ if(e.target===w||e.target.tagName==='BUTTON') w.remove(); }; document.body.appendChild(w); };
+    if(window.qrcode) return show();
+    var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; s.onload=show; s.onerror=function(){ window.open(sp,'_blank'); }; document.head.appendChild(s);
+  }
   var IC={truck:'<path d="M2 8h12v8H2zM14 11h4.5L21 14v2h-7"/><circle cx="6" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/><path d="M4 5h7M3 11.5h5"/>',ret:'<path d="M12 3a9 9 0 1 1-8.5 6"/><path d="M3 4v5h5"/><path d="M8 10l4-2 4 2v4l-4 2-4-2z"/><path d="M8 10l4 2 4-2M12 12v4"/>',box:'<path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8M7.5 6l9 4"/>'};
   function ic(k){ return '<svg viewBox="0 0 24 24" fill="none" stroke="#0F0F0F" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[k]+'</svg>'; }
   var hl=[];
@@ -807,7 +841,7 @@ function renderProduct(id){
   var seen={}; sim=sim.filter(function(p){ if(seen[p.pid]) return false; seen[p.pid]=1; return true; }).sort(function(a,b){ return (b.cat===x.cat)-(a.cat===x.cat)||b.sold-a.sold; }).slice(0,4);
   app.innerHTML='<div class="pd5"><div class="w5">'+
     '<nav class="pd5-crumb" aria-label="Đường dẫn"><a href="#trang-chu">Trang chủ</a> / '+(ci>=0?'<a href="#'+n.id+'/c'+ci+'">'+esc(x.cat)+'</a>':'<a href="#'+n.id+'">'+esc(n.label)+'</a>')+' / '+esc(x.n)+'</nav>'+
-    '<div class="pd5-top"><div class="pd5-th" id="pd-th"></div><div class="pd5-main" id="pd-main"></div>'+
+    '<div class="pd5-top"><div class="pd5-th" id="pd-th"></div><div class="pd5-main" id="pd-main"></div>'+dealHtml()+
     '<div class="pd5-info">'+
       '<h1>'+(off>0?'<span class="pd5-tag">Sale</span>':'')+esc(x.n)+'</h1>'+
       '<div class="pd5-short">'+esc(x.shopName||n.label)+'</div>'+
@@ -839,6 +873,7 @@ function renderProduct(id){
   mn.onclick=function(ev){ var b=ev.target.closest('button[data-d]'); if(b){ at=(at+(+b.dataset.d)+imgs.length)%imgs.length; drawGal(); } };
   app.onclick=function(ev){ var b=ev.target.closest('button[data-t]'); if(!b) return; var ti=+b.dataset.t, oi=+b.dataset.o; pick[ti]=oi; drawOpt(); var v=tiers[ti]; if(ti===colT&&v.images&&v.images[oi]) drawGal(v.images[oi]); };
   drawGal(); drawOpt();
+  var ab=$('pd-app'); if(ab) ab.onclick=openApp;
   var bar=$('pd-bar'), buy=document.querySelector('.pd5-info .pd5-buy');
   if(window.IntersectionObserver&&buy){ var io=new IntersectionObserver(function(en){ var show=!en[0].isIntersecting&&en[0].boundingClientRect.top<0; bar.classList.toggle('on',show); bar.setAttribute('aria-hidden',String(!show)); }); io.observe(buy); prodHook=null; themeHook=function(){}; }
   document.title=x.n+' – HaoHao Store';
