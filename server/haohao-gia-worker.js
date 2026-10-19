@@ -487,7 +487,10 @@ function storeItem(x, niche, group) {
     id: String(x.itemId || d.itemid || ''), shop: String(d.shopid || ''), n: String(x.linkName || a.name || '').slice(0, 200),
     price, old: oldp > price ? oldp : price, sold: Number((d.itemCardDisplaySoldCount || {}).historicalSoldCount || 0) || 0,
     soldTxt: String((a.soldCount || {}).text || ''), rating: r ? Math.round(r * 10) / 10 : 0,
-    img: /^https:\/\//.test(img) ? img : '', imgs: (a.images || []).slice(0, 4).map(h => 'https://down-vn.img.susercontent.com/file/' + h),
+    img: /^https:\/\//.test(img) ? img : '', imgs: (a.images || []).slice(0, 10).map(h => 'https://down-vn.img.susercontent.com/file/' + h),
+    tiers: (d.tierVariations || []).slice(0, 2).map(v => ({ name: String(v.name || '').slice(0, 30), options: (v.options || []).slice(0, 24).map(o => String(o).slice(0, 40)), images: (v.images || []).slice(0, 24).map(h => h ? 'https://down-vn.img.susercontent.com/file/' + h : '') })).filter(v => v.options.length),
+    shopName: String((d.shopData || {}).shopName || '').slice(0, 80), liked: Number(d.likedCount) || 0,
+    rc: Array.isArray((d.itemRating || {}).ratingCount) ? d.itemRating.ratingCount.slice(0, 6).map(n => Number(n) || 0) : [],
     link: /^https:\/\//.test(String(x.link || '')) ? String(x.link) : '', soldOut: !!d.isSoldOut,
     niche, cat: storeCat(niche, x.linkName || a.name), group,
   };

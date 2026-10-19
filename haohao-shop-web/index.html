@@ -231,6 +231,43 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   .card.idle span{font-size:20px}
   .ctrl{left:0}
 }
+/* ===== Trang chi tiết sản phẩm (#sp/<id>) – kiểu 5S ===== */
+.pd{padding-top:20px;padding-bottom:64px;background:#fff}
+.pd .crumb{font-size:13px;color:#4A4038;opacity:1;margin-bottom:20px}.pd .crumb a{color:inherit;text-decoration:none}.pd .crumb a:hover{color:#C8102E}
+.pd-top{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:40px;align-items:start}
+.pd-gal{display:grid;grid-template-columns:64px minmax(0,1fr);gap:16px}
+.pd-th{display:flex;flex-direction:column;gap:10px;max-height:560px;overflow-y:auto;scrollbar-width:none}
+.pd-th button{width:64px;height:64px;padding:0;border:1.5px solid #E6E0DA;border-radius:6px;background:#F6F4F2;cursor:pointer;overflow:hidden;flex:none}
+.pd-th button.on{border-color:#C8102E}.pd-th img{width:100%;height:100%;object-fit:cover;display:block}
+.pd-main{position:relative;aspect-ratio:1/1;background:#F6F4F2;border-radius:6px;overflow:hidden}
+.pd-main img{width:100%;height:100%;object-fit:contain;display:block}
+.pd-main .off{top:16px;right:16px;width:58px;height:58px;border-radius:29px;font-size:16px}
+.pd-nav{position:absolute;top:50%;margin-top:-16px;width:32px;height:32px;border:0;border-radius:4px;background:#C8102E;color:#fff;display:grid;place-items:center;cursor:pointer}.pd-nav.l{left:12px}.pd-nav.r{right:12px}.pd-nav svg{width:16px;height:16px}
+.pd-info{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pd-info h1{margin:0;font-size:clamp(22px,2.4vw,28px);line-height:1.3;font-weight:700;color:#1E1A17}
+.pd-tag{display:inline-block;vertical-align:4px;margin-right:8px;padding:1px 9px;border:1.5px solid #C8102E;border-radius:12px;color:#C8102E;font-size:12px;font-weight:600}
+.pd-shop{font-size:13px;color:#6B5D53}
+.pd-rate{display:flex;align-items:center;gap:10px;font-size:13px;color:#4A4038;flex-wrap:wrap}.pd-rate i{width:1px;height:14px;background:#4A4038}
+.stars{position:relative;display:inline-block;font-size:16px;line-height:1;letter-spacing:2px;color:#E2DCD6}.stars b{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:#C8102E}
+.pd-price{display:flex;align-items:baseline;gap:12px;font-variant-numeric:tabular-nums}.pd-price b{font-size:28px;font-weight:800;color:#1E1A17}.pd-price s{font-size:16px;color:#8A7B70}
+.pd-opt{display:flex;flex-direction:column;gap:10px}.pd-opt>span{font-size:14px;font-weight:600;color:#1E1A17}.pd-opt>span em{font-style:normal;font-weight:500;color:#6B5D53}
+.pd-sw{display:flex;flex-wrap:wrap;gap:8px}
+.pd-sw button{min-width:44px;height:44px;padding:0 14px;border:1.5px solid #E6E0DA;border-radius:6px;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1E1A17;cursor:pointer}
+.pd-sw button.img{width:44px;padding:0;overflow:hidden;border-radius:22px}.pd-sw button.img img{width:100%;height:100%;object-fit:cover;display:block}
+.pd-sw button.on{border-color:#C8102E;box-shadow:inset 0 0 0 1px #C8102E}.pd-sw button:not(.img).on{background:#C8102E;color:#fff}
+.pd-note{margin:0;font-size:13px;color:#6B5D53}
+.pd-buy{display:flex;flex-wrap:wrap;gap:12px}
+.pd-buy a{flex:1 1 200px;height:52px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:800;text-decoration:none;transition:transform .15s}
+.pd-buy a:hover{transform:translateY(-2px)}.pd-buy .sp{background:#EE4D2D;color:#fff}.pd-buy .tt{background:#161616;color:#fff}.pd-buy .ttl{border:1.5px solid #161616;color:#161616;background:#fff}
+.pd-buy i{width:22px;height:22px;border-radius:5px;background:#fff;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:900}.pd-buy .sp i{color:#EE4D2D}.pd-buy .tt i{color:#161616}.pd-buy .ttl i{background:#161616;color:#fff}
+.pd-svc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:18px 12px;border-radius:8px;background:#F4F2F0;text-align:center}
+.pd-svc div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:#6B5D53;line-height:1.45}.pd-svc b{font-size:13px;color:#1E1A17}.pd-svc svg{width:30px;height:30px;stroke:#1E1A17}
+.pd-sec{margin-top:56px;border-top:1px solid #EEE6DF;padding-top:28px}.pd-sec h2{margin:0 0 22px;text-align:center;font-size:20px;font-weight:700;color:#1E1A17}
+.pd-rv{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:28px;align-items:center;max-width:760px;margin:0 auto}
+.pd-rv .big{text-align:center}.pd-rv .big b{display:block;font-size:46px;font-weight:800;color:#1E1A17;line-height:1}.pd-rv .big small{display:block;margin-top:8px;font-size:13px;color:#6B5D53}
+.pd-bar{display:grid;grid-template-columns:34px minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:13px;color:#4A4038;margin:6px 0}.pd-bar span{height:8px;border-radius:4px;background:#EEE6DF;overflow:hidden}.pd-bar span i{display:block;height:100%;background:#C8102E}
+.pd-facts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 28px;margin-top:22px;font-size:14px;color:#4A4038}.pd-facts b{color:#1E1A17}
+@media (max-width:900px){.pd-top{grid-template-columns:minmax(0,1fr);gap:24px}.pd-gal{grid-template-columns:minmax(0,1fr)}.pd-th{order:2;flex-direction:row;max-height:none;overflow-x:auto}.pd-rv{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <header class="top">
@@ -445,13 +482,13 @@ function affLink(p){
 }
 function card(p,deal){
   var off=p.old>p.price?Math.round((1-p.price/p.old)*100):0, pl=p.plat===SP?['S','Shopee','#E8452A']:['T','TikTok Shop','#161616'];
-  var url=affLink(p);
+  var url=affLink(p), det=p.pid?'#sp/'+p.pid:'';
   var im=safeImg(p.img);
   return '<article class="p">'+(ADMIN&&p.id?'<div class="p-tools"><button type="button" data-ped="'+esc(p.id)+'">Sửa</button><button type="button" class="del" data-prm="'+esc(p.id)+'">Xoá</button></div>':'')+
-    '<div class="p-img" style="background:'+(p.tint||'#F2F0EE')+'">'+(im?'<img src="'+esc(im)+'" alt="" loading="lazy">':svg(p.shape||S.BAG,p.ink||'#C9C2BC'))+
-    (off>0?'<span class="off">−'+off+'%</span>':'')+(p.good?'<span class="good">Giá tốt</span>':'')+(deal?'':'<a class="see" href="'+esc(url)+'" target="_blank" rel="noopener sponsored">Xem trên '+pl[1]+'</a>')+'</div>'+
+    (det?'<a class="p-img" href="'+det+'" aria-label="'+esc(p.n)+'" style="background:'+(p.tint||'#F2F0EE')+'">':'<div class="p-img" style="background:'+(p.tint||'#F2F0EE')+'">')+(im?'<img src="'+esc(im)+'" alt="" loading="lazy">':svg(p.shape||S.BAG,p.ink||'#C9C2BC'))+
+    (off>0?'<span class="off">−'+off+'%</span>':'')+(p.good?'<span class="good">Giá tốt</span>':'')+(deal?'':det?'<span class="see">Xem chi tiết</span>':'<a class="see" href="'+esc(url)+'" target="_blank" rel="noopener sponsored">Xem trên '+pl[1]+'</a>')+(det?'</a>':'</div>')+
     (deal?'':'<div class="p-row">'+(p.sw||[]).map(function(c){return '<span class="sw" style="background:'+c+'"></span>';}).join('')+'<span class="plat"><i style="background:'+pl[2]+'">'+pl[0]+'</i>'+pl[1]+'</span></div>')+
-    '<span class="p-name">'+esc(p.n)+'</span><div class="price"><b>'+vnd(p.price)+'</b>'+(off>0?'<s>'+vnd(p.old)+'</s>':'')+'</div>'+
+    (det?'<a class="p-name" href="'+det+'">'+esc(p.n)+'</a>':'<span class="p-name">'+esc(p.n)+'</span>')+'<div class="price"><b>'+vnd(p.price)+'</b>'+(off>0?'<s>'+vnd(p.old)+'</s>':'')+'</div>'+
     (deal?'<div class="meta ok">HaoHao: giá gốc đúng, không đẩy giá trước sale</div>':(p.sold?'<div class="meta">'+(p.rating?'★ '+esc(p.rating)+' · ':'')+'Đã bán '+k(p.sold)+(p.mine?'+':'')+'</div>':''))+'</article>';
 }
 var cur='';
@@ -729,9 +766,64 @@ function renderAdmin(){
   };
 }
 
+
+/* ===== TRANG CHI TIẾT (#sp/<id>) ===== */
+function stars(r){ var w=Math.max(0,Math.min(100,(r||0)/5*100)); return '<span class="stars" aria-label="'+(r||0)+' trên 5 sao">★★★★★<b style="width:'+w+'%">★★★★★</b></span>'; }
+function renderProduct(id){
+  var e=STORE_BY[id]; if(!e){ renderHome(); return; }
+  var x=e.x, n=e.niche; cur=n.id; renderNav(n.id); document.body.style.background='var(--white)';
+  var imgs=(x.imgs&&x.imgs.length?x.imgs:[x.img]).filter(Boolean), at=0, off=x.old>x.price?Math.round((1-x.price/x.old)*100):0;
+  var rc=x.rc||[], total=rc[0]||0, ci=-1; n.cats.forEach(function(c,i){ if(c[0]===x.cat) ci=i; });
+  var sp=affLink({plat:SP,link:x.link}), tt=x.tt?affLink({plat:TT,link:x.tt}):'';
+  var tiers=x.tiers||[], pick=tiers.map(function(){return -1;});
+  function tierHtml(v,ti){
+    var hasImg=v.images&&v.images.some(Boolean);
+    return '<div class="pd-opt"><span>'+esc(v.name)+(pick[ti]>=0?' <em>· '+esc(v.options[pick[ti]])+'</em>':'')+'</span><div class="pd-sw">'+v.options.map(function(o,oi){
+      var im=hasImg&&v.images[oi];
+      return '<button type="button" class="'+(im?'img':'')+(pick[ti]===oi?' on':'')+'" data-t="'+ti+'" data-o="'+oi+'" aria-pressed="'+(pick[ti]===oi)+'" aria-label="'+esc(v.name+': '+o)+'" title="'+esc(o)+'">'+(im?'<img src="'+esc(im)+'" alt="">':esc(o))+'</button>';}).join('')+'</div></div>';
+  }
+  var sim=[]; NICHES.forEach(function(nn){ nn.tabs.forEach(function(tb){ tb[1].forEach(function(p){ if(p.pid&&p.pid!==id&&nn.id===n.id) sim.push(p); }); }); });
+  var seen={}; sim=sim.filter(function(p){ if(seen[p.pid]) return false; seen[p.pid]=1; return true; }).sort(function(a,b){ return (b.cat===x.cat)-(a.cat===x.cat)||b.sold-a.sold; }).slice(0,4);
+  var IC={truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',chart:'<path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/>'};
+  function ic(k){ return '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[k]+'</svg>'; }
+  app.innerHTML='<div class="wrap pd"><nav class="crumb" aria-label="Đường dẫn"><a href="#trang-chu">Trang chủ</a> / <a href="#'+n.id+'">'+esc(n.label)+'</a>'+(ci>=0?' / <a href="#'+n.id+'/c'+ci+'">'+esc(x.cat)+'</a>':'')+' / '+esc(x.n)+'</nav>'+
+    '<div class="pd-top"><div class="pd-gal"><div class="pd-th" id="pd-th"></div><div class="pd-main" id="pd-main"></div></div>'+
+    '<div class="pd-info">'+
+      '<h1>'+(off>0?'<span class="pd-tag">Sale</span>':'')+esc(x.n)+'</h1>'+
+      (x.shopName?'<div class="pd-shop">Shop: '+esc(x.shopName)+'</div>':'')+
+      '<div class="pd-rate">'+(x.rating?stars(x.rating)+'<span>'+String(x.rating).replace('.',',')+(total?' ('+total.toLocaleString('vi-VN')+' đánh giá)':'')+'</span><i aria-hidden="true"></i>':'')+'<span>Đã bán: '+(x.soldTxt?esc(x.soldTxt.replace(/\s*đã bán/i,'')):(x.sold||0).toLocaleString('vi-VN'))+'</span></div>'+
+      '<div class="pd-price"><b>'+vnd(x.price)+'</b>'+(off>0?'<s>'+vnd(x.old)+'</s>':'')+'</div>'+
+      '<div id="pd-tiers"></div>'+
+      (tiers.length?'<p class="pd-note">Xem màu, size ở đây · chọn lại và thanh toán trên Shopee.</p>':'')+
+      '<div class="pd-buy"><a class="sp" href="'+esc(sp)+'" target="_blank" rel="noopener sponsored"><i>S</i>Mua trên Shopee</a>'+
+        (tt?'<a class="tt" href="'+esc(tt)+'" target="_blank" rel="noopener sponsored"><i>T</i>Mua trên TikTok Shop</a>':'<a class="ttl" href="'+TT_SHOP+'" target="_blank" rel="noopener sponsored"><i>T</i>Xem trên TikTok Shop</a>')+'</div>'+
+      '<div class="pd-svc"><div>'+ic('shield')+'<b>Giá thật</b>HaoHao chọn món, kiểm tra giá trước khi đăng</div><div>'+ic('truck')+'<b>Mua qua Shopee</b>Dùng được mã giảm giá, Freeship của Shopee</div><div>'+ic('chart')+'<b>Giá không đổi</b>Mua qua HaoHao, bạn trả đúng giá trên sàn</div></div>'+
+    '</div></div>'+
+    (total?'<section class="pd-sec"><h2>Đánh giá từ người mua</h2><div class="pd-rv"><div class="big"><b>'+String(x.rating).replace('.',',')+'</b>'+stars(x.rating)+'<small>'+total.toLocaleString('vi-VN')+' đánh giá trên Shopee</small></div><div>'+
+      [5,4,3,2,1].map(function(s){ var v=rc[s]||0, w=total?Math.round(v/total*100):0; return '<div class="pd-bar">'+s+' ★<span><i style="width:'+w+'%"></i></span>'+w+'%</div>'; }).join('')+'</div></div>'+
+      '<div class="pd-facts"><span>Đã bán <b>'+(x.sold||0).toLocaleString('vi-VN')+'</b></span>'+(x.liked?'<span>Lượt thích <b>'+x.liked.toLocaleString('vi-VN')+'</b></span>':'')+(x.shopName?'<span>Shop <b>'+esc(x.shopName)+'</b></span>':'')+'</div></section>':'')+
+    (sim.length?'<section class="pd-sec"><h2>Món tương tự</h2><div class="grid">'+sim.map(function(p){return card(p,false);}).join('')+'</div></section>':'')+
+  '</div>'+FOOT()+'<a class="float-hh" href="#trang-chu" aria-label="Về trang chủ"><img src="'+HH+'" alt=""></a>';
+  var th=document.getElementById('pd-th'), mn=document.getElementById('pd-main'), tw=document.getElementById('pd-tiers');
+  function drawGal(src){
+    var big=src||imgs[at]||'';
+    mn.innerHTML=(big?'<img src="'+esc(big)+'" alt="'+esc(x.n)+'">':'')+(off>0?'<span class="off">−'+off+'%</span>':'')+
+      (imgs.length>1?'<button type="button" class="pd-nav l" data-d="-1" aria-label="Ảnh trước">'+LEFT+'</button><button type="button" class="pd-nav r" data-d="1" aria-label="Ảnh sau">'+RIGHT+'</button>':'');
+    th.innerHTML=imgs.length>1?imgs.map(function(u,i){return '<button type="button" class="'+(!src&&i===at?'on':'')+'" data-i="'+i+'" aria-label="Ảnh '+(i+1)+'"><img src="'+esc(u)+'" alt="" loading="lazy"></button>';}).join(''):'';
+  }
+  function drawTiers(){ tw.innerHTML=tiers.map(tierHtml).join(''); }
+  th.onclick=function(e){ var b=e.target.closest('button[data-i]'); if(b){ at=+b.dataset.i; drawGal(); } };
+  mn.onclick=function(e){ var b=e.target.closest('button[data-d]'); if(b){ at=(at+(+b.dataset.d)+imgs.length)%imgs.length; drawGal(); } };
+  tw.onclick=function(e){ var b=e.target.closest('button[data-t]'); if(!b) return; var ti=+b.dataset.t, oi=+b.dataset.o; pick[ti]=pick[ti]===oi?-1:oi; drawTiers(); var v=tiers[ti]; if(pick[ti]>=0&&v.images&&v.images[oi]) drawGal(v.images[oi]); };
+  drawGal(); drawTiers();
+  document.title=x.n+' – HaoHao Store';
+}
+
 function route(){
   clearTimers(); themeHook=null; prodHook=null;
   var id=(location.hash||'').replace('#','');
+  document.title='HaoHao Store';
+  var sm=/^sp\/(\d+)$/.exec(id); if(sm){ app.onclick=null; renderProduct(sm[1]); window.scrollTo(0,0); return; }
   var cm=/^([a-z-]+)\/c(\d+)$/.exec(id); if(cm){ var cn=NICHES.filter(function(x){return x.id===cm[1];})[0]; if(cn&&cn.cats[+cm[2]]){ app.onclick=null; renderCat(cn,+cm[2]); window.scrollTo(0,0); return; } }
   if(id==='ban-chay' && document.getElementById('best')) return;
   var n=NICHES.filter(function(x){return x.id===id;})[0];
@@ -743,13 +835,15 @@ function route(){
 }
 window.addEventListener('hashchange',route);
 /* ===== 19/10: SẢN PHẨM THẬT từ máy chủ (/store – đọc danh mục HaoHao Store trên Shopee, 6 giờ/lần) ===== */
+var STORE_BY={};
 var STORE_API=(/workers\.dev$/.test(location.hostname)?'':'https://haohao-gia.nhatphan79.workers.dev')+'/store';
 function applyStore(d){
   var disc=function(a,b){return (1-b.price/b.old)-(1-a.price/a.old);};
   NICHES.forEach(function(n){
     var ps=d.items.filter(function(x){return x.niche===n.id&&!x.soldOut&&x.price>0;}).map(function(x){
       var c=null; n.cats.forEach(function(cc){if(cc[0]===x.cat) c=cc;});
-      return {n:x.n,price:x.price,old:x.old>x.price?x.old:x.price,good:x.old>x.price*1.2?1:0,rating:x.rating?String(x.rating).replace('.',','):'',sold:x.sold||0,
+      STORE_BY[x.id]={x:x,niche:n};
+      return {pid:x.id,n:x.n,price:x.price,old:x.old>x.price?x.old:x.price,good:x.old>x.price*1.2?1:0,rating:x.rating?String(x.rating).replace('.',','):'',sold:x.sold||0,
         shape:c?c[1]:null,tint:c?c[2]:'#F2F0EE',ink:c?c[3]:'#C9C2BC',sw:[],plat:SP,link:x.link,img:x.img,cat:c?c[0]:''};
     }).sort(function(a,b){return b.sold-a.sold;});
     var tabs=[]; n.cats.forEach(function(c){var l=ps.filter(function(p){return p.cat===c[0];}); if(l.length) tabs.push([c[0],l]);});
