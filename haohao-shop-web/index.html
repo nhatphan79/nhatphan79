@@ -211,6 +211,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .foot b{color:var(--white);text-transform:uppercase;font-size:13px;letter-spacing:1px}
 .foot .brand{font-size:24px;font-weight:900;color:var(--white)}
 .foot .brand em{font-style:normal;color:#F59A5C}
+.foot .brand{display:flex;align-items:center;gap:10px}.foot .brand img{display:block}.foot .about{display:flex;flex-direction:column;gap:8px;line-height:1.7}.foot .about p{margin:0}.foot .about .t{text-transform:none;letter-spacing:0;font-size:16px}
 
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-18px) rotate(2deg)}}
 @keyframes shadow{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(.82);opacity:.35}}
@@ -518,7 +519,7 @@ function card(p,deal){
     (deal?'<div class="meta ok">HaoHao: giá gốc đúng, không đẩy giá trước sale</div>':(p.sold?'<div class="meta">'+(p.rating?'★ '+esc(p.rating)+' · ':'')+'Đã bán '+k(p.sold)+(p.mine?'+':'')+'</div>':''))+'</article>';
 }
 var cur='';
-function FOOT(){ return '<footer class="foot"><div class="wrap"><div><span class="brand"><em>Hao</em>Hao</span><p style="margin:0;line-height:1.7">HaoHao không bán hàng trực tiếp. Bạn thanh toán trên Shopee / TikTok Shop; HaoHao có thể nhận hoa hồng giới thiệu mà giá của bạn không đổi.</p></div>'+
+function FOOT(){ return '<footer class="foot"><div class="wrap"><div><span class="brand"><img src="'+HH+'" alt="" width="40" height="42"><span><em>Hao</em>Hao</span></span><div class="about"><b class="t">HaoHao – Chọn kỹ, mua an tâm 🐹</b><p>Mình không giới thiệu sản phẩm một cách đại trà. Mỗi sản phẩm đều được mình tìm hiểu, chọn lọc kỹ về chất lượng, đánh giá người mua, độ uy tín của shop và mức giá trước khi chia sẻ đến mọi người.</p><p>HaoHao hoạt động theo hình thức tiếp thị liên kết (Affiliate). Nếu bạn mua qua link giới thiệu, mình có thể nhận một khoản hoa hồng nhỏ mà bạn không phải trả thêm chi phí.</p></div></div>'+
    '<div><b>5 ngách</b>'+NICHES.map(function(x){return '<a href="#'+x.id+'">'+esc(x.label)+'</a>';}).join('')+'</div>'+
    '<div><b>Kết nối</b><a href="https://www.tiktok.com/@haohaomall">TikTok @haohaomall</a><a href="https://www.facebook.com/trolyHaoHao">Fanpage trolyHaoHao</a><span>+84 366.159.790</span></div></div></footer>'; }
 function renderNiche(n){
