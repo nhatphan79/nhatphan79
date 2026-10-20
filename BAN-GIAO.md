@@ -37,8 +37,9 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 - App Transfer: mã ghép nối trong QR + lệnh điều khiển cần header `x-haohao`.
 
 ## Luật làm việc với anh
+**LUẬT SỐ 1 (anh Nhật 20/10):** Anh nhắn gì, Claude cũng phải nói lại ý mình hiểu, đưa gợi ý, rồi hỏi anh. Anh đồng ý mới làm. Không tự chạy, không tự làm thêm.
 0. **2 tài khoản Claude thay ca:** nhatphan79 làm thứ 7 → thứ 2; anhnhatpro79 làm thứ 3 → thứ 6. Thứ 6 tài khoản anhnhatpro79 phải cập nhật file này để bàn giao cho nhatphan79.
-0b. **HaoHao Store: sửa trên canvas thiết kế trước** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj), anh tự xem duyệt; chỉ khi anh nói "lên" mới đẩy web thật. Không hỏi lại, không tự làm thêm.
+0b. **HaoHao Store: sửa trên canvas thiết kế trước** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj); chỉ khi anh nói "lên" mới đẩy web thật.
 1. **Trước khi sửa: gợi ý ngắn sẽ làm gì → anh đồng ý mới làm.** Anh nói thẳng "làm X" thì làm đúng X, không bày thêm.
 2. **Mỗi lần sửa xong:** tăng tên bản (`version_name`) thêm 1: V1.0 → V1.1 → V1.2 … → V1.9 → V1.10 → … V1.100 (luôn giữ "V1.", số sau 1–3 chữ số, KHÔNG lên V2) và tăng số kỹ thuật `version` (chạy ngầm cho tự nạp lại); báo cáo / bảng Đã làm ghi theo tên V1.x; đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
 3. **Tin nhắn anh chưa rõ: nói lại ý mình hiểu + hỏi "đúng chưa anh Nhật?" trước khi làm.**
