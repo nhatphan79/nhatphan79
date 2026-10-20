@@ -7,21 +7,60 @@
   "date": "20/10/2026",
   "read": "5 phút đọc",
   "blocks": [
-   {"p": "Mùa đông miền Bắc và những ngày mưa lạnh miền Trung, áo khoác gió gần như là món bắt buộc nếu bạn đi xe máy mỗi ngày. Nhưng trên Shopee có hàng nghìn mẫu trông giống nhau, giá chênh nhau gấp đôi. Dưới đây là 6 điểm HaoHao luôn xem trước khi chọn một chiếc áo khoác gió."},
-   {"h": "1. Vải ngoài: cản gió thật hay chỉ mỏng nhẹ"},
-   {"p": "Áo khoác gió tốt thường dùng vải dù (polyester hoặc nylon) dệt dày, mặt vải mịn. Hãy đọc mô tả xem có ghi cản gió, chống thấm nhẹ hoặc trượt nước không, và xem ảnh đánh giá thật của người mua: vải tốt khi gặp nước sẽ đọng thành giọt chứ không thấm loang."},
-   {"h": "2. Lớp lót: 1 lớp, 2 lớp hay lót lông"},
-   {"list": ["1 lớp: nhẹ, gấp gọn, hợp trời se lạnh hoặc mặc chống nắng.", "2 lớp (lót lưới hoặc lót dù mỏng): thoáng hơn, đỡ dính người khi ra mồ hôi.", "Lót lông, lót nỉ: ấm nhất, hợp đi xe máy sáng sớm và tối muộn, nhưng nặng và lâu khô hơn."]},
-   {"h": "3. Mũ trùm và cổ áo"},
-   {"p": "Đi xe máy thì mũ trùm nên tháo rời được hoặc gấp gọn vào cổ, để không bị gió thổi phồng sau lưng. Cổ áo đứng cao giúp che gáy, đỡ lạnh hơn hẳn so với cổ thấp."},
-   {"h": "4. Khoá kéo và bo tay"},
-   {"p": "Khoá kéo nên có nẹp che bên ngoài để gió không lùa qua đường khoá. Bo tay co giãn hoặc có dán dính giúp kín cổ tay khi cầm lái. Đây là chi tiết nhỏ nhưng quyết định áo có thực sự ấm khi chạy xe hay không."},
-   {"h": "5. Túi trong và túi có khoá"},
-   {"p": "Túi ngoài có khoá kéo giúp không rơi điện thoại, chìa khoá khi ngồi xe. Một túi trong là điểm cộng để cất ví, giấy tờ."},
-   {"h": "6. Chọn size: rộng hơn bình thường một chút"},
-   {"p": "Áo khoác gió thường mặc ngoài áo len hoặc áo nỉ, nên hãy chọn vừa vai nhưng thân rộng hơn áo thun thường của bạn. Luôn xem bảng size của từng shop và đối chiếu số đo ngực, dài tay, vì mỗi hãng một khác."},
-   {"h": "Mẹo của HaoHao"},
-   {"p": "Trước khi chốt, hãy bấm tim để lưu món ưng ý. HaoHao theo dõi lịch sử giá 30 ngày và báo cho bạn khi giá giảm thật, tránh kiểu đẩy giá gốc lên rồi giảm ảo."}
+   {
+    "p": "Mùa đông miền Bắc và những ngày mưa lạnh miền Trung, áo khoác gió gần như là món bắt buộc nếu bạn đi xe máy mỗi ngày. Nhưng trên Shopee có hàng nghìn mẫu trông giống nhau, giá chênh nhau gấp đôi. Dưới đây là 6 điểm HaoHao luôn xem trước khi chọn một chiếc áo khoác gió."
+   },
+   {
+    "h": "1. Vải ngoài: cản gió thật hay chỉ mỏng nhẹ"
+   },
+   {
+    "p": "Áo khoác gió tốt thường dùng vải dù (polyester hoặc nylon) dệt dày, mặt vải mịn. Hãy đọc mô tả xem có ghi cản gió, chống thấm nhẹ hoặc trượt nước không, và xem ảnh đánh giá thật của người mua: vải tốt khi gặp nước sẽ đọng thành giọt chứ không thấm loang."
+   },
+   {
+    "h": "2. Lớp lót: 1 lớp, 2 lớp hay lót lông"
+   },
+   {
+    "list": [
+     "1 lớp: nhẹ, gấp gọn, hợp trời se lạnh hoặc mặc chống nắng.",
+     "2 lớp (lót lưới hoặc lót dù mỏng): thoáng hơn, đỡ dính người khi ra mồ hôi.",
+     "Lót lông, lót nỉ: ấm nhất, hợp đi xe máy sáng sớm và tối muộn, nhưng nặng và lâu khô hơn."
+    ]
+   },
+   {
+    "h": "3. Mũ trùm và cổ áo"
+   },
+   {
+    "p": "Đi xe máy thì mũ trùm nên tháo rời được hoặc gấp gọn vào cổ, để không bị gió thổi phồng sau lưng. Cổ áo đứng cao giúp che gáy, đỡ lạnh hơn hẳn so với cổ thấp."
+   },
+   {
+    "h": "4. Khoá kéo và bo tay"
+   },
+   {
+    "p": "Khoá kéo nên có nẹp che bên ngoài để gió không lùa qua đường khoá. Bo tay co giãn hoặc có dán dính giúp kín cổ tay khi cầm lái. Đây là chi tiết nhỏ nhưng quyết định áo có thực sự ấm khi chạy xe hay không."
+   },
+   {
+    "h": "5. Túi trong và túi có khoá"
+   },
+   {
+    "p": "Túi ngoài có khoá kéo giúp không rơi điện thoại, chìa khoá khi ngồi xe. Một túi trong là điểm cộng để cất ví, giấy tờ."
+   },
+   {
+    "h": "6. Chọn size: rộng hơn bình thường một chút"
+   },
+   {
+    "p": "Áo khoác gió thường mặc ngoài áo len hoặc áo nỉ, nên hãy chọn vừa vai nhưng thân rộng hơn áo thun thường của bạn. Luôn xem bảng size của từng shop và đối chiếu số đo ngực, dài tay, vì mỗi hãng một khác."
+   },
+   {
+    "h": "Mẹo của HaoHao"
+   },
+   {
+    "p": "Trước khi chốt, hãy bấm tim để lưu món ưng ý. HaoHao theo dõi lịch sử giá 30 ngày và báo cho bạn khi giá giảm thật, tránh kiểu đẩy giá gốc lên rồi giảm ảo."
+   }
+  ],
+  "kw": [
+   "áo khoác gió",
+   "khoác gió",
+   "áo khoác"
   ]
  },
  {
@@ -32,23 +71,61 @@
   "date": "20/10/2026",
   "read": "5 phút đọc",
   "blocks": [
-   {"p": "Chiếc balo đầu tiên đi học thường được bé dùng cả năm, ngày nào cũng đeo. Chọn sai, con vừa mỏi vai vừa nhanh hỏng. Dưới đây là 7 điều cha mẹ nên xem trước khi mua."},
-   {"h": "1. Balo rỗng càng nhẹ càng tốt"},
-   {"p": "Sách vở lớp 1 đã khá nặng, nên bản thân balo nên nhẹ. Nhiều khuyến nghị cho rằng tổng khối lượng balo khi đầy không nên vượt quá khoảng 10–15% cân nặng của trẻ. Hãy xem khối lượng balo rỗng trong mô tả sản phẩm."},
-   {"h": "2. Kích thước vừa lưng con"},
-   {"p": "Đáy balo không nên thấp quá thắt lưng, mép trên không cao quá vai. Balo quá to khiến bé phải cúi người về trước khi đi."},
-   {"h": "3. Quai đeo bản rộng, có đệm"},
-   {"p": "Quai bản rộng có đệm mút giúp chia lực đều lên vai. Quai điều chỉnh được độ dài để dùng được khi con lớn thêm. Có dây cài ngang ngực là điểm cộng giúp balo không trượt."},
-   {"h": "4. Mặt lưng có đệm, thoáng khí"},
-   {"p": "Mặt lưng có tấm đệm định hình giúp sách vở không cấn vào lưng, khe thoáng khí đỡ nóng khi trời nắng."},
-   {"h": "5. Chất liệu chống thấm nhẹ, dễ lau"},
-   {"p": "Vải polyester hoặc nylon phủ chống thấm giúp sách vở không ướt khi gặp mưa nhỏ, lau sạch dễ khi bé làm đổ nước."},
-   {"h": "6. Ngăn hợp lý và có phản quang"},
-   {"p": "Một ngăn lớn cho sách vở, một ngăn nhỏ cho hộp bút, hai túi bên cho bình nước là đủ. Dải phản quang trên balo giúp con dễ được nhìn thấy khi đi đường lúc trời tối."},
-   {"h": "7. Hình in con thích nhưng bền màu"},
-   {"p": "Để con tự chọn màu hoặc hình mình thích, bé sẽ giữ gìn balo hơn. Xem ảnh đánh giá thật để biết hình in có bong tróc sau vài tuần dùng không."},
-   {"h": "Mẹo của HaoHao"},
-   {"p": "Mùa tựu trường giá balo thường lên xuống liên tục. Lưu món bạn ưng, HaoHao báo khi giá giảm thật so với 30 ngày gần nhất."}
+   {
+    "p": "Chiếc balo đầu tiên đi học thường được bé dùng cả năm, ngày nào cũng đeo. Chọn sai, con vừa mỏi vai vừa nhanh hỏng. Dưới đây là 7 điều cha mẹ nên xem trước khi mua."
+   },
+   {
+    "h": "1. Balo rỗng càng nhẹ càng tốt"
+   },
+   {
+    "p": "Sách vở lớp 1 đã khá nặng, nên bản thân balo nên nhẹ. Nhiều khuyến nghị cho rằng tổng khối lượng balo khi đầy không nên vượt quá khoảng 10–15% cân nặng của trẻ. Hãy xem khối lượng balo rỗng trong mô tả sản phẩm."
+   },
+   {
+    "h": "2. Kích thước vừa lưng con"
+   },
+   {
+    "p": "Đáy balo không nên thấp quá thắt lưng, mép trên không cao quá vai. Balo quá to khiến bé phải cúi người về trước khi đi."
+   },
+   {
+    "h": "3. Quai đeo bản rộng, có đệm"
+   },
+   {
+    "p": "Quai bản rộng có đệm mút giúp chia lực đều lên vai. Quai điều chỉnh được độ dài để dùng được khi con lớn thêm. Có dây cài ngang ngực là điểm cộng giúp balo không trượt."
+   },
+   {
+    "h": "4. Mặt lưng có đệm, thoáng khí"
+   },
+   {
+    "p": "Mặt lưng có tấm đệm định hình giúp sách vở không cấn vào lưng, khe thoáng khí đỡ nóng khi trời nắng."
+   },
+   {
+    "h": "5. Chất liệu chống thấm nhẹ, dễ lau"
+   },
+   {
+    "p": "Vải polyester hoặc nylon phủ chống thấm giúp sách vở không ướt khi gặp mưa nhỏ, lau sạch dễ khi bé làm đổ nước."
+   },
+   {
+    "h": "6. Ngăn hợp lý và có phản quang"
+   },
+   {
+    "p": "Một ngăn lớn cho sách vở, một ngăn nhỏ cho hộp bút, hai túi bên cho bình nước là đủ. Dải phản quang trên balo giúp con dễ được nhìn thấy khi đi đường lúc trời tối."
+   },
+   {
+    "h": "7. Hình in con thích nhưng bền màu"
+   },
+   {
+    "p": "Để con tự chọn màu hoặc hình mình thích, bé sẽ giữ gìn balo hơn. Xem ảnh đánh giá thật để biết hình in có bong tróc sau vài tuần dùng không."
+   },
+   {
+    "h": "Mẹo của HaoHao"
+   },
+   {
+    "p": "Mùa tựu trường giá balo thường lên xuống liên tục. Lưu món bạn ưng, HaoHao báo khi giá giảm thật so với 30 ngày gần nhất."
+   }
+  ],
+  "kw": [
+   "balo",
+   "ba lô"
   ]
  },
  {
@@ -59,18 +136,55 @@
   "date": "20/10/2026",
   "read": "4 phút đọc",
   "blocks": [
-   {"p": "Nồi chiên không dầu là món đồ bếp được mua nhiều nhất vài năm gần đây. Câu hỏi hay gặp nhất là: nhà mình nên mua loại bao nhiêu lít? Mua nhỏ thì nấu nhiều mẻ, mua to thì tốn chỗ và tốn điện."},
-   {"h": "Chọn dung tích theo số người"},
-   {"list": ["1–2 người: khoảng 2–3,5 lít, đủ chiên khoai, cánh gà cho một bữa.", "3–4 người: khoảng 4–5,5 lít, phổ biến nhất cho gia đình nhỏ.", "5 người trở lên hoặc hay nướng gà nguyên con: từ 6 lít trở lên."]},
-   {"p": "Lưu ý: dung tích ghi trên hộp là thể tích cả lòng nồi. Phần thực sự xếp được đồ ăn thường nhỏ hơn, vì đồ ăn cần trải một lớp mỏng để chín giòn đều."},
-   {"h": "Công suất đi kèm dung tích"},
-   {"p": "Nồi càng lớn thường công suất càng cao để làm nóng nhanh. Hãy xem ổ cắm và đường điện bếp nhà mình có chịu được không nếu dùng cùng lúc với lò vi sóng, ấm siêu tốc."},
-   {"h": "Lòng nồi: vuông hay tròn"},
-   {"p": "Lòng vuông xếp được nhiều đồ hơn lòng tròn cùng dung tích. Lớp chống dính nên dễ rửa và tháo rời được. Xem đánh giá thật xem lớp chống dính có bong sau vài tháng không."},
-   {"h": "Tính năng nào thật sự cần"},
-   {"list": ["Hẹn giờ và chỉnh nhiệt: bắt buộc.", "Cửa kính nhìn được đồ ăn bên trong: tiện, đỡ phải mở nồi.", "Chế độ cài sẵn (khoai, gà, cá): có thì tốt, không có cũng không sao.", "Hai ngăn riêng: hợp nhà đông người, nấu hai món cùng lúc."]},
-   {"h": "Mẹo của HaoHao"},
-   {"p": "Nồi chiên không dầu hay giảm sâu vào các ngày sale lớn. Lưu món bạn đang cân nhắc, HaoHao báo khi giá xuống thấp thật so với 30 ngày."}
+   {
+    "p": "Nồi chiên không dầu là món đồ bếp được mua nhiều nhất vài năm gần đây. Câu hỏi hay gặp nhất là: nhà mình nên mua loại bao nhiêu lít? Mua nhỏ thì nấu nhiều mẻ, mua to thì tốn chỗ và tốn điện."
+   },
+   {
+    "h": "Chọn dung tích theo số người"
+   },
+   {
+    "list": [
+     "1–2 người: khoảng 2–3,5 lít, đủ chiên khoai, cánh gà cho một bữa.",
+     "3–4 người: khoảng 4–5,5 lít, phổ biến nhất cho gia đình nhỏ.",
+     "5 người trở lên hoặc hay nướng gà nguyên con: từ 6 lít trở lên."
+    ]
+   },
+   {
+    "p": "Lưu ý: dung tích ghi trên hộp là thể tích cả lòng nồi. Phần thực sự xếp được đồ ăn thường nhỏ hơn, vì đồ ăn cần trải một lớp mỏng để chín giòn đều."
+   },
+   {
+    "h": "Công suất đi kèm dung tích"
+   },
+   {
+    "p": "Nồi càng lớn thường công suất càng cao để làm nóng nhanh. Hãy xem ổ cắm và đường điện bếp nhà mình có chịu được không nếu dùng cùng lúc với lò vi sóng, ấm siêu tốc."
+   },
+   {
+    "h": "Lòng nồi: vuông hay tròn"
+   },
+   {
+    "p": "Lòng vuông xếp được nhiều đồ hơn lòng tròn cùng dung tích. Lớp chống dính nên dễ rửa và tháo rời được. Xem đánh giá thật xem lớp chống dính có bong sau vài tháng không."
+   },
+   {
+    "h": "Tính năng nào thật sự cần"
+   },
+   {
+    "list": [
+     "Hẹn giờ và chỉnh nhiệt: bắt buộc.",
+     "Cửa kính nhìn được đồ ăn bên trong: tiện, đỡ phải mở nồi.",
+     "Chế độ cài sẵn (khoai, gà, cá): có thì tốt, không có cũng không sao.",
+     "Hai ngăn riêng: hợp nhà đông người, nấu hai món cùng lúc."
+    ]
+   },
+   {
+    "h": "Mẹo của HaoHao"
+   },
+   {
+    "p": "Nồi chiên không dầu hay giảm sâu vào các ngày sale lớn. Lưu món bạn đang cân nhắc, HaoHao báo khi giá xuống thấp thật so với 30 ngày."
+   }
+  ],
+  "kw": [
+   "nồi chiên",
+   "nồi"
   ]
  },
  {
@@ -81,18 +195,59 @@
   "date": "20/10/2026",
   "read": "6 phút đọc",
   "blocks": [
-   {"p": "Mùa mưa là lúc những chỗ thấm trong nhà phố lộ ra rõ nhất: tường loang ố, trần sàn mái nhỏ giọt, chân tường ẩm mốc. Có những việc bạn hoàn toàn tự xử lý được với vài món vật tư, nhưng cũng có chỗ nên để thợ làm cho chắc."},
-   {"h": "Những vị trí nhà phố hay bị thấm"},
-   {"list": ["Sàn mái, sân thượng: nơi đọng nước nhiều nhất.", "Khe tiếp giáp giữa hai nhà liền kề.", "Nhà vệ sinh, nhất là quanh ống thoát sàn và chân tường.", "Quanh khung cửa sổ, cửa đi.", "Vết nứt chân chim trên tường ngoài."]},
-   {"h": "Việc bạn có thể tự làm"},
-   {"p": "Vết nứt nhỏ trên tường ngoài, khe hở quanh khung cửa: làm sạch, để khô, bơm keo silicone hoặc keo chống thấm chuyên dụng, sau đó sơn phủ lớp sơn chống thấm. Chân tường nhà vệ sinh bị hở ron: cạo ron cũ, chà lại bằng keo chà ron chống thấm."},
-   {"p": "Dụng cụ cần có: súng bơm keo, bay nhỏ, chổi quét hoặc con lăn sơn, găng tay và khẩu trang. Luôn làm khi trời khô ráo để vật liệu bám tốt."},
-   {"h": "Khi nào nên gọi thợ"},
-   {"list": ["Sàn mái, sân thượng thấm diện rộng: thường phải xử lý lại cả lớp chống thấm.", "Vết nứt to, nứt xuyên tường hoặc có dấu hiệu lún.", "Thấm từ khe tiếp giáp với nhà bên cạnh.", "Thấm quanh ống nước âm tường: cần dò và sửa đường ống trước."]},
-   {"h": "Lưu ý an toàn"},
-   {"p": "Làm việc trên mái hoặc sân thượng luôn cần giày chống trượt, và không làm một mình. Không leo mái khi trời mưa hoặc mặt mái còn ướt."},
-   {"h": "Cần tư vấn thêm?"},
-   {"p": "Nhà phố khu vực Đà Nẵng, Quảng Nam cần tư vấn chống thấm hoặc sửa chữa, bạn có thể gọi kỹ sư Nhật: 0366.159.790."}
+   {
+    "p": "Mùa mưa là lúc những chỗ thấm trong nhà phố lộ ra rõ nhất: tường loang ố, trần sàn mái nhỏ giọt, chân tường ẩm mốc. Có những việc bạn hoàn toàn tự xử lý được với vài món vật tư, nhưng cũng có chỗ nên để thợ làm cho chắc."
+   },
+   {
+    "h": "Những vị trí nhà phố hay bị thấm"
+   },
+   {
+    "list": [
+     "Sàn mái, sân thượng: nơi đọng nước nhiều nhất.",
+     "Khe tiếp giáp giữa hai nhà liền kề.",
+     "Nhà vệ sinh, nhất là quanh ống thoát sàn và chân tường.",
+     "Quanh khung cửa sổ, cửa đi.",
+     "Vết nứt chân chim trên tường ngoài."
+    ]
+   },
+   {
+    "h": "Việc bạn có thể tự làm"
+   },
+   {
+    "p": "Vết nứt nhỏ trên tường ngoài, khe hở quanh khung cửa: làm sạch, để khô, bơm keo silicone hoặc keo chống thấm chuyên dụng, sau đó sơn phủ lớp sơn chống thấm. Chân tường nhà vệ sinh bị hở ron: cạo ron cũ, chà lại bằng keo chà ron chống thấm."
+   },
+   {
+    "p": "Dụng cụ cần có: súng bơm keo, bay nhỏ, chổi quét hoặc con lăn sơn, găng tay và khẩu trang. Luôn làm khi trời khô ráo để vật liệu bám tốt."
+   },
+   {
+    "h": "Khi nào nên gọi thợ"
+   },
+   {
+    "list": [
+     "Sàn mái, sân thượng thấm diện rộng: thường phải xử lý lại cả lớp chống thấm.",
+     "Vết nứt to, nứt xuyên tường hoặc có dấu hiệu lún.",
+     "Thấm từ khe tiếp giáp với nhà bên cạnh.",
+     "Thấm quanh ống nước âm tường: cần dò và sửa đường ống trước."
+    ]
+   },
+   {
+    "h": "Lưu ý an toàn"
+   },
+   {
+    "p": "Làm việc trên mái hoặc sân thượng luôn cần giày chống trượt, và không làm một mình. Không leo mái khi trời mưa hoặc mặt mái còn ướt."
+   },
+   {
+    "h": "Cần tư vấn thêm?"
+   },
+   {
+    "p": "Nhà phố khu vực Đà Nẵng, Quảng Nam cần tư vấn chống thấm hoặc sửa chữa, bạn có thể gọi kỹ sư Nhật: 0366.159.790."
+   }
+  ],
+  "kw": [
+   "chống thấm",
+   "keo",
+   "sơn",
+   "silicone"
   ]
  },
  {
@@ -103,17 +258,59 @@
   "date": "20/10/2026",
   "read": "4 phút đọc",
   "blocks": [
-   {"p": "Ngày Nhà giáo Việt Nam 20/11 là dịp để phụ huynh và học trò gửi lời cảm ơn đến thầy cô. Một món quà hay không cần đắt, quan trọng là thiết thực và thể hiện sự chân thành."},
-   {"h": "Nguyên tắc chọn quà"},
-   {"list": ["Thiết thực: thầy cô dùng được hằng ngày.", "Gọn nhẹ, trang nhã, không phô trương.", "Kèm một tấm thiệp viết tay của học trò: phần nhiều thầy cô trân trọng nhất."]},
-   {"h": "Gợi ý quà nhỏ, tinh tế"},
-   {"list": ["Bình giữ nhiệt: thầy cô đứng lớp cả ngày, luôn cần nước ấm.", "Sổ tay và bút ký đẹp.", "Khăn choàng cổ cho mùa lạnh.", "Hộp trà hoặc bộ ấm chén nhỏ."]},
-   {"h": "Gợi ý quà từ cả lớp"},
-   {"list": ["Bộ ấm trà hoặc máy pha cà phê nhỏ cho phòng giáo viên.", "Đèn bàn đọc sách.", "Khung ảnh tập thể lớp kèm lời chúc của từng bạn."]},
-   {"h": "Gói quà sao cho đẹp"},
-   {"p": "Chọn hộp quà màu trang nhã, kèm thiệp viết tay. Nếu đặt online, nên đặt sớm 3–5 ngày để kịp giao trước 20/11, vì đơn hàng dịp này thường tăng mạnh."},
-   {"h": "Mẹo của HaoHao"},
-   {"p": "Lưu những món bạn đang cân nhắc, HaoHao nhắc thời gian giao hàng và báo khi giá giảm thật trước dịp lễ."}
+   {
+    "p": "Ngày Nhà giáo Việt Nam 20/11 là dịp để phụ huynh và học trò gửi lời cảm ơn đến thầy cô. Một món quà hay không cần đắt, quan trọng là thiết thực và thể hiện sự chân thành."
+   },
+   {
+    "h": "Nguyên tắc chọn quà"
+   },
+   {
+    "list": [
+     "Thiết thực: thầy cô dùng được hằng ngày.",
+     "Gọn nhẹ, trang nhã, không phô trương.",
+     "Kèm một tấm thiệp viết tay của học trò: phần nhiều thầy cô trân trọng nhất."
+    ]
+   },
+   {
+    "h": "Gợi ý quà nhỏ, tinh tế"
+   },
+   {
+    "list": [
+     "Bình giữ nhiệt: thầy cô đứng lớp cả ngày, luôn cần nước ấm.",
+     "Sổ tay và bút ký đẹp.",
+     "Khăn choàng cổ cho mùa lạnh.",
+     "Hộp trà hoặc bộ ấm chén nhỏ."
+    ]
+   },
+   {
+    "h": "Gợi ý quà từ cả lớp"
+   },
+   {
+    "list": [
+     "Bộ ấm trà hoặc máy pha cà phê nhỏ cho phòng giáo viên.",
+     "Đèn bàn đọc sách.",
+     "Khung ảnh tập thể lớp kèm lời chúc của từng bạn."
+    ]
+   },
+   {
+    "h": "Gói quà sao cho đẹp"
+   },
+   {
+    "p": "Chọn hộp quà màu trang nhã, kèm thiệp viết tay. Nếu đặt online, nên đặt sớm 3–5 ngày để kịp giao trước 20/11, vì đơn hàng dịp này thường tăng mạnh."
+   },
+   {
+    "h": "Mẹo của HaoHao"
+   },
+   {
+    "p": "Lưu những món bạn đang cân nhắc, HaoHao nhắc thời gian giao hàng và báo khi giá giảm thật trước dịp lễ."
+   }
+  ],
+  "kw": [
+   "bình giữ nhiệt",
+   "sổ",
+   "khăn choàng",
+   "ấm trà",
+   "hộp quà"
   ]
  }
 ]
