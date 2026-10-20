@@ -336,7 +336,7 @@ HT.SPY_API = 'https://haohao-gia.nhatphan79.workers.dev';   // 1.10.250: khách 
 HT.FANPAGE = 'https://www.facebook.com/trolyHaoHao';   // fanpage HaoHao (dự phòng nếu coupons.json chưa có 'fanpage')
 HT.PRICE_API = 'https://haohao-gia.nhatphan79.workers.dev';
 // 🛡️ V1.82: trang không chặn quảng cáo – mặc định (không xoá được) + trang người dùng tự thêm (settings.adSkip)
-HT.AD_SKIP_DEF = ['haohaostore.com', 'haohao-gia.nhatphan79.workers.dev'];
+HT.AD_SKIP_DEF = ['haohaostore.com', 'haohao-gia.nhatphan79.workers.dev', 'fomo.family', 'world.xyz'];
 HT.adHost = v => { let h = String(v || '').trim().toLowerCase(); try { if (/^[a-z]+:\/\//.test(h)) h = new URL(h).hostname; } catch {} h = h.replace(/^\*\./, '').replace(/^www\./, '').replace(/[/?#:].*$/, ''); return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) ? h : ''; };
 HT.adSkipList = s => [...new Set([...HT.AD_SKIP_DEF, ...((s && s.adSkip) || []).map(HT.adHost).filter(Boolean)])];
 HT.adSkipHit = (host, s) => { host = String(host || '').replace(/^www\./, ''); return !!host && HT.adSkipList(s).some(h => host === h || host.endsWith('.' + h)); };
