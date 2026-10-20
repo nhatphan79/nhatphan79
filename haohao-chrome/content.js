@@ -2626,6 +2626,18 @@
     for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
     return btoa(bin);
   }
+  // V1.86: trình đọc PDF HaoHao (pdfview.html) nhờ tab này đọc file – đọc được cả PDF trên máy
+  chrome.runtime.onMessage.addListener((msg, _s, send) => {
+    if (!msg || msg.type !== 'hh-pdf-bytes' || !isPdf()) return;
+    (async () => {
+      const r = await fetch(location.href); const buf = await r.arrayBuffer();
+      if (buf.byteLength > 60e6) throw new Error('File PDF lớn quá (hơn 60 MB)');
+      const u = new Uint8Array(buf); let bin = '';
+      for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+      return btoa(bin);
+    })().then(b64 => send({ ok: true, b64 })).catch(e => send({ ok: false, error: e.message }));
+    return true;
+  });
   async function srcFull(info) {
     const src = { kind: info.kind, sub: info.sub, url: info.url, title: info.title };
     if (info.kind === 'pdf') src.pdf = await pdfBase64(info.url);
@@ -2879,7 +2891,7 @@
     if (!rc || (!rc.width && !rc.height && !rc.top)) return null;
     return { t, rc };
   }
-  chrome.runtime.onMessage.addListener(msg => { if (msg && msg.type === 'hh-page-translate' && ui && !pageTr.running) translatePage(); });   // V1.85: chuột phải → Dịch cả trang
+  chrome.runtime.onMessage.addListener(msg => { if (msg && msg.type === 'hh-page-translate' && (isPdf() || ui) && !pageTr.running) translatePage(); });   // V1.85: chuột phải → Dịch cả trang
   function showChip(e) {
     if (!ui || !active() || ((settings.ideas || {}).chip === false && (settings.dich || {}).chip === false)) return;
     const s = selInfo(e); hideChip();
@@ -3667,6 +3679,7 @@
     pageTr.drive = false; pageTr.running = false;
   }
   async function translatePage(auto) {
+    if (isPdf()) { chrome.runtime.sendMessage({ type: 'open-pdfview', url: location.href }).catch(() => {}); return; }   // V1.86: PDF → trình đọc PDF HaoHao
     if (isDrivePdf() || pageTr.drive) { if (!pageTr.drive) driveStart(); else if (pageTr.showing === 'orig') showTranslated(); return; }
     if (pageTr.running) return;
     if (pageTr.showing === 'orig' && pageTr.map.size) showTranslated();
