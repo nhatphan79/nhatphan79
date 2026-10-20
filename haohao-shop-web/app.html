@@ -226,21 +226,16 @@ function applyStore(d){
   });
 }
 var KHU={"thoi-trang": [["Áo", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mpixk3dccljga0"], ["Quần", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mtz3abieeps431"], ["Váy & đầm", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mojis1w0sphn57"], ["Áo khoác & giữ ấm", "https://down-vn.img.susercontent.com/file/vn-11134207-820l4-mgiv77bfzkzzd2"], ["Đồ bộ", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mtz39gacnldx2d"]], "me-be": [["Đồ bé gái", ""], ["Đồ bé trai", ""], ["Giày dép bé", ""], ["Đồ đi học", ""], ["Đồ chơi & sách", ""], ["Cho mẹ", ""]], "gia-dung": [["Bếp tiện nghi", ""], ["Nhà tinh tươm", ""], ["Không gian relax", ""], ["Điểm tô tổ ấm", ""]], "xay-dung": [["Dụng cụ xây dựng", ""], ["Điện nước", ""], ["Hoàn thiện nhà", ""], ["Bảo hộ", ""]], "qua-tang": [["Gửi người thương", ""], ["Tri ân bố mẹ", ""], ["Niềm vui cho bé", ""], ["Gắn kết bạn bè", ""]]};
-function inKhu(x,nid,t){ return x.cat===t||kwCat(nid,x.n)===t; }
-function khuList(nid){ /* 4 khu như web trước, rồi nhóm collshp còn lại */
-  var L=(KHU[nid]||[]).map(function(k){return k[0];}), seen={}; L.forEach(function(t){seen[t]=1;});
-  D.groups.forEach(function(g){ if(g.niche===nid&&g.n&&!seen[g.topic]){ seen[g.topic]=1; L.push(g.topic); } });
-  return L;
-}
+function inKhu(x,nid,t){ return x.cat===t; }
+function khuList(nid){ /* 20/10: 4 khu = 4 nhóm collshp của ngách */ return D.groups.filter(function(g){return g.niche===nid;}).map(function(g){return g.topic;}); }
 var GRAD={'thoi-trang':['#FDE4EA','#F7B9C9','#7A3550'],'me-be':['#E4F4EC','#A8DDC2','#1F5E3E'],'gia-dung':['#FFF1CF','#F7D27A','#6B4A00'],'xay-dung':['#E2EDFB','#A9C8F0','#1E4B80'],'qua-tang':['#FDE3D6','#F6B79A','#7A2E0E']};
 function vCatList(sel){   /* 20/10: mẫu 4A – cột ngách bên trái, lưới ô tròn bên phải */
   var n=NI[sel]||NICHES[0], g=GRAD[n.id], its=D.items.filter(function(x){return x.niche===n.id;}), top=its.slice().sort(function(a,b){return (b.sold||0)-(a.sold||0);});
-  var kimg={}; (KHU[n.id]||[]).forEach(function(k){kimg[k[0]]=k[1];});
+  var kimg={};
   var tiles=khuList(n.id).map(function(t){ var x=top.filter(function(i){return inKhu(i,n.id,t);})[0]; return [t,'#/danh-muc/'+n.id+'/'+encodeURIComponent(t),kimg[t]||(x?img(x):'')]; });
   var deal=its.slice().sort(function(a,b){return pct(b)-pct(a);})[0], cheap=its.slice().sort(function(a,b){return a.price-b.price;})[0];
-  if(top[0]) tiles.push(['Bán chạy','#/danh-muc/'+n.id+'?s=ban',img(top[0])]);
-  if(deal&&pct(deal)>=5) tiles.push(['Giảm nhiều','#/danh-muc/'+n.id+'?s=giam',img(deal)]);
-  if(cheap) tiles.push(['Giá tốt','#/danh-muc/'+n.id+'?s=re',img(cheap)]);
+  if(top[0]) tiles.push(['Bán chạy nhất','#/danh-muc/'+n.id+'?s=ban',img(top[0])]);
+  if(deal&&pct(deal)>=5) tiles.push(['Giảm giá nhiều nhất','#/danh-muc/'+n.id+'?s=giam',img(deal)]);
   var best=top[0];
   return '<div class="bar" style="border-bottom:0"><h1 style="font-size:22px">Danh mục<small style="display:block;font-size:12px;font-weight:500;color:var(--mute)">5 ngách HaoHao tuyển chọn và so giá</small></h1><a class="ib" href="#/tim" aria-label="Tìm kiếm">'+IC.search+'</a></div>'+
    '<div class="dm"><nav class="dm-l" aria-label="Ngách">'+NICHES.map(function(x){var on=x.id===n.id; return '<a href="#/danh-muc?n='+x.id+'"'+(on?' class="on" aria-current="true"':'')+'><span style="background:'+x.bg+'"><img src="'+API+'/shop/ngach-'+x.id+'.webp" alt=""></span>'+esc(x.label)+'</a>';}).join('')+'</nav>'+
