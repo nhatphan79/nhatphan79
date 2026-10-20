@@ -96,7 +96,7 @@ img{display:block}
 .me{margin:14px 16px 0;padding:18px;border-radius:20px;background:var(--peach);display:flex;align-items:center;gap:14px}.me img{width:64px;height:auto}.me b{font-size:20px}.me p{margin:4px 0 0;color:var(--soft);font-size:13px}
 .menu{margin:14px 16px 0;background:#fff;border-radius:18px;overflow:hidden}
 .menu a,.menu button{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;font-weight:500}
-.menu>:last-child{border-bottom:0}.menu .ic{width:32px;height:32px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}
+.menu>:last-child{border-bottom:0}.menu .ic{width:32px;height:32px;border-radius:10px;background:#FFF1E6;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}
 .menu .lb{flex:1}.menu .mt{font-size:12px;color:var(--mute)}
 .note{margin:16px;font-size:12px;line-height:1.6;color:var(--mute);text-align:center}
 .dm{display:flex;min-height:calc(100vh - 160px);border-top:1px solid var(--line)}
@@ -175,7 +175,7 @@ function skel(){ var s=''; for(var i=0;i<4;i++) s+='<div class="pc"><span class=
 function bar(title,back,right){ return '<div class="bar">'+(back?'<button class="ib" type="button" data-back aria-label="Quay lại">'+IC.back+'</button>':'')+'<h1>'+title+'</h1>'+(right||'')+'</div>'; }
 
 function drawTabs(){
-  var r=(location.hash||'#/').slice(1), cur=r==='/'||r===''?'home':/^\/(danh-muc)/.test(r)?'dm':/^\/uu-dai/.test(r)?'ud':/^\/yeu-thich/.test(r)?'yt':/^\/ca-nhan/.test(r)?'cn':'';
+  var r=(location.hash||'#/').slice(1), cur=r==='/'||r===''?'home':/^\/(danh-muc)/.test(r)?'dm':/^\/uu-dai/.test(r)?'ud':/^\/yeu-thich/.test(r)?'yt':/^\/(ca-nhan|da-xem)/.test(r)?'cn':'';
   var n=Object.keys(FAV).length;
   var T=[['home','#/','Trang chủ',IC.home],['dm','#/danh-muc','Danh mục',IC.grid],['ud','#/uu-dai','Ưu đãi',IC.tag],['yt','#/yeu-thich','Yêu thích',IC.heart],['cn','#/ca-nhan','Cá nhân',IC.user]];
   tabs.innerHTML=T.map(function(t){return '<a href="'+t[1]+'"'+(cur===t[0]?' class="on" aria-current="page"':'')+'><span class="bd2">'+t[3]+(t[0]==='yt'&&n?'<span class="cnt">'+n+'</span>':'')+'</span>'+t[2]+'</a>';}).join('');
@@ -242,15 +242,21 @@ function vFav(tab){
      return '<a href="#/sp/'+x.id+'" style="display:flex;gap:12px;padding:10px;background:#fff;border-radius:16px;align-items:center"><img src="'+esc(img(x))+'" alt="" loading="lazy" style="width:84px;height:84px;border-radius:12px;object-fit:cover;flex:none;background:#F6EDE5"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span class="nm" style="font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+esc(x.n)+'</span><span class="pr"><b>'+V(x.price)+'</b>'+(x.old>x.price?'<s>'+V(x.old)+'</s>':'')+'</span>'+(d?'<span class="tag" style="margin:0;align-self:flex-start">Giảm thêm '+V(d)+' từ lúc lưu</span>':'<span class="meta"><span class="plat"><i>S</i>Shopee</span></span>')+'</span><button class="hrt" type="button" data-fav="'+x.id+'" aria-pressed="true" aria-label="Bỏ yêu thích" style="position:static;flex:none">'+IC.heartS+'</button></a>';}).join('')+'</div>'
     :'<div class="empty">'+(tab==='giam'?'Chưa món nào giảm giá so với lúc bạn lưu.':'Bấm ♥ ở sản phẩm bạn thích để lưu vào đây. HaoHao sẽ báo khi giá giảm.')+'</div>')+'</div>';
 }
-function vMe(){
-  var M=[['👀','Sản phẩm đã xem','#/tim?s=lq',SEEN.length+' món'],['♥','Sản phẩm yêu thích','#/yeu-thich',Object.keys(FAV).length+' món'],['🏷️','Ưu đãi hôm nay','#/uu-dai',''],['📰','Tin tức · Cẩm nang mua sắm','/tin-tuc/',''],['🏡','Tiệm nhà HaoHao','/tiem-nha-hao','Đồ nhà làm'],['🐹','HaoHao App (tiện ích Chrome)','https://haohao.ai.studio/','']];
-  var L=[['🎵','Kênh TikTok HaoHao','https://www.tiktok.com/@haohaomall','@haohaomall'],['📘','Fanpage HaoHao','https://www.facebook.com/trolyHaoHao','trolyHaoHao'],['💬','Zalo hỗ trợ','https://zalo.me/84366159790','0366.159.790']];
-  function li(m){var ext=/^https?:/.test(m[2]); return '<a href="'+m[2]+'"'+(ext?' target="_blank" rel="noopener"':'')+'><span class="ic">'+m[0]+'</span><span class="lb">'+m[1]+'</span><span class="mt">'+m[3]+' ›</span></a>';}
-  return bar('Cá nhân')+'<div class="me"><img src="'+LOGO+'" alt=""><div><b>Xin chào!</b><p>HaoHao giúp bạn mua sắm không bị hớ</p></div></div>'+
-   '<div class="menu">'+M.map(li).join('')+'</div>'+
-   '<div class="menu">'+(INST||!STANDALONE?'<button type="button" id="inst"><span class="ic">📲</span><span class="lb">Cài HaoHao lên màn hình chính</span><span class="mt">›</span></button>':'')+L.map(li).join('')+'<a href="/?desktop=1"><span class="ic">💻</span><span class="lb">Xem bản máy tính</span><span class="mt">›</span></a></div>'+
-   '<p class="note">HaoHao không bán hàng trực tiếp và không giới thiệu sản phẩm một cách đại trà. Mỗi sản phẩm đều được tìm hiểu, chọn lọc kỹ trước khi chia sẻ. HaoHao hoạt động theo hình thức tiếp thị liên kết (Affiliate) – giá bạn mua không đổi.</p>';
+function vMe(){   /* 20/10: theo canvas 8 · Cá nhân, bản điện thoại rút gọn */
+  var ic=function(d){return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D9480F" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+d+'"/></svg>';};
+  var drop=Object.keys(FAV).filter(function(id){var x=BY[id]; return x&&FAV[id].p&&x.price<FAV[id].p;}).length;
+  var M=[['M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z','Sản phẩm đã xem','#/da-xem',SEEN.length?SEEN.length+' món':''],
+   ['M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z','Sản phẩm yêu thích','#/yeu-thich',Object.keys(FAV).length?Object.keys(FAV).length+' món':''],
+   ['M3 17l6-6 4 4 8-8M15 7h6v6','Theo dõi giá','#/yeu-thich/giam',drop?drop+' món đang giảm':'']];
+  var L=[['M9 18a3 3 0 1 1 0-6M9 18V4c1 2 3 4 6 4','Kênh TikTok HaoHao','https://www.tiktok.com/@haohaomall','@haohaomall'],
+   ['M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v7h4v-7h3l1-4h-4V8z','Fanpage HaoHao','https://www.facebook.com/trolyHaoHao','trolyHaoHao'],
+   ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01','Hỗ trợ qua Zalo','https://zalo.me/84366159790','0366.159.790']];
+  function li(m){var ext=/^https?:/.test(m[2]); return '<a href="'+m[2]+'"'+(ext?' target="_blank" rel="noopener"':'')+'><span class="ic">'+ic(m[0])+'</span><span class="lb">'+m[1]+'</span><span class="mt">'+m[3]+'</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8998D" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>';}
+  return '<div class="me" style="margin-top:calc(14px + env(safe-area-inset-top,0px))"><img src="'+LOGO+'" alt=""><div><b>Xin chào!</b><p>HaoHao giúp bạn mua sắm không bị hớ</p></div></div>'+
+   '<div class="menu">'+M.map(li).join('')+'</div><div class="menu">'+L.map(li).join('')+'</div>'+
+   '<p class="note">HaoHao không bán hàng trực tiếp. Bạn thanh toán trên Shopee / TikTok Shop; HaoHao có thể nhận hoa hồng giới thiệu mà giá của bạn không đổi.</p>';
 }
+function vSeen(){ var l=SEEN.map(function(id){return BY[id];}).filter(Boolean); return bar('Sản phẩm đã xem',true)+'<div class="sec" style="padding-top:12px">'+(READY?grid(l,'Bạn chưa xem sản phẩm nào.'):skel())+'</div>'; }
 function hist(x){ var a=HH['sp:'+x.shop+'.'+x.id]; return a&&a.length?a.filter(function(t){return HDAY-t[0]<=30&&t[1]>0;}):[]; }
 function verdict(x){
   var h=hist(x); if(h.length<3) return '<div class="box warn"><b>HaoHao đang theo dõi giá</b> · Chưa đủ 30 ngày dữ liệu cho món này. Giá hiện tại lấy trực tiếp từ Shopee.</div>';
@@ -308,6 +314,7 @@ function route(){
   else if(seg[0]==='uu-dai') html=vDeals(seg[1]||'');
   else if(seg[0]==='yeu-thich') html=vFav(seg[1]||'');
   else if(seg[0]==='ca-nhan') html=vMe();
+  else if(seg[0]==='da-xem') html=vSeen();
   else if(seg[0]==='sp') html=vDetail(seg[1]);
   else if(seg[0]==='so-sanh') html=vCompare(seg[1]);
   else html=vHome();
