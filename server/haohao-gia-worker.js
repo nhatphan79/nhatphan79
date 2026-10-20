@@ -511,8 +511,8 @@ async function storeSync(env) {
       for (const x of pl.itemList || []) {
         if (x.linkType && x.linkType !== 'ITEM') continue;
         const it = storeItem(x, g.niche, g.name);
-        if (!it.id || !it.price || seen.has(it.id)) continue;
-        seen.add(it.id); items.push(it); g.n++;
+        if (!it.id || !it.price || seen.has(g.id + ':' + it.id)) continue;   // 20/10: 1 món nằm ở nhiều danh mục thì hiện ở cả các danh mục đó
+        seen.add(g.id + ':' + it.id); items.push(it); g.n++;
       }
       if (!(pl.pagination || {}).hasMore) break;
     }
