@@ -1505,7 +1505,7 @@
     const host = document.createElement('div'); host.id = 'hattieu-host';
     const root = host.attachShadow({ mode: 'open' });
     HT.i18nWatch(root);          // giao diện tiếng Anh (nếu đã chọn English)
-    const storeBtn = `<button class="storebtn" aria-label="Mở HaoHao Store trên Shopee" tabindex="-1" hidden>🧡 HaoHao Store</button>`;
+    const storeBtn = `<button class="storebtn" aria-label="Mở web HaoHao Store (haohaostore.com)" tabindex="-1" hidden>🧡 HaoHao Store</button>`;
     const sats = BRANCHES.map(b => `<button class="sat" data-b="${b.id}" style="--c:${b.color}" aria-label="Mở ${b.label}" tabindex="-1">
         <svg viewBox="0 0 24 24" aria-hidden="true">${b.menuIcon || b.icon}</svg><b>${b.label}</b><span class="n" hidden></span></button>`).join('');
     const tabs = BRANCHES.map(b => `<button role="tab" data-t="${b.id}" style="--c:${b.color}" title="${b.label}" aria-label="${b.label}"><svg viewBox="0 0 24 24" aria-hidden="true">${b.icon}</svg><span>${b.label}</span></button>`).join('');
@@ -1530,7 +1530,7 @@
     placeWrap();
     setupDrag();
     const sb = root.querySelector('.storebtn');
-    sb.addEventListener('click', () => { toggleMenu(false); if (HT.SP.showcase) openDeal(HT.SP.showcase); });
+    sb.addEventListener('click', () => { toggleMenu(false); window.open('https://haohaostore.com/', '_blank', 'noopener'); });   // 21/10: nút dưới hamster mở web haohaostore.com
     ui.panel.addEventListener('dragover', e => { return; if ([...(e.dataTransfer && e.dataTransfer.items || [])].some(i => i.kind === 'file' && /^image\//.test(i.type))) { e.preventDefault(); ui.panel.classList.add('drop'); } });
     ui.panel.addEventListener('dragleave', () => ui.panel.classList.remove('drop'));
     ui.panel.addEventListener('drop', e => { return; const f = [...(e.dataTransfer && e.dataTransfer.files || [])].find(x => /^image\//.test(x.type)); ui.panel.classList.remove('drop'); if (f) { e.preventDefault(); ocrFile(f); } });
