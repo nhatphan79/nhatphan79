@@ -561,6 +561,10 @@ export default {
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url);
+    // 🌐 20/10: tên miền riêng haohaostore.com – www chuyển về tên chính, trang chủ = HaoHao Store
+    if (u.hostname === 'www.haohaostore.com') return Response.redirect('https://haohaostore.com' + u.pathname + u.search, 301);
+    if (u.hostname === 'haohaostore.com' && u.pathname === '/') return await shopFile('index.html', 'html');
+    if (u.hostname.endsWith('workers.dev') && (u.pathname === '/tin-tuc' || u.pathname.startsWith('/tin-tuc/'))) return Response.redirect('https://haohaostore.com' + u.pathname, 301);
     try {
       await init(env);
       if (u.pathname === '/p' && req.method === 'POST') {
