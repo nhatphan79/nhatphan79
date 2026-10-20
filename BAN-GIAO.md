@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 18/10/2026 · **Bản V1.79** (số kỹ thuật 1.10.335) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
+Cập nhật: 20/10/2026 · **Bản V1.80** (số kỹ thuật 1.10.336) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -37,6 +37,8 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 - App Transfer: mã ghép nối trong QR + lệnh điều khiển cần header `x-haohao`.
 
 ## Luật làm việc với anh
+0. **2 tài khoản Claude thay ca:** nhatphan79 làm thứ 7 → thứ 2; anhnhatpro79 làm thứ 3 → thứ 6. Thứ 6 tài khoản anhnhatpro79 phải cập nhật file này để bàn giao cho nhatphan79.
+0b. **HaoHao Store: sửa trên canvas thiết kế trước** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj), anh tự xem duyệt; chỉ khi anh nói "lên" mới đẩy web thật. Không hỏi lại, không tự làm thêm.
 1. **Trước khi sửa: gợi ý ngắn sẽ làm gì → anh đồng ý mới làm.** Anh nói thẳng "làm X" thì làm đúng X, không bày thêm.
 2. **Mỗi lần sửa xong:** tăng tên bản (`version_name`) thêm 1: V1.0 → V1.1 → V1.2 … → V1.9 → V1.10 → … V1.100 (luôn giữ "V1.", số sau 1–3 chữ số, KHÔNG lên V2) và tăng số kỹ thuật `version` (chạy ngầm cho tự nạp lại); báo cáo / bảng Đã làm ghi theo tên V1.x; đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
 3. **Tin nhắn anh chưa rõ: nói lại ý mình hiểu + hỏi "đúng chưa anh Nhật?" trước khi làm.**
@@ -49,6 +51,8 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.80 (1.10.336) | Chặn quảng cáo (`adhide.js`) không chạy trên trang HaoHao Store `haohao-gia.nhatphan79.workers.dev` (trước đó ẩn nhầm khu sản phẩm dẫn ra Shopee). Chưa phát hành. |
+| Web + máy chủ 20/10 | HaoHao Store: ngách theo SỐ 1–5 đầu tên danh mục collshp; Bán chạy nhất = Tất cả + ô chủ đề theo tên danh mục; khu sản phẩm thứ i = danh mục thứ i (đúng hàng anh chọn, không độn); ô tròn lọc theo tên món; tên SP tối đa 3 dòng; 5 ô tròn Thời trang ảnh chỉ có sản phẩm. Máy chủ STORE_V 5, ĐÃ Deploy. |
 | Máy chủ 19/10 | `/store`: đọc danh mục chủ app trên collshp.com/haohaostore (GraphQL công khai, cần `cid:'vn'`), 6 giờ/lần theo cron, chỉ lấy món trong danh mục (bỏ "Có thể bạn thích"); danh mục → 5 ngách web theo từ khoá tên, món → mục nhỏ theo từ khoá tên món; ghi giá vào kho `gia`. `/store?run=1&key=STATS_KEY` chạy ngay. Dùng cho web HaoHao Store. Cần Deploy |
 | V1.72 (1.10.328) | Mảng mẫu Airdrop: cột Tiến độ thay bằng **5 ô tích "5 trình duyệt"** (`p.br=[0/1 ×5]`), anh tự tích, không tự xoá theo ngày, không liên kết hồ sơ Chrome (anh chọn tự tích). Chưa phát hành. |
 | V1.73 (1.10.329) | Soi sản phẩm bản Store (anh chọn **A**): `HT.STORE` → ẩn "HH %" và nút xếp "% HH", bấm món / tìm Shopee mở **link thường** (`spyOpen` → `prod-open`, không qua `HT.aff`). Bản thường giữ nguyên. `prod-open` chỉ nhận https. Email hỗ trợ Store: nhatphan79@gmail.com. Chưa phát hành. |
