@@ -527,6 +527,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'subs-relay' && sender.tab && /^hh-subs-(offer|active|status|hint|nosub)$/.test(msg.ev)) { chrome.tabs.sendMessage(sender.tab.id, { type: 'subs-ev', ev: msg.ev, detail: msg.detail }, { frameId: 0 }).catch(() => {}); return; }
   if (msg.type === 'ai-subs') { aiSubs(msg).then(lines => send({ ok: true, lines })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-read') { aiRead(msg, chunkTo(msg, sender)).then(text => send({ ok: true, text })).catch(e => send({ ok: false, error: e.message })); return true; }
+  if (msg.type === 'ai-check') { aiCheck(msg.key).then(r => send({ ok: true, ...r })).catch(e => send({ ok: false, error: e.message })); return true; }   // V1.86: kiểm tra mã nhanh
   if (msg.type === 'ai-test') { gemini([{ role: 'user', parts: [{ text: 'Trả lời đúng một chữ: OK' }] }], 'Trả lời ngắn.').then(t => send({ ok: true, text: t })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'mail-check-now') { checkMail(true).then(send); return true; }
   if (msg.type === 'mail-accounts') { mailAccounts().then(send).catch(() => send(null)); return true; }
@@ -2142,3 +2143,23 @@ async function updCheck(force) {
 }
 
 const TFH = { 'x-haohao': '1' };   // V1.6: app Transfer chỉ nhận lệnh có header này (trang web lạ không gửi được)
+
+// 🔑 V1.86: kiểm tra mã Gemini nhanh – chỉ hỏi Google danh sách mẫu (không bắt Gemini viết), tối đa 10 giây
+async function aiCheck(key) {
+  key = String(key || '').trim(); if (!key) throw new Error('nokey');
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 10000);
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key }, signal: ac.signal, cache: 'no-store' });
+    const j = await r.json().catch(() => ({})), em = JSON.stringify(j.error || {});
+    if (r.status === 429) throw new Error('quota');
+    if (r.status === 400 || r.status === 401 || r.status === 403) throw new Error(/api.?key|invalid|permission|unauth/i.test(em) || r.status !== 400 ? 'badkey' : ((j.error && j.error.message) || 'HTTP ' + r.status));
+    if (!r.ok) throw new Error((j.error && j.error.message) || 'HTTP ' + r.status);
+    const n = (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/.test(m.name || '')).length;
+    if (!n) throw new Error('nomodel');
+    return { models: n };
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('timeout');
+    if (e instanceof TypeError) throw new Error('net');
+    throw e;
+  } finally { clearTimeout(tm); }
+}

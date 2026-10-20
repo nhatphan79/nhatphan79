@@ -241,13 +241,33 @@ if (location.hash === '#outlook') document.querySelector('nav button[data-tab="s
   $('#aiKey').value = ai.key || ''; $('#aiModel').value = ai.model || '';
   $('#aiState').textContent = ai.key ? 'Đã có mã.' : 'Chưa có mã.';
 })();
-$('#aiSave').addEventListener('click', async () => {
+// V1.86: dán mã là tự lưu + tự kiểm tra nhanh (dưới 1 giây, tối đa 10 giây), có đếm giây khi chờ
+async function aiSaveKey() {
   const { settings: st = {} } = await chrome.storage.local.get('settings');
   st.ai = { ...(st.ai || {}), key: $('#aiKey').value.trim(), model: $('#aiModel').value.trim() };
   await chrome.storage.local.set({ settings: st });
-  $('#aiState').textContent = 'Đã lưu.';
+}
+let aiRun = 0;
+async function aiCheckKey() {
+  const key = $('#aiKey').value.trim(), st = $('#aiState'), run = ++aiRun;
+  if (!key) { st.textContent = 'Chưa có mã.'; return; }
+  const t0 = Date.now(); st.textContent = 'Đang kiểm tra… 0s';
+  const tk = setInterval(() => { if (run === aiRun) st.textContent = `Đang kiểm tra… ${Math.floor((Date.now() - t0) / 1000)}s`; }, 500);
+  const r = await chrome.runtime.sendMessage({ type: 'ai-check', key }).catch(e => ({ ok: false, error: e.message }));
+  clearInterval(tk); if (run !== aiRun) return;
+  const map = { badkey: 'Mã không đúng. Kiểm tra lại mã vừa dán nhé.', timeout: 'Mạng chậm hoặc Google chưa phản hồi, thử lại sau nhé.', net: 'Không kết nối được mạng.',
+    quota: 'Mã đúng nhưng đang hết lượt miễn phí, thử lại sau.', nomodel: 'Mã này chưa dùng được Gemini (tài khoản Google chưa bật).', nokey: 'Chưa có mã.' };
+  st.textContent = r && r.ok ? '✓ Mã đúng, đã sẵn sàng dùng.' : '⚠ ' + ((r && (map[r.error] || r.error)) || 'lỗi không rõ');
+}
+let aiTm = 0;
+$('#aiKey').addEventListener('input', () => {
+  clearTimeout(aiTm); const v = $('#aiKey').value.trim();
+  if (v.length < 30) return;   // mã Gemini dài ~39 ký tự: dán xong mới kiểm tra
+  aiTm = setTimeout(async () => { await aiSaveKey(); aiCheckKey(); }, 400);
 });
-$('#aiTest').addEventListener('click', async () => {
+$('#aiSave').addEventListener('click', async () => { await aiSaveKey(); $('#aiKey').value.trim() ? aiCheckKey() : ($('#aiState').textContent = 'Đã lưu.'); });
+$('#aiTest').addEventListener('click', async () => { await aiSaveKey(); aiCheckKey(); });
+$('#aiTestOld') && $('#aiTestOld').addEventListener('click', async () => {
   $('#aiState').textContent = 'Đang thử…';
   const r = await chrome.runtime.sendMessage({ type: 'ai-test' }).catch(e => ({ ok: false, error: e.message }));
   const map = { nokey: 'chưa có mã (bấm Lưu trước)', badkey: 'mã không đúng', quota: 'hết lượt miễn phí, thử lại sau', busy: 'Gemini đang quá tải, đợi 1–2 phút rồi thử lại' };
