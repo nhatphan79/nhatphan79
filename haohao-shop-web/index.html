@@ -444,6 +444,9 @@ var THEMES={
 };
 
 var app=document.getElementById('app'), nav=document.getElementById('nav');
+/* 20/10: hiện menu ngay; phần dựng sẵn cho Google (.seo) ẩn đi, thay bằng màn chờ cho tới khi web vẽ xong */
+try{ renderNav(''); }catch(e){}
+(function(){ var sx=app.querySelector('.seo'); if(sx){ sx.style.display='none'; app.insertAdjacentHTML('afterbegin','<div class="boot" style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#7A5A44;font-size:14px"><img src="'+HH+'" alt="" width="84" style="animation:float 1.6s ease-in-out infinite">Đang tải HaoHao Store…</div>'); } })();
 var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var timers=[];
 function clearTimers(){timers.forEach(clearInterval);timers=[];}
