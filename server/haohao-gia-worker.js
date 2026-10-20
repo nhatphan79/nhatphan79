@@ -555,7 +555,7 @@ async function storeGet(env) {
 
 // 🛒 20/10: Tiệm nhà Hao – khách bấm "Gửi đơn" trên web → máy chủ gửi đơn vào Zalo của chủ tiệm qua Zalo Bot.
 // Mã bot nằm ở Cloudflare (Settings → Variables → secret ZALO_BOT), KHÔNG để trong code/GitHub.
-const ZALO_CHAT = '';   // id Zalo của chủ tiệm (lấy 1 lần qua /zbot sau khi nhắn bot)
+const ZALO_CHAT = '61a19044f013194d4002';   // id Zalo của chủ tiệm (Phan Nhật) – lấy ngày 20/10
 const zbot = (env, m, body) => fetch('https://bot-api.zaloplatforms.com/bot' + env.ZALO_BOT + '/' + m, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) }).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
 async function donHang(env, b, req) {
   if (!env.ZALO_BOT) return { ok: false, error: 'Tiệm chưa bật nhận đơn' };
@@ -641,12 +641,6 @@ export default {
       if (u.pathname === '/sitemap.xml') return await shopFile('sitemap.xml', 'xml');
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
-      if (u.pathname === '/zbot') {   // 20/10: TẠM – xem id Zalo của người vừa nhắn bot để điền ZALO_CHAT (xong sẽ gỡ)
-        if (!env.ZALO_BOT) return json({ ok: false, error: 'chưa có ZALO_BOT' });
-        const me = await zbot(env, 'getMe'), up = await zbot(env, 'getUpdates', { timeout: Math.max(1, Math.min(25, +u.searchParams.get('t') || 25)) });
-        const res = [].concat(up && up.result || []).map(x => { const m = x.message || x; return { chat: m.chat && m.chat.id, from: m.from && (m.from.display_name || m.from.name || m.from.id), text: String(m.text || '').slice(0, 20) }; });
-        return json({ bot: me && me.result && (me.result.account_name || me.result.display_name), ok: up && up.ok, error: up && (up.description || up.error), chats: res });
-      }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
         if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }
         return json(await storeGet(env), 200, { 'cache-control': 'public, max-age=300' });
