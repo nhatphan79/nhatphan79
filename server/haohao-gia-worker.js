@@ -521,7 +521,8 @@ async function storeSync(env) {
     }
   }
   const data = { ok: true, v: STORE_V, at: Date.now(), groups, items };
-  await setSt(env, 'store', data);
+  await storeCachePut(data);   // 20/10: cất thêm 1 bản ở bộ nhớ đệm Cloudflare (không tính hạn mức D1)
+  await setSt(env, 'store', data).catch(() => {});
   await save(env, items.filter(x => x.shop).map(x => ({ k: `sp:${x.shop}.${x.id}`, p: x.price, b: x.old > x.price ? x.old : 0 }))).catch(() => {});   // ghi luôn vào kho giá
   return data;
 }
@@ -533,11 +534,22 @@ async function storeMaybe(env, force) {
   try { const d = await storeSync(env); await setSt(env, 'storeRun', { at: Date.now(), n: d.items.length }); return { ok: true, n: d.items.length, groups: d.groups }; }
   catch (e) { const err = String(e && e.message || e).slice(0, 200); await setSt(env, 'storeRun', { at: Date.now(), err }); return { ok: false, error: err }; }
 }
+// 20/10: bản dự phòng ở bộ nhớ đệm Cloudflare – web Store vẫn chạy khi D1 bị khoá/lỗi
+const STORE_CK = 'https://haohaostore.com/__store-cache-v' + STORE_V;
+async function storeCachePut(d) { try { await caches.default.put(STORE_CK, new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json', 'cache-control': 'max-age=172800' } })); } catch {} }
+async function storeCacheGet() { try { const r = await caches.default.match(STORE_CK); return r ? await r.json() : null; } catch { return null; } }
 async function storeGet(env) {
-  let d = await getSt(env, 'store');
-  if (!d || d.v !== STORE_V) { await storeMaybe(env, true); d = await getSt(env, 'store') || d; }   // dữ liệu bản cũ → đọc lại ngay
-  const run = await getSt(env, 'storeRun').catch(() => null);
-  return d ? { ...d, run } : { ok: false, error: (run && run.err) || 'chưa có dữ liệu', items: [], groups: [] };
+  try {
+    let d = await getSt(env, 'store');
+    if (!d || d.v !== STORE_V) { await storeMaybe(env, true); d = await getSt(env, 'store') || d; }   // dữ liệu bản cũ → đọc lại ngay
+    const run = await getSt(env, 'storeRun').catch(() => null);
+    if (d && d.v === STORE_V) await storeCachePut(d);
+    return d ? { ...d, run } : { ok: false, error: (run && run.err) || 'chưa có dữ liệu', items: [], groups: [] };
+  } catch (e) {   // D1 lỗi → bản đệm, chưa có thì lấy thẳng collshp
+    const c = await storeCacheGet(); if (c) return { ...c, from: 'cache' };
+    try { const d = await storeSync(env); return { ...d, from: 'live' }; }
+    catch (e2) { return { ok: false, error: String(e2 && e2.message || e2).slice(0, 200), items: [], groups: [] }; }
+  }
 }
 
 // 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
