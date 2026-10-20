@@ -21,17 +21,18 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--orange);outline-off
 
 /* header */
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--cream)}
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(255,248,239,.92);backdrop-filter:blur(8px)}
-.top .wrap{display:flex;align-items:center;justify-content:flex-start;gap:12px 28px;flex-wrap:wrap;padding-block:14px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:24px;letter-spacing:-.5px;text-decoration:none;color:var(--ink)}
-.logo img{width:40px;height:auto;display:block}
-.logo b{color:var(--orange)}
-.nav{display:flex;flex-wrap:wrap;gap:4px;padding:6px;border-radius:30px;background:rgba(255,255,255,.85);box-shadow:0 8px 24px rgba(194,94,10,.08)}
-.nav a{display:flex;align-items:center;height:40px;padding:0 14px;border-radius:22px;font-size:13px;font-weight:800;letter-spacing:.5px;text-decoration:none;color:var(--ink)}
-.nav a:hover{background:#FFEBD6}
-.nav a.on{background:#FFEBD6;box-shadow:inset 0 0 0 2px var(--orange)}
-.nav a.sale{background:var(--orange);color:var(--white)}
-.nav a.hh{gap:6px;color:#E8760C;font-weight:800}.nav a.hh img{display:block}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #EEE6DF}
+.top .wrap{display:flex;align-items:center;justify-content:flex-start;gap:8px 28px;flex-wrap:wrap;min-height:72px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:24px;letter-spacing:-.5px;text-decoration:none;color:#1E1A17}
+.logo img{width:36px;height:auto;display:block}
+.logo b{color:#D9480F}
+/* 20/10: menu phẳng, cùng hàng logo (theo canvas) */
+.nav{flex:1 1 520px;display:flex;flex-wrap:wrap;align-items:center}
+.nav a{display:flex;align-items:center;gap:6px;height:72px;padding:0 12px;font-size:15px;font-weight:500;text-decoration:none;color:#1E1A17;white-space:nowrap}
+.nav a:hover{box-shadow:inset 0 -3px 0 #D9480F}
+.nav a.on{box-shadow:inset 0 -3px 0 #D9480F}
+.nav a.sale{color:#D9480F}
+.nav a.hh{color:#E8760C;font-weight:800}.nav a.hh img{display:block}
 .search{position:relative;display:flex;align-items:center;gap:8px;width:230px;height:42px;padding:0 14px;border:1px solid #D9CBBE;border-radius:8px;background:var(--white);color:#6B5D53}
 .search input{flex:1;min-width:0;border:0;outline:none;background:transparent;font:inherit;font-size:14px;color:var(--ink)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -222,7 +223,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 @media (max-width: 860px){
   .search{order:2;flex:1 1 160px;width:auto}
-  .nav{order:3;width:100%;justify-content:center}
+  .nav{order:3;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .nav a{height:44px;font-size:14px}
   .stage{min-height:600px}
   .mascot{left:50%;bottom:auto;top:0;width:200px;margin-left:-100px}
   .mascot img{width:150px;margin:0 auto}
@@ -455,7 +457,7 @@ var LEFT='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="cu
 var RIGHT='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 
 function renderNav(cur){
-  var h='<a href="/tin-tuc/">TIN TỨC</a><a class="sale" href="#sale"'+(cur==='sale'?' aria-current="page" style="box-shadow:inset 0 0 0 2px #3A2414"':'')+'>SALE</a>';
+  var h='<a href="/tin-tuc/">TIN TỨC</a><a class="sale" href="#sale"'+(cur==='sale'?' aria-current="page" style="box-shadow:inset 0 -3px 0 #D9480F"':'')+'>SALE</a>';
   NICHES.forEach(function(n){h+='<a href="#'+n.id+'"'+(cur===n.id?' class="on" aria-current="page"':'')+'>'+esc(n.label.toUpperCase())+'</a>';});
   h+='<a class="hh" href="/tiem-nha-hao"><img src="/shop/nha.svg" alt="" width="24" height="25">TIỆM NHÀ HAO</a>';   /* 20/10: Tiệm nhà Hao – đồ nhà làm, đặt qua Zalo */
   h+='<a class="hh" href="https://haohao.ai.studio/" target="_blank" rel="noopener"><img src="'+HH+'" alt="" width="24" height="25">HAOHAO APP</a>';   /* 20/10: Tiện ích HaoHao */
