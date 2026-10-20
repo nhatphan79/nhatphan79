@@ -552,6 +552,28 @@ async function storeGet(env) {
   }
 }
 
+
+// 🛒 20/10: Tiệm nhà Hao – khách bấm "Gửi đơn" trên web → máy chủ gửi đơn vào Zalo của chủ tiệm qua Zalo Bot.
+// Mã bot nằm ở Cloudflare (Settings → Variables → secret ZALO_BOT), KHÔNG để trong code/GitHub.
+const ZALO_CHAT = '';   // id Zalo của chủ tiệm (lấy 1 lần qua /zbot sau khi nhắn bot)
+const zbot = (env, m, body) => fetch('https://bot-api.zaloplatforms.com/bot' + env.ZALO_BOT + '/' + m, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) }).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
+async function donHang(env, b, req) {
+  if (!env.ZALO_BOT) return { ok: false, error: 'Tiệm chưa bật nhận đơn' };
+  const chat = ZALO_CHAT || env.ZALO_CHAT; if (!chat) return { ok: false, error: 'Tiệm chưa bật nhận đơn' };
+  const t = v => String(v || '').replace(/[\u0000-\u001f]/g, ' ').trim();
+  const ten = t(b && b.ten).slice(0, 60), sdt = t(b && b.sdt).replace(/[^\d+ .]/g, '').slice(0, 15), dc = t(b && b.dc).slice(0, 200), gc = t(b && b.gc).slice(0, 200);
+  const mon = (Array.isArray(b && b.mon) ? b.mon : []).slice(0, 30).map(x => ({ ten: t(x.ten).slice(0, 80), q: Math.max(1, Math.min(99, Math.round(+x.q || 1))), gia: Math.max(0, Math.round(+x.gia || 0)) })).filter(x => x.ten);
+  if (!ten || sdt.replace(/\D/g, '').length < 9 || !dc || !mon.length) return { ok: false, error: 'Thiếu tên, số điện thoại, địa chỉ hoặc món' };
+  // chống spam: mỗi IP tối đa 5 đơn / giờ (đếm bằng bộ nhớ đệm, không dùng D1)
+  const ip = req.headers.get('CF-Connecting-IP') || '', ck = 'https://haohaostore.com/__don/' + encodeURIComponent(ip) + '/' + Math.floor(Date.now() / 3600e3);
+  const c = await caches.default.match(ck).then(r => r ? r.json() : 0).catch(() => 0); if (c >= 5) return { ok: false, error: 'Bạn gửi nhiều đơn quá, vui lòng nhắn Zalo tiệm' };
+  await caches.default.put(ck, new Response(JSON.stringify(c + 1), { headers: { 'cache-control': 'max-age=3600' } })).catch(() => {});
+  const vnd = n => n.toLocaleString('vi-VN') + 'đ', tot = mon.reduce((a, x) => a + x.gia * x.q, 0);
+  const text = '🛒 ĐƠN MỚI – Tiệm nhà Hao\n' + mon.map(x => '• ' + x.ten + ' × ' + x.q + (x.gia ? ' = ' + vnd(x.gia * x.q) : '')).join('\n') + '\nTạm tính: ' + (tot ? vnd(tot) : 'chờ báo giá') + '\n\n👤 ' + ten + '\n📞 ' + sdt + '\n📍 ' + dc + (gc ? '\n📝 ' + gc : '') + '\n🕒 ' + new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+  const r = await zbot(env, 'sendMessage', { chat_id: chat, text: text.slice(0, 1990) });
+  return r && r.ok ? { ok: true } : { ok: false, error: 'Chưa gửi được đơn, vui lòng nhắn Zalo tiệm' };
+}
+
 // 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
 const SHOP_SRC = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/';
 const SHOP_TYPE = { xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
@@ -618,6 +640,13 @@ export default {
       if (u.pathname === '/tiem-nha-hao' || u.pathname === '/tiem-nha-hao/') return await shopFile('tiem-nha-hao.html', 'html');   // 🏠 20/10: Tiệm nhà Hao
       if (u.pathname === '/sitemap.xml') return await shopFile('sitemap.xml', 'xml');
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
+      if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
+      if (u.pathname === '/zbot') {   // 20/10: TẠM – xem id Zalo của người vừa nhắn bot để điền ZALO_CHAT (xong sẽ gỡ)
+        if (!env.ZALO_BOT) return json({ ok: false, error: 'chưa có ZALO_BOT' });
+        const me = await zbot(env, 'getMe'), up = await zbot(env, 'getUpdates', { timeout: 1 });
+        const res = [].concat(up && up.result || []).map(x => { const m = x.message || x; return { chat: m.chat && m.chat.id, from: m.from && (m.from.display_name || m.from.name || m.from.id), text: String(m.text || '').slice(0, 20) }; });
+        return json({ bot: me && me.result && (me.result.account_name || me.result.display_name), ok: up && up.ok, error: up && (up.description || up.error), chats: res });
+      }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
         if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }
         return json(await storeGet(env), 200, { 'cache-control': 'public, max-age=300' });
