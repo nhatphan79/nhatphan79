@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://haohao-gia.nhatphan79.workers.dev/sitemap.xml
