@@ -360,9 +360,10 @@
     // V1.84: 🏦 Tổng tài sản = Vốn + Lợi nhuận − Đã rút (từ trước tới nay) · Tổng chi = vốn đã bỏ vào · bỏ ô Tổng thu
     const mAll = OP().filter(p => !ledger(p) && (p.von || p.lai));
     const HA = OP().flatMap(p => (p.folders || []).filter(f => f.kind === 'hold' && (f.holds || []).length).map(f => holdCalc(f)));
-    const tA = all.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + mAll.reduce((a, p) => a + mV(p, 'von') + mV(p, 'lai'), 0) + HA.reduce((a, h) => a + toVnd(h.val, 'usdt'), 0);
-    const cA = all.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + mAll.reduce((a, p) => a + mV(p, 'von'), 0) + HA.reduce((a, h) => a + toVnd(h.cost, 'usdt'), 0);
-    const rA = areas().reduce((a, A) => a + (isIdeaA(A) ? 0 : rutSum(A)), 0), lA = tA - cA;
+    // V1.84: lấy đúng cột Vốn đầu tư / Lãi-lỗ của bảng dự án (sổ thu chi, Hold, Trade, số gõ tay) – quy ra VND
+    const cA = OP().reduce((a, p) => a + toVnd(vonOf(p), curOf(p)), 0);
+    const lA = OP().reduce((a, p) => a + toVnd(laiOf(p), curOf(p)), 0);
+    const rA = areas().reduce((a, A) => a + (isIdeaA(A) ? 0 : rutSum(A)), 0);
     kp('🏦 Tổng tài sản', fmtC(cA + lA - rA, cu), 'tsan', 'vốn + lợi nhuận − đã rút');
     kp('Tổng chi', fmtC(cA, cu), 'chi', 'vốn đã bỏ vào');
     kp(loi < 0 ? 'Lỗ' : 'Lợi nhuận', fmtC(loi, cu, true), 'loi' + (loi > 0 ? ' pos' : loi < 0 ? ' neg' : ''), R.label);
