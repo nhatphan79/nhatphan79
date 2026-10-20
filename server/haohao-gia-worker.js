@@ -628,6 +628,25 @@ async function seoSitemap(env) {
   return new Response(x, { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
 }
 
+
+// 🌐 20/10: Dịch cả trang cho tiện ích – gửi nhiều đoạn 1 lần lên Google Dịch (nhanh như "Dịch sang tiếng Việt" của Chrome)
+async function dichTrang(b) {
+  const q = (Array.isArray(b && b.q) ? b.q : []).slice(0, 150).map(x => String(x || '').slice(0, 3000));
+  const tl = /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(String(b && b.tl || '')) ? b.tl : 'vi';
+  if (!q.length) return { ok: true, items: [] };
+  let total = 0; const parts = [[]]; for (const x of q) { if (total + x.length > 4500 && parts[parts.length - 1].length) { parts.push([]); total = 0; } parts[parts.length - 1].push(x); total += x.length; }
+  const one = async arr => {
+    const body = new URLSearchParams(); arr.forEach(x => body.append('q', x));
+    const r = await fetch('https://translate.googleapis.com/translate_a/t?client=gtx&sl=auto&tl=' + encodeURIComponent(tl) + '&dt=t', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body });
+    if (!r.ok) throw new Error('Google Dịch ' + r.status);
+    let j = await r.json(); if (arr.length === 1) j = [j];
+    return j.map(v => Array.isArray(v) ? { t: String(v[0] || ''), l: String(v[1] || '') } : { t: String(v || ''), l: '' });
+  };
+  const res = (await Promise.all(parts.map(one))).flat();
+  const cnt = {}; res.forEach(x => { if (x.l) cnt[x.l] = (cnt[x.l] || 0) + 1; });
+  return { ok: true, items: res.map(x => x.t), lang: (Object.entries(cnt).sort((a, c) => c[1] - a[1])[0] || [''])[0] };
+}
+
 // 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
 const SHOP_SRC = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/';
 const SHOP_TYPE = { webmanifest: 'application/manifest+json; charset=utf-8', xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
@@ -707,6 +726,7 @@ export default {
       if (u.pathname === '/manifest.webmanifest') return await shopFile('manifest.webmanifest', 'webmanifest');   // 🏠 20/10: Tiệm nhà Hao
       if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
+      if (u.pathname === '/dich' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 200000) return json({ ok: false, error: 'too big' }, 413); try { return json(await dichTrang(await req.json().catch(() => null))); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
         if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }
