@@ -118,6 +118,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .trust svg{width:40px;height:40px;stroke-width:1.3}
 .trust b{display:block;font-size:14px;text-transform:uppercase;letter-spacing:.3px}
 .trust small{font-size:13px;color:#6B5D53}
+.sl-h{margin:0 0 14px;font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700}.sl-h i{font-weight:600;color:var(--sale)}.sl-kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.sl-k{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 8px 14px;border-radius:16px;border:2px solid transparent;font:inherit;font-size:14px;font-weight:700;color:var(--dark);cursor:pointer}.sl-k.on{border-color:var(--dark)}.sl-wrap{margin-top:40px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.sl-f{flex:1 1 240px;max-width:100%;display:flex;flex-direction:column;gap:22px;padding:20px;border:1px solid #EEE6DF;border-radius:18px}.sl-fh{display:flex;align-items:center;justify-content:space-between}.sl-fh h2{margin:0;font-size:16px;font-weight:800;text-transform:uppercase}.sl-fh button{height:36px;padding:0 8px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:#B23A0B;cursor:pointer}.sl-f fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.sl-f legend{font-size:14px;font-weight:700;margin-bottom:8px}.sl-f label{display:flex;align-items:center;gap:10px;min-height:32px;font-size:14px;cursor:pointer}.sl-f input{width:18px;height:18px;accent-color:var(--sale)}.sl-good{align-items:flex-start!important;padding:12px;border-radius:12px;background:var(--good-bg);color:#1D4D33}.sl-good input{accent-color:var(--good)!important;margin-top:2px}.sl-good small{font-size:13px}.sl-r{flex:999 1 560px;min-width:0}.sl-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.sl-top p{margin:0;font-size:14px;color:#6B5D53}.sl-top b{color:var(--dark)}.sl-sort{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}.sl-sort select{height:44px;padding:0 12px;border:1.5px solid var(--dark);background:#fff;font:inherit;font-size:14px}.sl-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))!important}
 .sec{margin-top:52px}
 .sec-h{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px}
 .sec h2{margin:0;font-family:var(--f-display);font-size:clamp(26px,3.4vw,36px);font-weight:700}
@@ -642,18 +643,51 @@ function renderSale(){
   app.innerHTML=
    '<section class="n-hero" style="background:#1E1A17;color:#fff"><div class="wrap"><div class="n-text"><nav class="crumb" aria-label="Đường dẫn"><a href="#trang-chu">Trang chủ</a> / Sale</nav><span class="k" style="color:#F59A5C">Sale cả 5 ngách</span><h1>Sale <i style="color:#F59A5C">thật</i></h1><p>Món HaoHao chọn đang giảm giá ở cả 5 ngách, xếp theo mức giảm nhiều nhất. Giá thật lấy từ Shopee và TikTok Shop.</p><div class="chips" id="chips"></div></div>'+
    '<div class="n-art"><span style="background:#3A2E27">'+svg('M14 14 H52 L88 50 L50 88 L14 52 Z M30 26 A6 6 0 1 1 29.9 26 Z','#F59A5C')+'</span><span style="background:#FDE2E7">'+svg(S.DRESS,'#F29BB0')+'</span><span style="background:#FFF1CF">'+svg(S.GIFT,'#D9480F')+'</span></div></div></section>'+
-   '<div class="wrap" style="background:var(--white)"><section class="sec"><div class="sec-h"><h2>Giảm giá <i style="color:var(--sale)">nhiều nhất</i></h2><span class="meta" id="cnt"></span></div><div class="grid" id="sg"></div></section><div style="height:1px"></div></div>'+
+   '<div class="wrap" style="background:var(--white)">'+
+   '<section class="sec"><h2 class="sl-h">Mua theo <i>loại</i></h2><div class="sl-kinds" id="kinds"></div></section>'+
+   '<section class="sl-wrap"><aside class="sl-f" aria-label="Bộ lọc"><div class="sl-fh"><h2>Bộ lọc</h2><button type="button" id="sl-reset">Xoá lọc</button></div>'+
+   '<fieldset><legend>Sàn</legend><label><input type="checkbox" id="f-sp" checked>Shopee</label><label><input type="checkbox" id="f-tt" checked>TikTok Shop</label></fieldset>'+
+   '<fieldset><legend>Khoảng giá</legend>'+[['all','Tất cả'],['b1','Dưới 100.000đ'],['b2','100.000đ – 200.000đ'],['b3','Trên 200.000đ']].map(function(b,i){return '<label><input type="radio" name="band" value="'+b[0]+'"'+(i?'':' checked')+'>'+b[1]+'</label>';}).join('')+'</fieldset>'+
+   '<label class="sl-good"><input type="checkbox" id="f-good"><span><b>Chỉ hiện "Giá tốt"</b><br><small>Thấp hơn giá trung bình 30 ngày</small></span></label></aside>'+
+   '<div class="sl-r"><div class="sl-top"><p><b id="cnt"></b> sản phẩm · <span id="sub">Tất cả</span></p><label class="sl-sort">Sắp xếp<select id="sort"><option value="ban">Bán chạy</option><option value="re">Giá thấp → cao</option><option value="cao">Giá cao → thấp</option><option value="giam">Giảm nhiều nhất</option></select></label></div>'+
+   '<p class="cat-empty" id="sl-empty" hidden>Chưa có món nào khớp bộ lọc. Thử bỏ bớt điều kiện nhé.</p><div class="grid sl-grid" id="sg"></div></div></section><div style="height:1px"></div></div>'+
    FOOT()+'<a class="float-hh" href="#trang-chu" aria-label="Về trang chủ"><img src="'+HH+'" alt=""></a>';
   document.body.style.background='var(--white)';
-  var chips=document.getElementById('chips'), sg=document.getElementById('sg'), cnt=document.getElementById('cnt');
+  /* 20/10: Sale theo bản thiết kế – Mua theo loại + Bộ lọc (sàn, khoảng giá, Giá tốt) + Sắp xếp, hàng thật */
+  var chips=document.getElementById('chips'), sg=document.getElementById('sg'), cnt=document.getElementById('cnt'), kindsEl=document.getElementById('kinds');
+  var kind='', sort='ban', band='all';
+  var TAGP='M14 14 H52 L88 50 L50 88 L14 52 Z M30 26 A6 6 0 1 1 29.9 26 Z';
+  var KINDS=[['g30','Giảm trên 30%','#FDE3D6','#D9480F'],['d99','Đồng giá 99k','#FFF1CF','#D9A63A'],['u50','Dưới 50k','#E4F4EC','#7CC4A0'],['hot','Bán chạy nhất','#E3EEFB','#2F6DB5']];
+  var off=function(p){return p.old>p.price?(1-p.price/p.old):0;};
   function draw(){
     var defs=[{id:'all',label:'Tất cả'}].concat(NICHES.map(function(n){return {id:n.id,label:n.label};}));
     chips.innerHTML=defs.map(function(d){return '<button type="button" class="chip'+(d.id===pick?' on':'')+'" aria-pressed="'+(d.id===pick)+'" data-c="'+d.id+'">'+esc(d.label)+'</button>';}).join('');
-    var list=all.filter(function(p){return pick==='all'||p.niche===pick;});
-    cnt.textContent=list.length+' món';
+    kindsEl.innerHTML=KINDS.map(function(k){var on=k[0]===kind; return '<button type="button" class="sl-k'+(on?' on':'')+'" aria-pressed="'+on+'" data-k="'+k[0]+'" style="background:'+k[2]+'">'+svg(TAGP,k[3],' width="64" height="60"')+esc(k[1])+'</button>';}).join('');
+    var sp=document.getElementById('f-sp').checked, tt=document.getElementById('f-tt').checked, good=document.getElementById('f-good').checked;
+    var B={all:[0,1e12],b1:[0,99999],b2:[100000,200000],b3:[200001,1e12]}[band];
+    var list=all.filter(function(p){
+      if(pick!=='all'&&p.niche!==pick) return false;
+      if((p.plat===TT?!tt:!sp)) return false;
+      if(p.price<B[0]||p.price>B[1]) return false;
+      if(good&&!p.good) return false;
+      if(kind==='g30'&&off(p)<0.3) return false;
+      if(kind==='d99'&&p.price>99000) return false;
+      if(kind==='u50'&&p.price>=50000) return false;
+      if(kind==='hot'&&(+p.sold||0)<1000) return false;
+      return true;
+    });
+    var SO={ban:function(a,b){return (+b.sold||0)-(+a.sold||0);},re:function(a,b){return a.price-b.price;},cao:function(a,b){return b.price-a.price;},giam:function(a,b){return off(b)-off(a);}};
+    list.sort(SO[sort]);
+    cnt.textContent=list.length;
+    document.getElementById('sub').textContent=defs.filter(function(d){return d.id===pick;})[0].label+(kind?' · '+KINDS.filter(function(k){return k[0]===kind;})[0][1]:'');
+    document.getElementById('sl-empty').hidden=list.length>0;
     sg.innerHTML=list.map(function(p){return card(p,false);}).join('');
   }
   chips.addEventListener('click',function(e){var b=e.target.closest('button[data-c]'); if(b){pick=b.dataset.c; draw();}});
+  kindsEl.addEventListener('click',function(e){var b=e.target.closest('button[data-k]'); if(b){kind=kind===b.dataset.k?'':b.dataset.k; draw();}});
+  app.querySelector('.sl-f').addEventListener('change',function(e){ if(e.target.name==='band') band=e.target.value; draw(); });
+  document.getElementById('sort').addEventListener('change',function(e){sort=e.target.value; draw();});
+  document.getElementById('sl-reset').addEventListener('click',function(){ pick='all'; kind=''; band='all'; document.getElementById('f-sp').checked=document.getElementById('f-tt').checked=true; document.getElementById('f-good').checked=false; app.querySelector('input[name=band][value=all]').checked=true; draw(); });
   window.onresize=null;
   draw();
 }
