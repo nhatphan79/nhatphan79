@@ -151,7 +151,7 @@ var IC={
  ext:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'
 };
 var app=document.getElementById('app'), tabs=document.getElementById('tabs');
-var D={items:[],groups:[]}, BY={}, READY=false, HH={}, HDAY=0;
+var NEWS=null, D={items:[],groups:[]}, BY={}, READY=false, HH={}, HDAY=0;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function V(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
 function fold(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d');}
@@ -193,6 +193,7 @@ function vHome(){
    '<div class="cats">'+NICHES.map(function(n){return '<a class="cat" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></span>'+esc(n.label)+'</a>';}).join('')+'</div>'+
    (recent.length?'<section class="sec"><div class="sh"><h2>Bạn vừa xem</h2></div><div class="chips">'+recent.map(function(x){return '<a href="#/sp/'+x.id+'" style="flex:none;width:84px"><img src="'+esc(img(x))+'" alt="" loading="lazy" style="width:84px;height:84px;border-radius:14px;object-fit:cover;background:#F6EDE5"></a>';}).join('')+'</div></section>':'')+
    '<section class="sec"><div class="sh"><h2>Sản phẩm nổi bật</h2><a href="#/tim">Xem thêm ›</a></div>'+(READY?grid(pick):skel())+'</section>'+
+   (NEWS&&NEWS.length?'<section class="sec"><div class="sh"><h2>📰 Cẩm nang mua sắm</h2><a href="/tin-tuc/">Xem tất cả ›</a></div><div class="chips" style="gap:10px">'+NEWS.slice(0,3).map(function(a){return '<a href="/tin-tuc/'+esc(a.slug)+'" style="flex:none;width:230px;background:#fff;border-radius:16px;overflow:hidden"><img src="'+esc(String(a.img||'').replace('w=1200','w=480'))+'" alt="" loading="lazy" style="width:230px;height:120px;object-fit:cover;background:#F6EDE5"><span style="display:block;padding:10px 12px 12px"><span style="font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--acc);text-transform:uppercase">'+esc(a.niche)+'</span><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;font-size:13.5px;font-weight:700;line-height:1.35">'+esc(a.title)+'</span></span></a>';}).join('')+'</div></section>':'')+
    '<a href="/tiem-nha-hao" style="display:flex;align-items:center;gap:12px;margin:22px 16px 0;padding:14px;border-radius:18px;background:#1E1A17;color:#fff"><img src="'+API+'/shop/nha.svg" alt="" width="34" height="35"><span style="flex:1"><b style="display:block;font-size:15px">Tiệm nhà HaoHao</b><small style="color:#D8CCC2">Đồ nhà làm, giao quanh Đà Nẵng</small></span><span style="color:#F59A5C;font-weight:800">›</span></a>';
 }
 var SORTS=[['lq','Liên quan'],['ban','Bán chạy'],['re','Giá thấp'],['giam','Giảm nhiều']];
@@ -251,11 +252,17 @@ function vNiche(id,topic,s){
    '<div class="chips" style="margin-top:6px">'+SORTS.map(function(o){return '<a class="chip'+(o[0]===s?' on':'')+'" style="padding:6px 12px;font-size:12px" href="#/danh-muc/'+id+(topic?'/'+encodeURIComponent(topic):'')+'?s='+o[0]+'">'+o[1]+'</a>';}).join('')+'</div>'+
    '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+l.length+' sản phẩm</p>'+(READY?grid(sortList(l,s)):skel())+'</div>';
 }
-function vDeals(nid){
-  var l=D.items.filter(function(x){return pct(x)>=10&&(!nid||x.niche===nid);}).sort(function(a,b){return pct(b)-pct(a);});
+var DF=[['g30','🔥 Giảm trên 30%'],['u50','💸 Dưới 50k'],['u99','🏷️ Dưới 99k'],['u200','💰 Dưới 200k'],['ban','⭐ Bán chạy']];
+function vDeals(nid,f){   /* 20/10: thêm bộ lọc Sale */
+  var l=D.items.filter(function(x){ if(nid&&x.niche!==nid) return false;
+    if(f==='g30') return pct(x)>30; if(f==='u50') return x.price<50000; if(f==='u99') return x.price<99000; if(f==='u200') return x.price<200000; if(f==='ban') return true; return pct(x)>=10; });
+  l.sort(f==='ban'?function(a,b){return (b.sold||0)-(a.sold||0);}:function(a,b){return pct(b)-pct(a);});
+  var href=function(n2,f2){ return '#/uu-dai'+(n2?'/'+n2:'')+(f2?'?f='+f2:''); };
   return bar('Ưu đãi hôm nay')+'<div class="flash"><p><b>Giảm sâu nhất hôm nay</b>Giá được HaoHao cập nhật lại sau</p><div class="clock" id="clk"><span>--</span><span>--</span><span>--</span></div></div>'+
-   '<div class="sec" style="padding-top:14px"><div class="chips"><a class="chip'+(!nid?' on':'')+'" href="#/uu-dai">Tất cả</a>'+NICHES.map(function(n){return '<a class="chip'+(n.id===nid?' on':'')+'" href="#/uu-dai/'+n.id+'">'+esc(n.label)+'</a>';}).join('')+'</div><div style="height:12px"></div>'+
-   (READY?grid(l,'Hôm nay ngách này chưa có món giảm từ 10%.'):skel())+'</div>';
+   '<div class="sec" style="padding-top:14px"><div class="chips"><a class="chip'+(!nid?' on':'')+'" href="'+href('',f)+'">Tất cả</a>'+NICHES.map(function(n){return '<a class="chip'+(n.id===nid?' on':'')+'" href="'+href(n.id,f)+'">'+esc(n.label)+'</a>';}).join('')+'</div>'+
+   '<div class="chips" style="margin-top:8px">'+DF.map(function(o){var on=o[0]===f; return '<a class="chip'+(on?' on':'')+'" style="padding:6px 12px;font-size:12.5px'+(on?'':';background:#FFF1E6;border-color:#F8D9C4;color:#B23A0B')+'" href="'+href(nid,on?'':o[0])+'">'+o[1]+'</a>';}).join('')+'</div>'+
+   '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+(READY?l.length+' món phù hợp':'Đang tải…')+'</p>'+
+   (READY?grid(l,'Chưa có món nào khớp bộ lọc này. Thử bỏ bớt lọc nhé.'):skel())+'</div>';
 }
 function vFav(tab){
   var ids=Object.keys(FAV).sort(function(a,b){return FAV[b].t-FAV[a].t;}), l=ids.map(function(id){return BY[id];}).filter(Boolean);
@@ -335,7 +342,7 @@ function route(){
   if(!seg.length) html=vHome();
   else if(seg[0]==='tim') html=vSearch(qs.q||'',qs.s||'lq');
   else if(seg[0]==='danh-muc') html=seg[1]?vNiche(seg[1],seg[2]||'',qs.s||'lq'):vCatList(qs.n||ls('dmn'));
-  else if(seg[0]==='uu-dai') html=vDeals(seg[1]||'');
+  else if(seg[0]==='uu-dai') html=vDeals(seg[1]||'',qs.f||'');
   else if(seg[0]==='yeu-thich') html=vFav(seg[1]||'');
   else if(seg[0]==='ca-nhan') html=vMe();
   else if(seg[0]==='da-xem') html=vSeen();
@@ -379,6 +386,7 @@ function start(d){
 }
 try{ var c=JSON.parse(localStorage.getItem('hh_store')||'null'); if(c&&c.items&&c.items.length){ D=c; D.items.forEach(function(x){ x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; } }catch(e){}
 route();
+fetch(API+'/shop/tin-moi.json').then(function(r){return r.json();}).then(function(j){ NEWS=j; if(!(location.hash||'#/').slice(2)) route(); }).catch(function(){});
 fetch(API+'/store').then(function(r){return r.json();}).then(function(d){ if(d&&d.items&&d.items.length) start(d); else if(!READY){ READY=true; route(); } }).catch(function(){ if(!READY){ READY=true; route(); } });
 if('serviceWorker' in navigator&&/haohaostore\.com$|workers\.dev$/.test(location.hostname)) navigator.serviceWorker.register('/sw.js').catch(function(){});
 })();

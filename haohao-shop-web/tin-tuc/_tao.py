@@ -78,4 +78,6 @@ for a in A:
 urls = [(BASE + '/', None)] + [(BASE + '/' + x, None) for x in ['sale', 'thoi-trang', 'me-be', 'gia-dung', 'xay-dung', 'qua-tang', 'tiem-nha-hao']] + [(BASE + '/tin-tuc/', iso(A[0]['date']))] + [(BASE + '/tin-tuc/' + a['slug'], iso(a['date'])) for a in A]
 open(os.path.join(W, 'sitemap.xml'), 'w', encoding='utf-8').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join('  <url><loc>%s</loc>%s</url>\n' % (u, '<lastmod>%s</lastmod>' % d if d else '') for u, d in urls) + '</urlset>\n')
 open(os.path.join(W, 'robots.txt'), 'w', encoding='utf-8').write('User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\n' % BASE)
+# 20/10: danh sách bài mới cho app điện thoại (/shop/tin-moi.json)
+json.dump([{'slug': a['slug'], 'niche': a['niche'], 'title': a['title'], 'img': a.get('img', ''), 'date': a['date']} for a in A[:10]], open(os.path.join(W, 'tin-moi.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print('ok', len(A), 'bài')
