@@ -2879,6 +2879,7 @@
     if (!rc || (!rc.width && !rc.height && !rc.top)) return null;
     return { t, rc };
   }
+  chrome.runtime.onMessage.addListener(msg => { if (msg && msg.type === 'hh-page-translate' && ui && !pageTr.running) translatePage(); });   // V1.85: chuột phải → Dịch cả trang
   function showChip(e) {
     if (!ui || !active() || ((settings.ideas || {}).chip === false && (settings.dich || {}).chip === false)) return;
     const s = selInfo(e); hideChip();
@@ -2889,7 +2890,8 @@
     if ((settings.dich || {}).chip !== false) {
       const dd = el('button', '', '🌐 Dịch'); dd.addEventListener('click', () => { hideChip(); translateText(t, 'sel'); });
       const x = el('button', '', '💡 Giải thích'); x.addEventListener('click', () => { hideChip(); doExplain(t); });
-      selChip.append(dd, x);
+      const pg = el('button', '', '🌍 Cả trang'); pg.title = 'Dịch cả trang (Google Dịch)'; pg.addEventListener('click', () => { hideChip(); if (!pageTr.running) translatePage(); });   // V1.85
+      selChip.append(dd, pg, x);
     }
     if ((settings.ideas || {}).chip !== false && t.length >= 15) {
       const sv = el('button', 'sv', '📝 Note'); sv.title = 'Lưu Note (kèm link trang)';

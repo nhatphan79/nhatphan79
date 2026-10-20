@@ -1472,6 +1472,7 @@ async function makeMenus() {
     chrome.contextMenus.create({ id: 'hh-note', parentId: 'hh', title: HT.tr('📝 Lưu Note'), contexts: ['selection', 'page'] });
     chrome.contextMenus.create({ id: 'hh-todo', parentId: 'hh', title: HT.tr('☑️ Thêm vào Todo'), contexts: ['selection'] });
     chrome.contextMenus.create({ id: 'hh-translate', parentId: 'hh', title: HT.tr('🌐 Dịch'), contexts: ['selection', 'page'] });
+    chrome.contextMenus.create({ id: 'hh-pagetr', parentId: 'hh', title: HT.tr('🌍 Dịch cả trang'), contexts: ['selection', 'page'] });   // V1.85
     chrome.contextMenus.create({ id: 'hh-explain', parentId: 'hh', title: HT.tr('💡 Giải thích'), contexts: ['selection'] });
     chrome.contextMenus.create({ id: 'hh-shop', parentId: 'hh', title: HT.tr('🛒 Tìm trên Shopee: “%s”'), contexts: ['selection'] });
     chrome.contextMenus.create({ id: 'hh-summary', parentId: 'hh', title: HT.tr('✨ Tóm tắt trang này'), contexts: ['page', 'selection'] });
@@ -1493,6 +1494,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await chrome.storage.local.set({ todos });
     toTab({ type: 'hh-open', tab: 'todo' });
   }
+  if (info.menuItemId === 'hh-pagetr') toTab({ type: 'hh-page-translate' });   // V1.85: dịch cả trang qua Google Dịch
   if (info.menuItemId === 'hh-clip') {
     toTab({ type: 'hh-clip-save' });   // trang tự đọc bộ nhớ chép (cách đã chạy chắc) rồi lưu Note
   }
