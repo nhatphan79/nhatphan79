@@ -445,7 +445,7 @@ var THEMES={
 
 var app=document.getElementById('app'), nav=document.getElementById('nav');
 /* 20/10: nếu web lỗi thì hiện lỗi lên màn hình để dễ sửa */
-window.addEventListener('error',function(e){ try{ var b=document.getElementById('hh-err')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'hh-err'})); b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:520px;padding:10px 14px;border-radius:10px;background:#2A1E17;color:#fff;font:12px/1.5 monospace'; b.textContent='Lỗi web: '+(e.message||e)+' @'+(e.lineno||'')+':'+(e.colno||''); }catch(_){} });
+window.addEventListener('error',function(e){ if(!e.filename||!/^https?:\/\/(haohaostore\.com|[^/]*workers\.dev)\//.test(e.filename)) return; try{ var b=document.getElementById('hh-err')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'hh-err'})); b.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;max-width:520px;padding:10px 14px;border-radius:10px;background:#2A1E17;color:#fff;font:12px/1.5 monospace'; b.textContent='Lỗi web: '+(e.message||e)+' @'+(e.lineno||'')+':'+(e.colno||''); }catch(_){} });
 /* 20/10: hiện menu ngay; phần dựng sẵn cho Google (.seo) ẩn đi, thay bằng màn chờ cho tới khi web vẽ xong */
 try{ renderNav(''); }catch(e){}
 (function(){ var sx=app.querySelector('.seo'); if(sx){ sx.style.display='none'; app.insertAdjacentHTML('afterbegin','<div class="boot" style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#7A5A44;font-size:14px"><img src="'+HH+'" alt="" width="84" style="animation:float 1.6s ease-in-out infinite">Đang tải HaoHao Store…</div>'); } })();
