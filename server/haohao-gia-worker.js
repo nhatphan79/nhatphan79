@@ -541,8 +541,11 @@ async function storeGet(env) {
 // 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
 const SHOP_SRC = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/';
 const SHOP_TYPE = { xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
+// 20/10: đường dẫn sạch của web Store (/thoi-trang, /thoi-trang/ao, /san-pham/123, /sale…) → trang index.html, web tự đọc đường dẫn
+const SHOP_ROUTE = /^\/(?:(?:sale|quan-ly|thoi-trang|me-be|gia-dung|xay-dung|qua-tang)(?:\/[a-z0-9-]{1,60})?|san-pham\/\d{1,20})\/?$/;
 async function shopPage(u) {
-  const f = u.pathname.replace(/^\/shop\/?/, '') || 'index.html';
+  let f = u.pathname.replace(/^\/shop\/?/, '') || 'index.html';
+  if (SHOP_ROUTE.test('/' + f)) f = 'index.html';
   const ext = (f.match(/\.([a-z0-9]+)$/) || [])[1];
   if (!/^[a-z0-9][a-z0-9._-]{0,80}$/i.test(f) || !SHOP_TYPE[ext]) return new Response('Không có trang này', { status: 404 });
   const r = await fetch(SHOP_SRC + f, { cf: { cacheTtl: 300, cacheEverything: true } });
@@ -563,7 +566,7 @@ export default {
     const u = new URL(req.url);
     // 🌐 20/10: tên miền riêng haohaostore.com – www chuyển về tên chính, trang chủ = HaoHao Store
     if (u.hostname === 'www.haohaostore.com') return Response.redirect('https://haohaostore.com' + u.pathname + u.search, 301);
-    if (u.hostname === 'haohaostore.com' && u.pathname === '/') return await shopFile('index.html', 'html');
+    if (u.hostname === 'haohaostore.com' && (u.pathname === '/' || SHOP_ROUTE.test(u.pathname))) return await shopFile('index.html', 'html');
     try {
       await init(env);
       if (u.pathname === '/p' && req.method === 'POST') {

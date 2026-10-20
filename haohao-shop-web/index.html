@@ -938,9 +938,38 @@ function renderProduct(id){
   if(window.IntersectionObserver&&buy){ var io=new IntersectionObserver(function(en){ var show=!en[0].isIntersecting&&en[0].boundingClientRect.top<0; bar.classList.toggle('on',show); bar.setAttribute('aria-hidden',String(!show)); }); io.observe(buy); prodHook=null; themeHook=function(){}; }
   document.title=x.n+' – HaoHao Store';
 }
+/* 20/10: đường dẫn sạch (haohaostore.com/thoi-trang, /thoi-trang/ao, /san-pham/123, /sale) thay cho #… – link # cũ tự chuyển */
+var BASE=/^\/shop(\/|$)/.test(location.pathname)?'/shop':'';
+function slugify(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
+function isRoute(id){return id==='trang-chu'||id==='sale'||id==='quan-ly'||/^sp\/\d+$/.test(id)||/^[a-z-]+\/c\d+$/.test(id)||NICHES.some(function(n){return n.id===id;});}
+function id2path(id){
+  if(!id||id==='trang-chu') return BASE+'/';
+  var m=/^sp\/(\d+)$/.exec(id); if(m) return BASE+'/san-pham/'+m[1];
+  m=/^([a-z-]+)\/c(\d+)$/.exec(id); if(m){ var n=NICHES.filter(function(x){return x.id===m[1];})[0]; if(n&&n.cats[+m[2]]) return BASE+'/'+n.id+'/'+slugify(n.cats[+m[2]][0]); return BASE+'/'+m[1]; }
+  return BASE+'/'+id;
+}
+function path2id(){
+  var a=location.pathname.slice(BASE.length).replace(/^\/+|\/+$/g,'').split('/').filter(Boolean);
+  if(!a.length) return '';
+  if(a[0]==='san-pham'&&a[1]) return 'sp/'+a[1];
+  if(a[1]){ var n=NICHES.filter(function(x){return x.id===a[0];})[0]; if(n){ for(var i=0;i<n.cats.length;i++){ if(slugify(n.cats[i][0])===a[1]) return n.id+'/c'+i; } } }
+  return a[0];
+}
+function fixLinks(root){ (root||document).querySelectorAll('a[href^="#"]').forEach(function(a){ var id=a.getAttribute('href').slice(1); if(isRoute(id)) a.setAttribute('href',id2path(id)); }); }
+document.addEventListener('click',function(e){
+  if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+  var a=e.target.closest&&e.target.closest('a[href]'); if(!a||a.target||a.hasAttribute('download')) return;
+  var h=a.getAttribute('href'); if(!h||h.charAt(0)!=='/'||h.indexOf('/tin-tuc')===0||/\.[a-z0-9]+$/i.test(h)) return;
+  if(BASE&&h.indexOf(BASE)!==0) return;
+  e.preventDefault(); if(h!==location.pathname) history.pushState(null,'',h); route();
+});
+new MutationObserver(function(){ fixLinks(document.body); }).observe(document.documentElement,{childList:true,subtree:true});
+window.addEventListener('popstate',function(){ route(); });
 function route(){
   clearTimers(); themeHook=null; prodHook=null;
-  var id=(location.hash||'').replace('#','');
+  var hid=(location.hash||'').replace('#','');
+  if(hid&&isRoute(hid)) history.replaceState(null,'',id2path(hid));   // link # cũ → đường dẫn mới
+  var id=path2id();
   document.title='HaoHao Store';
   var sm=/^sp\/(\d+)$/.exec(id); if(sm){ app.onclick=null; renderProduct(sm[1]); window.scrollTo(0,0); return; }
   var cm=/^([a-z-]+)\/c(\d+)$/.exec(id); if(cm){ var cn=NICHES.filter(function(x){return x.id===cm[1];})[0]; if(cn&&cn.cats[+cm[2]]){ app.onclick=null; renderCat(cn,+cm[2]); window.scrollTo(0,0); return; } }
@@ -952,7 +981,7 @@ function route(){
   else if(n){ renderNiche(n); window.scrollTo(0,0); }
   else { document.body.style.background=''; renderHome(); }
 }
-window.addEventListener('hashchange',route);
+window.addEventListener('hashchange',function(){ var h=(location.hash||'').replace('#',''); if(isRoute(h)) route(); });
 /* ===== 19/10: SẢN PHẨM THẬT từ máy chủ (/store – đọc danh mục HaoHao Store trên Shopee, 6 giờ/lần) ===== */
 var STORE_BY={};
 var STORE_API=(/workers\.dev$|(^|\.)haohaostore\.com$/.test(location.hostname)?'':'https://haohao-gia.nhatphan79.workers.dev')+'/store';
