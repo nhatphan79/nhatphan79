@@ -3528,6 +3528,17 @@
     return out.map((l, i) => l || (target() === 'vi' && VI_MARK.test(segs[i]) ? 'vi' : shortLang));
   }
   async function trSegments(segs) {
+    // V1.85: ưu tiên Google Dịch (Google tự nhận ngôn ngữ, gửi cả gói 1 lần); lỗi thì quay về bộ dịch Chrome / Gemini như cũ
+    if (!pageTr.noGoogle) {
+      try {
+        const r = await chrome.runtime.sendMessage({ type: 'g-translate', q: segs, tl: target() });
+        if (r && r.ok && Array.isArray(r.items) && r.items.length === segs.length) {
+          pageTr.engine = 'google'; if (!pageTr.lang && r.lang && r.lang !== target()) { pageTr.src = r.lang; pageTr.lang = LANG_VI[r.lang] || r.lang.toUpperCase(); }
+          return r.items.map((x, i) => typeof x === 'string' && x.trim() ? x : segs[i]);
+        }
+        pageTr.noGoogle = true;
+      } catch { pageTr.noGoogle = true; }
+    }
     const to = target(), langs = await segLangs(segs), items = segs.slice(), groups = {};
     langs.forEach((l, i) => { if (l && l !== to) (groups[l] = groups[l] || []).push(i); });
     const left = [];   // đoạn Chrome không dịch được → nhờ Gemini
@@ -3555,7 +3566,8 @@
   async function translatePage(auto) {
     if (pageTr.running) return;
     if (pageTr.showing === 'orig' && pageTr.map.size) showTranslated();
-    const nodes = textNodes().filter(n => !pageTr.map.has(n) && !pageTr.skip.has(n) && hasLetters(n.data) && n.data.trim().length > 1).slice(0, 2500);
+    const vh = innerHeight, posOf = n => { try { const r = n.parentElement.getBoundingClientRect(); return r.bottom < 0 ? 1e6 + Math.abs(r.top) : r.top > vh ? r.top : -1; } catch { return 1e7; } };   // V1.85: phần đang nhìn thấy dịch trước
+    const nodes = textNodes().filter(n => !pageTr.map.has(n) && !pageTr.skip.has(n) && hasLetters(n.data) && n.data.trim().length > 1).slice(0, 2500).map(n => [n, posOf(n)]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
     if (!nodes.length) { if (!auto) { pageTr.error = pageTr.map.size ? '' : 'Trang này không có chữ để dịch.'; trBar(); } return; }
     Object.assign(pageTr, { running: true, stop: false, done: 0, total: nodes.length, error: '', showing: 'tr', bar: true });
     trBar();
@@ -3566,8 +3578,8 @@
       cur.push(n); len += t.length;
     }
     if (cur.length) batches.push(cur);
-    for (const batch of batches) {
-      if (pageTr.stop) break;
+    const runOne = async batch => {
+      if (pageTr.stop) return;
       try {
         const segs = batch.map(n => n.data.trim());
         const items = await trSegments(segs);
@@ -3578,9 +3590,13 @@
           pageTr.map.set(n, orig); pageTr.tr.set(n, lead + tr + trail);
           if (pageTr.showing === 'tr') n.data = lead + tr + trail;
         });
-      } catch (e) { pageTr.error = errText(e.message); break; }
+      } catch (e) { pageTr.error = errText(e.message); pageTr.stop = true; }
       pageTr.done += batch.length; trBar();
-    }
+    };
+    // V1.85: gói đầu (phần đang nhìn thấy) dịch ngay, các gói sau chạy song song 4 gói một lúc
+    if (batches.length) await runOne(batches[0]);
+    let bi = 1; const worker = async () => { while (bi < batches.length && !pageTr.stop) { const b = batches[bi++]; await runOne(b); } };
+    await Promise.all([worker(), worker(), worker(), worker()]);
     pageTr.running = false; trBar(); trWatch();
     if (isSub('dich') && ui && !ui.panel.hidden) renderPanel();
   }

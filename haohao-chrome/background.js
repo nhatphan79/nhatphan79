@@ -521,6 +521,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     chrome.tabs.captureVisibleTab(wid, { format: 'png' }).then(shot => send({ ok: true, shot })).catch(e => send({ ok: false, error: /permission|activeTab|all_urls/i.test(e.message) ? 'noperm' : e.message }));
     return true;
   }
+  // V1.85: 🌐 dịch cả trang qua Google Dịch (máy chủ HaoHao gửi nhiều đoạn 1 lần) – nhanh như Chrome
+  if (msg.type === 'g-translate') { fetch(HT.PRICE_API + '/dich', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: msg.q || [], tl: msg.tl || 'vi' }) }).then(r => r.json()).then(r => send(r && r.ok ? r : { ok: false, error: (r && r.error) || 'Google Dịch lỗi' })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-translate') { aiTranslate(msg).then(r => send({ ok: true, ...r })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'subs-relay' && sender.tab && /^hh-subs-(offer|active|status|hint|nosub)$/.test(msg.ev)) { chrome.tabs.sendMessage(sender.tab.id, { type: 'subs-ev', ev: msg.ev, detail: msg.detail }, { frameId: 0 }).catch(() => {}); return; }
   if (msg.type === 'ai-subs') { aiSubs(msg).then(lines => send({ ok: true, lines })).catch(e => send({ ok: false, error: e.message })); return true; }
