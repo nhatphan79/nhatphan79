@@ -69,6 +69,7 @@ chrome.tabs.onUpdated.addListener(async (id, ch, tab) => {
   const opener = popWatch.get(id); if (typeof opener !== 'number') return;
   let op = null; try { op = await chrome.tabs.get(opener); } catch {}
   const oh = hostOf(op && op.url);
+  if (HT.adSkipHit(oh, settings)) { popWatch.delete(id); return; }   // V1.84: trang trong "Trang không chặn" được mở tab quảng cáo như bình thường
   // chỉ canh tab do trang web mở; trang của HaoHao / Chrome (Cài đặt, Tab mới…) mở link là người dùng bấm → để yên
   if (!op || !/^https?:/.test(op.url || op.pendingUrl || '')) { popWatch.delete(id); return; }
   if (popBad(op.url)) { popWatch.delete(id); return; }                              // đang ở chính trang cờ bạc: để yên
