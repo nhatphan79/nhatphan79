@@ -443,9 +443,9 @@ ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchP
 // ---------- 🏬 HaoHao Store web (19/10): đọc danh mục CHỦ APP tạo trên cửa hàng Shopee Affiliate (collshp.com/haohaostore) ----------
 // Chỉ lấy món nằm trong danh mục anh Nhật tạo (bỏ "Có thể bạn thích" / quảng cáo Shopee tự chèn).
 // Danh mục → 5 ngách web theo từ khoá tên danh mục; danh mục không khớp ngách nào thì bỏ qua.
-// Món → mục nhỏ của ngách theo từ khoá trong tên món (không khớp thì cat = '' : vẫn hiện ở "Bán chạy nhất").
+// 20/10: ngách theo SỐ đầu tên danh mục (1–5); món → ô chủ đề = tên danh mục (bỏ số, bỏ "HaoHao"). Web: Bán chạy nhất = Tất cả + các ô chủ đề.
 // Cron 15 phút gọi storeMaybe → chạy thật 6 giờ/lần. GET /store → JSON cho web. GET /store?run=1&key=STATS_KEY → chạy ngay.
-const STORE_V = 3, STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
+const STORE_V = 4, STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
 const STORE_QG = 'query StorefrontGroupListQuery($urlSuffix: String, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupList(urlSuffix: $urlSuffix, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { groupList { groupId groupName totalCount } pagination { hasMore totalCount } } }';
 const STORE_QP = 'query StorefrontGroupProductListQuery($urlSuffix: String, $keyword: String, $groupId: Long, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupProductList(urlSuffix: $urlSuffix, keyword: $keyword, groupId: $groupId, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { itemList { link linkName image linkType itemId itemCard } pagination { hasMore totalCount } } }';
 // thứ tự quan trọng: gia-dung trước xay-dung ("Nhà cửa & Gia dụng" / "Xây dựng & Dụng cụ")
@@ -458,7 +458,11 @@ const STORE_CATS = {
   'xay-dung': [['Máy khoan', ['khoan']], ['Máy cắt', ['may cat', 'may cua', 'cua go', 'cua xich', 'may mai', 'luoi cat']], ['Thước laser', ['thuoc', 'laser', 'can bang']], ['Mũ bảo hộ', ['mu bao ho', 'non bao ho', 'mu cong trinh']], ['Găng tay', ['gang tay', 'bao tay']], ['Sơn & keo', ['son ', 'keo ', 'silicon', 'chong tham', 'bot tret']], ['Đèn & phụ kiện', ['den ', 'quat tran', 'o cam', 'cong tac', 'day dien', 'hit cua', 'chan cua', 'giu cua', 'hut chan', 'khan che', 'khau trang']]],
   'qua-tang': [['Hộp quà', ['hop qua', 'qua tang', 'set qua']], ['Hoa & thiệp', ['hoa ', 'thiep']], ['Ấm chén', ['am chen', 'bo am', 'tach tra', 'chen tra', 'bo tra']], ['Đèn thờ', ['den tho', 'ban tho', 'nhang', 'huong tram', 'lu huong']], ['Khung ảnh', ['khung anh', 'khung hinh']], ['Gấu bông', ['gau bong', 'thu bong', 'gau ']]],
 };
-const storeNiche = name => { const f = fold(name); for (const [id, re] of STORE_NICHE) if (re.test(f)) return id; return ''; };
+// 20/10: anh Nhật đánh số đầu tên danh mục theo ngách: 1 Thời trang · 2 Mẹ & bé · 3 Gia dụng · 4 Xây dựng · 5 Quà tặng
+const STORE_NUM = ['thoi-trang', 'me-be', 'gia-dung', 'xay-dung', 'qua-tang'];
+const storeNiche = name => { const m = /^\s*([1-5])\s*[.)\-:]/.exec(String(name || '')); if (m) return STORE_NUM[m[1] - 1]; const f = fold(name); for (const [id, re] of STORE_NICHE) if (re.test(f)) return id; return ''; };
+// tên ô chủ đề trên web = tên danh mục bỏ số thứ tự và chữ "HaoHao" ("1. HaoHao Thu Đông" → "Thu Đông")
+const storeTopic = name => String(name || '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').replace(/^haohao\s+/i, '').replace(/\s+/g, ' ').trim();
 function storeCat(niche, name) {
   const t = ' ' + fold(name).replace(/[^a-z0-9]+/g, ' ') + ' ';
   let best = '', at = 1e9, len = 0;
@@ -492,12 +496,12 @@ function storeItem(x, niche, group) {
     shopName: String((d.shopData || {}).shopName || '').slice(0, 80), liked: Number(d.likedCount) || 0,
     rc: Array.isArray((d.itemRating || {}).ratingCount) ? d.itemRating.ratingCount.slice(0, 6).map(n => Number(n) || 0) : [],
     link: /^https:\/\//.test(String(x.link || '')) ? String(x.link) : '', soldOut: !!d.isSoldOut,
-    niche, cat: storeCat(niche, x.linkName || a.name), group,
+    niche, cat: storeTopic(group) || storeCat(niche, x.linkName || a.name), group,
   };
 }
 async function storeSync(env) {
   const gl = await storeGql('StorefrontGroupListQuery', STORE_QG, { page: { offset: '0', limit: '50' } });
-  const groups = ((gl.storefrontGroupList || {}).groupList || []).map(g => ({ id: String(g.groupId), name: String(g.groupName || ''), niche: storeNiche(g.groupName), total: Number(g.totalCount) || 0 }));
+  const groups = ((gl.storefrontGroupList || {}).groupList || []).map(g => ({ id: String(g.groupId), name: String(g.groupName || ''), niche: storeNiche(g.groupName), topic: storeTopic(g.groupName), total: Number(g.totalCount) || 0 }));
   if (!groups.length) throw new Error('collshp: không thấy danh mục');
   const items = [], seen = new Set();
   for (const g of groups) {

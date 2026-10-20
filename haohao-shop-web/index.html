@@ -927,10 +927,12 @@ function applyStore(d){
       var c=null; n.cats.forEach(function(cc){if(cc[0]===x.cat) c=cc;});
       STORE_BY[x.id]={x:x,niche:n};
       return {pid:x.id,n:x.n,price:x.price,old:x.old>x.price?x.old:x.price,good:x.old>x.price*1.2?1:0,rating:x.rating?String(x.rating).replace('.',','):'',sold:x.sold||0,
-        shape:c?c[1]:null,tint:c?c[2]:'#F2F0EE',ink:c?c[3]:'#C9C2BC',sw:[],plat:SP,link:x.link,img:x.img,cat:c?c[0]:''};
+        shape:c?c[1]:null,tint:c?c[2]:'#F2F0EE',ink:c?c[3]:'#C9C2BC',sw:[],plat:SP,link:x.link,img:x.img,cat:x.cat||''};
     }).sort(function(a,b){return b.sold-a.sold;});
-    var tabs=[]; n.cats.forEach(function(c){var l=ps.filter(function(p){return p.cat===c[0];}); if(l.length) tabs.push([c[0],l]);});
-    var other=ps.filter(function(p){return !p.cat;}); if(other.length) tabs.push(['Khác',other]);
+    /* 20/10: Bán chạy nhất = Tất cả + ô chủ đề theo danh mục anh Nhật đặt trên collshp (số 1–5 = ngách, giữ đúng thứ tự) */
+    var tabs=[], tops={}; (d.groups||[]).forEach(function(g){ if(g.niche===n.id&&g.topic&&!tops[g.topic]){ tops[g.topic]=1; tabs.push([g.topic,ps.filter(function(p){return p.cat===g.topic;})]); } });
+    if(!tabs.length){ n.cats.forEach(function(c){var l=ps.filter(function(p){return p.cat===c[0];}); if(l.length) tabs.push([c[0],l]);}); }
+    var other=ps.filter(function(p){return !tabs.some(function(t){return t[0]===p.cat;});}); if(other.length) tabs.push(['Khác',other]);
     n.tabs=tabs; n.deals=ps.filter(function(p){return p.old>p.price;}).sort(disc).slice(0,8);
   });
 }
