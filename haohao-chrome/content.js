@@ -3493,10 +3493,15 @@
     dichState = { mode: 'text', from, src: text.slice(0, 20000), loading: true };
     if (ui) { if (ui.panel.hidden || !isSub('dich')) openTab('dich'); else renderPanel(); }
     try {
-      const fast = forceAi ? null : await fastTranslate([dichState.src], target(), () => { dichState.note = 'Lần đầu dùng: Chrome đang tải gói dịch, chờ chút nhé…'; renderPanel(); }).catch(() => null);
-      if (fast) Object.assign(dichState, { lang: fast.lang, same: fast.same, result: fast.items[0], engine: 'chrome', note: '' });
+      // V1.86: bôi đen → Google Dịch trước (nhanh), có nút "Dịch lại bằng AI Gemini"
+      let g = null;
+      if (!forceAi) { const r = await chrome.runtime.sendMessage({ type: 'g-translate', q: [dichState.src], tl: target() }).catch(() => null); if (r && r.ok && r.items && typeof r.items[0] === 'string' && r.items[0].trim()) g = r; }
+      if (g) { const code = baseLang(g.lang || ''); Object.assign(dichState, { lang: LANG_VI[code] || (code ? code.toUpperCase() : ''), same: code === target(), result: code === target() ? dichState.src : g.items[0], engine: 'google', note: '' }); }
+      const fast = forceAi || g ? null : await fastTranslate([dichState.src], target(), () => { dichState.note = 'Lần đầu dùng: Chrome đang tải gói dịch, chờ chút nhé…'; renderPanel(); }).catch(() => null);
+      if (g) {}
+      else if (fast) Object.assign(dichState, { lang: fast.lang, same: fast.same, result: fast.items[0], engine: 'chrome', note: '' });
       else {
-        if (!(settings.ai || {}).key) throw new Error('Chrome trên máy này chưa có bộ dịch sẵn cho ngôn ngữ này. Thêm mã Gemini ở Cài đặt → Đọc hộ (Gemini) để dịch bằng AI.');
+        if (!(settings.ai || {}).key) throw new Error(forceAi ? 'Chưa có mã Gemini. Thêm mã ở Cài đặt → Đọc hộ (Gemini) để dịch bằng AI.' : 'Chrome trên máy này chưa có bộ dịch sẵn cho ngôn ngữ này. Thêm mã Gemini ở Cài đặt → Đọc hộ (Gemini) để dịch bằng AI.');
         dichState.note = '';
         const r = await chrome.runtime.sendMessage({ type: 'ai-translate', mode: 'text', text: dichState.src, target: target() });
         if (!r || !r.ok) throw new Error(r ? r.error : 'Không kết nối được');
@@ -3530,6 +3535,13 @@
     return out.map((l, i) => l || (target() === 'vi' && VI_MARK.test(segs[i]) ? 'vi' : shortLang));
   }
   async function trSegments(segs) {
+    if (pageTr.forceAi) {   // V1.86: khách bấm "Dịch lại bằng AI Gemini"
+      if (!(settings.ai || {}).key) throw new Error('Chưa có mã Gemini. Thêm mã ở Cài đặt → Đọc hộ (Gemini) để dịch bằng AI.');
+      const r = await chrome.runtime.sendMessage({ type: 'ai-translate', mode: 'batch', segments: segs, target: target() });
+      if (!r || !r.ok) throw new Error(r ? r.error : 'Không kết nối được');
+      pageTr.engine = 'ai'; if (!pageTr.lang && r.lang) pageTr.lang = r.lang;
+      return segs.map((x, i) => typeof r.items[i] === 'string' && r.items[i].trim() ? r.items[i] : x);
+    }
     // V1.85: ưu tiên Google Dịch (Google tự nhận ngôn ngữ, gửi cả gói 1 lần); lỗi thì quay về bộ dịch Chrome / Gemini như cũ
     if (!pageTr.noGoogle) {
       try {
@@ -3598,13 +3610,18 @@
     // V1.85: gói đầu (phần đang nhìn thấy) dịch ngay, các gói sau chạy song song 4 gói một lúc
     if (batches.length) await runOne(batches[0]);
     let bi = 1; const worker = async () => { while (bi < batches.length && !pageTr.stop) { const b = batches[bi++]; await runOne(b); } };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    await Promise.all(pageTr.forceAi ? [worker()] : [worker(), worker(), worker(), worker()]);   // Gemini: chạy lần lượt cho đỡ hết lượt
     pageTr.running = false; trBar(); trWatch();
     if (isSub('dich') && ui && !ui.panel.hidden) renderPanel();
   }
   function restorePage() { for (const [n, o] of pageTr.map) if (n.isConnected) n.data = o; pageTr.showing = 'orig'; trBar(); }
   function showTranslated() { for (const [n, t] of pageTr.tr) if (n.isConnected) n.data = t; pageTr.showing = 'tr'; trBar(); }
-  function closeTrBar() { pageTr.stop = true; pageTr.main = ''; if (pageTr.map.size) restorePage(); pageTr.bar = false; if (pageTr.obs) { pageTr.obs.disconnect(); pageTr.obs = null; } trBar(); }
+  function pageAi() {   // V1.86: dịch lại cả trang bằng Gemini
+    if (pageTr.running) return;
+    restorePage(); pageTr.map.clear(); pageTr.tr.clear(); pageTr.skip = new WeakSet();
+    Object.assign(pageTr, { forceAi: true, engine: '', error: '' }); translatePage();
+  }
+  function closeTrBar() { pageTr.forceAi = false; pageTr.stop = true; pageTr.main = ''; if (pageTr.map.size) restorePage(); pageTr.bar = false; if (pageTr.obs) { pageTr.obs.disconnect(); pageTr.obs = null; } trBar(); }
   // trang tải thêm nội dung (cuộn vô tận, bấm Xem thêm) trong lúc đang xem bản dịch → tự dịch phần mới
   function trWatch() {
     if (pageTr.obs || !pageTr.map.size || !document.body) return;
@@ -3630,7 +3647,7 @@
     else if (pageTr.error && !pageTr.map.size) tx.textContent = '⚠ ' + pageTr.error;
     else tx.textContent = pageTr.showing === 'tr' ? `${pageTr.lang ? pageTr.lang + ' → ' : 'Đã dịch sang '}${TARGETS[target()]}` : 'Đang xem bản gốc';
     b.append(tx);
-    if (!pageTr.running && pageTr.map.size && pageTr.engine) b.append(el('span', 'eng' + (pageTr.engine === 'ai' ? ' ai' : ''), pageTr.engine === 'ai' ? '✨ AI' : '⚡ Chrome'));
+    if (!pageTr.running && pageTr.map.size && pageTr.engine) b.append(el('span', 'eng' + (pageTr.engine === 'ai' ? ' ai' : ''), (pageTr.engine === 'ai' ? '✨ AI' : pageTr.engine === 'google' ? '🌐 Google' : '⚡ Chrome')));
     if (pageTr.running) {
       b.append(h(`<span class="pg"><i style="width:${Math.round(pageTr.done / Math.max(1, pageTr.total) * 100)}%"></i></span>`));
       const st = el('button', 'tb', 'Dừng'); st.addEventListener('click', () => { pageTr.stop = true; }); b.append(st);
@@ -3638,6 +3655,7 @@
       const tg = el('button', 'tb', pageTr.showing === 'tr' ? 'Xem bản gốc' : 'Xem bản dịch');
       tg.addEventListener('click', () => { pageTr.showing === 'tr' ? restorePage() : showTranslated(); });
       b.append(tg);
+      if (pageTr.engine !== 'ai') { const ag = el('button', 'tb', '✨ Dịch lại bằng AI Gemini'); ag.title = 'Gemini dịch lại cả trang: chậm hơn nhưng mượt, đúng ngữ cảnh hơn'; ag.addEventListener('click', pageAi); b.append(ag); }
     }
     const x = el('button', 'tb x', '✕'); x.title = 'Tắt dịch trang, trả lại bản gốc'; x.setAttribute('aria-label', 'Tắt dịch trang');
     x.addEventListener('click', closeTrBar); b.append(x);
@@ -3695,7 +3713,7 @@
       if (d.loading) box.append(h(`<div class="loading"><span class="dots"><i></i><i></i><i></i></span>${d.mode === 'pdf' ? 'HaoHao đang dịch PDF (file dài có thể mất 1 phút)…' : d.note || 'HaoHao đang dịch…'}</div>`));
       if (d.lang) {
         const lg = el('div', 'lg', d.same ? `Đoạn này đã là ${TARGETS[target()]}` : `${d.lang} → ${TARGETS[target()]}`);
-        if (d.engine && !d.loading) lg.append(el('span', 'eng' + (d.engine === 'ai' ? ' ai' : ''), d.engine === 'ai' ? '✨ AI' : '⚡ Chrome'));
+        if (d.engine && !d.loading) lg.append(el('span', 'eng' + (d.engine === 'ai' ? ' ai' : ''), (d.engine === 'ai' ? '✨ AI' : d.engine === 'google' ? '🌐 Google' : '⚡ Chrome')));
         box.append(lg);
       }
       if (d.mode === 'text' && d.src) box.append(el('div', 'trsrc', d.src));
@@ -3707,8 +3725,8 @@
         const cp = el('button', 'b ghost', 'Sao chép bản dịch'); cp.addEventListener('click', () => copyText(out, cp));
         const sv = el('button', 'b ghost', '📝 Lưu Note'); sv.addEventListener('click', () => saveIdea({ type: 'text', text: out, title: 'Bản dịch: ' + document.title, url: location.href }));
         a2.append(cp, sv);
-        if (d.mode === 'text' && d.engine === 'chrome' && !d.same && (settings.ai || {}).key) {
-          const deep = el('button', 'b ghost', '✨ Dịch kỹ bằng AI'); deep.title = 'Dịch lại bằng Gemini: chậm hơn nhưng mượt, đúng ngữ cảnh hơn';
+        if (d.mode === 'text' && d.engine !== 'ai' && !d.same) {
+          const deep = el('button', 'b ghost', '✨ Dịch lại bằng AI Gemini'); deep.title = 'Dịch lại bằng Gemini: chậm hơn nhưng mượt, đúng ngữ cảnh hơn';
           deep.addEventListener('click', () => translateText(d.src, d.from, true)); a2.append(deep);
         }
         if (d.mode === 'pdf' && d.more) { const mo = el('button', 'b', 'Dịch tiếp phần sau'); mo.addEventListener('click', () => translatePdf(true)); a2.append(mo); }

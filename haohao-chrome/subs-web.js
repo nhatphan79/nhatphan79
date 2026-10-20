@@ -49,6 +49,8 @@
     try { const r = await chrome.i18n.detectLanguage(String(text).slice(0, 1000)); const l = r && r.languages && r.languages[0]; if (l && l.language !== 'und') return base(l.language); } catch {}
     return '';
   }
+  // V1.86: dòng dịch tạm lấy Google Dịch (nhanh, không cần mã); Gemini vẫn dịch lại cho chuẩn
+  const gtr = lines => chrome.runtime.sendMessage({ type: 'g-translate', q: lines, tl: target() }).then(r => r && r.ok && Array.isArray(r.items) && r.items.length === lines.length ? r : null).catch(() => null);
   const ai = (lines, ctx) => chrome.runtime.sendMessage({ type: 'ai-subs', lines, ctx, title: document.title, to: target() }).catch(() => null);
 
   // ---------- tìm video & phụ đề ----------
@@ -126,15 +128,24 @@
       cues.sort((a, b) => a.s - b.s);
     };
     sync(); tr.addEventListener('cuechange', sync);
-    st.lang = base(tr.language) || await detect(cues.slice(0, 20).map(c => c.o).join(' '));
+    const sample = cues.slice(0, 20).map(c => c.o).join(' ');
+    st.lang = base(tr.language) || await detect(sample);
+    if (!st.lang && sample) { const r = await gtr([sample.slice(0, 1500)]); if (r && r.lang) st.lang = base(r.lang); }
     return cues.length > 0 || !!tr.cues;
   }
   async function transA(st) {
-    const t = await chromeTr(st.lang, target()); let busy = false, last = 0;
+    let t, busy = false, last = 0, gBusy = false, gOff = false;
     st.tick = async () => {
       const v = st.v, now = v.currentTime;
-      // Chrome dịch tạm các câu sắp tới
-      if (t) for (const c of st.cues) if (!c.t && !c.q && c.e >= now - 1 && c.s <= now + 60) { c.q = 1; t.translate(c.o).then(x => { if (!c.ai) c.t = x; }).catch(() => {}); }
+      // Google dịch tạm cả gói câu sắp tới (1 phút tới); Google lỗi thì nhờ bộ dịch Chrome
+      const soon = st.cues.filter(c => !c.t && !c.q && c.e >= now - 1 && c.s <= now + 60);
+      if (soon.length && !gOff && !gBusy) {
+        gBusy = true; soon.forEach(c => c.q = 1);
+        gtr(soon.map(c => c.o)).then(r => { if (r) soon.forEach((c, i) => { if (!c.ai && r.items[i]) c.t = r.items[i]; }); else { gOff = true; soon.forEach(c => c.q = 0); } }).finally(() => { gBusy = false; });
+      } else if (soon.length && gOff) {
+        if (t === undefined) t = await chromeTr(st.lang, target());
+        if (t) for (const c of soon) { c.q = 1; t.translate(c.o).then(x => { if (!c.ai) c.t = x; }).catch(() => {}); }
+      }
       // Gemini dịch chuẩn theo gói, ưu tiên đoạn đang xem
       if (busy || Date.now() - last < 1500) return;
       const todo = st.cues.filter(c => !c.ai && !c.g && c.e >= now - 2).slice(0, 50); if (!todo.length) return;
@@ -145,7 +156,7 @@
       else { todo.forEach(c => c.g = 0); if (r && r.error === 'nokey') st.noKey = true; last = Date.now() + 8000; }
       busy = false;
       const n = st.cues.length, k = st.cues.filter(c => c.ai).length;
-      status(st.noKey ? 'Chưa có mã Gemini nên đang dùng bản dịch nhanh của Chrome' : k >= n ? 'Đã dịch chuẩn' : 'Đang dịch chuẩn… ' + Math.round(100 * k / n) + '%');
+      status(st.noKey ? 'Chưa có mã Gemini nên đang dùng Google Dịch' : k >= n ? 'Đã dịch chuẩn' : 'Đang dịch chuẩn… ' + Math.round(100 * k / n) + '%');
     };
   }
   function drawA(st) {
@@ -170,13 +181,16 @@
       st.cur = st.lines.find(l => l.o === txt) || { o: txt };
       if (!st.lines.includes(st.cur)) { st.lines.push(st.cur); if (st.lines.length > 200) st.lines.shift(); }
       const c = st.cur;
-      if (!c.t) { const t = await chromeTr(st.lang, target()); if (t) t.translate(c.o).then(x => { if (!c.ai) c.t = x; }).catch(() => {}); }
+      if (!c.t) gtr([c.o]).then(async r => {
+        if (r) { if (!c.ai) c.t = r.items[0]; return; }
+        const t = await chromeTr(st.lang, target()); if (t) t.translate(c.o).then(x => { if (!c.ai) c.t = x; }).catch(() => {});
+      });
       // Gemini dịch lại cho chuẩn: tối đa 1 câu / 4 giây (giữ lượt miễn phí)
       if (!c.ai && !st.aiBusy && Date.now() - st.lastAi > 4000 && !st.noKey) {
         st.aiBusy = true; st.lastAi = Date.now();
         const i = st.lines.indexOf(c);
         ai([c.o], st.lines.slice(Math.max(0, i - 3), i).map(l => l.o)).then(r => {
-          if (r && r.ok && r.lines && r.lines[0]) { c.t = r.lines[0]; c.ai = true; } else if (r && r.error === 'nokey') st.noKey = true;
+          if (r && r.ok && r.lines && r.lines[0]) { c.t = r.lines[0]; c.ai = true; } else if (r && r.error === 'nokey') { st.noKey = true; status('Chưa có mã Gemini nên đang dùng Google Dịch'); }
         }).finally(() => { st.aiBusy = false; });
       }
     }
@@ -213,6 +227,7 @@
       // đợi có vài câu để nhận diện ngôn ngữ
       let acc = ''; for (let i = 0; i < 40 && acc.length < 60 && S === st; i++) { const x = st.readB(); if (x && !acc.includes(x)) acc += ' ' + x; await new Promise(z => setTimeout(z, 500)); }
       st.lang = await detect(acc);
+      if (!st.lang && acc.trim()) { const r = await gtr([acc.trim()]); if (r && r.lang) st.lang = base(r.lang); }   // máy không tự nhận được → hỏi Google
     }
     if (S !== st) return;
     if (!st.lang || st.lang === base(target())) { st.skip = true; status(st.lang ? 'Video đã là ' + (LANG[st.lang] || st.lang) + ', không cần dịch' : 'Chưa nhận ra ngôn ngữ của phụ đề'); return; }
