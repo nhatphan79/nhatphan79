@@ -116,7 +116,7 @@ img{display:block}
 <script>
 (function(){
 var API=(/workers\.dev$|(^|\.)haohaostore\.com$/.test(location.hostname)?'':'https://haohaostore.com');
-var LOGO='/shop/logo.webp';
+var LOGO=API+'/shop/logo.webp';
 var NICHES=[
  {id:'thoi-trang',label:'Thời trang',sub:'Nam · Nữ · Công sở · Thể thao',bg:'#FDE4EA'},
  {id:'me-be',label:'Mẹ & Bé',sub:'Đồ bé · Bỉm sữa · Đồ chơi',bg:'#E4F4EC'},
@@ -177,10 +177,10 @@ function vHome(){
   var recent=SEEN.map(function(id){return BY[id];}).filter(Boolean).slice(0,6);
   return '<header class="hero"><h1><b>Hao</b>Hao</h1><p>Mua sắm thông minh, không mua hớ cùng HaoHao</p><img src="'+LOGO+'" alt=""></header>'+
    '<form class="sbox" id="sf" role="search"><input id="q" type="search" enterkeyhint="search" placeholder="Bạn muốn tìm gì hôm nay?" aria-label="Tìm sản phẩm"><button class="sbtn" aria-label="Tìm">'+IC.search+'</button></form>'+
-   '<div class="cats">'+NICHES.map(function(n){return '<a class="cat" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="/shop/ngach-'+n.id+'.webp" alt=""></span>'+esc(n.label)+'</a>';}).join('')+'</div>'+
+   '<div class="cats">'+NICHES.map(function(n){return '<a class="cat" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></span>'+esc(n.label)+'</a>';}).join('')+'</div>'+
    (recent.length?'<section class="sec"><div class="sh"><h2>Bạn vừa xem</h2></div><div class="chips">'+recent.map(function(x){return '<a href="#/sp/'+x.id+'" style="flex:none;width:84px"><img src="'+esc(img(x))+'" alt="" loading="lazy" style="width:84px;height:84px;border-radius:14px;object-fit:cover;background:#F6EDE5"></a>';}).join('')+'</div></section>':'')+
    '<section class="sec"><div class="sh"><h2>Sản phẩm nổi bật</h2><a href="#/tim">Xem thêm ›</a></div>'+(READY?grid(pick):skel())+'</section>'+
-   '<a href="/tiem-nha-hao" style="display:flex;align-items:center;gap:12px;margin:22px 16px 0;padding:14px;border-radius:18px;background:#1E1A17;color:#fff"><img src="/shop/nha.svg" alt="" width="34" height="35"><span style="flex:1"><b style="display:block;font-size:15px">Tiệm nhà HaoHao</b><small style="color:#D8CCC2">Đồ nhà làm, giao quanh Đà Nẵng</small></span><span style="color:#F59A5C;font-weight:800">›</span></a>';
+   '<a href="/tiem-nha-hao" style="display:flex;align-items:center;gap:12px;margin:22px 16px 0;padding:14px;border-radius:18px;background:#1E1A17;color:#fff"><img src="'+API+'/shop/nha.svg" alt="" width="34" height="35"><span style="flex:1"><b style="display:block;font-size:15px">Tiệm nhà HaoHao</b><small style="color:#D8CCC2">Đồ nhà làm, giao quanh Đà Nẵng</small></span><span style="color:#F59A5C;font-weight:800">›</span></a>';
 }
 var SORTS=[['lq','Liên quan'],['ban','Bán chạy'],['re','Giá thấp'],['giam','Giảm nhiều']];
 function sortList(l,s){ l=l.slice(); if(s==='ban') l.sort(function(a,b){return (b.sold||0)-(a.sold||0);}); else if(s==='re') l.sort(function(a,b){return a.price-b.price;}); else if(s==='giam') l.sort(function(a,b){return pct(b)-pct(a);}); return l; }
@@ -194,7 +194,7 @@ function vSearch(q,s){
 function vCatList(){
   return bar('Danh mục')+'<p class="pad" style="margin:12px 0;color:var(--mute);font-size:13px">5 ngách HaoHao tuyển chọn và so giá</p><div class="pad">'+NICHES.map(function(n){
     var subs=D.groups.filter(function(g){return g.niche===n.id&&g.n;}), cnt=D.items.filter(function(x){return x.niche===n.id;}).length;
-    return '<div class="nc"><a class="hd" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="/shop/ngach-'+n.id+'.webp" alt=""></span><b>'+esc(n.full||n.label)+'<br><em>'+esc(n.sub)+'</em></b><em>'+cnt+' món ›</em></a>'+
+    return '<div class="nc"><a class="hd" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></span><b>'+esc(n.full||n.label)+'<br><em>'+esc(n.sub)+'</em></b><em>'+cnt+' món ›</em></a>'+
      (subs.length?'<div class="subs">'+subs.map(function(g){return '<a href="#/danh-muc/'+n.id+'/'+encodeURIComponent(g.topic)+'">'+esc(g.topic)+'</a>';}).join('')+'</div>':'')+'</div>';
   }).join('')+'</div>';
 }
