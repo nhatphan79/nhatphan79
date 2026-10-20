@@ -602,7 +602,17 @@ export default {
     const u = new URL(req.url);
     // 🌐 20/10: tên miền riêng haohaostore.com – www chuyển về tên chính, trang chủ = HaoHao Store
     if (u.hostname === 'www.haohaostore.com') return Response.redirect('https://haohaostore.com' + u.pathname + u.search, 301);
-    if (u.hostname === 'haohaostore.com' && (u.pathname === '/' || SHOP_ROUTE.test(u.pathname))) return await shopFile('index.html', 'html');
+    if (u.hostname === 'haohaostore.com' && (u.pathname === '/' || SHOP_ROUTE.test(u.pathname))) {
+      // 📱 20/10: điện thoại → giao diện app (/app). ?desktop=1 → giữ bản máy tính 30 ngày. Bỏ qua bot tìm kiếm.
+      const ua = req.headers.get('user-agent') || '', ck = req.headers.get('cookie') || '';
+      if (u.searchParams.get('desktop') === '1') { const r = await shopFile('index.html', 'html'); const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=1; Path=/; Max-Age=2592000; SameSite=Lax; Secure'); h.set('cache-control', 'private, no-store'); return new Response(r.body, { headers: h }); }
+      if (/Mobi|Android|iPhone|iPod/i.test(ua) && !/bot|crawl|spider|slurp|Lighthouse|facebookexternalhit|Zalo/i.test(ua) && !/(^|;\s*)hh_desk=1/.test(ck)) {
+        const m = u.pathname.match(/^\/san-pham\/(\d+)/), n = u.pathname.match(/^\/(thoi-trang|me-be|gia-dung|xay-dung|qua-tang)(?:\/|$)/);
+        const hash = m ? '#/sp/' + m[1] : n ? '#/danh-muc/' + n[1] : u.pathname.startsWith('/sale') ? '#/uu-dai' : '';
+        return new Response(null, { status: 302, headers: { location: '/app' + hash, 'cache-control': 'private, no-store', vary: 'User-Agent' } });
+      }
+      return await shopFile('index.html', 'html');
+    }
     try {
       await init(env);
       if (u.pathname === '/p' && req.method === 'POST') {
@@ -638,7 +648,7 @@ export default {
       if (u.pathname === '/tin-tuc') return Response.redirect(u.origin + '/tin-tuc/', 301);
       if (u.pathname.startsWith('/tin-tuc/')) { const g = u.pathname.slice(9).replace(/\/$/, ''); if (g && !/^[a-z0-9][a-z0-9-]{0,100}$/.test(g)) return new Response('Không có trang này', { status: 404 }); return await shopFile('tin-tuc/' + (g ? g + '.html' : 'index.html'), 'html'); }
       if (u.pathname === '/tiem-nha-hao' || u.pathname === '/tiem-nha-hao/') return await shopFile('tiem-nha-hao.html', 'html');
-      if (u.pathname === '/app' || u.pathname === '/app/') return await shopFile('app.html', 'html');   // 📱 20/10: giao diện app điện thoại (8 màn theo canvas)
+      if (u.pathname === '/app' || u.pathname === '/app/') { const r = await shopFile('app.html', 'html'); if (!/hh_desk=1/.test(req.headers.get('cookie') || '')) return r; const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=; Path=/; Max-Age=0; SameSite=Lax; Secure'); return new Response(r.body, { headers: h }); }   // 📱 20/10: app điện thoại (vào /app là bỏ chế độ máy tính)   // 📱 20/10: giao diện app điện thoại (8 màn theo canvas)
       if (u.pathname === '/sw.js') return await shopFile('sw.js', 'js');
       if (u.pathname === '/manifest.webmanifest') return await shopFile('manifest.webmanifest', 'webmanifest');   // 🏠 20/10: Tiệm nhà Hao
       if (u.pathname === '/sitemap.xml') return await shopFile('sitemap.xml', 'xml');
