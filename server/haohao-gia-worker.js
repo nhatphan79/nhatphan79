@@ -601,6 +601,7 @@ export default {
       if (u.pathname === '/shop' || u.pathname.startsWith('/shop/')) return await shopPage(u);
       if (u.pathname === '/tin-tuc') return Response.redirect(u.origin + '/tin-tuc/', 301);
       if (u.pathname.startsWith('/tin-tuc/')) { const g = u.pathname.slice(9).replace(/\/$/, ''); if (g && !/^[a-z0-9][a-z0-9-]{0,100}$/.test(g)) return new Response('Không có trang này', { status: 404 }); return await shopFile('tin-tuc/' + (g ? g + '.html' : 'index.html'), 'html'); }
+      if (u.pathname === '/tiem-nha-hao' || u.pathname === '/tiem-nha-hao/') return await shopFile('tiem-nha-hao.html', 'html');   // 🏠 20/10: Tiệm nhà Hao
       if (u.pathname === '/sitemap.xml') return await shopFile('sitemap.xml', 'xml');
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)

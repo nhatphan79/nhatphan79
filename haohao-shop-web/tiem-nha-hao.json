@@ -1,0 +1,18 @@
+{
+ "_huong_dan": "Sửa món ở đây rồi đẩy GitHub là web tự đổi (5 phút). tinh_trang: 'Có sẵn' | 'Đặt trước N ngày' | 'Hết hàng hôm nay'. gia = số tiền (vd 85000), 0 = chưa có giá. anh = link ảnh https (để trống = khung tạm). an = true để ẩn món.",
+ "cau_chuyen": "[Câu chuyện ngắn về tiệm: nhà làm, làm theo đơn, nguyên liệu chọn kỹ…]",
+ "anh_tiem": "",
+ "zalo": "84366159790",
+ "zalo_hien": "0366.159.790",
+ "khu_vuc": "Quanh bán kính Đà Nẵng. [Ghi rõ phạm vi giao]",
+ "thanh_toan": "[Chuyển khoản / trả khi nhận hàng]",
+ "phi_ship": "[Cách tính phí ship]",
+ "mon": [
+  {"ten": "[Sản phẩm nhà làm 1]", "mo_ta": "[Mô tả ngắn 1–2 dòng]", "quy_cach": "[Hộp 500g]", "gia": 0, "tinh_trang": "Có sẵn", "anh": ""},
+  {"ten": "[Sản phẩm nhà làm 2]", "mo_ta": "[Mô tả ngắn 1–2 dòng]", "quy_cach": "[Hũ 300g]", "gia": 0, "tinh_trang": "Đặt trước 2 ngày", "anh": ""},
+  {"ten": "[Sản phẩm nhà làm 3]", "mo_ta": "[Mô tả ngắn 1–2 dòng]", "quy_cach": "[Chai 1 lít]", "gia": 0, "tinh_trang": "Có sẵn", "anh": ""},
+  {"ten": "[Sản phẩm nhà làm 4]", "mo_ta": "[Mô tả ngắn 1–2 dòng]", "quy_cach": "[Túi 1kg]", "gia": 0, "tinh_trang": "Đặt trước 1 ngày", "anh": ""},
+  {"ten": "[Sản phẩm nhà làm 5]", "mo_ta": "[Mô tả ngắn 1–2 dòng]", "quy_cach": "[Hộp 10 cái]", "gia": 0, "tinh_trang": "Có sẵn", "anh": ""},
+  {"ten": "[Sản phẩm nhà làm 6]", "mo_ta": "[Mô tả ngắn 1–2 dòng]", "quy_cach": "[Phần]", "gia": 0, "tinh_trang": "Hết hàng hôm nay", "anh": ""}
+ ]
+}
