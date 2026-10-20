@@ -348,10 +348,12 @@ async function hotRun(env, force) {
 }
 
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
-async function feedSafe(env) {
+const FEED_ON = false;   // 20/10: TẠM TẮT nạp kho Shopee/TikTok theo lịch (D1 vượt 5 triệu dòng đọc/ngày). Bật lại: đổi thành true
+async function feedSafe(env, manual) {
   await hotRun(env).catch(e => setSt(env, 'feedErr', { e: 'Mã hot: ' + (e && e.message || e), at: Date.now() }).catch(() => {}));
   await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
   await env.DB.prepare('DELETE FROM cho WHERE until < ?').bind(Date.now() - 864e5).run().catch(() => {});
+  if (!FEED_ON && !manual) return { ok: true, paused: true };
   const tt = await feedTT(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   if (!tt.ok && tt.error !== 'no RH_KEY') await setSt(env, 'feedErr', { e: 'TikTok: ' + tt.error, at: Date.now() }).catch(() => {});
   try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return { ...r, tiktok: tt }; }
@@ -617,7 +619,7 @@ export default {
       if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
         if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403);   // 13/10: chỉ chủ app (?key=STATS_KEY); lịch tự nạp vẫn chạy
         const f = await getSt(env, 'feed2'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
-        return json(await feedSafe(env));
+        return json(await feedSafe(env, true));
       }
       if (u.pathname === '/h') return json(await get(env, u.searchParams.get('k')), 200, { 'cache-control': 'public, max-age=600' });
       if (u.pathname === '/') {
