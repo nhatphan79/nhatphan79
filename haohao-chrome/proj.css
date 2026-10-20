@@ -460,6 +460,6 @@
 .pj-lr .c-pg b.ok { color: #2E8B57; }
 
 /* V1.83: 6 ô số (thêm Tổng tài sản) */
-.pj-kpis.k6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.pj-kpis.k6, .pj-kpis.k5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .pj-kpi.tsan b { color: #0F766E; }
-@media (max-width: 1300px) { .pj-kpis.k6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .pj-kpis.k5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
