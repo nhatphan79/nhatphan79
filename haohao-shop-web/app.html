@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HaoHao Store – Mua sắm không mua hớ</title>
+<meta name="description" content="HaoHao Store: sản phẩm tuyển chọn trên Shopee & TikTok Shop, giá thật, có lịch sử giá. Cài như app trên điện thoại.">
+<meta name="theme-color" content="#FFEBDA">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/shop/logo.webp">
+<link rel="apple-touch-icon" href="/shop/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HaoHao">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFF7F0;--card:#FFFFFF;--ink:#2A1E17;--soft:#5C4A3E;--mute:#6E5C50;--line:#F1E2D4;--acc:#D9480F;--acc2:#B23A0B;--peach:#FFEBDA;--ok:#2E8A5B;--okbg:#E4F4EC}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#EFE6DE}
+body{font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-size:14px}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+img{display:block}
+.app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;background:var(--bg);position:relative;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.pad{padding:0 16px}
+.sk{background:linear-gradient(90deg,#F6EDE5,#FBF5F0,#F6EDE5);background-size:200% 100%;animation:sk 1.2s infinite}@keyframes sk{to{background-position:-200% 0}}
+/* thanh trên */
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;background:rgba(255,247,240,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar h1{flex:1;margin:0;font-size:18px;font-weight:800}
+.ib{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 2px 8px rgba(120,60,20,.08);flex:none}
+/* trang chủ */
+.hero{position:relative;padding:calc(30px + env(safe-area-inset-top,0px)) 20px 44px;background:var(--peach);border-radius:0 0 28px 28px;overflow:hidden}
+.hero h1{margin:0;font-size:36px;font-weight:800;letter-spacing:-.5px;line-height:1}.hero h1 b{color:var(--acc)}
+.hero p{margin:10px 0 0;font-size:14px;line-height:1.45;color:var(--soft);max-width:58%}
+.hero img{position:absolute;right:10px;top:calc(8px + env(safe-area-inset-top,0px));width:132px;height:auto;filter:drop-shadow(0 10px 14px rgba(150,70,10,.18))}
+.sbox{margin:-26px 16px 0;position:relative;z-index:2;display:flex;align-items:center;gap:8px;background:#fff;border-radius:28px;padding:6px 6px 6px 18px;box-shadow:0 6px 18px rgba(120,60,20,.10)}
+.sbox input{flex:1;min-width:0;border:0;outline:none;font:inherit;font-size:15px;color:var(--ink);background:transparent}
+.sbtn{width:44px;height:44px;border-radius:22px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.cats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px 6px;padding:20px 12px 0}
+.cat{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.25}
+.cat span{width:58px;height:58px;border-radius:18px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cat span img{width:46px;height:46px;object-fit:contain}
+.sec{padding:22px 16px 0}
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}.sh h2{margin:0;font-size:18px;font-weight:700}.sh a{font-size:13px;font-weight:600;color:var(--acc)}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 16px 4px;margin:0 -16px}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 14px;border-radius:18px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--soft);white-space:nowrap}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+/* lưới sản phẩm */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pc{display:flex;flex-direction:column;background:#fff;border-radius:16px;overflow:hidden;position:relative}
+.pc .im{position:relative;aspect-ratio:1/1;background:#F6EDE5}
+.pc .im img{width:100%;height:100%;object-fit:cover}
+.pc .off{position:absolute;left:8px;top:8px;padding:3px 7px;border-radius:8px;background:var(--acc);color:#fff;font-size:11px;font-weight:800}
+.hrt{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--acc);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.hrt[aria-pressed="true"] svg{fill:currentColor}
+.pc .bd{padding:9px 10px 11px;display:flex;flex-direction:column;gap:4px;flex:1}
+.pc .nm{font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.pr{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.pr b{color:var(--acc);font-size:15px;font-weight:800}.pr s{color:#A8998D;font-size:12px}
+.meta{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);margin-top:auto}
+.plat{display:inline-flex;align-items:center;gap:4px;font-weight:600}.plat i{width:15px;height:15px;border-radius:4px;background:#EE4D2D;color:#fff;font-style:normal;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.empty{padding:40px 20px;text-align:center;color:var(--mute);line-height:1.6}
+/* chi tiết */
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;background:#F6EDE5}.gal::-webkit-scrollbar{display:none}
+.gal img{flex:none;width:100%;aspect-ratio:1/1;object-fit:cover;scroll-snap-align:start}
+.gwrap{position:relative}.gcnt{position:absolute;right:12px;bottom:12px;padding:3px 9px;border-radius:10px;background:rgba(42,30,23,.6);color:#fff;font-size:12px;font-weight:600}
+.gtop{position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between}
+.dt{padding:16px}
+.dt h1{margin:0;font-size:18px;line-height:1.35;font-weight:700}
+.dt .pr b{font-size:24px}.dt .pr .pct{padding:2px 7px;border-radius:8px;background:#FDE3D6;color:var(--acc2);font-size:12px;font-weight:800}
+.row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.box{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--okbg);color:#1E3A28;font-size:13px;line-height:1.5}.box b{color:var(--ok)}
+.box.warn{background:#FFF1CF;color:#5A4300}.box.warn b{color:#A66A00}
+.card{margin-top:14px;padding:14px;border-radius:14px;background:#fff;display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;flex-wrap:wrap;gap:8px}.opt span{padding:6px 10px;border-radius:10px;border:1px solid var(--line);font-size:12.5px;display:inline-flex;align-items:center;gap:6px;background:#fff}.opt img{width:26px;height:26px;border-radius:6px;object-fit:cover}
+.cta{position:fixed;left:0;right:0;bottom:0;z-index:30;max-width:520px;margin:0 auto;display:flex;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--line)}
+.btn{min-height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:14px;padding:0 16px}
+.btn.o{border:1.5px solid var(--line);background:#fff}.btn.p{flex:1;background:var(--acc);color:#fff;font-weight:800;font-size:15px}
+/* danh mục */
+.nc{background:#fff;border-radius:18px;padding:14px;margin-bottom:12px}
+.nc .hd{display:flex;align-items:center;gap:12px}.nc .hd span{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none}.nc .hd span img{width:42px;height:42px;object-fit:contain}
+.nc .hd b{flex:1;font-size:16px}.nc .hd em{font-style:normal;font-size:12px;color:var(--mute)}
+.subs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.subs a{padding:7px 12px;border-radius:14px;background:var(--bg);font-size:12.5px;font-weight:600;color:var(--soft)}
+/* ưu đãi */
+.flash{margin:14px 16px 0;padding:14px;border-radius:18px;background:linear-gradient(120deg,#D9480F,#F08A3C);color:#fff;display:flex;align-items:center;gap:12px}
+.flash p{margin:0;font-size:13px;flex:1;line-height:1.4}.flash p b{display:block;font-size:16px}
+.clock{display:flex;gap:4px}.clock span{min-width:34px;padding:6px 0;border-radius:8px;background:#2A1E17;text-align:center;font-weight:800;font-size:15px}
+/* so sánh */
+.cmp{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:#fff;border:1.5px solid var(--line)}.cmp.best{border-color:var(--acc)}
+.cmp .lg{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex:none}
+.cmp .tx{flex:1;min-width:0}.cmp .tx b{display:block;font-size:14px}.cmp .tx small{color:var(--mute)}
+.tag{padding:2px 8px;border-radius:8px;background:var(--okbg);color:var(--ok);font-size:11px;font-weight:800;margin-left:6px}
+.chart{background:#fff;border-radius:14px;padding:14px}
+.chart svg{width:100%;height:150px;display:block}
+.lgnd{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-top:6px}
+/* cá nhân */
+.me{margin:14px 16px 0;padding:18px;border-radius:20px;background:var(--peach);display:flex;align-items:center;gap:14px}.me img{width:64px;height:auto}.me b{font-size:20px}.me p{margin:4px 0 0;color:var(--soft);font-size:13px}
+.menu{margin:14px 16px 0;background:#fff;border-radius:18px;overflow:hidden}
+.menu a,.menu button{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;font-weight:500}
+.menu>:last-child{border-bottom:0}.menu .ic{width:32px;height:32px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}
+.menu .lb{flex:1}.menu .mt{font-size:12px;color:var(--mute)}
+.note{margin:16px;font-size:12px;line-height:1.6;color:var(--mute);text-align:center}
+/* thanh dưới */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;max-width:520px;margin:0 auto;height:calc(66px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--mute);font-size:11px;font-weight:500}
+.tabs a.on{color:var(--acc);font-weight:700}.tabs a.on svg{fill:currentColor}
+.tabs a .bd2{position:relative}.tabs a .cnt{position:absolute;right:-9px;top:-4px;min-width:16px;height:16px;border-radius:8px;background:var(--acc);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.hide{display:none!important}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;padding:10px 16px;border-radius:20px;background:#2A1E17;color:#fff;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="app" id="app"><div class="hero sk" style="height:180px"></div></div>
+<nav class="tabs" id="tabs" aria-label="Điều hướng chính"></nav>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function(){
+var API=(/workers\.dev$|(^|\.)haohaostore\.com$/.test(location.hostname)?'':'https://haohaostore.com');
+var LOGO='/shop/logo.webp';
+var NICHES=[
+ {id:'thoi-trang',label:'Thời trang',sub:'Nam · Nữ · Công sở · Thể thao',bg:'#FDE4EA'},
+ {id:'me-be',label:'Mẹ & Bé',sub:'Đồ bé · Bỉm sữa · Đồ chơi',bg:'#E4F4EC'},
+ {id:'gia-dung',label:'Gia dụng',full:'Nhà cửa & Gia dụng',sub:'Nhà bếp · Đồ điện · Dọn dẹp',bg:'#FFF1CF'},
+ {id:'xay-dung',label:'Xây dựng',sub:'Đồ nghề · Bảo hộ · Sửa nhà',bg:'#E2EDFB'},
+ {id:'qua-tang',label:'Quà tặng',sub:'Sinh nhật · Bố mẹ · Lễ Tết',bg:'#FDE3D6'}
+];
+var NI={}; NICHES.forEach(function(n){NI[n.id]=n;});
+var IC={
+ home:'<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+ grid:'<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>',
+ tag:'<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/></svg>',
+ heart:'<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>',
+ heartS:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>',
+ user:'<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+ search:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+ back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+ share:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
+ ext:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'
+};
+var app=document.getElementById('app'), tabs=document.getElementById('tabs');
+var D={items:[],groups:[]}, BY={}, READY=false, HH={}, HDAY=0;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function V(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
+function fold(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d');}
+function pct(x){return x.old>x.price?Math.round((1-x.price/x.old)*100):0;}
+function ls(k,v){try{ if(v===undefined){ return JSON.parse(localStorage.getItem('hh_'+k)||'null'); } localStorage.setItem('hh_'+k,JSON.stringify(v)); }catch(e){ return null; }}
+var FAV=ls('fav')||{}, SEEN=ls('seen')||[];
+function toast(t){var e=document.getElementById('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(function(){e.classList.remove('on');},1800);}
+function isFav(id){return !!FAV[id];}
+function togFav(id){ var x=BY[id]; if(FAV[id]){ delete FAV[id]; toast('Đã bỏ khỏi Yêu thích'); } else { FAV[id]={p:x?x.price:0,t:Date.now()}; toast('Đã lưu vào Yêu thích ♥'); } ls('fav',FAV); drawTabs(); }
+function img(x){return x.img||(x.imgs&&x.imgs[0])||'';}
+
+function card(x){
+  var o=pct(x);
+  return '<a class="pc" href="#/sp/'+x.id+'"><span class="im"><img src="'+esc(img(x))+'" alt="" loading="lazy">'+(o>=5?'<span class="off">−'+o+'%</span>':'')+
+   '<button class="hrt" type="button" data-fav="'+x.id+'" aria-label="Lưu yêu thích" aria-pressed="'+isFav(x.id)+'">'+IC.heartS+'</button></span>'+
+   '<span class="bd"><span class="nm">'+esc(x.n)+'</span><span class="pr"><b>'+V(x.price)+'</b>'+(x.old>x.price?'<s>'+V(x.old)+'</s>':'')+'</span>'+
+   '<span class="meta"><span class="plat"><i>S</i>Shopee</span>'+(x.rating?'· ★ '+x.rating:'')+(x.soldTxt?' · '+esc(x.soldTxt.replace(' đã bán','')):'')+'</span></span></a>';
+}
+function grid(list,emptyMsg){ return list.length?'<div class="grid">'+list.map(card).join('')+'</div>':'<div class="empty">'+(emptyMsg||'Chưa có sản phẩm.')+'</div>'; }
+function skel(){ var s=''; for(var i=0;i<4;i++) s+='<div class="pc"><span class="im sk"></span><span class="bd"><span class="nm sk" style="border-radius:6px"></span></span></div>'; return '<div class="grid">'+s+'</div>'; }
+function bar(title,back,right){ return '<div class="bar">'+(back?'<button class="ib" type="button" data-back aria-label="Quay lại">'+IC.back+'</button>':'')+'<h1>'+title+'</h1>'+(right||'')+'</div>'; }
+
+function drawTabs(){
+  var r=(location.hash||'#/').slice(1), cur=r==='/'||r===''?'home':/^\/(danh-muc)/.test(r)?'dm':/^\/uu-dai/.test(r)?'ud':/^\/yeu-thich/.test(r)?'yt':/^\/ca-nhan/.test(r)?'cn':'';
+  var n=Object.keys(FAV).length;
+  var T=[['home','#/','Trang chủ',IC.home],['dm','#/danh-muc','Danh mục',IC.grid],['ud','#/uu-dai','Ưu đãi',IC.tag],['yt','#/yeu-thich','Yêu thích',IC.heart],['cn','#/ca-nhan','Cá nhân',IC.user]];
+  tabs.innerHTML=T.map(function(t){return '<a href="'+t[1]+'"'+(cur===t[0]?' class="on" aria-current="page"':'')+'><span class="bd2">'+t[3]+(t[0]==='yt'&&n?'<span class="cnt">'+n+'</span>':'')+'</span>'+t[2]+'</a>';}).join('');
+  tabs.classList.toggle('hide',/^\/sp\//.test(r));
+}
+
+/* ===== màn hình ===== */
+function vHome(){
+  var hot=D.items.slice().sort(function(a,b){return (b.sold||0)-(a.sold||0);});
+  var pick=[],seenN={}; hot.forEach(function(x){ if(pick.length<12&&(seenN[x.niche]||0)<3){ pick.push(x); seenN[x.niche]=(seenN[x.niche]||0)+1; } });
+  hot.forEach(function(x){ if(pick.length<12&&pick.indexOf(x)<0) pick.push(x); });
+  var recent=SEEN.map(function(id){return BY[id];}).filter(Boolean).slice(0,6);
+  return '<header class="hero"><h1><b>Hao</b>Hao</h1><p>Mua sắm thông minh, không mua hớ cùng HaoHao</p><img src="'+LOGO+'" alt=""></header>'+
+   '<form class="sbox" id="sf" role="search"><input id="q" type="search" enterkeyhint="search" placeholder="Bạn muốn tìm gì hôm nay?" aria-label="Tìm sản phẩm"><button class="sbtn" aria-label="Tìm">'+IC.search+'</button></form>'+
+   '<div class="cats">'+NICHES.map(function(n){return '<a class="cat" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="/shop/ngach-'+n.id+'.webp" alt=""></span>'+esc(n.label)+'</a>';}).join('')+'</div>'+
+   (recent.length?'<section class="sec"><div class="sh"><h2>Bạn vừa xem</h2></div><div class="chips">'+recent.map(function(x){return '<a href="#/sp/'+x.id+'" style="flex:none;width:84px"><img src="'+esc(img(x))+'" alt="" loading="lazy" style="width:84px;height:84px;border-radius:14px;object-fit:cover;background:#F6EDE5"></a>';}).join('')+'</div></section>':'')+
+   '<section class="sec"><div class="sh"><h2>Sản phẩm nổi bật</h2><a href="#/tim">Xem thêm ›</a></div>'+(READY?grid(pick):skel())+'</section>'+
+   '<a href="/tiem-nha-hao" style="display:flex;align-items:center;gap:12px;margin:22px 16px 0;padding:14px;border-radius:18px;background:#1E1A17;color:#fff"><img src="/shop/nha.svg" alt="" width="34" height="35"><span style="flex:1"><b style="display:block;font-size:15px">Tiệm nhà HaoHao</b><small style="color:#D8CCC2">Đồ nhà làm, giao quanh Đà Nẵng</small></span><span style="color:#F59A5C;font-weight:800">›</span></a>';
+}
+var SORTS=[['lq','Liên quan'],['ban','Bán chạy'],['re','Giá thấp'],['giam','Giảm nhiều']];
+function sortList(l,s){ l=l.slice(); if(s==='ban') l.sort(function(a,b){return (b.sold||0)-(a.sold||0);}); else if(s==='re') l.sort(function(a,b){return a.price-b.price;}); else if(s==='giam') l.sort(function(a,b){return pct(b)-pct(a);}); return l; }
+function vSearch(q,s){
+  var w=fold(q).split(/\s+/).filter(Boolean), l=D.items.filter(function(x){ var t=fold(x.n+' '+x.shopName+' '+x.cat+' '+(NI[x.niche]||{}).label); return w.every(function(k){return t.indexOf(k)>=0;}); });
+  return bar('Tìm sản phẩm',true)+'<form class="sbox" id="sf" role="search" style="margin:12px 16px 0"><input id="q" type="search" enterkeyhint="search" value="'+esc(q)+'" placeholder="Bạn muốn tìm gì?" aria-label="Tìm sản phẩm"><button class="sbtn" aria-label="Tìm">'+IC.search+'</button></form>'+
+   '<div class="sec" style="padding-top:12px"><div class="chips">'+SORTS.map(function(o){return '<a class="chip'+(o[0]===s?' on':'')+'" href="#/tim?q='+encodeURIComponent(q)+'&s='+o[0]+'">'+o[1]+'</a>';}).join('')+'</div>'+
+   '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+(q?'Kết quả cho “'+esc(q)+'” · '+l.length+' sản phẩm · giá thật lấy từ sàn':l.length+' sản phẩm HaoHao tuyển chọn')+'</p>'+
+   (READY?grid(sortList(l,s),'Không thấy “'+esc(q)+'”. Thử từ khoá ngắn hơn nhé.'):skel())+'</div>';
+}
+function vCatList(){
+  return bar('Danh mục')+'<p class="pad" style="margin:12px 0;color:var(--mute);font-size:13px">5 ngách HaoHao tuyển chọn và so giá</p><div class="pad">'+NICHES.map(function(n){
+    var subs=D.groups.filter(function(g){return g.niche===n.id&&g.n;}), cnt=D.items.filter(function(x){return x.niche===n.id;}).length;
+    return '<div class="nc"><a class="hd" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="/shop/ngach-'+n.id+'.webp" alt=""></span><b>'+esc(n.full||n.label)+'<br><em>'+esc(n.sub)+'</em></b><em>'+cnt+' món ›</em></a>'+
+     (subs.length?'<div class="subs">'+subs.map(function(g){return '<a href="#/danh-muc/'+n.id+'/'+encodeURIComponent(g.topic)+'">'+esc(g.topic)+'</a>';}).join('')+'</div>':'')+'</div>';
+  }).join('')+'</div>';
+}
+function vNiche(id,topic,s){
+  var n=NI[id]; if(!n) return vCatList();
+  var subs=D.groups.filter(function(g){return g.niche===id&&g.n;}), l=D.items.filter(function(x){return x.niche===id&&(!topic||x.cat===topic);});
+  return bar(esc(n.full||n.label),true)+'<div class="sec" style="padding-top:12px"><div class="chips"><a class="chip'+(!topic?' on':'')+'" href="#/danh-muc/'+id+'">Tất cả</a>'+subs.map(function(g){return '<a class="chip'+(g.topic===topic?' on':'')+'" href="#/danh-muc/'+id+'/'+encodeURIComponent(g.topic)+'">'+esc(g.topic)+'</a>';}).join('')+'</div>'+
+   '<div class="chips" style="margin-top:6px">'+SORTS.map(function(o){return '<a class="chip'+(o[0]===s?' on':'')+'" style="padding:6px 12px;font-size:12px" href="#/danh-muc/'+id+(topic?'/'+encodeURIComponent(topic):'')+'?s='+o[0]+'">'+o[1]+'</a>';}).join('')+'</div>'+
+   '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+l.length+' sản phẩm</p>'+(READY?grid(sortList(l,s)):skel())+'</div>';
+}
+function vDeals(nid){
+  var l=D.items.filter(function(x){return pct(x)>=10&&(!nid||x.niche===nid);}).sort(function(a,b){return pct(b)-pct(a);});
+  return bar('Ưu đãi hôm nay')+'<div class="flash"><p><b>Giảm sâu nhất hôm nay</b>Giá được HaoHao cập nhật lại sau</p><div class="clock" id="clk"><span>--</span><span>--</span><span>--</span></div></div>'+
+   '<div class="sec" style="padding-top:14px"><div class="chips"><a class="chip'+(!nid?' on':'')+'" href="#/uu-dai">Tất cả</a>'+NICHES.map(function(n){return '<a class="chip'+(n.id===nid?' on':'')+'" href="#/uu-dai/'+n.id+'">'+esc(n.label)+'</a>';}).join('')+'</div><div style="height:12px"></div>'+
+   (READY?grid(l,'Hôm nay ngách này chưa có món giảm từ 10%.'):skel())+'</div>';
+}
+function vFav(tab){
+  var ids=Object.keys(FAV).sort(function(a,b){return FAV[b].t-FAV[a].t;}), l=ids.map(function(id){return BY[id];}).filter(Boolean);
+  var drop=l.filter(function(x){return FAV[x.id].p&&x.price<FAV[x.id].p;});
+  var show=tab==='giam'?drop:l;
+  return bar('Yêu thích')+'<div class="sec" style="padding-top:12px"><div class="chips"><a class="chip'+(tab!=='giam'?' on':'')+'" href="#/yeu-thich">Sản phẩm ('+l.length+')</a><a class="chip'+(tab==='giam'?' on':'')+'" href="#/yeu-thich/giam">Đang giảm giá ('+drop.length+')</a></div><div style="height:12px"></div>'+
+   (show.length?'<div style="display:flex;flex-direction:column;gap:10px">'+show.map(function(x){var was=FAV[x.id].p, d=was&&x.price<was?was-x.price:0;
+     return '<a href="#/sp/'+x.id+'" style="display:flex;gap:12px;padding:10px;background:#fff;border-radius:16px;align-items:center"><img src="'+esc(img(x))+'" alt="" loading="lazy" style="width:84px;height:84px;border-radius:12px;object-fit:cover;flex:none;background:#F6EDE5"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span class="nm" style="font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+esc(x.n)+'</span><span class="pr"><b>'+V(x.price)+'</b>'+(x.old>x.price?'<s>'+V(x.old)+'</s>':'')+'</span>'+(d?'<span class="tag" style="margin:0;align-self:flex-start">Giảm thêm '+V(d)+' từ lúc lưu</span>':'<span class="meta"><span class="plat"><i>S</i>Shopee</span></span>')+'</span><button class="hrt" type="button" data-fav="'+x.id+'" aria-pressed="true" aria-label="Bỏ yêu thích" style="position:static;flex:none">'+IC.heartS+'</button></a>';}).join('')+'</div>'
+    :'<div class="empty">'+(tab==='giam'?'Chưa món nào giảm giá so với lúc bạn lưu.':'Bấm ♥ ở sản phẩm bạn thích để lưu vào đây. HaoHao sẽ báo khi giá giảm.')+'</div>')+'</div>';
+}
+function vMe(){
+  var M=[['👀','Sản phẩm đã xem','#/tim?s=lq',SEEN.length+' món'],['♥','Sản phẩm yêu thích','#/yeu-thich',Object.keys(FAV).length+' món'],['🏷️','Ưu đãi hôm nay','#/uu-dai',''],['📰','Tin tức · Cẩm nang mua sắm','/tin-tuc/',''],['🏡','Tiệm nhà HaoHao','/tiem-nha-hao','Đồ nhà làm'],['🐹','HaoHao App (tiện ích Chrome)','https://haohao.ai.studio/','']];
+  var L=[['🎵','Kênh TikTok HaoHao','https://www.tiktok.com/@haohaomall','@haohaomall'],['📘','Fanpage HaoHao','https://www.facebook.com/trolyHaoHao','trolyHaoHao'],['💬','Zalo hỗ trợ','https://zalo.me/84366159790','0366.159.790']];
+  function li(m){var ext=/^https?:/.test(m[2]); return '<a href="'+m[2]+'"'+(ext?' target="_blank" rel="noopener"':'')+'><span class="ic">'+m[0]+'</span><span class="lb">'+m[1]+'</span><span class="mt">'+m[3]+' ›</span></a>';}
+  return bar('Cá nhân')+'<div class="me"><img src="'+LOGO+'" alt=""><div><b>Xin chào!</b><p>HaoHao giúp bạn mua sắm không bị hớ</p></div></div>'+
+   '<div class="menu">'+M.map(li).join('')+'</div>'+
+   '<div class="menu">'+(INST||!STANDALONE?'<button type="button" id="inst"><span class="ic">📲</span><span class="lb">Cài HaoHao lên màn hình chính</span><span class="mt">›</span></button>':'')+L.map(li).join('')+'<a href="/?desktop=1"><span class="ic">💻</span><span class="lb">Xem bản máy tính</span><span class="mt">›</span></a></div>'+
+   '<p class="note">HaoHao không bán hàng trực tiếp và không giới thiệu sản phẩm một cách đại trà. Mỗi sản phẩm đều được tìm hiểu, chọn lọc kỹ trước khi chia sẻ. HaoHao hoạt động theo hình thức tiếp thị liên kết (Affiliate) – giá bạn mua không đổi.</p>';
+}
+function hist(x){ var a=HH['sp:'+x.shop+'.'+x.id]; return a&&a.length?a.filter(function(t){return HDAY-t[0]<=30&&t[1]>0;}):[]; }
+function verdict(x){
+  var h=hist(x); if(h.length<3) return '<div class="box warn"><b>HaoHao đang theo dõi giá</b> · Chưa đủ 30 ngày dữ liệu cho món này. Giá hiện tại lấy trực tiếp từ Shopee.</div>';
+  var avg=h.reduce(function(s,t){return s+t[1];},0)/h.length, mx=Math.max.apply(null,h.map(function(t){return t[1];}));
+  if(x.price<=avg*0.98) return '<div class="box"><b>HaoHao kiểm tra: Giá tốt</b><br>Thấp hơn giá trung bình 30 ngày ('+V(avg)+'), không có dấu hiệu đẩy giá trước sale.</div>';
+  if(x.price>=mx*0.99&&h.length>5) return '<div class="box warn"><b>HaoHao kiểm tra: Đang ở mức cao</b><br>Giá trung bình 30 ngày là '+V(avg)+'. Có thể chờ thêm vài ngày.</div>';
+  return '<div class="box"><b>HaoHao kiểm tra: Giá bình thường</b><br>Gần mức trung bình 30 ngày ('+V(avg)+').</div>';
+}
+function vDetail(id){
+  var x=BY[id]; if(!x) return bar('Sản phẩm',true)+(READY?'<div class="empty">Sản phẩm này không còn trong danh sách HaoHao.</div>':'<div class="sk" style="aspect-ratio:1/1"></div>');
+  SEEN=[id].concat(SEEN.filter(function(s){return s!==id;})).slice(0,30); ls('seen',SEEN);
+  var ims=(x.imgs&&x.imgs.length?x.imgs:[img(x)]).slice(0,8), o=pct(x), app=x.app&&x.app<x.price?x.app:0;
+  var tiers=(x.tiers||[]).filter(function(t){return t.options&&t.options.length;}).slice(0,2);
+  return '<div class="gwrap"><div class="gal" id="gal">'+ims.map(function(u,i){return '<img src="'+esc(u)+'" alt="'+(i?'':esc(x.n))+'"'+(i?' loading="lazy"':'')+'>';}).join('')+'</div><span class="gcnt" id="gcn">1/'+ims.length+'</span>'+
+   '<div class="gtop"><button class="ib" type="button" data-back aria-label="Quay lại">'+IC.back+'</button><span style="display:flex;gap:8px"><button class="ib" type="button" id="shr" aria-label="Chia sẻ">'+IC.share+'</button><button class="ib hrt" style="position:static;width:40px;height:40px;border-radius:20px" type="button" data-fav="'+x.id+'" aria-pressed="'+isFav(x.id)+'" aria-label="Lưu yêu thích">'+IC.heartS+'</button></span></div></div>'+
+   '<div class="dt"><h1>'+esc(x.n)+'</h1><div class="pr" style="margin-top:8px"><b>'+V(x.price)+'</b>'+(x.old>x.price?'<s style="font-size:14px">'+V(x.old)+'</s>':'')+(o>=1?'<span class="pct">−'+o+'%</span>':'')+'</div>'+
+   (app?'<div style="margin-top:6px;font-size:13px;color:var(--ok);font-weight:700">📱 Mua trên app Shopee còn khoảng '+V(app)+'</div>':'')+
+   '<div class="row" style="margin-top:8px">'+(x.rating?'<span style="color:#E8A100">★</span><b style="color:var(--ink)">'+x.rating+'</b>'+(x.rc&&x.rc[0]?' ('+x.rc[0].toLocaleString('vi-VN')+' đánh giá)':''):'')+(x.soldTxt?' · '+esc(x.soldTxt):'')+'</div>'+
+   verdict(x)+
+   '<div class="card"><div class="row" style="color:var(--ink);font-weight:600"><span class="plat"><i>S</i></span>Shopee · '+esc(x.shopName||'')+'</div><div class="row">🚚 Phí ship và thời gian giao xem trên Shopee</div><div class="row">↩︎ Đổi trả theo chính sách của shop</div></div>'+
+   tiers.map(function(t){return '<div class="card"><b style="font-size:13px">'+esc(t.name)+' <span style="font-weight:500;color:var(--mute)">('+t.options.length+')</span></b><div class="opt">'+t.options.slice(0,12).map(function(op,i){return '<span>'+(t.images&&t.images[i]?'<img src="'+esc(t.images[i])+'_tn" alt="" loading="lazy">':'')+esc(op)+'</span>';}).join('')+'</div></div>';}).join('')+
+   '<a class="card" href="#/so-sanh/'+x.id+'" style="flex-direction:row;align-items:center;font-weight:700"><span style="flex:1">📊 So sánh giá & lịch sử 30 ngày</span><span style="color:var(--acc)">›</span></a>'+
+   '<p class="note" style="margin:16px 0 90px">Giá lấy từ sàn và có thể thay đổi. Vui lòng kiểm tra lại trên sàn trước khi mua.</p></div>'+
+   '<div class="cta"><button class="btn o" type="button" data-fav="'+x.id+'" aria-pressed="'+isFav(x.id)+'">'+IC.heartS+' Lưu</button><a class="btn p" href="'+esc(x.link)+'" target="_blank" rel="noopener sponsored">Xem trên Shopee '+IC.ext+'</a></div>';
+}
+function chart(h,x){
+  if(h.length<2) return '<div class="chart"><div class="empty" style="padding:24px 8px">HaoHao bắt đầu ghi giá món này từ hôm nay. Quay lại sau vài ngày để xem biểu đồ nhé.</div></div>';
+  var W=320,H=140,ps=h.map(function(t){return t[1];}), mn=Math.min.apply(null,ps), mx=Math.max.apply(null,ps), d0=h[0][0], d1=h[h.length-1][0]||d0+1, rg=Math.max(1,mx-mn);
+  var pts=h.map(function(t){return [ (d1===d0?W/2:(t[0]-d0)/(d1-d0)*(W-20)+10), H-15-(t[1]-mn)/rg*(H-35) ];});
+  var path=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' '), last=pts[pts.length-1];
+  return '<div class="chart"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-label="Biểu đồ giá 30 ngày"><path d="'+path+' L'+last[0]+' '+H+' L'+pts[0][0]+' '+H+' Z" fill="#FDE3D6" opacity=".6"/><path d="'+path+'" fill="none" stroke="#D9480F" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="4.5" fill="#D9480F"/></svg><div class="lgnd"><span>Cao nhất '+V(mx)+'</span><span>Thấp nhất '+V(mn)+'</span></div></div>';
+}
+function vCompare(id){
+  var x=BY[id]; if(!x) return bar('So sánh giá',true)+'<div class="empty">Không tìm thấy sản phẩm.</div>';
+  var h=hist(x);
+  return bar('So sánh giá',true)+'<div class="pad" style="padding-top:14px;display:flex;flex-direction:column;gap:12px">'+
+   '<a href="#/sp/'+x.id+'" style="display:flex;gap:12px;align-items:center;background:#fff;border-radius:16px;padding:10px"><img src="'+esc(img(x))+'" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover"><span style="flex:1;font-weight:600;font-size:13px;line-height:1.35">'+esc(x.n)+'</span></a>'+
+   '<b style="font-size:15px;margin-top:4px">Giá trên các sàn</b>'+
+   '<div class="cmp best"><span class="lg" style="background:#EE4D2D">S</span><span class="tx"><b>Shopee <span class="tag">Đang có</span></b><small>'+esc(x.shopName||'')+'</small></span><span style="text-align:right"><b style="color:var(--acc);font-size:16px">'+V(x.price)+'</b><br><a href="'+esc(x.link)+'" target="_blank" rel="noopener sponsored" style="font-size:12px;font-weight:700;color:var(--acc)">Xem giá ›</a></span></div>'+
+   '<div class="cmp" style="opacity:.7"><span class="lg" style="background:#111">T</span><span class="tx"><b>TikTok Shop</b><small>HaoHao chưa tìm thấy món này trên TikTok Shop</small></span></div>'+
+   '<b style="font-size:15px;margin-top:4px">Lịch sử giá 30 ngày</b>'+chart(h,x)+
+   '<div style="padding:14px;border-radius:14px;background:#FFF1CF;font-size:13px;line-height:1.5"><b style="color:#A66A00">HaoHao gợi ý</b><br>'+(h.length>=3?verdict(x).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim():'Đây là giá hôm nay trên Shopee. Bấm ♥ để HaoHao báo khi giá giảm.')+'</div>'+
+   '<p class="note" style="margin:0 0 20px">Giá lấy từ sàn và có thể thay đổi. Vui lòng kiểm tra lại trên sàn trước khi mua.</p></div>';
+}
+
+/* ===== điều hướng ===== */
+var clkT=null;
+function route(){
+  var h=(location.hash||'#/').slice(1)||'/', p=h.split('?')[0], qs={}; (h.split('?')[1]||'').split('&').forEach(function(kv){ if(!kv) return; var a=kv.split('='); qs[a[0]]=decodeURIComponent((a[1]||'').replace(/\+/g,' ')); });
+  var seg=p.split('/').filter(Boolean).map(decodeURIComponent), html;
+  if(!seg.length) html=vHome();
+  else if(seg[0]==='tim') html=vSearch(qs.q||'',qs.s||'lq');
+  else if(seg[0]==='danh-muc') html=seg[1]?vNiche(seg[1],seg[2]||'',qs.s||'lq'):vCatList();
+  else if(seg[0]==='uu-dai') html=vDeals(seg[1]||'');
+  else if(seg[0]==='yeu-thich') html=vFav(seg[1]||'');
+  else if(seg[0]==='ca-nhan') html=vMe();
+  else if(seg[0]==='sp') html=vDetail(seg[1]);
+  else if(seg[0]==='so-sanh') html=vCompare(seg[1]);
+  else html=vHome();
+  app.innerHTML=html; drawTabs();
+  if(route.last!==h){ window.scrollTo(0,0); route.last=h; }
+  var g=document.getElementById('gal'); if(g) g.addEventListener('scroll',function(){ var i=Math.round(g.scrollLeft/g.clientWidth)+1; document.getElementById('gcn').textContent=i+'/'+g.children.length; },{passive:true});
+  clearInterval(clkT); if(document.getElementById('clk')){ var tick=function(){ var e=document.getElementById('clk'); if(!e){clearInterval(clkT);return;} var n=new Date(), s=Math.max(0,Math.floor((new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)-n)/1000)); e.innerHTML=[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(function(v){return '<span>'+(v<10?'0':'')+v+'</span>';}).join(''); }; tick(); clkT=setInterval(tick,1000); }
+  var x=seg[0]==='sp'||seg[0]==='so-sanh'?BY[seg[1]]:null; if(x) loadHist([x]);
+  document.title=(x?x.n.slice(0,60)+' · ':'')+'HaoHao Store';
+}
+app.addEventListener('click',function(e){
+  var f=e.target.closest('[data-fav]'); if(f){ e.preventDefault(); e.stopPropagation(); togFav(f.getAttribute('data-fav')); document.querySelectorAll('[data-fav="'+f.getAttribute('data-fav')+'"]').forEach(function(b){b.setAttribute('aria-pressed',isFav(b.getAttribute('data-fav')));}); if(/^#\/yeu-thich/.test(location.hash)) route(); return; }
+  if(e.target.closest('[data-back]')){ e.preventDefault(); if(history.length>1&&route.prev) history.back(); else location.hash='#/'; return; }
+  if(e.target.closest('#shr')){ var u=location.href; if(navigator.share) navigator.share({title:document.title,url:u}).catch(function(){}); else if(navigator.clipboard) navigator.clipboard.writeText(u).then(function(){toast('Đã chép link');}); return; }
+  if(e.target.closest('#inst')){ if(INST){ INST.prompt(); INST.userChoice.then(function(){INST=null; route();}); } else toast(/iPhone|iPad/.test(navigator.userAgent)?'Bấm nút Chia sẻ ⬆️ rồi chọn “Thêm vào MH chính”':'Mở menu ⋮ của trình duyệt → “Thêm vào màn hình chính”'); }
+});
+app.addEventListener('submit',function(e){ if(e.target.id==='sf'){ e.preventDefault(); var q=document.getElementById('q').value.trim(); location.hash='#/tim?q='+encodeURIComponent(q); } });
+window.addEventListener('hashchange',function(){ route.prev=true; route(); });
+
+/* ===== dữ liệu ===== */
+function loadHist(list){
+  var ks=[]; list.forEach(function(x){ if(x.shop&&!('sp:'+x.shop+'.'+x.id in HH)) ks.push('sp:'+x.shop+'.'+x.id,'ap:sp:'+x.shop+'.'+x.id); });
+  if(!ks.length) return Promise.resolve();
+  var parts=[]; for(var i=0;i<ks.length;i+=20) parts.push(ks.slice(i,i+20));
+  return Promise.all(parts.map(function(p){ return fetch(API+'/h?k='+encodeURIComponent(p.join(','))).then(function(r){return r.json();}).catch(function(){return null;}); })).then(function(rs){
+    var got=false; ks.forEach(function(k){ if(!(k in HH)) HH[k]=null; });
+    (rs||[]).forEach(function(r){ if(r&&r.items){ HDAY=r.day||HDAY; for(var k in r.items){ HH[k]=r.items[k]; got=true; } } });
+    list.forEach(function(x){ var k='sp:'+x.shop+'.'+x.id, a=HH[k], b=HH['ap:'+k], lw=a&&a.length&&HDAY-a[a.length-1][0]<=2?a[a.length-1]:null, la=b&&b.length&&HDAY-b[b.length-1][0]<=2?b[b.length-1]:null;
+      if(lw&&lw[1]>0&&lw[1]<=x.old0){ x.price=lw[1]; if(lw[2]>x.old) x.old=lw[2]; } if(la&&la[1]>0&&la[1]<=x.price) x.app=la[1]; });
+    if(got&&list.length===1) route();
+  });
+}
+var STANDALONE=matchMedia('(display-mode: standalone)').matches||navigator.standalone, INST=null;
+window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); INST=e; });
+function start(d){
+  D=d&&d.items?d:D; D.items.forEach(function(x){ x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; route();
+  try{ localStorage.setItem('hh_store',JSON.stringify({at:Date.now(),items:D.items,groups:D.groups})); }catch(e){}
+}
+try{ var c=JSON.parse(localStorage.getItem('hh_store')||'null'); if(c&&c.items&&c.items.length){ D=c; D.items.forEach(function(x){ x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; } }catch(e){}
+route();
+fetch(API+'/store').then(function(r){return r.json();}).then(function(d){ if(d&&d.items&&d.items.length) start(d); else if(!READY){ READY=true; route(); } }).catch(function(){ if(!READY){ READY=true; route(); } });
+if('serviceWorker' in navigator&&/haohaostore\.com$|workers\.dev$/.test(location.hostname)) navigator.serviceWorker.register('/sw.js').catch(function(){});
+})();
+</script>
+</body>
+</html>

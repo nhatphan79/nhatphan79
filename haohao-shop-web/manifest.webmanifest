@@ -1,0 +1,17 @@
+{
+  "name": "HaoHao Store – Mua sắm không mua hớ",
+  "short_name": "HaoHao",
+  "description": "Sản phẩm tuyển chọn trên Shopee & TikTok Shop, giá thật, có lịch sử giá.",
+  "id": "/app",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF7F0",
+  "theme_color": "#FFEBDA",
+  "lang": "vi",
+  "icons": [
+    { "src": "/shop/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/shop/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

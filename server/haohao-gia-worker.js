@@ -576,7 +576,7 @@ async function donHang(env, b, req) {
 
 // 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
 const SHOP_SRC = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/';
-const SHOP_TYPE = { xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
+const SHOP_TYPE = { webmanifest: 'application/manifest+json; charset=utf-8', xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
 // 20/10: đường dẫn sạch của web Store (/thoi-trang, /thoi-trang/ao, /san-pham/123, /sale…) → trang index.html, web tự đọc đường dẫn
 const SHOP_ROUTE = /^\/(?:(?:sale|quan-ly|thoi-trang|me-be|gia-dung|xay-dung|qua-tang)(?:\/[a-z0-9-]{1,60})?|san-pham\/\d{1,20})\/?$/;
 async function shopPage(u) {
@@ -637,7 +637,10 @@ export default {
       if (u.pathname === '/shop' || u.pathname.startsWith('/shop/')) return await shopPage(u);
       if (u.pathname === '/tin-tuc') return Response.redirect(u.origin + '/tin-tuc/', 301);
       if (u.pathname.startsWith('/tin-tuc/')) { const g = u.pathname.slice(9).replace(/\/$/, ''); if (g && !/^[a-z0-9][a-z0-9-]{0,100}$/.test(g)) return new Response('Không có trang này', { status: 404 }); return await shopFile('tin-tuc/' + (g ? g + '.html' : 'index.html'), 'html'); }
-      if (u.pathname === '/tiem-nha-hao' || u.pathname === '/tiem-nha-hao/') return await shopFile('tiem-nha-hao.html', 'html');   // 🏠 20/10: Tiệm nhà Hao
+      if (u.pathname === '/tiem-nha-hao' || u.pathname === '/tiem-nha-hao/') return await shopFile('tiem-nha-hao.html', 'html');
+      if (u.pathname === '/app' || u.pathname === '/app/') return await shopFile('app.html', 'html');   // 📱 20/10: giao diện app điện thoại (8 màn theo canvas)
+      if (u.pathname === '/sw.js') return await shopFile('sw.js', 'js');
+      if (u.pathname === '/manifest.webmanifest') return await shopFile('manifest.webmanifest', 'webmanifest');   // 🏠 20/10: Tiệm nhà Hao
       if (u.pathname === '/sitemap.xml') return await shopFile('sitemap.xml', 'xml');
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
