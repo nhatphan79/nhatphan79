@@ -574,6 +574,60 @@ async function donHang(env, b, req) {
   return r && r.ok ? { ok: true } : { ok: false, error: 'Chưa gửi được đơn, vui lòng nhắn Zalo tiệm' };
 }
 
+
+// 🔎 20/10: SEO – dựng sẵn tiêu đề, mô tả, dữ liệu cấu trúc và nội dung HTML cho Google (trang chủ, 5 ngách, /sale, /san-pham/<id>).
+// Khách vẫn thấy web như cũ: JavaScript của index.html vẽ đè lên phần dựng sẵn trong <main id="app">.
+const SEO_NICHE = { 'thoi-trang': ['Thời trang', 'Áo quần nam nữ, công sở, thể thao, thu đông – giá thật từ Shopee & TikTok Shop'], 'me-be': ['Mẹ & Bé', 'Đồ bé gái, bé trai, đồ đi học, đồ chơi và đồ cho mẹ – HaoHao chọn kỹ, giá thật'], 'gia-dung': ['Nhà cửa & Gia dụng', 'Đồ bếp, đồ điện gia dụng, dọn dẹp, trang trí nhà – so giá, xem lịch sử giá'], 'xay-dung': ['Xây dựng', 'Dụng cụ xây dựng, điện nước, hoàn thiện nhà, đồ bảo hộ – giá tốt, shop uy tín'], 'qua-tang': ['Quà tặng & Gia đình', 'Quà sinh nhật, quà cho bố mẹ, cho bé, cho bạn bè – gợi ý quà theo dịp'] };
+const hx = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const vndS = n => Math.round(n).toLocaleString('vi-VN') + 'đ';
+async function seoData(env) { let d = await storeCacheGet(); if (!d) { try { d = await storeGet(env); } catch { d = null; } } return d && d.items ? d : { items: [], groups: [] }; }
+async function seoIndex(env, u) {
+  const r = await fetch(SHOP_SRC + 'index.html', { cf: { cacheTtl: 300, cacheEverything: true } });
+  if (!r.ok) return shopFile('index.html', 'html');
+  let html = await r.text();
+  const d = await seoData(env), B = 'https://haohaostore.com', path = u.pathname.replace(/\/+$/, '') || '/';
+  let title = 'HaoHao Store – Mua sắm không lo hớ, giá thật Shopee & TikTok Shop', desc = 'HaoHao tuyển chọn sản phẩm Shopee & TikTok Shop theo 5 ngách: thời trang, mẹ & bé, gia dụng, xây dựng, quà tặng. Giá thật, lịch sử giá 30 ngày, soi sale ảo.', img = B + '/shop/logo.webp', ld = [], body = '';
+  const card = x => '<li><a href="/san-pham/' + hx(x.id) + '">' + hx(x.n) + '</a> – ' + vndS(x.price) + (x.old > x.price ? ' (giảm ' + Math.round((1 - x.price / x.old) * 100) + '%)' : '') + '</li>';
+  const m = path.match(/^\/san-pham\/(\d+)$/), n = path.match(/^\/(thoi-trang|me-be|gia-dung|xay-dung|qua-tang)$/);
+  if (m) {
+    const x = d.items.find(i => String(i.id) === m[1]);
+    if (x) {
+      const nn = SEO_NICHE[x.niche] || ['HaoHao', ''];
+      title = x.n.slice(0, 70) + ' – giá ' + vndS(x.price) + ' | HaoHao Store';
+      desc = x.n.slice(0, 90) + '. Giá ' + vndS(x.price) + (x.old > x.price ? ' (giảm ' + Math.round((1 - x.price / x.old) * 100) + '% từ ' + vndS(x.old) + ')' : '') + ', ' + (x.rating ? x.rating + '★, ' : '') + (x.soldTxt || '') + ' – shop ' + (x.shopName || '') + '. HaoHao kiểm tra giá thật trước khi mua.';
+      img = (x.imgs && x.imgs[0]) || x.img || img;
+      const prod = { '@context': 'https://schema.org', '@type': 'Product', name: x.n, image: (x.imgs || [x.img]).slice(0, 5), description: desc, sku: String(x.id), brand: { '@type': 'Brand', name: x.shopName || 'Shopee' }, offers: { '@type': 'Offer', url: B + path, priceCurrency: 'VND', price: x.price, availability: x.soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', seller: { '@type': 'Organization', name: x.shopName || 'Shopee' } } };
+      if (x.rating && x.rc && x.rc[0]) prod.aggregateRating = { '@type': 'AggregateRating', ratingValue: x.rating, reviewCount: x.rc[0] };
+      ld.push(prod, { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Trang chủ', item: B + '/' }, { '@type': 'ListItem', position: 2, name: nn[0], item: B + '/' + x.niche }, { '@type': 'ListItem', position: 3, name: x.n.slice(0, 60) }] });
+      const rel = d.items.filter(i => i.niche === x.niche && i.id !== x.id).slice(0, 8);
+      body = '<article class="seo"><nav><a href="/">Trang chủ</a> / <a href="/' + x.niche + '">' + hx(nn[0]) + '</a></nav><h1>' + hx(x.n) + '</h1><img src="' + hx(img) + '" alt="' + hx(x.n) + '" width="400" height="400"><p><b>Giá: ' + vndS(x.price) + '</b>' + (x.old > x.price ? ' <s>' + vndS(x.old) + '</s>' : '') + '</p><p>' + hx(desc) + '</p><p><a href="' + hx(x.link) + '" rel="nofollow sponsored">Xem trên Shopee</a></p>' + (rel.length ? '<h2>Sản phẩm cùng ngách</h2><ul>' + rel.map(card).join('') + '</ul>' : '') + '</article>';
+    }
+  } else if (n) {
+    const nn = SEO_NICHE[n[1]], l = d.items.filter(i => i.niche === n[1]).sort((a, b) => (b.sold || 0) - (a.sold || 0));
+    title = nn[0] + ' giá tốt – ' + l.length + ' món HaoHao chọn kỹ | HaoHao Store'; desc = nn[1] + '. ' + l.length + ' sản phẩm đã kiểm tra giá.';
+    ld.push({ '@context': 'https://schema.org', '@type': 'ItemList', name: nn[0], itemListElement: l.slice(0, 30).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: B + '/san-pham/' + x.id, name: x.n })) });
+    body = '<section class="seo"><h1>' + hx(nn[0]) + ' – HaoHao Store</h1><p>' + hx(nn[1]) + '</p><ul>' + l.slice(0, 60).map(card).join('') + '</ul></section>';
+  } else if (path === '/sale') {
+    const l = d.items.filter(i => i.old > i.price).sort((a, b) => (1 - b.price / b.old) - (1 - a.price / a.old));
+    title = 'Sale hôm nay – ' + l.length + ' món giảm giá thật | HaoHao Store'; desc = 'Sale cả 5 ngách: giảm trên 30%, đồng giá 99k, dưới 50k. HaoHao lọc sale thật, bỏ sale ảo.';
+    body = '<section class="seo"><h1>Sale hôm nay</h1><ul>' + l.slice(0, 60).map(card).join('') + '</ul></section>';
+  } else {
+    ld.push({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'HaoHao Store', url: B + '/' }, { '@context': 'https://schema.org', '@type': 'Organization', name: 'HaoHao', url: B + '/', logo: B + '/shop/logo.webp', sameAs: ['https://www.tiktok.com/@haohaomall', 'https://www.facebook.com/trolyHaoHao'] });
+    body = '<section class="seo"><h1>HaoHao Store – Có HaoHao, không lo chọn nhầm</h1><p>' + hx(desc) + '</p>' + Object.entries(SEO_NICHE).map(([k, v]) => '<h2><a href="/' + k + '">' + hx(v[0]) + '</a></h2><ul>' + d.items.filter(i => i.niche === k).slice(0, 8).map(card).join('') + '</ul>').join('') + '<p><a href="/tin-tuc/">Cẩm nang mua sắm</a> · <a href="/sale">Sale hôm nay</a> · <a href="/tiem-nha-hao">Tiệm nhà HaoHao</a></p></section>';
+  }
+  const head = '<title>' + hx(title) + '</title><meta name="description" content="' + hx(desc) + '"><link rel="canonical" href="' + B + (path === '/' ? '/' : path) + '"><meta property="og:type" content="' + (m ? 'product' : 'website') + '"><meta property="og:title" content="' + hx(title) + '"><meta property="og:description" content="' + hx(desc) + '"><meta property="og:image" content="' + hx(img) + '"><meta property="og:url" content="' + B + path + '"><meta property="og:site_name" content="HaoHao Store"><meta property="og:locale" content="vi_VN">' + ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, '\\u003c') + '</script>').join('');
+  html = html.replace('<html>', '<html lang="vi">').replace('<title>HaoHao Store</title>', head).replace('<main id="app"></main>', '<main id="app">' + body + '</main>');
+  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
+}
+async function seoSitemap(env) {
+  const r = await fetch(SHOP_SRC + 'sitemap.xml', { cf: { cacheTtl: 300, cacheEverything: true } });
+  let x = r.ok ? await r.text() : '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+  const d = await seoData(env), day = new Date().toISOString().slice(0, 10);
+  const add = d.items.map(i => '<url><loc>https://haohaostore.com/san-pham/' + i.id + '</loc><lastmod>' + day + '</lastmod></url>').join('\n');
+  x = x.replace('</urlset>', add + '\n</urlset>');
+  return new Response(x, { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+}
+
 // 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
 const SHOP_SRC = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/';
 const SHOP_TYPE = { webmanifest: 'application/manifest+json; charset=utf-8', xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
@@ -605,13 +659,13 @@ export default {
     if (u.hostname === 'haohaostore.com' && (u.pathname === '/' || SHOP_ROUTE.test(u.pathname))) {
       // 📱 20/10: điện thoại → giao diện app (/app). ?desktop=1 → giữ bản máy tính 30 ngày. Bỏ qua bot tìm kiếm.
       const ua = req.headers.get('user-agent') || '', ck = req.headers.get('cookie') || '';
-      if (u.searchParams.get('desktop') === '1') { const r = await shopFile('index.html', 'html'); const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=1; Path=/; Max-Age=2592000; SameSite=Lax; Secure'); h.set('cache-control', 'private, no-store'); return new Response(r.body, { headers: h }); }
+      if (u.searchParams.get('desktop') === '1') { const r = await seoIndex(env, u); const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=1; Path=/; Max-Age=2592000; SameSite=Lax; Secure'); h.set('cache-control', 'private, no-store'); return new Response(r.body, { headers: h }); }
       if (/Mobi|Android|iPhone|iPod/i.test(ua) && !/bot|crawl|spider|slurp|Lighthouse|facebookexternalhit|Zalo/i.test(ua) && !/(^|;\s*)hh_desk=1/.test(ck)) {
         const m = u.pathname.match(/^\/san-pham\/(\d+)/), n = u.pathname.match(/^\/(thoi-trang|me-be|gia-dung|xay-dung|qua-tang)(?:\/|$)/);
         const hash = m ? '#/sp/' + m[1] : n ? '#/danh-muc/' + n[1] : u.pathname.startsWith('/sale') ? '#/uu-dai' : '';
         return new Response(null, { status: 302, headers: { location: '/app' + hash, 'cache-control': 'private, no-store', vary: 'User-Agent' } });
       }
-      return await shopFile('index.html', 'html');
+      return await seoIndex(env, u);
     }
     try {
       await init(env);
@@ -651,7 +705,7 @@ export default {
       if (u.pathname === '/app' || u.pathname === '/app/') { const r = await shopFile('app.html', 'html'); if (!/hh_desk=1/.test(req.headers.get('cookie') || '')) return r; const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=; Path=/; Max-Age=0; SameSite=Lax; Secure'); return new Response(r.body, { headers: h }); }   // 📱 20/10: app điện thoại (vào /app là bỏ chế độ máy tính)   // 📱 20/10: giao diện app điện thoại (8 màn theo canvas)
       if (u.pathname === '/sw.js') return await shopFile('sw.js', 'js');
       if (u.pathname === '/manifest.webmanifest') return await shopFile('manifest.webmanifest', 'webmanifest');   // 🏠 20/10: Tiệm nhà Hao
-      if (u.pathname === '/sitemap.xml') return await shopFile('sitemap.xml', 'xml');
+      if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
