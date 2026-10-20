@@ -29,7 +29,7 @@ async function applyAdBlock() {
     const { proLock } = await chrome.storage.local.get('proLock'), on = settings.adBlock !== false && !proLock;   // V1.65: hết dùng thử, chưa mua Pro → tắt chặn quảng cáo
     await chrome.declarativeNetRequest.updateEnabledRulesets(on ? { enableRulesetIds: ['ads'] } : { disableRulesetIds: ['ads'] });
     // chừa trang tiếp thị + 1.10.174: trang làm việc (AI Studio, Cloudflare, GitHub, Google tài khoản…) – chặn ở đây làm hỏng nút, hộp thoại
-    const allow = ['shopee.vn', 'shope.ee', 'tiktok.com', 'collshp.com', 'aistudio.google.com', 'cloud.google.com', 'accounts.google.com', 'myaccount.google.com', 'mail.google.com', 'docs.google.com', 'drive.google.com', 'calendar.google.com', 'gemini.google.com', 'dash.cloudflare.com', 'github.com', 'claude.ai', 'chatgpt.com', 'notion.so', 'figma.com', 'canva.com', 'microsoft.com', 'live.com', 'office.com', 'apple.com', 'zalo.me', 'chat.zalo.me', 'accesstrade.vn', 'riohub.vn', 'affiliate.shopee.vn', 'seller.shopee.vn', 'banhang.shopee.vn'];
+    const allow = [...new Set(['shopee.vn', 'shope.ee', 'tiktok.com', 'collshp.com', 'aistudio.google.com', 'cloud.google.com', 'accounts.google.com', 'myaccount.google.com', 'mail.google.com', 'docs.google.com', 'drive.google.com', 'calendar.google.com', 'gemini.google.com', 'dash.cloudflare.com', 'github.com', 'claude.ai', 'chatgpt.com', 'notion.so', 'figma.com', 'canva.com', 'microsoft.com', 'live.com', 'office.com', 'apple.com', 'zalo.me', 'chat.zalo.me', 'accesstrade.vn', 'riohub.vn', 'affiliate.shopee.vn', 'seller.shopee.vn', 'banhang.shopee.vn', ...HT.adSkipList(settings)])];   // V1.82: + Trang không chặn (mặc định haohaostore.com)
     const old = await chrome.declarativeNetRequest.getDynamicRules();
     await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: old.map(r => r.id),
       addRules: allow.map((h, i) => ({ id: 1000 + i, priority: 2, action: { type: 'allowAllRequests' }, condition: { requestDomains: [h], resourceTypes: ['main_frame', 'sub_frame'] } })) });
@@ -64,6 +64,7 @@ chrome.tabs.onUpdated.addListener(async (id, ch, tab) => {
   const url = ch.url || tab.pendingUrl || tab.url || ''; if (!/^https?:/.test(url)) return;
   const host = hostOf(url); if (!host || SAFE_HOST.test(host) || ALLOW_HOST.test(host)) return;          // trang quen thuộc: để yên (vẫn canh tiếp nếu nó chuyển hướng sang web cờ bạc)
   const { settings = {}, proLock } = await chrome.storage.local.get(['settings', 'proLock']); if (settings.adBlock === false || proLock) return;
+  if (HT.adSkipHit(host, settings)) return;   // V1.82: Trang không chặn
   // 1.9.56: trong lúc chờ đọc cài đặt, tab có thể đã bị bỏ khỏi danh sách canh (đóng tab, chuyển trang) → không còn mã tab mở ra nó: thôi
   const opener = popWatch.get(id); if (typeof opener !== 'number') return;
   let op = null; try { op = await chrome.tabs.get(opener); } catch {}
@@ -85,7 +86,7 @@ chrome.tabs.onUpdated.addListener(async (id, ch, tab) => {
 chrome.storage.onChanged.addListener((ch, area) => {
   if (area !== 'local' || !ch.settings) return;
   const a = ch.settings.oldValue || {}, b = ch.settings.newValue || {};
-  if ((a.adBlock !== false) !== (b.adBlock !== false)) applyAdBlock();
+  if ((a.adBlock !== false) !== (b.adBlock !== false) || JSON.stringify(a.adSkip || []) !== JSON.stringify(b.adSkip || [])) applyAdBlock();
 });
 
 const DEFAULT_WATCH = [{ source: 'coingecko', coin: 'bitcoin', sym: 'BTC' }, { source: 'coingecko', coin: 'ethereum', sym: 'ETH' }, { source: 'coingecko', coin: 'solana', sym: 'SOL' }];

@@ -335,6 +335,11 @@ HT.SPY_API = 'https://haohao-gia.nhatphan79.workers.dev';   // 1.10.250: khách 
 // 🧾 Máy chủ kho giá chung (1.10.122): mọi máy HaoHao gửi mã sản phẩm + giá (không thông tin cá nhân) → khách mới mở món là thấy lịch sử giá. Để trống = tắt.
 HT.FANPAGE = 'https://www.facebook.com/trolyHaoHao';   // fanpage HaoHao (dự phòng nếu coupons.json chưa có 'fanpage')
 HT.PRICE_API = 'https://haohao-gia.nhatphan79.workers.dev';
+// 🛡️ V1.82: trang không chặn quảng cáo – mặc định (không xoá được) + trang người dùng tự thêm (settings.adSkip)
+HT.AD_SKIP_DEF = ['haohaostore.com', 'haohao-gia.nhatphan79.workers.dev'];
+HT.adHost = v => { let h = String(v || '').trim().toLowerCase(); try { if (/^[a-z]+:\/\//.test(h)) h = new URL(h).hostname; } catch {} h = h.replace(/^\*\./, '').replace(/^www\./, '').replace(/[/?#:].*$/, ''); return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) ? h : ''; };
+HT.adSkipList = s => [...new Set([...HT.AD_SKIP_DEF, ...((s && s.adSkip) || []).map(HT.adHost).filter(Boolean)])];
+HT.adSkipHit = (host, s) => { host = String(host || '').replace(/^www\./, ''); return !!host && HT.adSkipList(s).some(h => host === h || host.endsWith('.' + h)); };
 HT.SPY_TOKEN = '';   // trùng APP_TOKEN trên Cloudflare (nếu có đặt)
 HT.COUPON_FEED = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/HEAD/haohao-extension/coupons.json'   // HEAD = nhánh chính của kho, tên gì cũng được;
 // Số tiền giảm của 1 mã cho đơn giá `price` (null = chưa đủ điều kiện đơn tối thiểu)

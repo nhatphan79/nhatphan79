@@ -22,7 +22,7 @@
   const AFF = /(^|\.)(shopee\.vn|shope\.ee|tiktok\.com|collshp\.com)$/;
   // V1.3: không đụng Facebook, Messenger, Instagram, Zalo, Telegram (ẩn nhầm hình trong tin nhắn)
   // 1.10.174: không đụng trang làm việc (AI Studio, Cloudflare, GitHub, tài khoản Google…): ẩn nhầm làm hỏng nút / hộp thoại
-  if (AFF.test(host) || /(^|\.)(mail|docs|drive|calendar|aistudio|accounts|myaccount|gemini|cloud|console\.cloud)\.google\.com$|(^|\.)(facebook\.com|messenger\.com|instagram\.com|zalo\.me|telegram\.org|youtube\.com|dash\.cloudflare\.com|github\.com|claude\.ai|chatgpt\.com|notion\.so|figma\.com|canva\.com|microsoft\.com|live\.com|office\.com|apple\.com|zalo\.me|accesstrade\.vn|riohub\.vn|haohao-gia\.nhatphan79\.workers\.dev)$/.test(host)) return;
+  if (AFF.test(host) || /(^|\.)(mail|docs|drive|calendar|aistudio|accounts|myaccount|gemini|cloud|console\.cloud)\.google\.com$|(^|\.)(facebook\.com|messenger\.com|instagram\.com|zalo\.me|telegram\.org|youtube\.com|dash\.cloudflare\.com|github\.com|claude\.ai|chatgpt\.com|notion\.so|figma\.com|canva\.com|microsoft\.com|live\.com|office\.com|apple\.com|zalo\.me|accesstrade\.vn|riohub\.vn|haohao-gia\.nhatphan79\.workers\.dev|haohaostore\.com)$/.test(host)) return;
   const TOP = window.top === window;
   const SEL = [
     'ins.adsbygoogle', '.adsbygoogle', '[id^="google_ads_iframe"]', '[id^="div-gpt-ad"]', '[data-google-query-id]', '[data-ad-slot]',
@@ -56,7 +56,9 @@
     }
   };
   let S0 = {}, LOCK = false;   // V1.65: hết dùng thử chưa mua Pro (proLock) → không chặn
-  const decide = s => { if (s) S0 = s; apply(S0.adBlock !== false && !LOCK); };   // không còn "tắt trên trang này": bật là chặn mọi trang
+  // V1.82: trang trong danh sách "Trang không chặn" (settings.adSkip) → không ẩn gì
+  const skipHit = () => (S0.adSkip || []).some(h => { h = String(h || '').replace(/^www\./, ''); return !!h && (host === h || host.endsWith('.' + h)); });
+  const decide = s => { if (s) S0 = s; apply(S0.adBlock !== false && !LOCK && !skipHit()); };   // không còn "tắt trên trang này": bật là chặn mọi trang
   chrome.storage.local.get(['settings', 'proLock']).then(({ settings = {}, proLock }) => { LOCK = !!proLock; decide(settings); }).catch(() => {});
   chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local') return; if (ch.proLock) LOCK = !!ch.proLock.newValue; if (ch.settings || ch.proLock) decide(ch.settings ? ch.settings.newValue || {} : null); });
 

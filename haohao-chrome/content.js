@@ -7120,7 +7120,7 @@
   const saveSet = patch => chrome.storage.local.get('settings').then(({ settings: s0 = {} }) => chrome.storage.local.set({ settings: { ...s0, ...patch } }));
   function renderAdblock(V) {
     const on = settings.adBlock !== false, here = HOST;
-    const exempt = /(^|\.)(shopee\.vn|shope\.ee|tiktok\.com|collshp\.com)$/.test(here);
+    const exempt = /(^|\.)(shopee\.vn|shope\.ee|tiktok\.com|collshp\.com)$/.test(here), skip = HT.adSkipHit(here, settings);
     const L = el('div', 'body-list adb');
     const sw = el('button', 'adsw' + (on ? ' on' : '')); sw.setAttribute('aria-pressed', on);
     sw.append(el('span', 'knob'), el('b', '', on ? 'Chặn quảng cáo: Đang bật' : 'Chặn quảng cáo: Đang tắt'));
@@ -7137,11 +7137,37 @@
     }
     if (on && here) {
       const hereName = location.protocol === 'chrome-extension:' ? 'Tab mới' : here;   // V1.58: Tab mới không hiện mã tiện ích
-      L.append(el('div', 'adsite', exempt ? `${hereName}: không chặn (trang tiếp thị)` : `${hereName}: đang tự chặn`));
-      if (!exempt) {
+      L.append(el('div', 'adsite', exempt ? `${hereName}: không chặn (trang tiếp thị)` : skip ? `${hereName}: không chặn (Trang không chặn)` : `${hereName}: đang tự chặn`));
+      if (!exempt && !skip) {
         const cnt = el('div', 'adcnt', '…'); L.append(cnt);
         adCount().then(r => { if (r.on && !r.yt) { cnt.remove(); return; } cnt.textContent = !r.on ? 'Tải lại trang (F5) để áp dụng' : `YouTube: đã bỏ qua ${r.skipped || 0} quảng cáo video, ẩn ${r.n} ô quảng cáo`; });
       }
+    }
+    // 🛡️ V1.82: Trang không chặn – mặc định haohaostore.com, người dùng tự thêm / bỏ
+    if (on) {
+      const box = el('div', 'adskip'); box.style.cssText = 'margin-top:10px;padding:10px;border:1px solid #EEE6DF;border-radius:12px;display:flex;flex-direction:column;gap:6px';
+      box.append(el('b', '', '✅ Trang không chặn'));
+      const mine = (settings.adSkip || []).map(HT.adHost).filter(Boolean);
+      const setSkip = list => saveSet({ adSkip: [...new Set(list)].slice(0, 200) });
+      for (const h of HT.adSkipList(settings)) {
+        const r = el('div', ''); r.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px';
+        r.append(el('span', '', h));
+        if (HT.AD_SKIP_DEF.includes(h)) { const t = el('small', '', 'mặc định'); t.style.color = '#8A7B70'; r.append(t); }
+        else { const x = el('button', 'b', '✕'); x.title = 'Bỏ khỏi danh sách'; x.style.cssText = 'border:0;background:none;cursor:pointer;color:#B23A0B;font-weight:700'; x.addEventListener('click', e => { e.stopPropagation(); setSkip(mine.filter(v => v !== h)); }); r.append(x); }
+        box.append(r);
+      }
+      const hh = HT.adHost(here);
+      if (hh && !exempt && !skip && location.protocol !== 'chrome-extension:') {
+        const add = el('button', 'b', `＋ Thêm trang này (${hh})`); add.style.cssText = 'align-self:flex-start;margin-top:2px';
+        add.addEventListener('click', e => { e.stopPropagation(); setSkip([...mine, hh]); }); box.append(add);
+      }
+      const f = el('div', ''); f.style.cssText = 'display:flex;gap:6px';
+      const inp = document.createElement('input'); inp.placeholder = 'vd: vnexpress.net'; inp.style.cssText = 'flex:1;min-width:0;padding:5px 8px;border:1px solid #D9D2CB;border-radius:8px;font:inherit;font-size:13px';
+      const ok = el('button', 'b', 'Thêm');
+      const doAdd = () => { const v = HT.adHost(inp.value); if (!v) { inp.style.borderColor = '#C8102E'; return; } setSkip([...mine, v]); };
+      ok.addEventListener('click', e => { e.stopPropagation(); doAdd(); }); inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') doAdd(); });
+      f.append(inp, ok); box.append(f, el('small', '', 'Thêm rồi tải lại trang (F5) để áp dụng.'));
+      L.append(box);
     }
     L.append(el('div', 'foot', 'Tự động hoàn toàn, mọi trang: chặn tận gốc mạng quảng cáo, tự ẩn banner cờ bạc, tự gỡ popup và đóng tab quảng cáo tự bật. Video, phim: tự bỏ qua quảng cáo trong trình phát. YouTube: gỡ quảng cáo trước khi phát. Không chặn trang tiếp thị Shopee, TikTok. Bật/tắt xong nên tải lại trang (F5).'));
     V.append(L);
@@ -7539,7 +7565,7 @@
   // 🛡️ Bong bóng báo đã chặn quảng cáo: mỗi trang tối đa 1 lần / 30 phút (đóng tab tự bật thì báo lại sau 2 phút)
   let adToastAt = 0, adToastN = 0, adToastTimer = 0, adToastKind = 'page';
   function adToast() {
-    if (!ui || !HOST || settings.adBlock === false || /(^|\.)(shopee\.vn|tiktok\.com|collshp\.com)$/.test(HOST)) return;
+    if (!ui || !HOST || settings.adBlock === false || /(^|\.)(shopee\.vn|tiktok\.com|collshp\.com)$/.test(HOST) || HT.adSkipHit(HOST, settings)) return;
     const now = Date.now(), kind = adToastKind, n = adToastN; adToastN = 0; adToastKind = 'page';
     let last = 0; try { last = Number(sessionStorage.getItem('hh-adtoast')) || 0; } catch {}
     if (now - Math.max(last, adToastAt) < (kind === 'pop' ? 120000 : 1800000)) return;

@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 20/10/2026 · **Bản V1.81** (số kỹ thuật 1.10.337) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
+Cập nhật: 20/10/2026 · **Bản V1.82** (số kỹ thuật 1.10.338) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -52,6 +52,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.82 (1.10.338) | Chặn quảng cáo: **Trang không chặn** – mặc định `haohaostore.com` (+ workers.dev, không xoá được), người dùng tự thêm/bỏ trong mục 🛡️ (nút "Thêm trang này", ô gõ tên trang, ✕), lưu `settings.adSkip`. Áp cho cả ẩn khung (adhide.js), chặn mạng (background `allowAllRequests`), YouTube (yt-ads.js), đóng tab tự bật, bong bóng báo. Hàm chung `HT.adSkipList/adSkipHit/adHost` (common.js). Chưa phát hành. |
 | V1.81 (1.10.337) | Tiện ích gửi giá "Mua trên app" đang hiện về kho giá (khoá `ap:sp:shop.id`, qua `price-log` như giá thường). Web HaoHao Store lấy giá Shopee mới nhất trong kho (`sp:…`, đã trừ mã shop, ≤2 ngày) và giá app (`ap:sp:…`) → khớp tiện ích; sửa cách tính trong tiện ích là web đổi theo. Máy chủ: KEY nhận `ap:`. Chưa phát hành. |
 | Web 20/10 chiều | Tên miền **haohaostore.com** (Cloudflare, nameserver lee/penny), trang chủ = Store, www → tên chính; đường dẫn sạch /thoi-trang, /thoi-trang/ao, /san-pham/<mã>, /sale (link # cũ tự chuyển); Tin tức /tin-tuc/ 5 bài SEO (tạo bằng `haohao-shop-web/tin-tuc/_tao.py` từ `bai.json`), sitemap/robots; Sale theo thiết kế (Mua theo loại, Bộ lọc, Sắp xếp); menu TIN TỨC đầu + mascot HAOHAO → haohao.ai.studio; footer gốc. Canvas thiết kế: claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj. |
 | V1.80 (1.10.336) | Chặn quảng cáo (`adhide.js`) không chạy trên trang HaoHao Store `haohao-gia.nhatphan79.workers.dev` (trước đó ẩn nhầm khu sản phẩm dẫn ra Shopee). Chưa phát hành. |

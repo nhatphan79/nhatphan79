@@ -5,6 +5,11 @@
   const HT = self.HT; if (!HT) return;
   const D = {
 "Chặn quảng cáo": "Ad blocker",
+"✅ Trang không chặn": "✅ Allowed sites (no blocking)",
+"mặc định": "default",
+"Bỏ khỏi danh sách": "Remove from list",
+"Thêm": "Add",
+"Thêm rồi tải lại trang (F5) để áp dụng.": "After adding, reload the page (F5) to apply.",
 "Ẩn quảng cáo, trang nhẹ hơn": "Hide ads, lighter pages",
 "Chặn quảng cáo: Đang bật": "Ad blocker: On",
 "Chặn quảng cáo: Đang tắt": "Ad blocker: Off",
@@ -1839,7 +1844,8 @@
 // V1.15: bổ sung bản dịch còn thiếu
 
 };
-  const P = [["^Bật\\ hoặc\\ tắt\\ nhắc\\ (.*?)$", "Turn reminder {1} on or off"],
+  const P = [["^＋\\ Thêm\\ trang\\ này\\ \\((.*?)\\)$", "＋ Add this site ({1})"], ["^(.*?):\\ không\\ chặn\\ \\(Trang\\ không\\ chặn\\)$", "{1}: not blocked (allowed site)"],
+["^Bật\\ hoặc\\ tắt\\ nhắc\\ (.*?)$", "Turn reminder {1} on or off"],
 ["^Giảm\\ (.*?)\\ ·\\ đơn\\ từ\\ (.*?)\\ ·\\ HSD\\ (.*?)$", "{1} off · min order {2} · exp {3}"],
 ["^Giảm\\ (.*?)\\ ·\\ đơn\\ từ\\ (.*?)$", "{1} off · min order {2}"],
 ["^(.*?)\\ ·\\ đơn\\ từ\\ (.*?)\\ ·\\ HSD\\ (.*?)$", "{1} · min order {2} · exp {3}"],

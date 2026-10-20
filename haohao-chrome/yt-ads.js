@@ -92,7 +92,8 @@
     } else { if (style) style.remove(); style = null; clearInterval(timer); timer = null; if (obs) obs.disconnect(); obs = null; }
   }
   let S0 = {}, LOCK = false;   // V1.65: hết dùng thử chưa mua Pro (proLock) → không chặn
-  const decide = s => { if (s) S0 = s; const on = S0.adBlock !== false && !LOCK; try { localStorage.setItem('hh-ad', on ? '1' : '0'); } catch {} apply(on); };   // yt-main.js đọc cờ này
+  const skipYT = () => (S0.adSkip || []).some(h => /^(www\.)?(youtube\.com|m\.youtube\.com)$/.test(String(h || '')));   // V1.82: người dùng cho YouTube vào "Trang không chặn"
+  const decide = s => { if (s) S0 = s; const on = S0.adBlock !== false && !LOCK && !skipYT(); try { localStorage.setItem('hh-ad', on ? '1' : '0'); } catch {} apply(on); };   // yt-main.js đọc cờ này
   chrome.storage.local.get(['settings', 'proLock']).then(({ settings = {}, proLock }) => { LOCK = !!proLock; decide(settings); }).catch(() => {});
   chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local') return; if (ch.proLock) LOCK = !!ch.proLock.newValue; if (ch.settings || ch.proLock) decide(ch.settings ? ch.settings.newValue || {} : null); });
   // đếm cho bảng HaoHao
