@@ -643,7 +643,7 @@ export default {
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/zbot') {   // 20/10: TẠM – xem id Zalo của người vừa nhắn bot để điền ZALO_CHAT (xong sẽ gỡ)
         if (!env.ZALO_BOT) return json({ ok: false, error: 'chưa có ZALO_BOT' });
-        const me = await zbot(env, 'getMe'), up = await zbot(env, 'getUpdates', { timeout: 1 });
+        const me = await zbot(env, 'getMe'), up = await zbot(env, 'getUpdates', { timeout: Math.max(1, Math.min(25, +u.searchParams.get('t') || 25)) });
         const res = [].concat(up && up.result || []).map(x => { const m = x.message || x; return { chat: m.chat && m.chat.id, from: m.from && (m.from.display_name || m.from.name || m.from.id), text: String(m.text || '').slice(0, 20) }; });
         return json({ bot: me && me.result && (me.result.account_name || me.result.display_name), ok: up && up.ok, error: up && (up.description || up.error), chats: res });
       }
