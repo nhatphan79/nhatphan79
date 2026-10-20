@@ -445,7 +445,7 @@ ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchP
 // Danh mục → 5 ngách web theo từ khoá tên danh mục; danh mục không khớp ngách nào thì bỏ qua.
 // 20/10: ngách theo SỐ đầu tên danh mục (1–5); món → ô chủ đề = tên danh mục (bỏ số, bỏ "HaoHao"). Web: Bán chạy nhất = Tất cả + các ô chủ đề.
 // Cron 15 phút gọi storeMaybe → chạy thật 6 giờ/lần. GET /store → JSON cho web. GET /store?run=1&key=STATS_KEY → chạy ngay.
-const STORE_V = 4, STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
+const STORE_V = 5, STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
 const STORE_QG = 'query StorefrontGroupListQuery($urlSuffix: String, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupList(urlSuffix: $urlSuffix, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { groupList { groupId groupName totalCount } pagination { hasMore totalCount } } }';
 const STORE_QP = 'query StorefrontGroupProductListQuery($urlSuffix: String, $keyword: String, $groupId: Long, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupProductList(urlSuffix: $urlSuffix, keyword: $keyword, groupId: $groupId, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { itemList { link linkName image linkType itemId itemCard } pagination { hasMore totalCount } } }';
 // thứ tự quan trọng: gia-dung trước xay-dung ("Nhà cửa & Gia dụng" / "Xây dựng & Dụng cụ")
