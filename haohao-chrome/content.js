@@ -7149,7 +7149,7 @@
       box.append(el('b', '', '✅ Trang không chặn'));
       const mine = (settings.adSkip || []).map(HT.adHost).filter(Boolean);
       const setSkip = list => saveSet({ adSkip: [...new Set(list)].slice(0, 200) });
-      for (const h of HT.adSkipList(settings)) {
+      for (const h of HT.adSkipList(settings).filter(h => !HT.AD_SKIP_DEF.includes(h))) {   // V1.84: trang mặc định (haohaostore.com…) chạy ngầm, không hiện
         const r = el('div', ''); r.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px';
         r.append(el('span', '', h));
         if (HT.AD_SKIP_DEF.includes(h)) { const t = el('small', '', 'mặc định'); t.style.color = '#8A7B70'; r.append(t); }
