@@ -1494,7 +1494,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await chrome.storage.local.set({ todos });
     toTab({ type: 'hh-open', tab: 'todo' });
   }
-  if (info.menuItemId === 'hh-pagetr') toTab({ type: 'hh-page-translate' });   // V1.85: dịch cả trang qua Google Dịch   // V1.85: dịch cả trang qua Google Dịch
+  if (info.menuItemId === 'hh-pagetr') toTab({ type: 'hh-page-translate' });   // V1.85: dịch cả trang qua Google Dịch
   if (info.menuItemId === 'hh-clip') {
     toTab({ type: 'hh-clip-save' });   // trang tự đọc bộ nhớ chép (cách đã chạy chắc) rồi lưu Note
   }
@@ -2142,4 +2142,3 @@ async function updCheck(force) {
 }
 
 const TFH = { 'x-haohao': '1' };   // V1.6: app Transfer chỉ nhận lệnh có header này (trang web lạ không gửi được)
-
