@@ -81,10 +81,14 @@
     const ts = [...(v.textTracks || [])].filter(t => /subtitles|captions/.test(t.kind));
     return ts.find(t => t.mode === 'showing') || ts[0] || null;
   }
-  function capBox(v) {
+  // V1.86: bỏ chú thích nút, menu, cài đặt của trình phát (BBC: "Automatically selects the best quality…" bị tưởng là phụ đề)
+  const NOT_CAP = '[role="tooltip"],[role="menu"],[role="menuitem"],[role="menuitemradio"],[role="dialog"],[role="listbox"],[role="option"],button,label,[class*="tooltip" i],[class*="menu" i],[class*="setting" i],[class*="button" i],[class*="btn" i],[class*="popup" i],[class*="popover" i]';
+  // chỉ xét từ khung chữ lên tới khung trình phát (không xét lớp ngoài cùng: video.js có lớp "vjs-controls-enabled" ở gốc)
+  const isCtl = (e, stop) => { try { for (let x = e; x && x !== stop; x = x.parentElement) if (x.matches(NOT_CAP)) return true; return !!e.querySelector('button,[role="menuitem"],[role="menuitemradio"],input,select'); } catch { return false; } };
+  function capBox(v, not) {
     let p = v.parentElement;
     for (let i = 0; p && i < 5; i++, p = p.parentElement) {
-      const c = deepAll(CAP_SEL, p).filter(e => e !== v && !e.closest('#hh-wsubs') && !e.querySelector('video') && !/^(BUTTON|svg|path)$/i.test(e.tagName));
+      const c = deepAll(CAP_SEL, p).filter(e => e !== v && e !== not && !e.closest('#hh-wsubs') && !e.querySelector('video') && !/^(BUTTON|svg|path)$/i.test(e.tagName) && !isCtl(e, p));
       if (c.length) return c.sort((a, b) => (b.innerText || '').length - (a.innerText || '').length)[0];
     }
     return null;
@@ -167,10 +171,18 @@
   // ---------- nhóm B: phụ đề vẽ trên màn hình ----------
   function setupB(st) {
     st.lines = []; st.cur = null; st.lastAi = 0; st.aiBusy = false;
+    st.same = { t: '', at: 0 };
     st.readB = () => {
       if (!st.cap || !st.cap.isConnected) st.cap = capBox(st.v);
       if (!st.cap) return '';
-      return (st.cap.innerText || st.cap.textContent || '').replace(/\s+/g, ' ').trim();
+      const x = (st.cap.innerText || st.cap.textContent || '').replace(/\s+/g, ' ').trim();
+      // một câu đứng yên quá 12 giây trong lúc video vẫn chạy → có lẽ bắt nhầm khung, tìm lại khung phụ đề khác
+      if (x !== st.same.t || st.v.paused) st.same = { t: x, at: Date.now() };
+      else if (x && Date.now() - st.same.at > 12000) {
+        st.same.at = Date.now(); const old = st.cap; old.classList.remove('hh-cap-hide');
+        const nx = capBox(st.v, old); if (nx) { st.cap = nx; return (nx.innerText || nx.textContent || '').replace(/\s+/g, ' ').trim(); }
+      }
+      return x;
     };
   }
   async function stepB(st) {

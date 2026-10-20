@@ -639,7 +639,7 @@ async function dichTrang(b) {
     const body = new URLSearchParams(); arr.forEach(x => body.append('q', x));
     const r = await fetch('https://translate.googleapis.com/translate_a/t?client=gtx&sl=auto&tl=' + encodeURIComponent(tl) + '&dt=t', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body });
     if (!r.ok) throw new Error('Google Dịch ' + r.status);
-    let j = await r.json(); if (arr.length === 1) j = [j];
+    let j = await r.json(); if (arr.length === 1) j = [Array.isArray(j) && Array.isArray(j[0]) ? j[0] : j];   // 21/10: 1 câu Google trả [[chữ, mã]] → không bọc thêm (trước dính ",en")
     return j.map(v => Array.isArray(v) ? { t: String(v[0] || ''), l: String(v[1] || '') } : { t: String(v || ''), l: '' });
   };
   const res = (await Promise.all(parts.map(one))).flat();
