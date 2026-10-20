@@ -15,7 +15,7 @@
 // "ngày" = số ngày tính từ 1/1/1970 theo giờ Việt Nam. Mỗi món mỗi ngày 1 mốc (giữ giá thấp nhất trong ngày), giữ 120 ngày.
 
 const KEEP_DAYS = 120, MAX_IN = 60, MAX_OUT = 20;
-const KEY = /^(sp:\d{3,12}\.\d{3,16}|tt:\d{8,22})$/;
+const KEY = /^((ap:)?sp:\d{3,12}\.\d{3,16}|tt:\d{8,22})$/;   // V1.81: ap:sp:… = giá "Mua trên app" tiện ích tính
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
 const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json; charset=utf-8', ...cors, ...extra } });
 const today = () => Math.floor((Date.now() + 7 * 3600e3) / 864e5);

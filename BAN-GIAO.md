@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 20/10/2026 · **Bản V1.80** (số kỹ thuật 1.10.336) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
+Cập nhật: 20/10/2026 · **Bản V1.81** (số kỹ thuật 1.10.337) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -52,6 +52,8 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm (mới nhất trước)
 | Bản | Đã sửa |
 | --- | --- |
+| V1.81 (1.10.337) | Tiện ích gửi giá "Mua trên app" đang hiện về kho giá (khoá `ap:sp:shop.id`, qua `price-log` như giá thường). Web HaoHao Store lấy giá Shopee mới nhất trong kho (`sp:…`, đã trừ mã shop, ≤2 ngày) và giá app (`ap:sp:…`) → khớp tiện ích; sửa cách tính trong tiện ích là web đổi theo. Máy chủ: KEY nhận `ap:`. Chưa phát hành. |
+| Web 20/10 chiều | Tên miền **haohaostore.com** (Cloudflare, nameserver lee/penny), trang chủ = Store, www → tên chính; đường dẫn sạch /thoi-trang, /thoi-trang/ao, /san-pham/<mã>, /sale (link # cũ tự chuyển); Tin tức /tin-tuc/ 5 bài SEO (tạo bằng `haohao-shop-web/tin-tuc/_tao.py` từ `bai.json`), sitemap/robots; Sale theo thiết kế (Mua theo loại, Bộ lọc, Sắp xếp); menu TIN TỨC đầu + mascot HAOHAO → haohao.ai.studio; footer gốc. Canvas thiết kế: claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj. |
 | V1.80 (1.10.336) | Chặn quảng cáo (`adhide.js`) không chạy trên trang HaoHao Store `haohao-gia.nhatphan79.workers.dev` (trước đó ẩn nhầm khu sản phẩm dẫn ra Shopee). Chưa phát hành. |
 | Web + máy chủ 20/10 | HaoHao Store: ngách theo SỐ 1–5 đầu tên danh mục collshp; Bán chạy nhất = Tất cả + ô chủ đề theo tên danh mục; khu sản phẩm thứ i = danh mục thứ i (đúng hàng anh chọn, không độn); ô tròn lọc theo tên món; tên SP tối đa 3 dòng; 5 ô tròn Thời trang ảnh chỉ có sản phẩm. Máy chủ STORE_V 5, ĐÃ Deploy. |
 | Máy chủ 19/10 | `/store`: đọc danh mục chủ app trên collshp.com/haohaostore (GraphQL công khai, cần `cid:'vn'`), 6 giờ/lần theo cron, chỉ lấy món trong danh mục (bỏ "Có thể bạn thích"); danh mục → 5 ngách web theo từ khoá tên, món → mục nhỏ theo từ khoá tên món; ghi giá vào kho `gia`. `/store?run=1&key=STATS_KEY` chạy ngay. Dùng cho web HaoHao Store. Cần Deploy |

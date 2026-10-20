@@ -6292,6 +6292,9 @@
   let appManual = {};
   chrome.storage.local.get('appPriceMap').then(d => { appManual = d.appPriceMap || {}; }).catch(() => {});
   const appEst = a => Math.min(Math.round(a * 0.15), 60000);
+  // V1.81 (20/10): gửi giá "Mua trên app" đang hiện về kho giá (khoá ap:sp:…) → web HaoHao Store hiện đúng con số này, sửa cách tính ở đây là web đổi theo
+  const appSent = new Set();
+  const appLog = v => { try { const sk = srvKey(); v = Math.round(Number(v) || 0); if (!sk || v < 1000 || appSent.has(sk + v)) return; appSent.add(sk + v); chrome.runtime.sendMessage({ type: 'price-log', item: { k: 'ap:' + sk, p: v } }).catch(() => {}); } catch {} };
   const appMan = () => { const x = appManual[itemKey()]; return x && Date.now() - x.at < 3 * 864e5 ? x.v : 0; };
   function appPriceInput() {
     const wrap = el('div', 'dtip'), b = el('button', 'dtog', '✏️ Nhập giá app thật'); wrap.append(b);
@@ -6379,7 +6382,7 @@
     };
     if (P.appBetter) {
       const a = el('button', 'b dbtn', P.webAll - P.app >= 1000 ? `📱 Mở app rẻ hơn ${kShort(P.webAll - P.app)}` : '📱 Mở trên app'); a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
-      row('📱', 'Mua trên app', P.app, P.man ? 'giá app bạn đã xem' : 'có mã vận chuyển · ship giảm', a, '', 'app');
+      row('📱', 'Mua trên app', P.app, P.man ? 'giá app bạn đã xem' : 'có mã vận chuyển · ship giảm', a, '', 'app'); appLog(P.app);
     }
     let w = null;
     w = el('button', 'b dbtn', '🎟️ Tìm voucher'); w.title = 'Săn 1 mã Freeship tốt nhất cho đơn này (ngày sale: thêm mã đợt sale)'; w.addEventListener('click', async e => { e.stopPropagation(); const pp = detectProduct(); if (!pp || !pp.price) return goCheck('voucher'); w.disabled = true; w.textContent = '⏳ Đang tìm mã…'; const saleNow = ((HT.saleDays(new Date(), 1)[0] || {}).days === 0), ck = saleNow ? codeClock() : null; const r = await chrome.runtime.sendMessage({ type: 'vh-hunt', url: cleanUrl(location.href), price: pp.price, key: itemKey(), ship: true, sale: saleNow, extra: ck && ck.evUrl ? [ck.evUrl] : [] }).catch(() => null); if (!r || !r.ok) { w.disabled = false; w.textContent = '🎟️ Tìm voucher'; if (r && r.error === 'busy') say('HaoHao đang tìm mã ở cửa sổ khác, đợi xíu nhé!', 'think', '🎟️ Voucher', 'shop'); } });   // 1.10.228: bấm là tự lưu mã rồi tính lại giá   // 1.10.218: thay nút Mua trên web qua HaoHao
@@ -6390,6 +6393,7 @@
       const a2 = el('button', 'b dbtn', '📱 Mở trên app'); a2.title = 'Hiện mã QR to, mở Camera điện thoại quét'; a2.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
       // 1.10.213: tự tính giá app khi đã đọc được mã riêng của app; chưa có thì chỉ cách để HaoHao tự tính
       const known = walletApp && Date.now() - walletApp.at <= 4 * 864e5;
+      appLog(Math.min(P.app || P.webAll, P.webAll));
       row('📱', 'Mua trên app', Math.min(P.app || P.webAll, P.webAll), 'có mã vận chuyển · ship giảm', a2,
         known ? '💡 Quét mã QR bằng Camera điện thoại để mở đúng món' : '💡 Vào giỏ → bấm "Chọn Voucher" 1 lần, HaoHao tự tính giá app rẻ hơn', 'app');
     }
@@ -6413,6 +6417,7 @@
     const a = el('button', 'b dbtn', '📱 Mở trên app'); a.title = 'Hiện mã QR to, mở Camera điện thoại quét'; a.addEventListener('click', e => { e.stopPropagation(); qrShow(); });
     const ww = walletWebBest(webP), wa0 = walletAppBest(webP), wa = wa0 && (!ww || wa0.v > ww.v) ? wa0 : ww;   // 1.10.228: app dùng được cả mã web lẫn mã chỉ-app
     const man = appMan(), offA = wa ? wa.v : appEst(webP);
+    appLog(man || webP - offA);
     row('📱', 'Mua trên app', man || webP - offA, man ? 'giá app bạn đã xem' : 'có mã vận chuyển · ship giảm', a,
       '');
     return box;

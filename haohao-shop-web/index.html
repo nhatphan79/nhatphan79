@@ -874,7 +874,7 @@ function renderProduct(id){
   function szHtml(){ if(szT<0) return ''; var v=tiers[szT]; return '<div class="pd5-sz">'+v.options.map(function(o,i){ return '<button type="button" class="'+(pick[szT]===i?'on':'')+'" data-t="'+szT+'" data-o="'+i+'" aria-pressed="'+(pick[szT]===i)+'">'+esc(o)+'</button>'; }).join('')+'</div>'; }
   function buyHtml(){ return '<div class="pd5-buy">'+(x.link?'<a class="b1" href="'+esc(sp)+'" target="_blank" rel="noopener sponsored">'+BAG+'Mua trên Shopee</a>':'')+(x.tt?'<a class="b2" href="'+esc(tt)+'" target="_blank" rel="noopener sponsored">MUA TRÊN TIKTOK</a>':'')+'</div>'; }
   /* ô Mua trên app / web + mascot – cách tính giá app giống tiện ích HaoHao: trừ ~15% mã vận chuyển, tối đa 60k */
-  var appOff=Math.min(Math.round(x.price*0.15),60000), appP=x.price-appOff;
+  var appP=x.app&&x.app<=x.price?x.app:x.price-Math.min(Math.round(x.price*0.15),60000), appOff=x.price-appP;   /* V1.81: giá app = đúng con số tiện ích HaoHao đã tính (kho giá ap:…), chưa có mới tự ước tính */
   function kS(n){ return n>=1000?Math.round(n/1000)+'k':n+'đ'; }
   function dealHtml(){
     if(!x.link) return '';
@@ -1008,7 +1008,21 @@ function applyStore(d){
   });
 }
 var started=false; function start(){ if(started) return; started=true; route(); }
-fetch(STORE_API).then(function(r){return r.json();}).then(function(d){ if(d&&d.items&&d.items.length) applyStore(d); start(); }).catch(start);
+/* 20/10 (V1.81): giá theo tiện ích HaoHao – kho giá lưu giá Shopee người dùng vừa thấy (sp:…, đã trừ mã shop) và giá Mua trên app (ap:sp:…); có thì dùng, không có thì giữ giá collshp */
+function withHH(d){
+  var H=STORE_API.replace(/\/store$/,'/h'), ks=[]; d.items.forEach(function(x){ if(x.shop&&x.id){ ks.push('sp:'+x.shop+'.'+x.id,'ap:sp:'+x.shop+'.'+x.id); } });
+  var parts=[]; for(var i=0;i<ks.length;i+=20) parts.push(ks.slice(i,i+20));
+  var cut=new Promise(function(r){setTimeout(function(){r(null);},3000);});
+  return Promise.race([Promise.all(parts.map(function(p){return fetch(H+'?k='+encodeURIComponent(p.join(','))).then(function(r){return r.json();}).catch(function(){return null;});})),cut]).then(function(rs){
+    var M={}, day=0; (rs||[]).forEach(function(r){ if(r&&r.items){ day=r.day||day; for(var k in r.items) M[k]=r.items[k]; } });
+    var last=function(k){ var a=M[k]; if(!a||!a.length) return null; var t=a[a.length-1]; return day-t[0]<=2?t:null; };
+    d.items.forEach(function(x){ if(!x.shop) return; var k='sp:'+x.shop+'.'+x.id, w=last(k), a=last('ap:'+k);
+      if(w&&w[1]>0&&w[1]<=x.old){ x.price=w[1]; if(w[2]>x.old) x.old=w[2]; }
+      if(a&&a[1]>0&&a[1]<=x.price) x.app=a[1]; });
+    return d;
+  });
+}
+fetch(STORE_API).then(function(r){return r.json();}).then(function(d){ if(!(d&&d.items&&d.items.length)) return start(); return withHH(d).then(function(d2){ applyStore(d2); start(); }); }).catch(start);
 setTimeout(start,4000);
 })();
 </script>
