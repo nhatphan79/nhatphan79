@@ -99,6 +99,19 @@ img{display:block}
 .menu>:last-child{border-bottom:0}.menu .ic{width:32px;height:32px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}
 .menu .lb{flex:1}.menu .mt{font-size:12px;color:var(--mute)}
 .note{margin:16px;font-size:12px;line-height:1.6;color:var(--mute);text-align:center}
+.dm{display:flex;min-height:calc(100vh - 160px);border-top:1px solid var(--line)}
+.dm-l{width:92px;flex:none;background:#F6EDE5;display:flex;flex-direction:column}
+.dm-l a{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px;text-align:center;font-size:11.5px;line-height:1.25;font-weight:600;color:var(--soft)}
+.dm-l a.on{background:var(--bg);color:var(--acc);font-weight:800}.dm-l a.on::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--acc)}
+.dm-l span{width:50px;height:50px;border-radius:16px;display:flex;align-items:center;justify-content:center}.dm-l img{width:40px;height:40px;object-fit:contain}
+.dm-r{flex:1;min-width:0;padding:12px 12px 16px;display:flex;flex-direction:column;gap:14px}
+.dm-bn{position:relative;height:104px;border-radius:16px;overflow:hidden;padding:14px;display:flex;flex-direction:column;justify-content:center}.dm-bn b{font-size:17px}.dm-bn span{font-size:12px;margin-top:2px}
+.dm-bn em{margin-top:8px;align-self:flex-start;padding:5px 10px;border-radius:12px;background:#fff;color:var(--acc);font-size:11.5px;font-weight:800;font-style:normal}
+.dm-bn img{position:absolute;right:-6px;bottom:-10px;width:112px;height:112px;object-fit:contain}
+.dm-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 8px}
+.dm-g a{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:600;text-align:center;line-height:1.25}
+.dm-g img,.dm-g i{width:76px;height:76px;border-radius:38px;object-fit:cover;background:#F6EDE5;border:2px solid #fff;box-shadow:0 4px 10px rgba(120,60,20,.10)}
+.dm-hot{padding:12px;border-radius:14px;background:#fff;display:flex;align-items:center;gap:10px;font-size:12.5px}.dm-hot span span{color:var(--mute)}
 /* thanh dưới */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;max-width:520px;margin:0 auto;height:calc(66px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--mute);font-size:11px;font-weight:500}
@@ -191,12 +204,21 @@ function vSearch(q,s){
    '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+(q?'Kết quả cho “'+esc(q)+'” · '+l.length+' sản phẩm · giá thật lấy từ sàn':l.length+' sản phẩm HaoHao tuyển chọn')+'</p>'+
    (READY?grid(sortList(l,s),'Không thấy “'+esc(q)+'”. Thử từ khoá ngắn hơn nhé.'):skel())+'</div>';
 }
-function vCatList(){
-  return bar('Danh mục')+'<p class="pad" style="margin:12px 0;color:var(--mute);font-size:13px">5 ngách HaoHao tuyển chọn và so giá</p><div class="pad">'+NICHES.map(function(n){
-    var subs=D.groups.filter(function(g){return g.niche===n.id&&g.n;}), cnt=D.items.filter(function(x){return x.niche===n.id;}).length;
-    return '<div class="nc"><a class="hd" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></span><b>'+esc(n.full||n.label)+'<br><em>'+esc(n.sub)+'</em></b><em>'+cnt+' món ›</em></a>'+
-     (subs.length?'<div class="subs">'+subs.map(function(g){return '<a href="#/danh-muc/'+n.id+'/'+encodeURIComponent(g.topic)+'">'+esc(g.topic)+'</a>';}).join('')+'</div>':'')+'</div>';
-  }).join('')+'</div>';
+var GRAD={'thoi-trang':['#FDE4EA','#F7B9C9','#7A3550'],'me-be':['#E4F4EC','#A8DDC2','#1F5E3E'],'gia-dung':['#FFF1CF','#F7D27A','#6B4A00'],'xay-dung':['#E2EDFB','#A9C8F0','#1E4B80'],'qua-tang':['#FDE3D6','#F6B79A','#7A2E0E']};
+function vCatList(sel){   /* 20/10: mẫu 4A – cột ngách bên trái, lưới ô tròn bên phải */
+  var n=NI[sel]||NICHES[0], g=GRAD[n.id], its=D.items.filter(function(x){return x.niche===n.id;}), top=its.slice().sort(function(a,b){return (b.sold||0)-(a.sold||0);});
+  var tiles=D.groups.filter(function(gr){return gr.niche===n.id&&gr.n;}).map(function(gr){ var x=top.filter(function(i){return i.cat===gr.topic;})[0]; return [gr.topic,'#/danh-muc/'+n.id+'/'+encodeURIComponent(gr.topic),x?img(x):'']; });
+  var deal=its.slice().sort(function(a,b){return pct(b)-pct(a);})[0], cheap=its.slice().sort(function(a,b){return a.price-b.price;})[0];
+  if(top[0]) tiles.push(['Bán chạy','#/danh-muc/'+n.id+'?s=ban',img(top[0])]);
+  if(deal&&pct(deal)>=5) tiles.push(['Giảm nhiều','#/danh-muc/'+n.id+'?s=giam',img(deal)]);
+  if(cheap) tiles.push(['Giá tốt','#/danh-muc/'+n.id+'?s=re',img(cheap)]);
+  var best=top[0];
+  return '<div class="bar" style="border-bottom:0"><h1 style="font-size:22px">Danh mục<small style="display:block;font-size:12px;font-weight:500;color:var(--mute)">5 ngách HaoHao tuyển chọn và so giá</small></h1><a class="ib" href="#/tim" aria-label="Tìm kiếm">'+IC.search+'</a></div>'+
+   '<div class="dm"><nav class="dm-l" aria-label="Ngách">'+NICHES.map(function(x){var on=x.id===n.id; return '<a href="#/danh-muc?n='+x.id+'"'+(on?' class="on" aria-current="true"':'')+'><span style="background:'+x.bg+'"><img src="'+API+'/shop/ngach-'+x.id+'.webp" alt=""></span>'+esc(x.label)+'</a>';}).join('')+'</nav>'+
+   '<div class="dm-r"><a class="dm-bn" href="#/danh-muc/'+n.id+'" style="background:linear-gradient(120deg,'+g[0]+','+g[1]+')"><b>'+esc(n.full||n.label)+'</b><span style="color:'+g[2]+'">'+its.length+' món · giá đã kiểm tra</span><em>Xem tất cả ›</em><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></a>'+
+   '<b style="font-size:14px">Bộ sưu tập</b><div class="dm-g">'+(READY?tiles.map(function(t){return '<a href="'+t[1]+'">'+(t[2]?'<img src="'+esc(t[2])+'" alt="" loading="lazy">':'<i></i>')+esc(t[0])+'</a>';}).join(''):'<i class="sk" style="width:76px;height:76px;border-radius:38px"></i>')+'</div>'+
+   (best?'<a class="dm-hot" href="#/sp/'+best.id+'"><span style="font-size:20px">🔥</span><span style="flex:1;min-width:0"><b>Bán chạy nhất</b><br><span>'+esc(best.n.slice(0,42))+'… · '+esc((best.soldTxt||'').replace(' đã bán',''))+' đã bán</span></span><span style="color:var(--acc);font-weight:800">›</span></a>':'')+
+   '</div></div>';
 }
 function vNiche(id,topic,s){
   var n=NI[id]; if(!n) return vCatList();
@@ -279,9 +301,10 @@ var clkT=null;
 function route(){
   var h=(location.hash||'#/').slice(1)||'/', p=h.split('?')[0], qs={}; (h.split('?')[1]||'').split('&').forEach(function(kv){ if(!kv) return; var a=kv.split('='); qs[a[0]]=decodeURIComponent((a[1]||'').replace(/\+/g,' ')); });
   var seg=p.split('/').filter(Boolean).map(decodeURIComponent), html;
+  if(seg[0]==='danh-muc'&&!seg[1]&&qs.n) ls('dmn',qs.n);
   if(!seg.length) html=vHome();
   else if(seg[0]==='tim') html=vSearch(qs.q||'',qs.s||'lq');
-  else if(seg[0]==='danh-muc') html=seg[1]?vNiche(seg[1],seg[2]||'',qs.s||'lq'):vCatList();
+  else if(seg[0]==='danh-muc') html=seg[1]?vNiche(seg[1],seg[2]||'',qs.s||'lq'):vCatList(qs.n||ls('dmn'));
   else if(seg[0]==='uu-dai') html=vDeals(seg[1]||'');
   else if(seg[0]==='yeu-thich') html=vFav(seg[1]||'');
   else if(seg[0]==='ca-nhan') html=vMe();
