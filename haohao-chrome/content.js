@@ -3577,7 +3577,97 @@
     if (!pageTr.lang && pageTr.src) pageTr.lang = LANG_VI[pageTr.src] || pageTr.src.toUpperCase();
     return items;
   }
+  // ---------- V1.86: 📄 PDF xem trên Google Drive ----------
+  // Drive vẽ mỗi trang PDF thành ảnh + 1 lớp chữ gần như trong suốt (để bôi đen). Dịch lớp đó thì không thấy gì,
+  // nên HaoHao gom từng dòng thành đoạn, dịch, rồi phủ khung trắng ghi tiếng Việt đúng chỗ đoạn đó. Cuộn tới trang nào dịch trang đó.
+  const isDrivePdf = () => location.hostname === 'drive.google.com' && !!document.querySelector('[role="document"] p');
+  const DP = { on: false, busy: false, tm: 0, ro: null, css: null, cache: new Map() };
+  function drivePages() {
+    const ls = new Set();
+    document.querySelectorAll('[role="document"] p').forEach(p => { const l = p.parentElement; if (l && l.parentElement) ls.add(l); });
+    return [...ls].filter(l => +getComputedStyle(l).opacity < 0.2).map(l => ({ layer: l, page: l.parentElement }));
+  }
+  function dpParas(layer, page) {
+    const pr = page.getBoundingClientRect(); if (pr.width < 50 || pr.height < 50) return null;
+    const ls = [...layer.querySelectorAll('p')].map(p => { const r = p.getBoundingClientRect(); return { t: (p.textContent || '').replace(/\s+/g, ' ').trim(), x: r.left - pr.left, y: r.top - pr.top, w: r.width, h: r.height }; })
+      .filter(l => l.t && l.w > 0 && l.h > 0).sort((a, b) => a.y - b.y || a.x - b.x);
+    const paras = [];
+    for (const l of ls) {
+      let hit = null, same = false;
+      for (let i = paras.length - 1; i >= Math.max(0, paras.length - 5); i--) {   // xét vài đoạn gần nhất (trang 2 cột)
+        const q = paras[i], a = q.last;
+        // cùng 1 dòng, bị cắt thành nhiều mảnh
+        if (Math.abs(l.y - a.y) < a.h * 0.5 && l.x >= a.x + a.w - a.h && l.x - (a.x + a.w) < a.h * 2) { hit = q; same = true; break; }
+        // dòng kế tiếp của cùng đoạn: sát bên dưới, chồng nhau theo chiều ngang, cùng cỡ chữ
+        const gap = l.y - (a.y + a.h), ovl = Math.min(q.x2, l.x + l.w) - Math.max(q.x, l.x);
+        if (l.y > a.y + a.h * 0.5 && gap < a.h * 0.8 && ovl > Math.min(l.w, q.x2 - q.x) * 0.3 && Math.abs(l.h - a.h) < a.h * 0.35) {
+          // dòng trên ngắn + hết câu → hết đoạn; tiêu đề 1 dòng ngắn không dấu câu → tách riêng
+          const endPara = a.w < (q.x2 - q.x) * 0.8 && /[.!?:]["”’')\]]?$/.test(a.t), title = q.n === 1 && a.w < l.w * 0.6 && !/[.,;]$/.test(a.t);
+          const item = /^(\d{1,3}[.)]\s|[•▪●◦‣–-]\s)/.test(l.t);   // mục danh sách 1. 2. • → dòng riêng
+          if (!endPara && !title && !item) hit = q;
+          break;
+        }
+      }
+      if (hit) {
+        hit.t = !same && /[a-z]-$/.test(hit.t) && /^[a-z]/.test(l.t) ? hit.t.slice(0, -1) + l.t : hit.t + ' ' + l.t;
+        hit.x = Math.min(hit.x, l.x); hit.x2 = Math.max(hit.x2, l.x + l.w); hit.y2 = Math.max(hit.y2, l.y + l.h); if (!same) hit.n++; hit.last = same ? { ...l, x: hit.last.x, w: l.x + l.w - hit.last.x } : l;
+      } else paras.push({ t: l.t, x: l.x, x2: l.x + l.w, y: l.y, y2: l.y + l.h, last: l, lh: l.h, n: 1 });
+    }
+    return { paras: paras.filter(q => /[\p{L}]{2,}/u.test(q.t)), W: pr.width, H: pr.height };
+  }
+  function dpFit(page) {
+    const H = page.getBoundingClientRect().height; if (!H) return;
+    page.querySelectorAll(':scope > .hh-pdftr > .hh-pdfp').forEach(b => {
+      let fs = Math.max(5, +b.dataset.r * H); b.style.fontSize = fs + 'px';
+      for (let k = 0; k < 14 && b.scrollHeight > b.clientHeight + 1 && fs > 5; k++) { fs *= 0.9; b.style.fontSize = fs + 'px'; }   // tiếng Việt dài hơn → thu nhỏ chữ cho vừa khung
+    });
+  }
+  function dpRender(page, d, items) {
+    page.querySelectorAll(':scope > .hh-pdftr').forEach(e => e.remove());
+    const ov = document.createElement('div'); ov.className = 'hh-pdftr';
+    d.paras.forEach((q, i) => {
+      const tr = items[i]; if (typeof tr !== 'string' || !tr.trim() || tr === q.t) return;
+      const b = document.createElement('div'); b.className = 'hh-pdfp'; const pad = q.lh * 0.12;
+      Object.assign(b.style, { left: (q.x - pad) / d.W * 100 + '%', top: (q.y - pad) / d.H * 100 + '%', width: (q.x2 - q.x + 2 * pad) / d.W * 100 + '%', height: (q.y2 - q.y + 2 * pad) / d.H * 100 + '%' });
+      b.textContent = tr; b.dataset.r = q.lh * 0.8 / d.H;
+      ov.append(b);
+    });
+    page.append(ov); dpFit(page);
+  }
+  async function dpTick() {
+    if (!DP.on || DP.busy || pageTr.showing !== 'tr') return;
+    const vh = innerHeight;
+    const list = drivePages().filter(o => !o.page.querySelector(':scope > .hh-pdftr')).map(o => ({ ...o, r: o.page.getBoundingClientRect() }))
+      .filter(o => o.r.bottom > -vh && o.r.top < vh * 2).sort((a, b) => Math.abs(a.r.top) - Math.abs(b.r.top));
+    if (!list.length) return;
+    const { layer, page } = list[0], d = dpParas(layer, page); if (!d) return;
+    const k = d.paras.map(q => q.t).join('\n').slice(0, 500) + '|' + d.paras.length;
+    DP.busy = true; pageTr.running = true; trBar();
+    try {
+      let items = DP.cache.get(k);
+      if (!items) { items = d.paras.length ? await trSegments(d.paras.map(q => q.t)) : []; DP.cache.set(k, items); }
+      if (DP.on && page.isConnected && !page.querySelector(':scope > .hh-pdftr')) { dpRender(page, d, items); DP.ro.observe(page); pageTr.done++; }
+    } catch (e) { pageTr.error = errText(e.message); DP.on = false; clearInterval(DP.tm); }
+    DP.busy = false; pageTr.running = false; trBar();
+  }
+  function driveStart() {
+    if (!DP.css) {
+      DP.css = document.createElement('style');
+      DP.css.textContent = '.hh-pdftr{position:absolute;inset:0;pointer-events:none;z-index:5}.hh-pdfp{position:absolute;box-sizing:border-box;overflow:hidden;background:#fff;color:#1a1a1a;font-family:Arial,Helvetica,sans-serif;line-height:1.22;white-space:normal;overflow-wrap:anywhere}html.hh-pdf-orig .hh-pdftr{display:none}';
+      (document.head || document.documentElement).append(DP.css);
+    }
+    if (!DP.ro) DP.ro = new ResizeObserver(es => es.forEach(e => dpFit(e.target)));
+    document.documentElement.classList.remove('hh-pdf-orig');
+    Object.assign(pageTr, { drive: true, bar: true, showing: 'tr', error: '', done: 0, stop: false });
+    DP.on = true; clearInterval(DP.tm); DP.tm = setInterval(dpTick, 700); dpTick(); trBar();
+  }
+  function driveStop() {
+    DP.on = false; clearInterval(DP.tm); if (DP.ro) DP.ro.disconnect();
+    document.querySelectorAll('.hh-pdftr').forEach(e => e.remove()); document.documentElement.classList.remove('hh-pdf-orig');
+    pageTr.drive = false; pageTr.running = false;
+  }
   async function translatePage(auto) {
+    if (isDrivePdf() || pageTr.drive) { if (!pageTr.drive) driveStart(); else if (pageTr.showing === 'orig') showTranslated(); return; }
     if (pageTr.running) return;
     if (pageTr.showing === 'orig' && pageTr.map.size) showTranslated();
     const vh = innerHeight, posOf = n => { try { const r = n.parentElement.getBoundingClientRect(); return r.bottom < 0 ? 1e6 + Math.abs(r.top) : r.top > vh ? r.top : -1; } catch { return 1e7; } };   // V1.85: phần đang nhìn thấy dịch trước
@@ -3614,14 +3704,15 @@
     pageTr.running = false; trBar(); trWatch();
     if (isSub('dich') && ui && !ui.panel.hidden) renderPanel();
   }
-  function restorePage() { for (const [n, o] of pageTr.map) if (n.isConnected) n.data = o; pageTr.showing = 'orig'; trBar(); }
-  function showTranslated() { for (const [n, t] of pageTr.tr) if (n.isConnected) n.data = t; pageTr.showing = 'tr'; trBar(); }
+  function restorePage() { if (pageTr.drive) { document.documentElement.classList.add('hh-pdf-orig'); pageTr.showing = 'orig'; trBar(); return; } for (const [n, o] of pageTr.map) if (n.isConnected) n.data = o; pageTr.showing = 'orig'; trBar(); }
+  function showTranslated() { if (pageTr.drive) { document.documentElement.classList.remove('hh-pdf-orig'); pageTr.showing = 'tr'; trBar(); dpTick(); return; } for (const [n, t] of pageTr.tr) if (n.isConnected) n.data = t; pageTr.showing = 'tr'; trBar(); }
   function pageAi() {   // V1.86: dịch lại cả trang bằng Gemini
+    if (pageTr.drive) { DP.cache.clear(); document.querySelectorAll('.hh-pdftr').forEach(e => e.remove()); Object.assign(pageTr, { forceAi: true, engine: '', error: '', done: 0 }); if (!DP.on) driveStart(); else showTranslated(); return; }
     if (pageTr.running) return;
     restorePage(); pageTr.map.clear(); pageTr.tr.clear(); pageTr.skip = new WeakSet();
     Object.assign(pageTr, { forceAi: true, engine: '', error: '' }); translatePage();
   }
-  function closeTrBar() { pageTr.forceAi = false; pageTr.stop = true; pageTr.main = ''; if (pageTr.map.size) restorePage(); pageTr.bar = false; if (pageTr.obs) { pageTr.obs.disconnect(); pageTr.obs = null; } trBar(); }
+  function closeTrBar() { if (pageTr.drive) driveStop(); pageTr.forceAi = false; pageTr.stop = true; pageTr.main = ''; if (pageTr.map.size) restorePage(); pageTr.bar = false; if (pageTr.obs) { pageTr.obs.disconnect(); pageTr.obs = null; } trBar(); }
   // trang tải thêm nội dung (cuộn vô tận, bấm Xem thêm) trong lúc đang xem bản dịch → tự dịch phần mới
   function trWatch() {
     if (pageTr.obs || !pageTr.map.size || !document.body) return;
@@ -3637,21 +3728,22 @@
   function trBar() {
     if (!ui) return;
     let b = ui.root.querySelector('.trbar');
-    const show = pageTr.bar && (pageTr.running || pageTr.map.size || pageTr.error);
+    const show = pageTr.bar && (pageTr.running || pageTr.map.size || pageTr.error || pageTr.drive);
     if (!show) { if (b) b.remove(); if (pageTr.bar && !pageTr.running && !pageTr.map.size && !pageTr.error) { pageTr.bar = false; say(`Trang này đã là ${TARGETS[target()]} rồi.`, 'happy', '', 'dich'); } return; }
     if (!b) { b = el('div', 'trbar'); b.setAttribute('role', 'status'); ui.root.append(b); }
     b.innerHTML = '';
     b.append(el('span', 'ic', '🌐'));
     const tx = el('span', 'tx');
-    if (pageTr.running) tx.textContent = pageTr.note || `Đang dịch trang sang ${TARGETS[target()]}… ${Math.round(pageTr.done / Math.max(1, pageTr.total) * 100)}%`;
+    if (pageTr.drive) tx.textContent = pageTr.error ? '⚠ ' + pageTr.error : pageTr.showing !== 'tr' ? 'Đang xem bản gốc' : pageTr.running ? `Đang dịch trang PDF sang ${TARGETS[target()]}…` : `${pageTr.lang ? pageTr.lang + ' → ' : ''}${TARGETS[target()]} · đã dịch ${pageTr.done} trang, cuộn tới đâu dịch tới đó`;
+    else if (pageTr.running) tx.textContent = pageTr.note || `Đang dịch trang sang ${TARGETS[target()]}… ${Math.round(pageTr.done / Math.max(1, pageTr.total) * 100)}%`;
     else if (pageTr.error && !pageTr.map.size) tx.textContent = '⚠ ' + pageTr.error;
     else tx.textContent = pageTr.showing === 'tr' ? `${pageTr.lang ? pageTr.lang + ' → ' : 'Đã dịch sang '}${TARGETS[target()]}` : 'Đang xem bản gốc';
     b.append(tx);
-    if (!pageTr.running && pageTr.map.size && pageTr.engine) b.append(el('span', 'eng' + (pageTr.engine === 'ai' ? ' ai' : ''), (pageTr.engine === 'ai' ? '✨ AI' : pageTr.engine === 'google' ? '🌐 Google' : '⚡ Chrome')));
-    if (pageTr.running) {
+    if (!pageTr.running && (pageTr.map.size || pageTr.drive) && pageTr.engine) b.append(el('span', 'eng' + (pageTr.engine === 'ai' ? ' ai' : ''), (pageTr.engine === 'ai' ? '✨ AI' : pageTr.engine === 'google' ? '🌐 Google' : '⚡ Chrome')));
+    if (pageTr.running && !pageTr.drive) {
       b.append(h(`<span class="pg"><i style="width:${Math.round(pageTr.done / Math.max(1, pageTr.total) * 100)}%"></i></span>`));
       const st = el('button', 'tb', 'Dừng'); st.addEventListener('click', () => { pageTr.stop = true; }); b.append(st);
-    } else if (pageTr.map.size) {
+    } else if (pageTr.map.size || pageTr.drive) {
       const tg = el('button', 'tb', pageTr.showing === 'tr' ? 'Xem bản gốc' : 'Xem bản dịch');
       tg.addEventListener('click', () => { pageTr.showing === 'tr' ? restorePage() : showTranslated(); });
       b.append(tg);
