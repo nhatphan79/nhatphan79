@@ -1,0 +1,94 @@
+<!doctype html>
+<!-- © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu. -->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>HaoHao V2</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="proj.css">
+</head>
+<body>
+  <aside class="side">
+    <div class="brand"><img src="tray.png" alt="" width="34" height="34"><div><b>HaoHao</b><span>V2 · máy tính</span></div></div>
+    <nav aria-label="Mục">
+      <button data-v="todo" class="on">☑️ Việc cần làm</button>
+      <button data-v="rem">🔔 Nhắc nhở</button>
+      <button data-v="note">📝 Note</button>
+      <button data-v="proj">📋 Dự án</button>
+      <button data-v="set">⚙️ Cài đặt</button>
+    </nav>
+    <div class="sync" id="sync" title="Đồng bộ với tiện ích HaoHao trên Chrome"><i></i><span>Đang xem…</span></div>
+  </aside>
+
+  <main>
+    <section class="view" id="v-todo" aria-label="Việc cần làm">
+      <header><h1>Việc cần làm</h1><p>Gõ kèm giờ là HaoHao tự hẹn nhắc: “9h mai gặp khách”, “30 phút nữa gọi anh Nam”.</p></header>
+      <form class="add" id="todo-add">
+        <input id="todo-in" placeholder="✍️ Việc cần làm…" aria-label="Việc cần làm" maxlength="300" autocomplete="off">
+        <input id="todo-due" type="datetime-local" aria-label="Nhắc lúc">
+        <button class="b">Thêm</button>
+      </form>
+      <div class="tabs2" role="tablist"><button data-f="open" class="on">Chưa xong <em id="n-open"></em></button><button data-f="done">Đã xong <em id="n-done"></em></button></div>
+      <ul class="list" id="todo-list"></ul>
+    </section>
+
+    <section class="view" id="v-rem" hidden aria-label="Nhắc nhở">
+      <header><h1>Nhắc nhở</h1><p>HaoHao hiện thông báo ở góc màn hình, kể cả khi đã tắt Chrome.</p></header>
+      <div class="bar"><button class="b" id="rem-new">＋ Thêm nhắc nhở</button></div>
+      <ul class="list" id="rem-list"></ul>
+      <form class="card form" id="rem-form" hidden>
+        <h2 id="rem-ftitle">Nhắc nhở mới</h2>
+        <div class="row"><label>Tên<input name="name" required maxlength="60" placeholder="vd: Uống nước"></label><label class="sm">Biểu tượng<input name="icon" maxlength="4" placeholder="💧"></label></div>
+        <label>Lời nhắc<input name="message" maxlength="200" placeholder="vd: Uống một ly nước nhé!"></label>
+        <label>Kiểu nhắc<select name="kind">
+          <option value="daily">Hằng ngày vào giờ cố định</option>
+          <option value="interval">Cứ N phút một lần</option>
+          <option value="once">Một lần</option>
+          <option value="lunar">Theo ngày âm lịch</option>
+        </select></label>
+        <div class="k k-daily k-lunar"><label>Giờ nhắc (cách nhau dấu phẩy)<input name="times" placeholder="08:00, 17:00"></label></div>
+        <div class="k k-daily"><span class="lb">Ngày trong tuần</span><div class="days" id="rem-days"></div></div>
+        <div class="k k-interval row"><label>Mỗi (phút)<input name="minutes" type="number" min="5" value="60"></label><label>Từ<input name="from" type="time" value="08:00"></label><label>Đến<input name="to" type="time" value="21:00"></label></div>
+        <div class="k k-once"><label>Lúc<input name="datetime" type="datetime-local"></label></div>
+        <div class="k k-lunar"><label>Ngày âm (1–29, 30 = cuối tháng)<input name="lunar" placeholder="1, 15"></label></div>
+        <div class="row end"><button type="button" class="b ghost" id="rem-cancel">Huỷ</button><button class="b">Lưu</button></div>
+      </form>
+    </section>
+
+    <section class="view" id="v-note" hidden aria-label="Note">
+      <header><h1>Note</h1><p>Ghi nhanh ý tưởng, đoạn chữ, link. Note lưu ở tiện ích Chrome cũng hiện ở đây.</p></header>
+      <form class="add" id="note-add">
+        <textarea id="note-in" rows="2" placeholder="Ghi chú mới… (Ctrl+Enter để lưu)" aria-label="Note mới" maxlength="5000"></textarea>
+        <button class="b">Lưu note</button>
+      </form>
+      <input class="search" id="note-q" type="search" placeholder="🔎 Tìm trong note…" aria-label="Tìm note">
+      <div class="notes" id="note-list"></div>
+    </section>
+
+    <section class="view" id="v-proj" hidden aria-label="Dự án">
+      <section class="proj" id="proj" aria-label="Kế hoạch dự án"></section>
+    </section>
+
+    <section class="view" id="v-set" hidden aria-label="Cài đặt">
+      <header><h1>Cài đặt</h1></header>
+      <div class="card">
+        <label class="sw"><input type="checkbox" id="set-auto"><span>Tự chạy HaoHao khi bật máy</span></label>
+        <p class="sub">Bấm ✕ trên cửa sổ là HaoHao thu xuống góc khay (cạnh đồng hồ), vẫn nhắc bình thường. Muốn tắt hẳn: chuột phải biểu tượng HaoHao ở khay → Thoát.</p>
+        <button class="b ghost" id="set-test">🔔 Thử thông báo</button>
+      </div>
+      <div class="card">
+        <h2>Đồng bộ với tiện ích Chrome</h2>
+        <p class="sub" id="set-sync">…</p>
+      </div>
+      <div class="card"><p class="sub" id="set-ver"></p></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script src="shim.js"></script>
+  <script src="common.js"></script>
+  <script src="app.js"></script>
+  <script src="proj.js"></script>
+</body>
+</html>

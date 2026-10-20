@@ -1,0 +1,1005 @@
+// © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
+// 📋 Trang Dự án trong Tab mới (V1.55: mọi người dùng): bảng thẻ 3 cột (Đang làm / Tạm dừng / Xong), kéo thả đổi cột.
+// V1.22–23: chi tiết dự án gọn – tên + thư mục con (đổi tên, xoá); mỗi thư mục là 1 bảng kiểu Excel
+//        (☐ · Hạng mục con · Lưu ý), nền vàng như note dán, bấm ô là sửa, tự lưu, link trong Lưu ý bấm được.
+// Lưu chrome.storage.local['projBoard'].
+(() => {
+  const root = document.getElementById('proj'); if (!root) return;
+  const COLS = [['doing', 'Đang làm', '#E08A00'], ['pause', 'Tạm dừng', '#9AA1B5'], ['done', 'Xong', '#2E8B57']];
+  let data = { projects: [] }, openId = null, openFolder = null, selRow = null, showHidden = false, ready = false;
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const $ = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  // V1.21: nhớ bản vừa tự lưu – sự kiện đổi kho do chính trang này gây ra thì bỏ qua (không thay `data` bằng bản sao)
+  let lastSaved = '';
+  const save = () => { lastSaved = JSON.stringify(data); return chrome.storage.local.set({ projBoard: data }).catch(() => {}); };
+  let st = 0; const saveSoon = () => { clearTimeout(st); st = setTimeout(save, 400); };
+  const ymd = d => { const z = new Date(d); z.setMinutes(z.getMinutes() - z.getTimezoneOffset()); return z.toISOString().slice(0, 10); };
+  const today = () => ymd(new Date());
+  const fmt = s => s ? new Date(s + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const real = r => r && (r.t || '').trim();
+  const rowsOf = p => p.folders.flatMap(f => (f.rows || []).filter(real));
+  const pct = p => { const R = rowsOf(p); return R.length ? Math.round(R.filter(r => r.done).length / R.length * 100) : (p.col === 'done' ? 100 : 0); };
+  const nextOf = p => { for (const f of p.folders) { const r = (f.rows || []).find(x => !x.done && real(x)); if (r) return r.t.trim() + ' · ' + f.name; } return ''; };
+  const proj = () => data.projects.find(p => p.id === openId);
+  const editing = () => { const a = document.activeElement; return a && root.contains(a) && (a.isContentEditable || (/INPUT|TEXTAREA/.test(a.tagName) && !/checkbox|date/.test(a.type || ''))); };
+  // V1.31: 🔔 đưa việc trong dự án sang Todo của HaoHao (chrome.storage.local.todos) để HaoHao nhắc; tick 2 bên tự khớp
+  let todos = [];
+  const saveTodos = () => chrome.storage.local.set({ todos }).catch(() => {});
+  const todoOf = r => r && r.todoId ? todos.find(t => t.id === r.todoId) : null;
+  function todoSync() {   // Todo HaoHao → dự án: tick / xoá bên HaoHao thì dự án theo
+    let ch = false;
+    for (const p of data.projects) for (const f of p.folders || []) for (const r of f.rows || []) {
+      if (!r.todoId) continue;
+      const t = todos.find(x => x.id === r.todoId);
+      if (!t) { delete r.todoId; ch = true; continue; }
+      if (!!t.done !== !!r.done) { r.done = !!t.done; ch = true; }
+    }
+    for (const p of data.projects) if (p.remindId && !todos.some(t => t.id === p.remindId && !t.done)) { delete p.remindId; ch = true; }   // V1.34: nhắc đã xong / bị xoá bên HaoHao
+    return ch;
+  }
+  const newFolder = n => ({ id: uid(), name: n, rows: [], v28: 1, v29: 1 });
+  const escH = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  // V1.22: chuyển dữ liệu cũ (việc cần làm / ghi chú / link) vào bảng – không mất gì
+  // V1.26: 5 mảng chính – 4 mảng cố định + mảng tự thêm (tên tuỳ ý)
+  // V1.36: KHÔNG còn mảng cố định – mặc định chỉ có "＋ Thêm mảng"; bấm vào chọn 1 trong 4 MẪU (kèm thư mục mẫu cho dự án mới) hoặc tự đặt tên
+  const AREAS0 = [
+    { id: 'house', name: 'Xây dựng nhà phố', icon: '🏠', color: '#D9822B', folders: ['Báo giá', 'Thiết kế', 'Xin phép', 'Thi công', 'Bàn giao'] },
+    { id: 'app', name: 'APP HaoHao', icon: '🐹', color: '#E0A100', folders: ['Tính năng', 'Lỗi cần sửa', 'Phát hành'] },
+    { id: 'trade', name: 'Trade', icon: '📈', color: '#2E8B57', folders: ['Kế hoạch', 'Nhật ký lệnh', 'Bài học'] },
+    { id: 'air', name: 'Airdrop', icon: '🪂', color: '#3B6FD8', folders: ['Nhiệm vụ', 'Ví & tài khoản', 'Claim'] },
+    { id: 'idea', name: 'Ý tưởng', icon: '💡', color: '#8B5CF6', folders: ['Ý tưởng', 'Tìm hiểu', 'Làm thử'] }];   // V1.70: mảng Ý tưởng – không tính vào Tổng quan, cột Ghi chú thay Vốn / Lãi
+  const FREE_COLORS = ['#8B5CF6', '#DB2777', '#0D9488', '#64748B', '#B45309'];
+  const areas = () => data.areas;
+  const curArea = () => areas().find(a => a.id === data.cur) || areas()[0] || null;
+  const tplOf = a => a && AREAS0.find(t => t.id === (a.tpl || a.id));
+  // V1.70: mảng Ý tưởng không tính vào số liệu; 💸 tiền đã rút (lợi nhuận lấy ra) lưu theo mảng: area.rut = [{ id, d, v, c, t }]
+  const isIdeaA = a => (tplOf(a) || {}).id === 'idea';
+  const isIdea = p => isIdeaA(data.areas.find(a => a.id === p.area));
+  const OP = () => data.projects.filter(p => !isIdea(p));
+  const rutSum = (A, s, e) => (A.rut || []).filter(x => (!s || x.d >= s) && (!e || x.d < e)).reduce((a, x) => a + toVnd(x.v, x.c), 0);
+  function migrate() {
+    let ch = false;
+    if (!Array.isArray(data.areas)) { data.areas = []; ch = true; }
+    // dự án chưa thuộc mảng nào (dữ liệu cũ) → tạo mảng theo mẫu phù hợp để không mất
+    for (const p of data.projects) if (!p.area || !data.areas.some(a => a.id === p.area)) {
+      const want = AREAS0.find(t => t.id === p.area) || (/hao\s*hao/i.test(p.name || '') ? AREAS0[1] : AREAS0[0]);
+      if (!data.areas.some(a => a.id === want.id)) data.areas.push({ id: want.id, name: want.name, icon: want.icon, color: want.color, tpl: want.id });
+      p.area = want.id; ch = true;
+    }
+    for (const p of data.projects) {   // V1.43: dự án trong mảng mẫu Trade luôn có mục Hold + Trade
+      const A = data.areas.find(a => a.id === p.area); if (!A || (A.tpl || A.id) !== 'trade' || p.v43) continue;
+      if (!p.folders.some(f => f.kind === 'trade')) p.folders.unshift(tradeFolder());
+      if (!p.folders.some(f => f.kind === 'hold')) p.folders.unshift(holdFolder());
+      p.v43 = 1; ch = true;
+    }
+    if (data.areas.length && data.cur !== '$all' && (!data.cur || !data.areas.some(a => a.id === data.cur))) { data.cur = data.areas[0].id; ch = true; }
+    for (const p of data.projects) {
+      if (!Array.isArray(p.folders)) { p.folders = []; ch = true; }
+      if (p.start == null) { p.start = ''; ch = true; }
+      for (const f of p.folders) {
+        if (Array.isArray(f.rows)) continue;
+        f.rows = (f.tasks || []).map(t => ({ id: t.id || uid(), t: t.t || '', note: '', done: !!t.done }));
+        if ((f.note || '').trim()) f.rows.push({ id: uid(), t: 'Ghi chú', note: f.note.trim(), done: false });
+        (f.links || []).forEach(l => f.rows.push({ id: uid(), t: l.t || 'Link', note: l.u || '', done: false }));
+        delete f.tasks; delete f.note; delete f.links; ch = true;
+      }
+      // V1.28: dòng = việc cần làm + Link + Thư mục; chữ ở cột Lưu ý cũ chuyển xuống note làm việc của thư mục (không mất)
+      for (const f of p.folders) {
+        if (f.v28) continue;
+        let add = '';
+        for (const r of f.rows || []) {
+          const n = (r.note || '').trim(), m = n.match(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/i);
+          if (m && !r.link) r.link = /^https?:/i.test(m[0]) ? m[0] : 'https://' + m[0];
+          const rest = (m ? n.replace(m[0], '') : n).trim();
+          if (r.html && r.html.replace(/<[^>]+>/g, '').trim()) add += `<div><b>${escH(r.t || '')}</b></div>${r.html}`;
+          else if (rest) add += `<div><b>${escH(r.t || '')}:</b> ${escH(rest)}</div>`;
+          delete r.note; delete r.html; delete r.tidyAsked;
+        }
+        if (add) f.html = (f.html || '') + add;
+        f.v28 = 1; ch = true;
+      }
+      // V1.29: note theo từng việc (r.html, r.color); note chung của thư mục chuyển vào việc đầu tiên
+      for (const f of p.folders) {
+        if (f.v29) continue;
+        const h = (f.html || '').trim();
+        if (h && h.replace(/<[^>]+>/g, '').trim() || /<img/i.test(h)) {
+          let r0 = (f.rows || []).find(r => (r.t || '').trim());
+          if (!r0) { r0 = { id: uid(), t: 'Ghi chú', done: false }; (f.rows = f.rows || []).push(r0); }
+          r0.html = (r0.html || '') + h; if (f.color && !r0.color) r0.color = f.color;
+        }
+        delete f.html; delete f.color; f.v29 = 1; ch = true;
+      }
+    }
+    // V1.71: anh Nhật nhờ chép 8 ý tưởng (đang nằm ở mảng khác) sang mảng 💡 Ý tưởng – chạy 1 lần, giữ nguyên bản gốc
+    if (!data.v71idea) {
+      const KEYS = ['haohao fun', 'haohao airdrop', 'sửa chữa – cải tạo nhà phố trọn gói', 'haohao thiền', 'haohao spy', 'haohao kid mode', 'haohao share', 'haohao boss'];
+      const norm = t => String(t || '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\uFE0F]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const src = data.projects.filter(p => !isIdea(p) && KEYS.includes(norm(p.name)));
+      if (src.length) {
+        let A = data.areas.find(isIdeaA);
+        if (!A) { const t = AREAS0.find(x => x.id === 'idea'); A = { id: data.areas.some(a => a.id === 'idea') ? 'a' + uid() : 'idea', name: t.name, icon: t.icon, color: t.color, tpl: 'idea' }; data.areas.push(A); }
+        const have = new Set(data.projects.filter(p => p.area === A.id).map(p => norm(p.name)));
+        src.forEach(p => { if (have.has(norm(p.name))) return; const c = JSON.parse(JSON.stringify(p)); c.id = uid(); c.area = A.id; delete c.remindId;
+          (c.folders || []).forEach(f => { f.id = uid(); (f.rows || []).forEach(r => { r.id = uid(); delete r.todoId; }); }); data.projects.push(c); have.add(norm(p.name)); });
+        data.v71idea = 1; ch = true;
+      }
+    }
+    return ch;
+  }
+
+  function newProject() {
+    const A = curArea(); if (!A) return; const T = tplOf(A);
+    const p = { id: uid(), name: 'Dự án mới', area: A.id, col: 'doing', start: today(), due: '', at: Date.now(), folders: T && T.id === 'trade' ? [holdFolder(), tradeFolder()] : (T ? T.folders : ['Việc chính']).map(newFolder) };   // V1.43: mảng Trade → mục Hold + Trade
+    data.projects.unshift(p); save(); openId = p.id; openFolder = p.folders[0].id; render(true);
+    setTimeout(() => { const n = root.querySelector('.pj-name'); if (n) { n.focus(); n.select(); } }, 30);
+  }
+
+  function card(p) {
+    const c = $('div', 'pj-card'); c.tabIndex = 0; c.draggable = true; c.setAttribute('role', 'button'); c.setAttribute('aria-label', 'Mở dự án ' + p.name);
+    c.append($('div', 'nm', p.name || '(chưa đặt tên)'));
+    const m = $('div', 'pj-meta'), v = pct(p); m.append($('span', 'pj-pct', v + '%'));
+    if (p.start || p.due) m.append($('span', '', '📅 ' + (fmt(p.start) || '…') + ' → ' + (fmt(p.due) || '…')));
+    if (p.due && p.col !== 'done') { const T = today(), soon = ymd(Date.now() + 3 * 864e5); if (p.due < T) m.append($('span', 'pj-due late', 'Trễ hạn')); else if (p.due <= soon) m.append($('span', 'pj-due soon', 'Sắp tới hạn')); }
+    const bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = v + '%'; bar.append(bi);
+    c.append(m, bar);
+    const nx = nextOf(p); if (nx && p.col !== 'done') { const n = $('div', 'pj-next'); n.append($('span', '', 'Việc tiếp theo'), nx); c.append(n); }
+    const open = () => { openId = p.id; openFolder = (p.folders[0] || {}).id || null; render(true); window.scrollTo({ top: 0 }); };
+    c.addEventListener('click', open); c.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
+    c.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', p.id); c.classList.add('drag'); });
+    c.addEventListener('dragend', () => c.classList.remove('drag'));
+    return c;
+  }
+
+  // V1.25: bảng dự án kiểu Excel: STT · Tên dự án · Bắt đầu · Kết thúc · Tiến độ · Trạng thái · Vốn đầu tư · Lãi/lỗ
+  const money = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('vi-VN');
+  const parseMoney = t => { const s = String(t || '').replace(/[^\d-]/g, ''); if (!s || s === '-') return null; const n = parseInt(s, 10); return isNaN(n) ? null : n; };
+  // V1.37: mỗi dự án 1 đơn vị tiền – VND hoặc USDT (p.cur); mảng mẫu Trade / Airdrop mặc định USDT
+  const curOf = p => p.cur || (['trade', 'air'].includes((tplOf(areas().find(a => a.id === p.area)) || {}).id) ? 'usdt' : 'vnd');
+  const numTxt = (n, c) => (n == null || n === '' || isNaN(n)) ? '' : c === 'usdt' ? Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) : Number(n).toLocaleString('vi-VN');
+  const fmtC = (n, c, sign) => { if (n == null || n === '' || isNaN(n)) n = 0; const v = Number(n), sg = sign && v > 0 ? '+' : v < 0 ? '-' : '';
+    return c === 'usdt' ? sg + '$' + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : sg + Math.round(Math.abs(v)).toLocaleString('vi-VN') + ' ₫'; };   // V1.64: VND không lẻ (bỏ phần thập phân khi quy từ USDT)
+  const parseC = (t, c) => { if (c !== 'usdt') return parseMoney(t); const x = String(t || '').replace(/[^\d.\-]/g, ''); if (!x || x === '-' || x === '.') return null; const n = parseFloat(x); return isNaN(n) ? null : Math.round(n * 100) / 100; };
+  const sumC = (L, k) => { const o = { vnd: 0, usdt: 0 }; L.forEach(p => { o[curOf(p)] += k === 'von' ? vonOf(p) : laiOf(p); }); return o; };
+  const fmtSum = (o, sign, sep) => { const parts = ['vnd', 'usdt'].filter(c => o[c]).map(c => fmtC(o[c], c, sign)); return parts.join(sep || ' · ') || '0'; };
+  // V1.40: tỷ giá USDT → VND (CoinGecko, lưu usdtVnd 6 giờ; lỗi mạng thì lấy tỷ giá HaoHao đã lưu ở mục vàng, cuối cùng 26.000)
+  let RATE = 26000, RATE_AT = 0;
+  const toVnd = (v, c) => c === 'usdt' ? (Number(v) || 0) * RATE : (Number(v) || 0);
+  const sumV = (L, k) => L.reduce((a, p) => a + toVnd(k === 'von' ? vonOf(p) : laiOf(p), curOf(p)), 0);
+  const hasUsdt = L => L.some(p => curOf(p) === 'usdt' && (vonOf(p) || laiOf(p)));
+  const tone3 = o => { const v = (o.vnd || 0) + (o.usdt || 0) * RATE; return v > 0 ? ' pos' : v < 0 ? ' neg' : ''; };
+  async function loadRate() {
+    try {
+      const { usdtVnd: u, gold: g } = await chrome.storage.local.get(['usdtVnd', 'gold']);
+      if (u && u.v > 10000) { RATE = u.v; RATE_AT = u.at || 0; } else if (g && g.xau && g.xau.vnd > 10000) { RATE = g.xau.vnd; RATE_AT = g.at || 0; }
+      if (Date.now() - RATE_AT < 6 * 3600e3) return;
+      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd').then(x => x.json()), v = r && r.tether && r.tether.vnd;
+      if (v > 10000) { RATE = v; RATE_AT = Date.now(); await chrome.storage.local.set({ usdtVnd: { v, at: RATE_AT } }); if (ready && !editing()) render(true); }
+    } catch {}
+  }
+  function curChip(p, after) {
+    const c = curOf(p), b = $('button', 'pj-cur ' + c, c === 'usdt' ? 'USDT' : 'VND'); b.title = 'Đơn vị tiền của dự án – bấm để đổi VND ⇄ USDT'; b.setAttribute('aria-label', 'Đổi đơn vị tiền, đang là ' + (c === 'usdt' ? 'USDT' : 'VND'));
+    b.addEventListener('click', e => { e.stopPropagation(); p.cur = curOf(p) === 'usdt' ? 'vnd' : 'usdt'; save(); (after || (() => render(true)))(); });
+    return b;
+  }
+  function moneyInput(p, key, cls) {
+    const c = curOf(p), i = $('input', 'pj-money ' + (cls || '')); i.inputMode = 'decimal'; i.value = numTxt(p[key], c); i.placeholder = '0';
+    const tone = () => { if (key === 'lai') { i.classList.toggle('pos', p.lai > 0); i.classList.toggle('neg', p.lai < 0); } };
+    tone();
+    i.addEventListener('input', () => { p[key] = parseC(i.value, c); saveSoon(); tone(); updTotal(); });
+    i.addEventListener('blur', () => { i.value = numTxt(p[key], c); save(); });
+    i.addEventListener('focus', () => { i.select(); });
+    return i;
+  }
+  let updTotal = () => {};
+  // V1.30: mục 0. Vốn đầu tư – sổ Nguồn thu / Nguồn chi của dự án (p.money). Có số liệu thì bảng tổng tự lấy:
+  //        Vốn đầu tư = tổng chi, Lãi/lỗ = tổng thu − tổng chi.
+  const MONEY = '$money';
+  const tot = L => (L || []).reduce((a, x) => a + (Number(x.v) || 0), 0);
+  const ledger = p => p.money && ((p.money.thu || []).some(x => x.v) || (p.money.chi || []).some(x => x.v));
+  const vonOf = p => { const k = cryptoOf(p); if (k) return k.von + (ledger(p) ? tot(p.money.chi) : 0); return ledger(p) ? tot(p.money.chi) : (Number(p.von) || 0); };   // V1.43: dự án Trade lấy từ Hold + Trade
+  const laiOf = p => { const k = cryptoOf(p); if (k) return k.lai + (ledger(p) ? tot(p.money.thu) - tot(p.money.chi) : 0); return ledger(p) ? tot(p.money.thu) - tot(p.money.chi) : (Number(p.lai) || 0); };
+  const sum = (L, k) => L.reduce((a, p) => a + (k === 'von' ? vonOf(p) : k === 'lai' ? laiOf(p) : (Number(p[k]) || 0)), 0);
+  function areaBar(W) {
+    const bar = $('div', 'pj-areas'); bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', 'Các mảng dự án');
+    if (areas().length) {   // V1.38: thẻ 📊 Tổng quan đứng đầu
+      const on = data.cur === '$all', lo = sumC(OP(), 'lai'), t = $('button', 'pj-area ov' + (on ? ' on' : '')); t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', on); t.style.setProperty('--ac', '#3B6FD8');
+      const tx = $('div', 'at'); tx.append($('b', '', 'Tổng quan'), $('small', '', OP().length + ' dự án · ' + areas().filter(a => !isIdeaA(a)).length + ' mảng'));
+      t.append($('span', 'ai', '📊'), tx); t.addEventListener('click', () => { if (data.cur !== '$all') { data.cur = '$all'; save(); render(true); } }); bar.append(t);
+    }
+    areas().forEach(a => {
+      const L = data.projects.filter(p => p.area === a.id), on = data.cur !== '$all' && a.id === curArea().id, lo = sumC(L, 'lai'), lai = (lo.vnd || 0) + (lo.usdt || 0);
+      const t = $('button', 'pj-area' + (on ? ' on' : '')); t.setAttribute('role', 'tab'); t.setAttribute('aria-selected', on); t.style.setProperty('--ac', a.color);
+      const ic = $('span', 'ai', a.icon), tx = $('div', 'at');
+      tx.append($('b', '', a.name), $('small', '', isIdeaA(a) ? L.length + ' ý tưởng' : L.length + ' dự án · ' + L.filter(p => p.col === 'doing').length + ' đang làm'));
+      // V1.39: bỏ dòng Lãi/lỗ trên thẻ mảng cho gọn
+      t.append(ic, tx);
+      t.addEventListener('click', () => { if (data.cur !== a.id) { data.cur = a.id; save(); render(true); } });
+      bar.append(t);
+    });
+    // ＋ Thêm mảng: chọn mẫu (Xây dựng nhà phố · APP HaoHao · Trade · Airdrop) hoặc tự đặt tên
+    const nw = $('button', 'pj-area add'); nw.append($('span', 'ai', '＋'), $('div', 'at', ''));
+    nw.querySelector('.at').append($('b', '', 'Thêm mảng'), $('small', '', 'Chọn mẫu hoặc tự đặt tên'));
+    const addArea = (name, t) => { const id = t && !data.areas.some(x => x.id === t.id) ? t.id : 'a' + uid(), k = data.areas.length;
+      data.areas.push({ id, name, icon: t ? t.icon : '📁', color: t ? t.color : FREE_COLORS[k % FREE_COLORS.length], tpl: t ? t.id : '' }); data.cur = id; save(); render(true); };
+    nw.addEventListener('click', () => {
+      root.querySelectorAll('.pj-need').forEach(x => x.remove());
+      const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc pj-tpl'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Thêm mảng');
+      const close = () => bg.remove();
+      cd.append($('div', 'pj-needt', '＋ Thêm mảng'), $('div', 'pj-needn', 'Chọn mẫu có sẵn (dự án mới tự có thư mục mẫu):'));
+      const g = $('div', 'pj-tplg');
+      AREAS0.forEach(t => { const b = $('button', 'pj-tpli'); b.style.setProperty('--ac', t.color);
+        b.append($('span', 'ai', t.icon), $('b', '', t.name), $('small', '', t.folders.join(' · ')));
+        b.addEventListener('click', () => { close(); addArea(t.name, t); }); g.append(b); });
+      const inp = $('input', 'pj-in'); inp.placeholder = 'Hoặc tự đặt tên mảng…'; inp.setAttribute('aria-label', 'Tên mảng mới');
+      const ok = $('button', 'pj-btn', 'Thêm'), no = $('button', 'pj-btn ghost', 'Huỷ');
+      ok.addEventListener('click', () => { const n = inp.value.trim(); if (!n) return inp.focus(); close(); addArea(n, null); });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok.click(); });
+      no.addEventListener('click', close); bg.addEventListener('click', e => { if (e.target === bg) close(); }); cd.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+      const row = $('div', 'pj-needb'); const sp = $('div'); sp.style.flex = '1'; row.append(sp, no, ok);
+      cd.append(g, $('div', 'pj-needn', 'Tự đặt tên:'), inp, row); bg.append(cd); root.append(bg); (g.firstChild || inp).focus();
+    });
+    bar.append(nw); W.append(bar);
+  }
+  // V1.34: ⏰ hẹn ngày nhắc cho dự án (vd hạn claim airdrop) → tạo việc có giờ trong Todo HaoHao, tới giờ HaoHao báo
+  const whenTxt = d => { const x = new Date(d); return isNaN(x) ? d : x.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); };
+  function remindDlg(p) {
+    root.querySelectorAll('.pj-need').forEach(x => x.remove());
+    const old = todos.find(t => t.id === p.remindId);
+    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Hẹn nhắc');
+    const tx = $('input', 'pj-in'); tx.value = old ? old.text.replace(' · ' + p.name, '') : ((tplOf(areas().find(a => a.id === p.area)) || {}).id === 'air' ? 'Claim' : ''); tx.placeholder = 'Nhắc việc gì? (vd: Claim, nộp hồ sơ, gọi khách)'; tx.setAttribute('aria-label', 'Nội dung nhắc');
+    const dt = $('input', 'pj-in'); dt.type = 'datetime-local'; dt.setAttribute('aria-label', 'Ngày giờ nhắc');
+    if (old && old.due) dt.value = old.due.slice(0, 16); else { const d = new Date(Date.now() + 864e5); d.setHours(9, 0, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); dt.value = d.toISOString().slice(0, 16); }
+    const quick = $('div', 'pj-rmq'); [['Mai 9h', 1], ['3 ngày', 3], ['1 tuần', 7], ['1 tháng', 30]].forEach(([lb, n]) => { const b = $('button', 'pj-chipq', lb); b.type = 'button'; b.addEventListener('click', () => { const d = new Date(Date.now() + n * 864e5); d.setHours(9, 0, 0, 0); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); dt.value = d.toISOString().slice(0, 16); }); quick.append(b); });
+    const ok = $('button', 'pj-btn', '⏰ Lưu nhắc'), no = $('button', 'pj-btn ghost', 'Huỷ'), off = $('button', 'pj-x', 'Bỏ nhắc'); off.hidden = !old;
+    const close = () => bg.remove();
+    ok.addEventListener('click', () => {
+      if (!dt.value) return dt.focus(); const text = (tx.value.trim() || 'Nhắc') + ' · ' + p.name;
+      if (old) Object.assign(old, { text, due: dt.value, notified: false, done: false });
+      else { const id = 't' + Date.now().toString(36); todos.push({ id, text, done: false, due: dt.value, notified: false, pj: p.id }); p.remindId = id; }
+      saveTodos(); save(); close(); render(true); toast('⏰ Đã hẹn ' + whenTxt(dt.value) + ' – HaoHao sẽ nhắc');
+    });
+    off.addEventListener('click', () => { todos = todos.filter(t => t !== old); delete p.remindId; saveTodos(); save(); close(); render(true); toast('Đã bỏ nhắc'); });
+    no.addEventListener('click', close); bg.addEventListener('click', e => { if (e.target === bg) close(); });
+    cd.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Enter' && e.target.tagName === 'INPUT') ok.click(); });
+    const row = $('div', 'pj-needb'); const sp = $('div'); sp.style.flex = '1'; row.append(off, sp, no, ok);
+    cd.append($('div', 'pj-needt', '⏰ Hẹn nhắc · ' + (p.name || '')), $('div', 'pj-needn', 'Nhắc việc'), tx, $('div', 'pj-needn', 'Ngày giờ'), dt, quick,
+      $('div', 'pj-needn', 'Tới giờ HaoHao sẽ hiện thông báo. Việc này cũng nằm trong Todo HaoHao.'), row);
+    bg.append(cd); root.append(bg); tx.focus(); tx.select();
+  }
+  // V1.38: 📊 TỔNG QUAN – gộp mọi mảng: kỳ Tuần / Tháng / Năm / Tất cả, 4 ô số, biểu đồ thu – chi + lợi nhuận cộng dồn,
+  //        lợi nhuận theo mảng, top dự án lời / lỗ, 5 khoản chi lớn nhất, việc sắp tới hạn & lịch ⏰ 7 ngày tới.
+  //        Số theo kỳ lấy từ các khoản thu / chi CÓ NGÀY ở mục 0; kỳ "Tất cả" cộng thêm vốn / lãi gõ tay ở bảng dự án.
+  const OV = '$all';
+  let ovPer = 'month', ovOff = 0;
+  const C_THU = '#2F6FD6', C_CHI = '#C8641E', C_INK = '#23305E';
+  const dkey = d => ymd(d);
+  function ovRange() {
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    if (ovPer === 'week') { const s = new Date(now); const wd = (s.getDay() + 6) % 7; s.setDate(s.getDate() - wd + ovOff * 7); const e = new Date(s); e.setDate(e.getDate() + 7);
+      return { s, e, label: 'Tuần ' + s.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ' – ' + new Date(e - 864e5).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) }; }
+    if (ovPer === 'month') { const s = new Date(now.getFullYear(), now.getMonth() + ovOff, 1), e = new Date(s.getFullYear(), s.getMonth() + 1, 1); return { s, e, label: 'Tháng ' + (s.getMonth() + 1) + '/' + s.getFullYear() }; }
+    if (ovPer === 'year') { const s = new Date(now.getFullYear() + ovOff, 0, 1), e = new Date(s.getFullYear() + 1, 0, 1); return { s, e, label: 'Năm ' + s.getFullYear() }; }
+    return { s: null, e: null, label: 'Từ trước tới nay' };
+  }
+  function ovEntries() {   // mọi khoản thu / chi có ngày, kèm dự án, mảng, đơn vị
+    const out = [];
+    for (const p of OP()) { if (!ledger(p)) continue; const c = curOf(p);
+      for (const k of ['thu', 'chi']) for (const x of (p.money[k] || [])) if (x.v) out.push({ k, v: toVnd(x.v, c), raw: Number(x.v), d: x.d || '', t: x.t || '', p, c }); }
+    for (const p of OP()) for (const f of p.folders || []) if (f.kind === 'trade' && f.book) {   // V1.43: sổ Trade – ngày lời = thu, ngày lỗ = chi (USDT)
+      bookCalc(f).rows.forEach(r => { if (r.pnl) out.push({ k: r.pnl > 0 ? 'thu' : 'chi', v: toVnd(Math.abs(r.pnl), 'usdt'), raw: Math.abs(r.pnl), d: r.d, t: 'Trade ' + (r.pnl > 0 ? 'lời' : 'lỗ') + ' trong ngày', p, c: 'usdt' }); });
+    }
+    return out;
+  }
+  // V1.70: 💸 Rút tiền – ghi các lần rút lợi nhuận của 1 mảng (ngày · số tiền · ghi chú)
+  let rutBg = null;   // hộp Rút tiền đang mở – giữ lại khi trang vẽ lại
+  function rutDlg(A) {
+    root.querySelectorAll('.pj-need').forEach(x => x.remove());
+    if (!Array.isArray(A.rut)) A.rut = [];
+    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc pj-rut'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Rút tiền ' + A.name);
+    const onKey = e => { if (e.key === 'Escape' && rutBg === bg) close(); };
+    const close = () => { document.removeEventListener('keydown', onKey); rutBg = null; bg.remove(); render(true); };
+    document.addEventListener('keydown', onKey);
+    const draw = () => {
+      cd.replaceChildren($('div', 'pj-needt', '💸 Rút tiền · ' + A.name), $('div', 'pj-needn', 'Tiền lợi nhuận đã lấy ra – chỉ ghi lại để theo dõi, không trừ vào thu / chi.'));
+      const L = $('div', 'pj-rutl');
+      if (!A.rut.length) L.append($('div', 'pj-empty', 'Chưa rút lần nào'));
+      A.rut.slice().sort((a, b) => b.d.localeCompare(a.d)).forEach(x => {
+        const r = $('div', 'pj-rutr'), del = $('button', 'pj-ic2 del', '✕'); del.title = 'Xoá dòng'; del.setAttribute('aria-label', 'Xoá dòng');
+        del.addEventListener('click', () => { A.rut = A.rut.filter(y => y !== x); save(); draw(); });
+        r.append($('span', 'd', x.d.split('-').reverse().join('/')), $('b', '', fmtC(x.v, x.c)), $('span', 't', x.t || ''), del); L.append(r);
+      });
+      const tot = rutSum(A);
+      const f = $('div', 'pj-rutf'), d = $('input', 'pj-date'); d.type = 'date'; d.value = today();
+      const v = $('input', 'pj-in'); v.placeholder = 'Số tiền'; v.inputMode = 'decimal'; v.setAttribute('aria-label', 'Số tiền');
+      const c = $('select', 'pj-st'); [['vnd', 'VND'], ['usdt', 'USDT']].forEach(([k, l]) => { const o = $('option', '', l); o.value = k; c.append(o); });
+      const t = $('input', 'pj-in'); t.placeholder = 'Ghi chú (vd: rút về tài khoản)'; t.setAttribute('aria-label', 'Ghi chú');
+      const ok = $('button', 'pj-btn', '＋ Ghi');
+      const add = () => { const n = parseC(v.value, c.value); if (!n) return v.focus(); A.rut.push({ id: uid(), d: d.value || today(), v: n, c: c.value, t: t.value.trim() }); save(); draw(); };
+      ok.addEventListener('click', add); [v, t].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') add(); }));
+      f.append(d, v, c, t, ok);
+      const no = $('button', 'pj-btn ghost', 'Đóng'); no.addEventListener('click', close);
+      const row = $('div', 'pj-needb'); const sp = $('div', 'pj-ruts', tot ? 'Tổng đã rút: ' + (A.rut.some(x => x.c === 'usdt') ? '≈ ' : '') + fmtC(tot, 'vnd') : ''); sp.style.flex = '1'; row.append(sp, no);
+      cd.append(L, f, row); setTimeout(() => v.focus(), 0);
+    };
+    draw();
+    bg.addEventListener('click', e => { if (e.target === bg) close(); });
+    bg.append(cd); root.append(bg); rutBg = bg;
+  }
+  function overview(W) {
+    areaBar(W);
+    const R = ovRange(), all = ovEntries();
+    // V1.40: mọi số quy về VND (USDT × tỷ giá) → 1 bảng duy nhất
+    const cu = 'vnd', inR = x => !R.s || (x.d && x.d >= dkey(R.s) && x.d < dkey(R.e));
+    const E = all.filter(inR);
+    const manual = ovPer === 'all' ? OP().filter(p => !ledger(p) && (p.von || p.lai)) : [];
+    const mV = (p, k) => toVnd(Number(p[k]) || 0, curOf(p));
+    let thu = E.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von') + mV(p, 'lai'), 0);
+    let chi = E.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + manual.reduce((a, p) => a + mV(p, 'von'), 0);
+    // V1.43: kỳ "Tất cả" cộng thêm danh mục Hold (giá trị hiện tại = thu, giá vốn = chi)
+    const HL = ovPer === 'all' ? OP().flatMap(p => (p.folders || []).filter(f => f.kind === 'hold' && (f.holds || []).length).map(f => ({ p, h: holdCalc(f) }))) : [];
+    thu += HL.reduce((a, x) => a + toVnd(x.h.val, 'usdt'), 0); chi += HL.reduce((a, x) => a + toVnd(x.h.cost, 'usdt'), 0);
+    const anyU = all.some(x => x.c === 'usdt') || manual.some(p => curOf(p) === 'usdt') || HL.length > 0;
+    const loi = thu - chi, ty = chi ? Math.round(loi / chi * 1000) / 10 : null;
+
+    // thanh điều khiển: kỳ · ‹ nhãn › · đơn vị
+    const top = $('div', 'pj-top pj-atop'), h = $('div', 'pj-sp'); top.append(h);   // V1.45: bỏ tiêu đề (thẻ phía trên đã ghi)
+    const ctl = $('div', 'pj-ovctl');
+    const seg = $('div', 'pj-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Kỳ xem');
+    [['week', 'Tuần'], ['month', 'Tháng'], ['year', 'Năm'], ['all', 'Tất cả']].forEach(([k, lb]) => { const b = $('button', ovPer === k ? 'on' : '', lb); b.setAttribute('aria-pressed', ovPer === k); b.addEventListener('click', () => { ovPer = k; ovOff = 0; render(true); }); seg.append(b); });
+    ctl.append(seg);
+    if (ovPer !== 'all') { const nav = $('div', 'pj-ovnav'), pv = $('button', 'pj-fb', '‹'), nx = $('button', 'pj-fb', '›'); pv.setAttribute('aria-label', 'Kỳ trước'); nx.setAttribute('aria-label', 'Kỳ sau');
+      pv.addEventListener('click', () => { ovOff--; render(true); }); nx.addEventListener('click', () => { ovOff++; render(true); }); nav.append(pv, $('b', '', R.label), nx); ctl.append(nav); }
+    else ctl.append($('b', 'pj-ovlb', R.label));
+    top.append(ctl); W.append(top);
+    if (anyU) W.append($('div', 'pj-rate', '💱 Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') + (RATE_AT ? ' · cập nhật ' + new Date(RATE_AT).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '')));
+
+    // 1) 4 ô số
+    const k4 = $('div', 'pj-kpis k5');
+    const kp = (lb, v, cls, sub) => { const d = $('div', 'pj-kpi ' + (cls || '')); d.append($('span', '', lb), $('b', '', v)); if (sub) d.append($('small', '', sub)); k4.append(d); };
+    // V1.84: 🏦 Tổng tài sản = Vốn + Lợi nhuận − Đã rút (từ trước tới nay) · Tổng chi = vốn đã bỏ vào · bỏ ô Tổng thu
+    const mAll = OP().filter(p => !ledger(p) && (p.von || p.lai));
+    const HA = OP().flatMap(p => (p.folders || []).filter(f => f.kind === 'hold' && (f.holds || []).length).map(f => holdCalc(f)));
+    // V1.84: lấy đúng cột Vốn đầu tư / Lãi-lỗ của bảng dự án (sổ thu chi, Hold, Trade, số gõ tay) – quy ra VND
+    const cA = OP().reduce((a, p) => a + toVnd(vonOf(p), curOf(p)), 0);
+    const lA = OP().reduce((a, p) => a + toVnd(laiOf(p), curOf(p)), 0);
+    const rA = areas().reduce((a, A) => a + (isIdeaA(A) ? 0 : rutSum(A)), 0);
+    kp('🏦 Tổng tài sản', fmtC(cA + lA - rA, cu), 'tsan', 'vốn + lợi nhuận − đã rút');
+    kp('Tổng chi', fmtC(cA, cu), 'chi', 'vốn đã bỏ vào');
+    kp(loi < 0 ? 'Lỗ' : 'Lợi nhuận', fmtC(loi, cu, true), 'loi' + (loi > 0 ? ' pos' : loi < 0 ? ' neg' : ''), R.label);
+    const ty2 = cA ? Math.round(loi / cA * 1000) / 10 : null;
+    kp('Tỷ suất lãi', ty2 == null ? '–' : (ty2 > 0 ? '+' : '') + ty2.toLocaleString('vi-VN') + '%', 'ty' + (ty2 > 0 ? ' pos' : ty2 < 0 ? ' neg' : ''), 'lợi nhuận / vốn');
+    { const rs = areas().reduce((a, A) => a + rutSum(A, R.s ? dkey(R.s) : '', R.e ? dkey(R.e) : ''), 0); kp('💸 Đã rút', fmtC(rs, cu), 'rut', 'lợi nhuận đã lấy ra · ' + R.label); }   // V1.70
+    W.append(k4);
+    if (!E.length && !manual.length) W.append($('div', 'pj-empty pj-nempty', 'Chưa có khoản thu / chi nào trong kỳ này. Ghi thu / chi ở mục 0. Vốn đầu tư của từng dự án để biểu đồ hiện số.'));
+
+    // 2) biểu đồ cột thu – chi + đường lợi nhuận cộng dồn
+    const B = []; const now = new Date(); now.setHours(0, 0, 0, 0);
+    if (ovPer === 'week' || ovPer === 'month') { for (let d = new Date(R.s); d < R.e; d.setDate(d.getDate() + 1)) B.push({ k: dkey(d), lb: ovPer === 'week' ? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][(d.getDay() + 6) % 7] : String(d.getDate()), full: d.toLocaleDateString('vi-VN') }); }
+    else { let s, e; if (ovPer === 'year') { s = new Date(R.s); e = new Date(R.e); } else { const ds = all.filter(x => x.d).map(x => x.d).sort(); s = ds.length ? new Date(ds[0].slice(0, 7) + '-01T00:00') : new Date(now.getFullYear(), now.getMonth(), 1); e = new Date(now.getFullYear(), now.getMonth() + 1, 1); if ((e - s) / 864e5 > 731) s = new Date(e.getFullYear() - 2, e.getMonth(), 1); }
+      for (let d = new Date(s); d < e; d.setMonth(d.getMonth() + 1)) B.push({ k: dkey(d).slice(0, 7), lb: 'T' + (d.getMonth() + 1), full: 'Tháng ' + (d.getMonth() + 1) + '/' + d.getFullYear(), m: 1 }); }
+    for (const b of B) { const L = all.filter(x => x.d && (b.m ? x.d.slice(0, 7) === b.k : x.d === b.k)); b.thu = L.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0); b.chi = L.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0); }
+    let run = 0; const tk = today(); B.forEach(b => { run += b.thu - b.chi; b.cum = run; b.fut = b.m ? b.k > tk.slice(0, 7) : b.k > tk; });   // ngày / tháng chưa tới: không vẽ đường cộng dồn
+    const card = $('div', 'pj-ovc'), ch = $('div', 'pj-ovh'); ch.append($('b', '', 'Thu – chi ' + (ovPer === 'week' || ovPer === 'month' ? 'theo ngày' : 'theo tháng')));
+    const lg = $('div', 'pj-lg'); [[C_THU, 'Thu', 'sq'], [C_CHI, 'Chi', 'sq'], [C_INK, 'Lợi nhuận cộng dồn', 'ln']].forEach(([c, t, k]) => { const i = $('span', 'pj-lgi'); const sw = $('i', k); sw.style.background = c; i.append(sw, t); lg.append(i); });
+    ch.append(lg); card.append(ch);
+    const VW_ = 900, VW = VW_, VH = Math.round(Math.max(130, Math.min(230, innerHeight * 0.27 * VW_ / Math.max(500, (root.clientWidth || 1200) - 60)))), PL = 64, PR = 12, PT = 12, PB = 26, iw = VW - PL - PR, ih = VH - PT - PB;   // V1.44: biểu đồ cao vừa 1 màn hình
+    const mx = Math.max(1, ...B.map(b => Math.max(b.thu, b.chi, b.cum))), mn = Math.min(0, ...B.map(b => b.cum));
+    const nice = v => { if (v <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
+    const step = nice((mx - mn) / 4) || 1, top0 = Math.ceil(mx / step) * step, bot0 = Math.floor(mn / step) * step, Y = v => PT + (top0 - v) / (top0 - bot0) * ih;   // vạch chia tròn, luôn có vạch 0
+    const NS = 'http://www.w3.org/2000/svg', sv = document.createElementNS(NS, 'svg'); sv.setAttribute('viewBox', `0 0 ${VW} ${VH}`); sv.setAttribute('class', 'pj-chart'); sv.setAttribute('role', 'img');
+    sv.setAttribute('aria-label', `Biểu đồ thu chi ${R.label}: thu ${fmtC(thu, cu)}, chi ${fmtC(chi, cu)}, lợi nhuận ${fmtC(loi, cu, true)}`);
+    const el2 = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); sv.append(e); return e; };
+    const short = v => { const a = Math.abs(v), s = v < 0 ? '-' : ''; if (cu === 'usdt') return s + '$' + (a >= 1e6 ? (a / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (a / 1e3).toFixed(1).replace(/\.0$/, '') + 'k' : a.toFixed(0)); return s + (a >= 1e9 ? (a / 1e9).toFixed(1).replace(/\.0$/, '') + ' tỷ' : a >= 1e6 ? (a / 1e6).toFixed(1).replace(/\.0$/, '') + 'tr' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : a); };
+    for (let v = bot0; v <= top0 + step / 2; v += step) { const y = Y(v); el2('line', { x1: PL, x2: VW - PR, y1: y, y2: y, class: v === 0 ? 'zero' : 'grid' }); const t = el2('text', { x: PL - 8, y: y + 4, class: 'ax', 'text-anchor': 'end' }); t.textContent = short(v); }
+    const bw = iw / Math.max(1, B.length), gw = Math.max(2, Math.min(14, bw * 0.34));
+    const every = Math.ceil(B.length / 16);
+    B.forEach((b, i) => {
+      const cx = PL + bw * i + bw / 2;
+      const bar = (v, x, c) => { if (!v) return; const y0 = Y(0), y = Math.min(Y(v), y0 - 1.5), r = Math.min(4, gw / 2, (y0 - y) / 2); el2('path', { d: `M${x},${y0} V${y + r} Q${x},${y} ${x + r},${y} H${x + gw - r} Q${x + gw},${y} ${x + gw},${y + r} V${y0} Z`, fill: c }); };
+      bar(b.thu, cx - gw - 1, C_THU); bar(b.chi, cx + 1, C_CHI);
+      if (i % every === 0) { const t = el2('text', { x: cx, y: VH - 8, class: 'ax', 'text-anchor': 'middle' }); t.textContent = b.lb; }
+    });
+    const BP = B.filter(b => !b.fut);
+    if (BP.length) { el2('polyline', { points: BP.map(b => `${PL + bw * B.indexOf(b) + bw / 2},${Y(b.cum)}`).join(' '), class: 'cum' });
+      const lb = BP[BP.length - 1]; el2('circle', { cx: PL + bw * B.indexOf(lb) + bw / 2, cy: Y(lb.cum), r: 4, class: 'cumdot' }); }
+    const hl = el2('rect', { x: 0, y: PT, width: bw, height: ih, class: 'hov', opacity: 0 });
+    const tip = $('div', 'pj-tip'); tip.hidden = true;
+    const wrap = $('div', 'pj-chartw'); wrap.append(sv, tip); card.append(wrap);
+    sv.addEventListener('mousemove', e => { const r = sv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * VW, i = Math.floor((x - PL) / bw); if (i < 0 || i >= B.length) { tip.hidden = true; hl.setAttribute('opacity', 0); return; }
+      const b = B[i]; hl.setAttribute('x', PL + bw * i); hl.setAttribute('opacity', 1); tip.hidden = false;
+      tip.replaceChildren($('b', '', b.full), $('div', 'r t', 'Thu ' + fmtC(b.thu, cu)), $('div', 'r c', 'Chi ' + fmtC(b.chi, cu)), $('div', 'r l', 'Lãi trong ' + (b.m ? 'tháng ' : 'ngày ') + fmtC(b.thu - b.chi, cu, true)), ...(b.fut ? [] : [$('div', 'r m', 'Cộng dồn ' + fmtC(b.cum, cu, true))]));
+      const px = (PL + bw * i + bw / 2) / VW * r.width; tip.style.left = Math.min(Math.max(px, 90), r.width - 90) + 'px'; });
+    sv.addEventListener('mouseleave', () => { tip.hidden = true; hl.setAttribute('opacity', 0); });
+    W.append(card);
+
+    // 3) lợi nhuận theo mảng · 4) top dự án · 5) chi lớn nhất · 6) nhắc việc
+    const grid = $('div', 'pj-ovg');
+    const byP = new Map(); E.forEach(x => { const o = byP.get(x.p) || { thu: 0, chi: 0 }; o[x.k] += x.v; byP.set(x.p, o); });
+    manual.forEach(p => byP.set(p, { thu: mV(p, 'von') + mV(p, 'lai'), chi: mV(p, 'von') }));
+    HL.forEach(({ p, h }) => { const o = byP.get(p) || { thu: 0, chi: 0 }; o.thu += toVnd(h.val, 'usdt'); o.chi += toVnd(h.cost, 'usdt'); byP.set(p, o); });
+    const areaL = areas().map(a => { let v = 0; byP.forEach((o, p) => { if (p.area === a.id) v += o.thu - o.chi; }); return { a, v }; }).filter(x => x.v);
+    const c1 = $('div', 'pj-ovc'); c1.append($('div', 'pj-ovh', 'Lợi nhuận theo mảng'));
+    if (!areaL.length) c1.append($('div', 'pj-ovn', 'Chưa có số trong kỳ'));
+    const am = Math.max(1, ...areaL.map(x => Math.abs(x.v)));
+    areaL.sort((x, y) => y.v - x.v).forEach(({ a, v }) => { const r = $('div', 'pj-hb'), bb = $('div', 'pj-hbb'), f = $('i'); f.style.width = Math.abs(v) / am * 100 + '%'; f.style.background = v >= 0 ? C_THU : C_CHI; bb.append(f);
+      r.append($('span', 'n', a.icon + ' ' + a.name), bb, $('b', v > 0 ? 'pos' : v < 0 ? 'neg' : '', fmtC(v, cu, true))); c1.append(r); });
+    const c2 = $('div', 'pj-ovc'); c2.append($('div', 'pj-ovh', 'Dự án lời / lỗ nhiều nhất'));
+    const PR2 = [...byP.entries()].map(([p, o]) => ({ p, v: o.thu - o.chi })).filter(x => x.v);
+    const win = PR2.filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 3), lose = PR2.filter(x => x.v < 0).sort((a, b) => a.v - b.v).slice(0, 3);
+    const li = (x, cls) => { const r = $('button', 'pj-li'); r.append($('span', '', x.p.name || '(chưa đặt tên)'), $('b', cls, fmtC(x.v, cu, true))); r.addEventListener('click', () => { data.cur = x.p.area; openId = x.p.id; openFolder = MONEY; save(); render(true); window.scrollTo({ top: 0 }); }); return r; };
+    c2.append($('div', 'pj-ovs', '🏆 Lời nhiều nhất')); if (win.length) win.forEach(x => c2.append(li(x, 'pos'))); else c2.append($('div', 'pj-ovn', '–'));
+    c2.append($('div', 'pj-ovs', '⚠ Lỗ nhiều nhất')); if (lose.length) lose.forEach(x => c2.append(li(x, 'neg'))); else c2.append($('div', 'pj-ovn', 'Không có dự án lỗ 👍'));
+    const c3 = $('div', 'pj-ovc'); c3.append($('div', 'pj-ovh', '5 khoản chi lớn nhất'));
+    const big = E.filter(x => x.k === 'chi').sort((a, b) => b.v - a.v).slice(0, 5);
+    if (!big.length) c3.append($('div', 'pj-ovn', 'Chưa có khoản chi trong kỳ'));
+    big.forEach(x => { const r = $('div', 'pj-li st'); const l = $('span'); l.append(x.t || '(không ghi nội dung)', $('small', '', (x.d ? new Date(x.d + 'T00:00').toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ' · ' : '') + (x.p.name || ''))); r.append(l, $('b', 'neg', fmtC(x.v, cu) + (x.c === 'usdt' ? ' ($' + x.raw.toLocaleString('en-US') + ')' : ''))); c3.append(r); });
+    const c4 = $('div', 'pj-ovc'); c4.append($('div', 'pj-ovh', 'Sắp tới hạn · 7 ngày'));
+    const T = today(), T7 = ymd(Date.now() + 7 * 864e5), items = [];
+    OP().forEach(p => { if (p.due && p.col !== 'done' && p.due <= T7) items.push({ at: p.due, t: (p.due < T ? '🔴 Trễ hạn · ' : '📅 Hết hạn · ') + (p.name || ''), w: fmt(p.due), p }); });
+    todos.forEach(t => { if (t.pj && t.due && !t.done && t.due.slice(0, 10) <= T7 && t.due.slice(0, 10) >= T) { const p = data.projects.find(x => x.id === t.pj); items.push({ at: t.due, t: '⏰ ' + t.text, w: whenTxt(t.due), p }); } });
+    items.sort((a, b) => a.at.localeCompare(b.at));
+    if (!items.length) c4.append($('div', 'pj-ovn', 'Không có việc nào sắp tới hạn'));
+    items.slice(0, 8).forEach(x => { const r = $('button', 'pj-li'); r.append($('span', '', x.t), $('small', '', x.w)); if (x.p) r.addEventListener('click', () => { data.cur = x.p.area; save(); render(true); }); c4.append(r); });
+    grid.append(c1, c2, c3, c4); W.append(grid);
+  }
+  function board(W) {
+    areaBar(W);
+    const A = curArea();
+    if (!A) { const e = $('div', 'pj-empty pj-nempty', 'Chưa có mảng nào · bấm ＋ Thêm mảng để chọn mẫu Xây dựng nhà phố, APP HaoHao, Trade, Airdrop hoặc tự đặt tên.'); W.append(e); return; }
+    const PL = data.projects.filter(p => p.area === A.id);
+    const top = $('div', 'pj-top pj-atop'), add = $('button', 'pj-btn', '＋ Dự án mới'); add.addEventListener('click', newProject);
+    const h = $('div', 'pj-sp');   // V1.45: bỏ dòng tiêu đề tên mảng – thẻ mảng phía trên đã ghi
+    top.append(h);
+    {   // V1.36: mảng nào cũng đổi tên / xoá được (chỉ xoá khi trống)
+      const ed = $('button', 'pj-x', '✏️ Đổi tên'); ed.addEventListener('click', () => {
+        const inp = $('input', 'pj-in pj-ren'); inp.value = A.name; let done = false;
+        const ok = keep => { if (done) return; done = true; const n = inp.value.trim(); if (keep && n) { A.name = n; save(); } render(true); };
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); inp.addEventListener('blur', () => ok(true));
+        h.replaceWith(inp); inp.focus(); inp.select(); });
+      const dl = $('button', 'pj-x', '🗑 Xoá mảng'); dl.disabled = PL.length > 0; dl.title = PL.length ? 'Chuyển hoặc xoá hết dự án trong mảng trước' : 'Xoá mảng này';
+      dl.addEventListener('click', () => { if (PL.length) return; data.areas = data.areas.filter(x => x !== A); data.cur = (data.areas[0] || {}).id || null; save(); render(true); });
+      top.append(ed, dl);
+    }
+    if (!isIdeaA(A)) { const rs = rutSum(A), rb = $('button', 'pj-x pj-rutb', rs ? '💸 Đã rút ' + fmtC(rs, 'vnd') : '💸 Rút tiền'); rb.title = 'Ghi tiền đã rút (lợi nhuận lấy ra) của mảng này'; rb.addEventListener('click', () => rutDlg(A)); top.append(rb); }   // V1.70
+    top.append(add); W.append(top);
+    const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh sách dự án');
+    const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
+    const IDEA = isIdeaA(A), AIR = (tplOf(A) || {}).id === 'air';   // V1.72: mảng Airdrop – 5 ô tích cho 5 trình duyệt (p.br)
+    (IDEA ? ['STT', 'Tên ý tưởng', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Ghi chú', ''] : ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', AIR ? '5 trình duyệt' : 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', '']).forEach(t => { const c = $('div', 'c', t); if (IDEA && t === 'Ghi chú') c.style.gridColumn = 'span 2'; hd.append(c); });
+    T.append(hd);
+    // V1.34: 👁 ẩn dự án đã xong / không cần xem (p.hidden) – mặc định không hiện; ✕ xoá dự án (bấm 2 lần)
+    const nHid = PL.filter(p => p.hidden).length, VL = showHidden ? PL : PL.filter(p => !p.hidden);
+    VL.forEach((p, i) => {
+      const r = $('div', 'pj-lr st-' + p.col + (p.hidden ? ' hid' : '')); r.setAttribute('role', 'row');
+      const no = $('div', 'c c-no', String(i + 1));
+      const nmc = $('div', 'c c-nm'), nb = $('button', 'pj-open', p.name || '(chưa đặt tên)'); nb.title = 'Mở dự án';
+      nb.addEventListener('click', () => { openId = p.id; openFolder = (p.folders[0] || {}).id || null; render(true); window.scrollTo({ top: 0 }); });
+      const nx = nextOf(p); nmc.append(nb); if (nx && p.col !== 'done') nmc.append($('small', 'pj-nx', '→ ' + nx));
+      const date = k => { const c = $('div', 'c'), d = $('input', 'pj-date'); d.type = 'date'; d.value = p[k] || ''; d.addEventListener('change', () => { p[k] = d.value; save(); render(true); }); c.append(d); return c; };
+      const ds = date('start'), de = date('due');
+      if (p.due && p.col !== 'done') { const t = today(); if (p.due < t) de.classList.add('late'); else if (p.due <= ymd(Date.now() + 3 * 864e5)) de.classList.add('soon'); }
+      const v = pct(p), pc = $('div', 'c c-pg'), bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = v + '%'; bar.append(bi); pc.append(bar, $('b', '', v + '%'));
+      if (AIR) {   // 5 ô tích: làm xong trên trình duyệt nào thì tích ô đó
+        if (!Array.isArray(p.br)) p.br = [0, 0, 0, 0, 0];
+        const box = $('div', 'pj-br'), cnt = $('b', '', '');
+        const upd = () => { const n = p.br.filter(Boolean).length; cnt.textContent = n + '/5'; cnt.className = n === 5 ? 'ok' : ''; };
+        for (let k = 0; k < 5; k++) { const t = $('button', 'pj-brt' + (p.br[k] ? ' on' : ''), p.br[k] ? '✓' : String(k + 1)); t.type = 'button'; t.title = 'Trình duyệt ' + (k + 1); t.setAttribute('aria-pressed', !!p.br[k]); t.setAttribute('aria-label', 'Trình duyệt ' + (k + 1));
+          t.addEventListener('click', () => { p.br[k] = p.br[k] ? 0 : 1; t.classList.toggle('on', !!p.br[k]); t.textContent = p.br[k] ? '✓' : String(k + 1); t.setAttribute('aria-pressed', !!p.br[k]); upd(); save(); }); box.append(t); }
+        upd(); box.title = cnt.textContent + ' trình duyệt đã làm'; pc.replaceChildren(box);
+      }
+      const sc = $('div', 'c'), sel = $('select', 'pj-st'); for (const [k, lb] of COLS) { const o = $('option', '', lb); o.value = k; o.selected = k === p.col; sel.append(o); }
+      sel.addEventListener('change', () => { p.col = sel.value; save(); render(true); }); sc.append(sel);
+      const vc = $('div', 'c'), lc = $('div', 'c');
+      if (ledger(p) || cryptoOf(p)) {   // V1.30: lấy từ mục 0. Vốn đầu tư · V1.43: hoặc từ Hold + Trade
+        const go = () => { openId = p.id; openFolder = cryptoOf(p) ? ((p.folders.find(f => f.kind === 'hold') || p.folders[0] || {}).id || MONEY) : MONEY; render(true); window.scrollTo({ top: 0 }); };
+        const cu = curOf(p), vb = $('button', 'pj-money pj-calc', fmtC(vonOf(p), cu)), l = laiOf(p), lb = $('button', 'pj-money pj-calc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), fmtC(l, cu, true));
+        vb.title = lb.title = 'Tính từ mục 0. Vốn đầu tư – bấm để xem thu / chi'; vb.addEventListener('click', go); lb.addEventListener('click', go);
+        vc.append(curChip(p), vb); lc.append(lb);
+      } else { vc.append(curChip(p), moneyInput(p, 'von')); lc.append(moneyInput(p, 'lai', 'lai')); }
+      const ac = $('div', 'c c-act');
+      const eye = $('button', 'pj-ic2', p.hidden ? '🙈' : '👁'); eye.title = p.hidden ? 'Hiện lại dự án' : 'Ẩn dự án cho gọn'; eye.setAttribute('aria-label', (p.hidden ? 'Hiện lại ' : 'Ẩn ') + p.name);
+      eye.addEventListener('click', () => { p.hidden = !p.hidden; save(); render(true); });
+      const del = $('button', 'pj-ic2 del', '✕'); del.title = 'Xoá dự án'; del.setAttribute('aria-label', 'Xoá ' + p.name); let arm = false;
+      del.addEventListener('click', () => {
+        if (!arm) { arm = true; del.textContent = 'Xoá?'; del.classList.add('arm'); setTimeout(() => { arm = false; del.textContent = '✕'; del.classList.remove('arm'); }, 3000); return; }
+        const ids = new Set(p.folders.flatMap(f => (f.rows || []).map(x => x.todoId).filter(Boolean)));   // việc đã đưa sang Todo HaoHao thì xoá theo
+        if (ids.size) { todos = todos.filter(t => !ids.has(t.id)); saveTodos(); }
+        data.projects = data.projects.filter(x => x !== p); save(); render(true); toast('🗑 Đã xoá dự án “' + (p.name || '') + '”');
+      });
+      const rm = todos.find(t => t.id === p.remindId), al = $('button', 'pj-ic2' + (rm ? ' on' : ''), '⏰'); al.title = rm ? 'Sửa nhắc hẹn' : 'Hẹn ngày nhắc (HaoHao nhắc đúng giờ)'; al.setAttribute('aria-label', 'Hẹn nhắc cho ' + p.name);
+      al.addEventListener('click', () => remindDlg(p));
+      if (rm && rm.due) { const ch = $('button', 'pj-rmchip', '⏰ ' + whenTxt(rm.due) + ' · ' + rm.text.replace(' · ' + p.name, '')); ch.title = 'Sửa nhắc'; ch.addEventListener('click', () => remindDlg(p)); nmc.append(ch); }
+      ac.append(al, eye, del);
+      if (IDEA) { const nc = $('div', 'c c-note'), ni = $('input', 'pj-in pj-note'); ni.value = p.note || ''; ni.placeholder = 'Ghi chú…'; ni.setAttribute('aria-label', 'Ghi chú ' + (p.name || '')); nc.style.gridColumn = 'span 2';
+        ni.addEventListener('input', () => { p.note = ni.value; saveSoon(); }); ni.addEventListener('change', () => { p.note = ni.value.trim(); save(); }); nc.append(ni); r.append(no, nmc, ds, de, pc, sc, nc, ac); }
+      else r.append(no, nmc, ds, de, pc, sc, vc, lc, ac);
+      T.append(r);
+    });
+    if (!VL.length) T.append($('div', 'pj-empty', PL.length ? 'Các dự án trong mảng này đang ẩn' : 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
+    else if (!IDEA) {
+      const ft = $('div', 'pj-lr ft'), tv = $('div', 'c c-sum'), tl = $('div', 'c c-sum');
+      ft.append($('div', 'c'), $('div', 'c', nHid && !showHidden ? 'Tổng (gồm cả ' + nHid + ' dự án ẩn)' : 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl, $('div', 'c'));
+      updTotal = () => {
+        const sv = sumC(PL, 'von'), sl = sumC(PL, 'lai');
+        const vv = sumV(PL, 'von'), vl = sumV(PL, 'lai'), ap = hasUsdt(PL) ? '≈ ' : '';   // V1.40: quy USDT ra VND, 1 dòng
+        tv.textContent = ap + fmtC(vv, 'vnd'); tl.textContent = ap + fmtC(vl, 'vnd', true); tl.className = 'c c-sum' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : '');
+        tv.title = tl.title = hasUsdt(PL) ? 'Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') : '';
+      };
+      updTotal(); T.append(ft);
+    }
+    W.append(T);
+    if (nHid) { const hb = $('button', 'pj-hidbtn', showHidden ? '🙈 Ẩn lại ' + nHid + ' dự án đã ẩn' : '👁 Hiện ' + nHid + ' dự án đã ẩn'); hb.addEventListener('click', () => { showHidden = !showHidden; render(true); }); W.append(hb); }
+    quickLinks(W, A);
+  }
+  // V1.32: 🔗 lối tắt trang web riêng cho từng mảng (giống hàng lối tắt ở trang chủ) – lưu area.links
+  const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+  const favicon = u => { try { const x = new URL(chrome.runtime.getURL('/_favicon/')); x.searchParams.set('pageUrl', u); x.searchParams.set('size', '64'); return x.toString(); } catch { return ''; } };
+  function quickLinks(W, A) {
+    if (!Array.isArray(A.links)) A.links = [];
+    const box = $('section', 'pj-ql'); box.setAttribute('aria-label', 'Lối tắt ' + A.name);
+    box.append($('div', 'pj-qlh', '🔗 Lối tắt · ' + A.name));
+    const row = $('div', 'pj-qls');
+    A.links.forEach((l, i) => {
+      const a = $('a', 'pj-site'); a.href = l.u; a.target = '_blank'; a.rel = 'noopener'; a.title = (l.t || hostOf(l.u)) + '\n' + l.u;
+      const ic = $('span', 'ic'), im = $('img'); im.alt = ''; im.src = favicon(l.u); im.addEventListener('error', () => { im.remove(); ic.textContent = (l.t || hostOf(l.u)).slice(0, 1).toUpperCase(); }); ic.append(im);
+      const lb = $('span', 'lb', l.t || hostOf(l.u));
+      const x = $('button', 'rm', '✕'); x.type = 'button'; x.title = 'Xoá lối tắt'; x.setAttribute('aria-label', 'Xoá ' + (l.t || hostOf(l.u)));
+      x.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); A.links.splice(i, 1); save(); render(true); });
+      a.append(ic, lb, x); row.append(a);
+    });
+    const add = $('button', 'pj-site add'); add.type = 'button'; add.append($('span', 'ic', '＋'), $('span', 'lb', 'Thêm')); add.title = 'Thêm lối tắt cho mảng ' + A.name;
+    const form = $('form', 'pj-qlf'); form.hidden = true;
+    const tn = $('input', 'pj-in'); tn.placeholder = 'Tên (vd: Bảng giá thép)'; tn.setAttribute('aria-label', 'Tên lối tắt');
+    const tu = $('input', 'pj-in'); tu.placeholder = 'Link trang web'; tu.setAttribute('aria-label', 'Link'); tu.inputMode = 'url';
+    const ok = $('button', 'pj-btn', 'Thêm'); ok.type = 'submit'; const no = $('button', 'pj-btn ghost', 'Huỷ'); no.type = 'button';
+    form.append(tn, tu, ok, no);
+    add.addEventListener('click', () => { form.hidden = false; tu.focus(); });
+    no.addEventListener('click', () => { form.hidden = true; });
+    form.addEventListener('submit', e => {
+      e.preventDefault(); let u = tu.value.trim(); if (!u) return tu.focus();
+      if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { new URL(u); } catch { return tu.focus(); }
+      A.links.push({ id: uid(), t: tn.value.trim() || hostOf(u), u }); save(); render(true);
+    });
+    row.append(add); box.append(row, form); W.append(box);
+  }
+
+  // Lưu ý: chữ thường + link tự nhận (http…, www…, tên miền…/…) → thẻ a bấm được
+  const LINK = /(https?:\/\/[^\s<]+|www\.[^\s<]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|vn|net|org|io|me|dev|app|ee|co)(?:\/[^\s<]*)?)/gi;
+  function linkify(el, s) {
+    el.replaceChildren(); let i = 0; s = s || '';
+    s.replace(LINK, (m, _a, at) => {
+      if (at > i) el.append(s.slice(i, at));
+      const a = $('a', '', m); a.href = /^https?:/i.test(m) ? m : 'https://' + m; a.target = '_blank'; a.rel = 'noopener';
+      a.addEventListener('click', e => e.stopPropagation()); el.append(a); i = at + m.length; return m;
+    });
+    if (i < s.length) el.append(s.slice(i));
+  }
+  const toast = t => { let el = root.querySelector('.pj-toast'); if (!el) { el = $('div', 'pj-toast'); el.setAttribute('role', 'status'); root.append(el); } el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 3200); };
+  // V1.33: 📁 đường dẫn trên máy (D:\…) → mở thư mục trong tab Chrome (file:///…). Chrome chưa cho HaoHao đọc file trên máy
+  //        thì hiện bảng hướng dẫn bật "Cho phép truy cập vào URL tệp" kèm nút mở thẳng trang cài đặt của HaoHao.
+  const fileUrl = v => 'file:///' + v.trim().replace(/^file:\/+/i, '').replace(/\\/g, '/').split('/').map(x => encodeURIComponent(x).replace(/%3A/gi, ':')).join('/') + (/[\\/]$/.test(v.trim()) ? '' : '/');
+  const fileOk = () => new Promise(res => { try { chrome.extension.isAllowedFileSchemeAccess(ok => res(!!ok)); } catch { res(false); } });
+  async function openDir(v, ref) {
+    if (ref) chrome.storage.local.set({ pjDirPick: { ...ref, at: Date.now() } }).catch(() => {});   // V1.35: tab thư mục hiện nút 💾 Lưu thư mục này (pjdir.js)
+    if (await fileOk()) { chrome.tabs.create({ url: fileUrl(v) }).catch(() => toast('⚠ Không mở được thư mục này – kiểm tra lại đường dẫn')); return; }
+    try { await navigator.clipboard.writeText(v); } catch {}
+    root.querySelectorAll('.pj-need').forEach(x => x.remove());
+    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Cần bật quyền mở thư mục');
+    const ext = 'chrome://extensions/?id=' + chrome.runtime.id;
+    const go = $('button', 'pj-btn', '⚙️ Mở trang cài đặt HaoHao'); go.addEventListener('click', () => { chrome.tabs.create({ url: ext }).catch(() => {}); bg.remove(); });
+    const x = $('button', 'pj-btn ghost', 'Để sau'); x.addEventListener('click', () => bg.remove());
+    const st = $('ol', 'pj-needs');
+    [['Bấm nút ', '⚙️ Mở trang cài đặt HaoHao', ' bên dưới.'], ['Kéo xuống, bật ', 'Cho phép truy cập vào URL tệp', ' (Allow access to file URLs).'], ['Quay lại đây, bấm ', '📁', ' lần nữa là thư mục mở ra.']]
+      .forEach(([a, b, c]) => { const li = $('li'); li.append(a, $('b', '', b), c); st.append(li); });
+    const lk = $('code', 'pj-needl', ext);
+    cd.append($('div', 'pj-needt', '📁 Cần bật 1 lần để mở thư mục'), st, $('div', 'pj-needn', 'Hoặc dán link này vào thanh địa chỉ Chrome:'), lk,
+      $('div', 'pj-needn', 'Đường dẫn thư mục đã được chép sẵn – muốn mở bằng File Explorer thì bấm Win + E, Ctrl + L, Ctrl + V.'));
+    const row = $('div', 'pj-needb'); row.append(x, go); cd.append(row); bg.append(cd);
+    bg.addEventListener('click', e => { if (e.target === bg) bg.remove(); });
+    root.append(bg); go.focus();
+  }
+  const grow = ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+
+  // V1.30: 💰 mục 0. Vốn đầu tư – 3 ô tổng (Thu · Chi = vốn · Lãi/lỗ) + 2 bảng Nguồn thu / Nguồn chi (Ngày · Nội dung · Số tiền)
+  function moneyView(M, p) {
+    if (!p.money) p.money = { thu: [], chi: [] };
+    const cu = curOf(p), fh = $('div', 'pj-fh'); fh.append('💰', $('b', 'pj-f0t', 'Vốn đầu tư'), curChip(p)); M.append(fh);
+    const cards = $('div', 'pj-mcards'), cT = $('div', 'pj-mc thu'), cC = $('div', 'pj-mc chi'), cL = $('div', 'pj-mc lai');
+    cards.append(cT, cC, cL); M.append(cards);
+    const upd = () => {
+      const t = tot(p.money.thu), c = tot(p.money.chi), l = t - c;
+      cT.replaceChildren($('span', '', 'Tổng thu'), $('b', '', fmtC(t, cu)));
+      cC.replaceChildren($('span', '', 'Tổng chi · vốn đầu tư'), $('b', '', fmtC(c, cu)));
+      cL.replaceChildren($('span', '', l < 0 ? 'Lỗ' : 'Lãi'), $('b', '', fmtC(l, cu, true))); cL.className = 'pj-mc lai' + (l > 0 ? ' pos' : l < 0 ? ' neg' : '');
+      const sm = root.querySelector('.pj-f0 small'); if (sm) { sm.textContent = ledger(p) ? fmtC(l, cu, true) : ''; sm.className = 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); }
+    };
+    const book = (key, title, ic) => {
+      const L = p.money[key] = p.money[key] || [];
+      const box = $('div', 'pj-book ' + key), h = $('div', 'pj-bh'), st = $('b', 'pj-bs');
+      h.append($('span', '', ic + ' ' + title), st); box.append(h);
+      const sheet = $('div', 'pj-sheet pj-ms'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', title);
+      const hd = $('div', 'pj-mr hd'); ['STT', 'Ngày', 'Nội dung', 'Số tiền', ''].forEach(t => hd.append($('div', 'c', t))); sheet.append(hd);
+      const subt = () => { st.textContent = fmtC(tot(L), cu); upd(); };
+      const renum = () => sheet.querySelectorAll('.pj-mr:not(.hd)').forEach((r, i) => { r.firstChild.textContent = r.classList.contains('blank') ? '' : i + 1; });
+      const rowEl = (x, blank) => {
+        const r = $('div', 'pj-mr' + (blank ? ' blank' : '')); r.setAttribute('role', 'row');
+        const no = $('div', 'c c-no'), dc = $('div', 'c'), d = $('input', 'pj-date'); d.type = 'date'; d.value = x.d || ''; dc.append(d);
+        const tc = $('div', 'c'), t = $('input', 'pj-mt'); t.value = x.t || ''; t.placeholder = blank ? (key === 'thu' ? 'Thêm khoản thu…' : 'Thêm khoản chi…') : ''; t.setAttribute('aria-label', 'Nội dung'); tc.append(t);
+        const vc = $('div', 'c'), v = $('input', 'pj-money'); v.inputMode = 'decimal'; v.value = numTxt(x.v, cu); v.placeholder = cu === 'usdt' ? '$0' : '0 ₫'; v.setAttribute('aria-label', 'Số tiền'); vc.append(v);
+        const xc = $('div', 'c c-x'), del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá dòng'); del.hidden = blank; xc.append(del);
+        r.append(no, dc, tc, vc, xc);
+        const make = () => { if (!blank) return; blank = false; r.classList.remove('blank'); if (!x.d) { x.d = today(); d.value = x.d; } L.push(x); del.hidden = false; t.placeholder = ''; sheet.append(rowEl({ id: uid(), d: '', t: '', v: null }, true)); renum(); };
+        t.addEventListener('input', () => { if (t.value.trim()) make(); x.t = t.value; saveSoon(); });
+        v.addEventListener('input', () => { const n = parseC(v.value, cu); if (n != null) make(); x.v = n == null ? null : Math.abs(n); saveSoon(); subt(); });
+        v.addEventListener('focus', () => v.select()); v.addEventListener('blur', () => { v.value = numTxt(x.v, cu); if (!blank) save(); });
+        t.addEventListener('blur', () => { if (!blank) save(); }); t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); v.focus(); } });
+        v.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const nx = r.nextElementSibling; if (nx) nx.querySelector('.pj-mt').focus(); } });
+        d.addEventListener('change', () => { x.d = d.value; if (!blank) save(); });
+        del.addEventListener('click', () => { const k = L.indexOf(x); if (k >= 0) L.splice(k, 1); r.remove(); save(); subt(); renum(); });
+        return r;
+      };
+      L.forEach(x => sheet.append(rowEl(x, false))); sheet.append(rowEl({ id: uid(), d: '', t: '', v: null }, true)); renum();
+      box.append(sheet); subt(); return box;
+    };
+    const two = $('div', 'pj-books'); two.append(book('thu', 'Nguồn thu', '⬇️'), book('chi', 'Nguồn chi', '⬆️')); M.append(two);
+    M.append($('div', 'pj-hint', 'Lãi / lỗ = tổng thu − tổng chi · Vốn đầu tư = tổng chi · số liệu tự đưa ra bảng dự án bên ngoài · tự lưu'));
+    upd();
+  }
+
+  // V1.43: 📈 mảng Trade – mỗi dự án có 2 mục theo mẫu CRYPTO PLAN SUN79:
+  //   • Hold  = danh mục nắm giữ (coin · số lượng · giá vốn · giá hiện tại · 24h · giá trị · lãi/lỗ · tiến tới giá mục tiêu)
+  //   • Trade = sổ vốn theo ngày (vốn gốc + mục tiêu %/ngày; mỗi ngày ghi số dư cuối → vốn đầu ngày, cần đạt, lãi/lỗ, %, Đạt / Chưa đạt)
+  //   Giá coin lấy Binance (data-api.binance.vision, cặp ...USDT), lưu tạm 60 giây. Đơn vị USDT.
+  const holdFolder = () => ({ id: uid(), name: 'Hold', kind: 'hold', rows: [], holds: [], v28: 1, v29: 1 });
+  const tradeFolder = () => ({ id: uid(), name: 'Trade', kind: 'trade', rows: [], book: { start: 0, pct: 3, days: [] }, v28: 1, v29: 1 });
+  const PRICES = {}; let priceAt = 0, priceBusy = false;
+  async function loadPrices(syms) {
+    const need = [...new Set(syms.map(s => String(s || '').toUpperCase().trim()).filter(Boolean))];
+    if (!need.length || priceBusy || (Date.now() - priceAt < 60000 && need.every(s => PRICES[s]))) return;
+    priceBusy = true;
+    await Promise.all(need.map(s => (s === 'USDT' ? Promise.resolve({ lastPrice: 1, priceChangePercent: 0 }) :
+      fetch('https://data-api.binance.vision/api/v3/ticker/24hr?symbol=' + encodeURIComponent(s) + 'USDT').then(r => r.ok ? r.json() : null))
+      .then(j => { if (j && +j.lastPrice > 0) PRICES[s] = { p: +j.lastPrice, ch: +j.priceChangePercent || 0 }; }).catch(() => {})));
+    priceAt = Date.now(); priceBusy = false;
+    if (ready && !editing()) render(true);
+  }
+  const priceOf = h => (PRICES[String(h.sym || '').toUpperCase()] || {}).p;
+  const usd = (n, d) => (n == null || isNaN(n)) ? '–' : (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: d == null ? 2 : d });
+  const usdP = n => { if (n == null || isNaN(n)) return '–'; const a = Math.abs(n); return '$' + n.toLocaleString('en-US', { maximumFractionDigits: a >= 100 ? 2 : a >= 1 ? 4 : 8 }); };
+  const sgnU = n => (n > 0 ? '+' : '') + usd(n);
+  function holdCalc(f) {
+    let cost = 0, val = 0; (f.holds || []).forEach(h => { const q = +h.qty || 0, c = +h.cost || 0, p = priceOf(h) ?? c; cost += q * c; val += q * p; });
+    return { cost, val, pnl: val - cost };
+  }
+  function bookCalc(f) {
+    const B = f.book || { start: 0, pct: 3, days: [] }, pct = +B.pct || 0, start = +B.start || 0;
+    let prev = start; const rows = [...(B.days || [])].sort((a, b) => a.d.localeCompare(b.d)).map(x => {
+      const open = prev, close = +x.close || 0, tgt = open * (1 + pct / 100), r = { x, d: x.d, note: x.note, open, close, tgt, pnl: close - open, pctd: open ? (close - open) / open * 100 : 0, hit: close >= tgt };
+      prev = close; return r; });
+    const bal = rows.length ? rows[rows.length - 1].close : start;
+    let streak = 0; for (let i = rows.length - 1; i >= 0; i--) { if (rows[i].hit) streak++; else break; }
+    return { rows, pct, start, bal, pnl: bal - start, streak, hits: rows.filter(r => r.hit).length, n: rows.length, next: bal * (1 + pct / 100) };
+  }
+  // vốn / lãi của dự án Trade = Hold (giá vốn, lãi chưa chốt) + Trade (vốn gốc, số dư − vốn gốc)
+  function cryptoOf(p) {
+    let von = 0, lai = 0, any = false;
+    for (const f of p.folders || []) {
+      if (f.kind === 'hold' && (f.holds || []).length) { const h = holdCalc(f); von += h.cost; lai += h.pnl; any = true; }
+      if (f.kind === 'trade' && f.book && (+f.book.start || (f.book.days || []).length)) { const b = bookCalc(f); von += b.start; lai += b.pnl; any = true; }
+    }
+    return any ? { von, lai } : null;
+  }
+  const kpi = (box, lb, v, sub, cls) => { const d = $('div', 'pj-kpi ' + (cls || '')); d.append($('span', '', lb), $('b', '', v)); if (sub) d.append($('small', '', sub)); box.append(d); };
+  const tone = n => n > 0 ? ' pos' : n < 0 ? ' neg' : '';
+
+  function holdView(M, p, f) {
+    if (!Array.isArray(f.holds)) f.holds = [];
+    loadPrices(f.holds.map(h => h.sym));
+    const fh = $('div', 'pj-fh'); fh.append('💎', $('b', 'pj-f0t', 'Danh mục nắm giữ'));
+    const rf = $('button', 'pj-x', '↻ Cập nhật giá'); rf.addEventListener('click', () => { priceAt = 0; loadPrices(f.holds.map(h => h.sym)); }); fh.append(rf); M.append(fh);
+    const c = holdCalc(f), k = $('div', 'pj-kpis');
+    kpi(k, 'Giá vốn', usd(c.cost), f.holds.length + ' khoản'); kpi(k, 'Giá trị hiện tại', usd(c.val), priceAt ? 'giá Binance ' + new Date(priceAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'đang lấy giá…');
+    kpi(k, c.pnl < 0 ? 'Lỗ chưa chốt' : 'Lãi chưa chốt', sgnU(c.pnl), c.cost ? (c.pnl >= 0 ? '+' : '') + (c.pnl / c.cost * 100).toFixed(1) + '%' : '', 'loi' + tone(c.pnl));
+    const tg = f.holds.reduce((a, h) => a + (+h.target || 0) * (+h.qty || 0), 0); kpi(k, 'Giá trị nếu chạm mục tiêu', tg ? usd(tg) : '–', tg ? '×' + (c.val ? (tg / c.val).toFixed(2) : '–') + ' so với hiện tại' : 'đặt giá mục tiêu ở bảng');
+    M.append(k);
+    const T = $('div', 'pj-sheet pj-cs'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh mục nắm giữ');
+    const hd = $('div', 'pj-cr hold hd'); ['Coin', 'Số lượng', 'Giá vốn', 'Giá hiện tại', '24h', 'Giá trị', 'Lãi / lỗ', 'Giá mục tiêu · tiến độ', ''].forEach(t => hd.append($('div', 'c', t))); T.append(hd);
+    const inp = (h, key, ph, mode) => { const i = $('input', 'pj-mt num'); i.value = h[key] ?? ''; i.placeholder = ph; i.inputMode = mode || 'decimal'; i.setAttribute('aria-label', ph);
+      i.addEventListener('input', () => { h[key] = key === 'sym' ? i.value.toUpperCase().trim() : (i.value === '' ? null : parseFloat(i.value.replace(',', '.'))); saveSoon(); });
+      i.addEventListener('change', () => { save(); if (key === 'sym') { priceAt = 0; loadPrices(f.holds.map(x => x.sym)); } render(true); }); return i; };
+    f.holds.forEach(h => {
+      const r = $('div', 'pj-cr hold'), q = +h.qty || 0, cost = +h.cost || 0, P = PRICES[String(h.sym || '').toUpperCase()], pr = P ? P.p : null, v = q * (pr ?? cost), pnl = pr != null ? q * (pr - cost) : 0;
+      const sy = inp(h, 'sym', 'BTC', 'text'); sy.classList.add('sym'); sy.classList.remove('num');
+      const prog = $('div', 'c pg'); const ti = inp(h, 'target', 'Mục tiêu');
+      if (+h.target && pr != null) { const base = cost || pr, pc = Math.max(0, Math.min(100, (pr - base) / ((+h.target) - base) * 100)); const bar = $('div', 'pj-bar'), bi = $('i'); bi.style.width = (isFinite(pc) ? pc : 0) + '%'; bar.append(bi); prog.append(ti, bar, $('small', '', isFinite(pc) ? Math.round(pc) + '%' : '')); } else prog.append(ti);
+      const del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá ' + (h.sym || 'khoản')); del.addEventListener('click', () => { f.holds = f.holds.filter(x => x !== h); save(); render(true); });
+      const cell = (el, cls) => { const d = $('div', 'c ' + (cls || '')); typeof el === 'string' ? d.textContent = el : d.append(el); return d; };
+      r.append(cell(sy), cell(inp(h, 'qty', '0')), cell(inp(h, 'cost', 'Giá vốn')), cell(pr != null ? usdP(pr) : (h.sym ? '…' : '–'), 'n'), cell(P ? (P.ch >= 0 ? '+' : '') + P.ch.toFixed(2) + '%' : '–', 'n' + tone(P ? P.ch : 0)),
+        cell(usd(v), 'n'), cell(pr != null ? sgnU(pnl) + (cost ? ' · ' + ((pr - cost) / cost * 100).toFixed(1) + '%' : '') : '–', 'n' + tone(pnl)), prog, cell(del, 'x'));
+      T.append(r);
+    });
+    const add = $('button', 'pj-addline', '＋ Thêm khoản nắm giữ'); add.addEventListener('click', () => { f.holds.push({ id: uid(), sym: '', qty: null, cost: null, target: null }); save(); render(true); setTimeout(() => { const s = [...root.querySelectorAll('.pj-cr.hold .sym')].pop(); if (s) s.focus(); }, 30); });
+    M.append(T, add, $('div', 'pj-hint', 'Gõ mã coin (BTC, ETH, SOL…) · giá lấy từ Binance theo cặp USDT · giá vốn và mục tiêu tính bằng USDT'));
+  }
+
+  function tradeView(M, p, f) {
+    if (!f.book) f.book = { start: 0, pct: 3, days: [] };
+    const B = f.book, b = bookCalc(f);
+    const fh = $('div', 'pj-fh'); fh.append('📒', $('b', 'pj-f0t', 'Sổ vốn theo ngày')); M.append(fh);
+    const set = $('div', 'pj-bset');
+    const st = $('input', 'pj-in'); st.inputMode = 'decimal'; st.value = B.start || ''; st.placeholder = 'Vốn gốc (USDT)'; st.setAttribute('aria-label', 'Vốn gốc');
+    const pc = $('input', 'pj-in'); pc.inputMode = 'decimal'; pc.value = B.pct ?? 3; pc.setAttribute('aria-label', 'Mục tiêu % mỗi ngày');
+    st.addEventListener('change', () => { B.start = parseFloat(st.value.replace(',', '.')) || 0; save(); render(true); });
+    pc.addEventListener('change', () => { B.pct = parseFloat(pc.value.replace(',', '.')) || 0; save(); render(true); });
+    const l1 = $('label', 'pj-bl'); l1.append('Vốn gốc', st); const l2 = $('label', 'pj-bl'); l2.append('Mục tiêu %/ngày', pc);
+    set.append(l1, l2); M.append(set);
+    const k = $('div', 'pj-kpis');
+    kpi(k, 'Số dư hiện tại', usd(b.bal), b.start ? sgnU(b.pnl) + ' · ' + (b.pnl / b.start * 100).toFixed(1) + '%' : 'nhập vốn gốc để bắt đầu', 'loi' + tone(b.pnl));
+    kpi(k, 'Hôm nay cần đạt', b.bal ? usd(b.next) : '–', b.pct + '% / ngày');
+    kpi(k, 'Chuỗi ngày đạt', b.streak + ' ngày', b.n ? b.hits + '/' + b.n + ' ngày đạt · ' + Math.round(b.hits / b.n * 100) + '%' : 'chưa ghi ngày nào');
+    const d2 = b.pct > 0 ? Math.ceil(Math.log(2) / Math.log(1 + b.pct / 100)) : null; kpi(k, 'Ở tốc độ này', d2 ? 'gấp đôi sau ' + d2 + ' ngày' : '–', d2 ? '×10 sau ' + Math.ceil(Math.log(10) / Math.log(1 + b.pct / 100)) + ' ngày' : '');
+    M.append(k);
+    const ar = $('div', 'pj-addrow pj-dayadd');
+    const dd = $('input', 'pj-in'); dd.type = 'date'; dd.value = today(); dd.setAttribute('aria-label', 'Ngày');
+    const dc = $('input', 'pj-in'); dc.inputMode = 'decimal'; dc.placeholder = 'Số dư cuối ngày (USDT)'; dc.setAttribute('aria-label', 'Số dư cuối ngày');
+    const dn = $('input', 'pj-in'); dn.placeholder = 'Ghi chú: hôm nay đánh gì, sai ở đâu'; dn.setAttribute('aria-label', 'Ghi chú');
+    const ok = $('button', 'pj-btn', 'Ghi vào sổ');
+    const addDay = () => { const v = parseFloat(dc.value.replace(',', '.')); if (!dd.value || isNaN(v)) return (isNaN(v) ? dc : dd).focus();
+      const ex = B.days.find(x => x.d === dd.value); if (ex) { ex.close = v; ex.note = dn.value.trim() || ex.note; } else B.days.push({ id: uid(), d: dd.value, close: v, note: dn.value.trim() }); save(); render(true); };
+    ok.addEventListener('click', addDay); [dc, dn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') addDay(); }));
+    ar.append(dd, dc, dn, ok); M.append(ar);
+    const T = $('div', 'pj-sheet pj-cs'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Nhật ký từng ngày');
+    const hd = $('div', 'pj-cr book hd'); ['Ngày', 'Vốn đầu ngày', 'Cần đạt', 'Số dư cuối', 'Lãi / lỗ', '%', 'Kết quả', 'Ghi chú', ''].forEach(t => hd.append($('div', 'c', t))); T.append(hd);
+    [...b.rows].reverse().forEach(r => {
+      const row = $('div', 'pj-cr book'), cell = (t, cls) => { const d = $('div', 'c ' + (cls || '')); d.textContent = t; return d; };
+      const res = $('div', 'c'); res.append($('span', 'pj-hit ' + (r.hit ? 'ok' : 'no'), r.hit ? '✓ Đạt' : '✗ Chưa đạt'));
+      const del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá ngày ' + r.d); del.addEventListener('click', () => { B.days = B.days.filter(x => x !== r.x); save(); render(true); });
+      const xc = $('div', 'c x'); xc.append(del);
+      row.append(cell(new Date(r.d + 'T00:00').toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })), cell(usd(r.open), 'n'), cell(usd(r.tgt), 'n dim'), cell(usd(r.close), 'n'),
+        cell(sgnU(r.pnl), 'n' + tone(r.pnl)), cell((r.pctd >= 0 ? '+' : '') + r.pctd.toFixed(2) + '%', 'n' + tone(r.pctd)), res, cell(r.note || '', 'note'), xc);
+      T.append(row);
+    });
+    M.append(T); if (!b.n) M.append($('div', 'pj-empty', 'Sổ còn trống · ghi số dư cuối ngày đầu tiên để bắt đầu đếm chuỗi.'));
+  }
+
+  function detail(W, p) {
+    const top = $('div', 'pj-top'), back = $('button', 'pj-btn ghost', '← Về bảng dự án');
+    back.addEventListener('click', () => { openId = null; render(true); });
+    const del = $('button', 'pj-x', '🗑 Xoá dự án'); let armed = false;
+    del.addEventListener('click', () => { if (!armed) { armed = true; del.textContent = 'Bấm lần nữa để xoá hẳn'; setTimeout(() => { armed = false; del.textContent = '🗑 Xoá dự án'; }, 3000); return; } data.projects = data.projects.filter(x => x !== p); save(); openId = null; render(true); });
+    // V1.26: chuyển dự án sang mảng khác
+    const am = $('select', 'pj-st pj-amove'); am.setAttribute('aria-label', 'Mảng'); areas().forEach(a => { const o = $('option', '', a.icon + ' ' + a.name); o.value = a.id; o.selected = a.id === p.area; am.append(o); });
+    am.addEventListener('change', () => { p.area = am.value; data.cur = am.value; save(); });
+    const sp = $('div'); sp.style.flex = '1'; top.append(back, am, sp, del); W.append(top);
+    const D = $('div', 'pj-det'), S = $('div', 'pj-side'), M = $('div', 'pj-main');
+    const fld = (lb, el) => { const l = $('label', 'pj-field'); l.append(lb, el); return l; };
+    const nm = $('input', 'pj-name'); nm.value = p.name; nm.setAttribute('aria-label', 'Tên dự án');
+    nm.addEventListener('input', () => { p.name = nm.value.trim() || 'Dự án mới'; saveSoon(); });
+    nm.addEventListener('change', () => { p.name = nm.value.trim() || 'Dự án mới'; save(); });
+    // V1.23: bỏ ngày bắt đầu / kết thúc và thanh tiến độ ở cột trái (anh Nhật muốn gọn)
+    const updBar = () => {
+      const sm = S.querySelector('.pj-fl button.on small'), cf = p.folders.find(x => x.id === openFolder);
+      if (sm && cf) { const R = (cf.rows || []).filter(real); sm.textContent = R.length ? R.filter(r => r.done).length + '/' + R.length : ''; }
+    };
+    S.append(nm);   // V1.24: bỏ chữ "Thư mục con"
+    const FL = $('div', 'pj-fl');
+    if (!isIdea(p)) { // V1.30: mục 0 cố định ở mọi dự án · V1.70: dự án trong mảng Ý tưởng không có mục Vốn đầu tư
+      const it = $('div', 'pj-fi pj-f0' + (openFolder === MONEY ? ' on' : '')), b = $('button', openFolder === MONEY ? 'on' : '');
+      const l = laiOf(p); b.append($('span', 'pj-no', '0.'), 'Vốn đầu tư', $('small', 'pj-l0' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''), ledger(p) ? fmtC(l, curOf(p), true) : ''));
+      b.addEventListener('click', () => { if (openFolder !== MONEY) { openFolder = MONEY; render(true); } });
+      it.append(b); FL.append(it);
+    }
+    // V1.23: mỗi thư mục có ✏️ đổi tên (hoặc bấm đúp) và 🗑 xoá ngay trên dòng
+    // V1.64: nhân bản thư mục – chép hết việc, ghi chú, sổ Hold/Trade; mã mới, không kéo theo nhắc Todo cũ
+    const cloneFolder = f => { const c = JSON.parse(JSON.stringify(f)); c.id = uid(); c.name = (f.name || 'Thư mục') + ' (bản sao)'; (c.rows || []).forEach(r => { r.id = uid(); delete r.todoId; }); (c.holds || []).forEach(h => { if (h && typeof h === 'object' && 'id' in h) h.id = uid(); }); return c; };
+    const delFolder = f => { p.folders = p.folders.filter(x => x !== f); if (openFolder === f.id) openFolder = (p.folders[0] || {}).id || null; save(); render(true); };
+    p.folders.forEach((f, i) => {
+      const it = $('div', 'pj-fi' + (f.id === openFolder ? ' on' : ''));
+      const b = $('button', f.id === openFolder ? 'on' : ''); const R = (f.rows || []).filter(real), dn = R.filter(r => r.done).length;
+      b.append($('span', 'pj-no', (i + 1) + '.'), f.name, $('small', '', R.length ? dn + '/' + R.length : ''));   // V1.24: đánh số 1, 2, 3… theo thứ tự tạo
+      b.addEventListener('click', () => { if (openFolder !== f.id) { openFolder = f.id; render(true); } });
+      const ed = $('button', 'pj-ic', '✏️'); ed.title = 'Đổi tên'; ed.setAttribute('aria-label', 'Đổi tên thư mục ' + f.name);
+      const dl = $('button', 'pj-ic', '🗑'); dl.title = 'Xoá thư mục'; dl.setAttribute('aria-label', 'Xoá thư mục ' + f.name);
+      const cp = $('button', 'pj-ic', '⧉'); cp.title = 'Nhân bản thư mục'; cp.setAttribute('aria-label', 'Nhân bản thư mục ' + f.name);   // V1.64: chế độ copy
+      cp.addEventListener('click', e => { e.stopPropagation(); const c = cloneFolder(f); p.folders.splice(p.folders.indexOf(f) + 1, 0, c); openFolder = c.id; save(); render(true); });
+      const rename = () => {
+        const inp = $('input', 'pj-in pj-ren'); inp.value = f.name; inp.setAttribute('aria-label', 'Tên mới');
+        let done = false; const ok = keep => { if (done) return; done = true; if (keep) { const n = inp.value.trim(); if (n) { f.name = n; save(); } } render(true); };
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); });
+        inp.addEventListener('blur', () => ok(true));
+        it.replaceChildren(inp); inp.focus(); inp.select();
+      };
+      ed.addEventListener('click', e => { e.stopPropagation(); rename(); }); b.addEventListener('dblclick', rename);
+      let arm = false;
+      dl.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!arm && (f.rows || []).some(real)) { arm = true; dl.textContent = 'Xoá?'; dl.classList.add('arm'); setTimeout(() => { arm = false; dl.textContent = '🗑'; dl.classList.remove('arm'); }, 3000); return; }
+        delFolder(f);
+      });
+      it.append(b, ed, cp, dl); FL.append(it);
+    });
+    // V1.22: gõ tên + Enter (hoặc ＋) → thêm thư mục con và tự mở luôn, con trỏ nằm sẵn ở bảng
+    const af = $('div', 'pj-addrow'), ai = $('input', 'pj-in'); ai.placeholder = 'Thêm thư mục con…'; ai.setAttribute('aria-label', 'Tên thư mục con mới');
+    const ab = $('button', 'pj-btn', '＋');
+    const addF = () => { const n = ai.value.trim(); if (!n) return ai.focus(); const f = newFolder(n); p.folders.push(f); openFolder = f.id; save(); render(true); setTimeout(() => { const c = root.querySelector('.pj-sheet .blank .c-t'); if (c) c.focus(); }, 20); };
+    ab.addEventListener('click', addF); ai.addEventListener('keydown', e => { if (e.key === 'Enter') addF(); });
+    af.append(ai, ab); S.append(FL, af);
+
+    const f = p.folders.find(x => x.id === openFolder);
+    if (openFolder === MONEY) moneyView(M, p);
+    else if (f && f.kind === 'hold') holdView(M, p, f);
+    else if (f && f.kind === 'trade') tradeView(M, p, f);
+    else if (!f) M.append($('div', 'pj-empty', 'Gõ tên thư mục con ở cột bên trái rồi Enter để bắt đầu.'));
+    else {
+      if (!Array.isArray(f.rows)) f.rows = [];
+      const fh = $('div', 'pj-fh'), fn = $('input'); fn.value = f.name; fn.setAttribute('aria-label', 'Tên thư mục con');
+      fn.addEventListener('change', () => { f.name = fn.value.trim() || f.name; save(); render(true); });
+      const fd = $('button', 'pj-x', 'Xoá thư mục'); let arm = false;
+      fd.addEventListener('click', () => { if (!arm && f.rows.some(real)) { arm = true; fd.textContent = 'Bấm lần nữa để xoá'; setTimeout(() => { arm = false; fd.textContent = 'Xoá thư mục'; }, 3000); return; } delFolder(f); });
+      fh.append('📂', fn, fd); M.append(fh);
+
+      let pick = () => {}, syncTitle = () => {};
+      // V1.28: danh sách việc đánh số · Link · Thư mục (biểu tượng gọn, bấm là mở)
+      const sheet = $('div', 'pj-sheet'); sheet.setAttribute('role', 'table'); sheet.setAttribute('aria-label', 'Việc cần làm ' + f.name);
+      const hd = $('div', 'pj-r hd'); hd.setAttribute('role', 'row');
+      hd.append($('div', 'c c-no', 'STT'), $('div', 'c c-k', '✓'), $('div', 'c', 'Việc cần làm'), $('div', 'c c-ln', 'Link'), $('div', 'c c-ln', 'Thư mục'), $('div', 'c c-bell', 'Nhắc'), $('div', 'c c-x', '')); sheet.append(hd);
+      const renum = () => sheet.querySelectorAll('.pj-r:not(.hd)').forEach((tr, i) => { const c = tr.querySelector('.c-no'); if (c) c.textContent = tr.classList.contains('blank') ? '' : i + 1; });
+      // ô Link / Thư mục: có giá trị → biểu tượng bấm mở (✏️ sửa khi rê chuột); trống → ＋ để dán
+      const chipCell = (r, key, blankRow) => {
+        const c = $('div', 'c c-ln'); const isUrl = v => /^(https?:\/\/|www\.)/i.test(v);
+        const show = () => {
+          c.replaceChildren(); const v = (r[key] || '').trim(); if (blankRow()) return;
+          if (!v) { const a = $('button', 'pj-chip add', '＋'); a.title = key === 'link' ? 'Dán link' : 'Dán link thư mục Drive hoặc đường dẫn trên máy (D:\\...)'; a.addEventListener('click', edit); c.append(a); return; }
+          const ic = key === 'link' ? '🔗' : '📁', b = $('button', 'pj-chip', ic); b.title = v;
+          b.addEventListener('click', () => { if (isUrl(v)) window.open(/^https?:/i.test(v) ? v : 'https://' + v, '_blank', 'noopener'); else openDir(v, { p: p.id, f: f.id, r: r.id }); });
+          const e = $('button', 'pj-chip ed', '✏️'); e.title = 'Sửa'; e.addEventListener('click', edit);
+          c.append(b, e);
+        };
+        const edit = () => {
+          const i = $('input', 'pj-chin'); i.value = r[key] || ''; i.placeholder = key === 'link' ? 'Dán link…' : 'Link Drive hoặc D:\\…'; i.setAttribute('aria-label', key === 'link' ? 'Link' : 'Thư mục');
+          let done = false; const ok = keep => { if (done) return; done = true; if (keep) { r[key] = i.value.trim(); save(); } c.classList.remove('editing'); show(); };
+          i.addEventListener('keydown', e => { if (e.key === 'Enter') ok(true); if (e.key === 'Escape') ok(false); }); i.addEventListener('blur', () => ok(true));
+          c.replaceChildren(i); c.classList.add('editing'); i.focus(); i.select();
+        };
+        c._show = show; show(); return c;
+      };
+      const rowEl = (r, blank) => {
+        const tr = $('div', 'pj-r' + (blank ? ' blank' : '') + (r.done ? ' done' : '')); tr.setAttribute('role', 'row');
+        const no = $('div', 'c c-no');
+        const ck = $('div', 'c c-k'), cb = $('input'); cb.type = 'checkbox'; cb.checked = !!r.done; cb.setAttribute('aria-label', 'Xong'); cb.disabled = blank; ck.append(cb);
+        const ct = $('div', 'c'), ti = $('textarea', 'c-t'); ti.rows = 1; ti.value = r.t || ''; ti.placeholder = blank ? 'Gõ việc mới…' : ''; ti.setAttribute('aria-label', 'Việc cần làm'); ct.append(ti);
+        const lk = chipCell(r, 'link', () => blank), dr = chipCell(r, 'dir', () => blank);
+        const bc = $('div', 'c c-bell'), bell = $('button', 'pj-bell'); bell.hidden = blank;
+        const bellSt = () => { const on = !!todoOf(r); bell.classList.toggle('on', on); bell.textContent = '🔔'; bell.title = on ? 'Đang ở Todo HaoHao – bấm để bỏ' : 'Đưa sang Todo HaoHao để nhắc'; bell.setAttribute('aria-pressed', on); };
+        bell.addEventListener('click', () => {
+          const t = todoOf(r);
+          if (t) { todos = todos.filter(x => x !== t); delete r.todoId; toast('Đã bỏ khỏi Todo HaoHao'); }
+          else { if (!(r.t || '').trim()) return; const id = 't' + Date.now().toString(36); todos.push({ id, text: r.t.trim() + ' · ' + p.name, done: !!r.done, due: '', notified: false, pj: p.id }); r.todoId = id; toast('🔔 Đã đưa sang Todo HaoHao – bấm 🔔 bên đó để hẹn giờ nhắc'); }
+          saveTodos(); save(); bellSt();
+        });
+        bellSt(); bc.append(bell);
+        const cx = $('div', 'c c-x'), x = $('button', 'pj-x', '✕'); x.setAttribute('aria-label', 'Xoá việc'); x.hidden = blank; cx.append(x);
+        tr.append(no, ck, ct, lk, dr, bc, cx); tr._r = r;
+        // V1.29: bấm / gõ vào việc nào thì note bên dưới chuyển sang việc đó
+        tr.addEventListener('focusin', () => { if (!blank) pick(r); });
+        no.addEventListener('click', () => { if (!blank) { pick(r); ti.focus(); } });
+        const make = () => { if (!blank) return; blank = false; tr.classList.remove('blank'); f.rows.push(r); cb.disabled = false; x.hidden = false; bell.hidden = false; ti.placeholder = ''; lk._show(); dr._show(); sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum(); };
+        ti.addEventListener('input', () => { grow(ti); const was = blank; if (ti.value.trim()) make(); r.t = ti.value; saveSoon(); updBar(); if (was && !blank) pick(r); else if (selRow === r.id) syncTitle(); });
+        ti.addEventListener('blur', () => { if (!blank) { const t = todoOf(r); if (t && r.t.trim()) { t.text = r.t.trim() + ' · ' + p.name; saveTodos(); } save(); } });
+        ti.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const nx = tr.nextElementSibling; (nx ? nx.querySelector('.c-t') : ti).focus(); } });
+        cb.addEventListener('change', () => { r.done = cb.checked; tr.classList.toggle('done', r.done); const t = todoOf(r); if (t) { t.done = r.done; saveTodos(); } save(); updBar(); });
+        x.addEventListener('click', () => { const t = todoOf(r); if (t) { todos = todos.filter(y => y !== t); saveTodos(); } f.rows = f.rows.filter(y => y !== r); tr.remove(); save(); updBar(); renum(); if (selRow === r.id) pick(f.rows.find(real) || null); });
+        setTimeout(() => grow(ti), 0);
+        return tr;
+      };
+      f.rows.forEach(r => sheet.append(rowEl(r, false)));
+      sheet.append(rowEl({ id: uid(), t: '', done: false }, true)); renum();
+      M.append(sheet);
+
+      // V1.29: NOTE THEO TỪNG VIỆC – tiêu đề = tên việc (sửa ở đây thì bảng đổi theo), nội dung r.html, màu r.color
+      const NC = { white: '#FFFFFF', yellow: '#FFF8D6', red: '#FFE4EA', blue: '#E3F1FF', green: '#E3F6E8', purple: '#F0E8FD' };
+      const noteBox = $('div'); M.append(noteBox);
+      let titleIn = null;
+      syncTitle = () => { const r = f.rows.find(x => x.id === selRow); if (titleIn && r && document.activeElement !== titleIn) titleIn.value = r.t || ''; };
+      pick = r => {
+        if (r && selRow === r.id && noteBox.firstChild) return;
+        selRow = r ? r.id : null;
+        sheet.querySelectorAll('.pj-r:not(.hd)').forEach(tr => tr.classList.toggle('sel', !!r && tr._r === r));
+        noteBox.replaceChildren(r ? buildNote(r) : $('div', 'pj-empty pj-nempty', 'Gõ một việc ở bảng trên, rồi bấm vào việc đó để ghi note.'));
+      };
+      const buildNote = r => {
+        const idx = f.rows.filter(real).indexOf(r) + 1;
+        const nt = $('div', 'pj-nt'); nt.style.setProperty('--nb', NC[r.color] || NC.white);
+        const tb = $('div', 'pj-ntb');
+        titleIn = $('input', 'pj-ntitle'); titleIn.value = r.t || ''; titleIn.placeholder = 'Tiêu đề…'; titleIn.setAttribute('aria-label', 'Tiêu đề note (tên việc)');
+        titleIn.addEventListener('input', () => { r.t = titleIn.value; const tr = [...sheet.children].find(x => x._r === r); if (tr) { const t = tr.querySelector('.c-t'); t.value = r.t; grow(t); } saveSoon(); });
+        titleIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ed.focus(); } });
+        const dots = $('div', 'pj-dots'); Object.entries(NC).forEach(([k, v]) => { const d = $('button', 'pj-dot' + ((r.color || 'white') === k ? ' on' : '')); d.style.background = v; d.setAttribute('aria-label', 'Màu ' + k); d.addEventListener('click', () => { r.color = k; nt.style.setProperty('--nb', v); dots.querySelectorAll('.pj-dot').forEach(z => z.classList.toggle('on', z === d)); save(); }); dots.append(d); });
+        const saved = $('span', 'pj-saved');
+        tb.append($('span', 'pj-nno', idx ? String(idx) : '•'), titleIn, dots, saved);
+        const ed = $('div', 'pj-nted'); ed.contentEditable = 'true'; ed.setAttribute('role', 'textbox'); ed.setAttribute('aria-multiline', 'true'); ed.setAttribute('aria-label', 'Nội dung note');
+        ed.dataset.ph = 'Ghi chú cho việc này… (dán ảnh, link được)'; ed.innerHTML = r.html || '';
+        let nts = 0; const saveNote = () => { r.html = ed.innerHTML.replace(/^(<br>|<div><br><\/div>)$/, ''); save(); saved.textContent = '✓ Đã lưu'; setTimeout(() => { saved.textContent = ''; }, 1200); };
+        ed.addEventListener('input', () => { clearTimeout(nts); nts = setTimeout(saveNote, 500); });
+        ed.addEventListener('blur', () => { clearTimeout(nts); saveNote(); });
+        const cmds = [['bold', '<b>B</b>', 'Đậm'], ['italic', '<i>I</i>', 'Nghiêng'], ['underline', '<u>U</u>', 'Gạch chân'], ['strikeThrough', '<s>ab</s>', 'Gạch ngang'], ['insertUnorderedList', '☰', 'Danh sách']];
+        const fmt = $('div', 'pj-fmt');
+        cmds.forEach(([c, h, t]) => { const b = $('button', 'pj-fb'); b.innerHTML = h; b.title = t; b.setAttribute('aria-label', t); b.addEventListener('mousedown', e => e.preventDefault()); b.addEventListener('click', () => { ed.focus(); document.execCommand(c); clearTimeout(nts); nts = setTimeout(saveNote, 300); }); fmt.append(b); });
+        const addImg = async file => {
+          const url = await new Promise(rs => { const fr = new FileReader(); fr.onload = () => rs(fr.result); fr.readAsDataURL(file); });
+          const im = await new Promise((rs, j) => { const i = new Image(); i.onload = () => rs(i); i.onerror = j; i.src = url; });
+          const k = Math.min(1, 900 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); ed.focus(); document.execCommand('insertHTML', false, `<img src="${cv.toDataURL('image/jpeg', 0.85)}">`); saveNote();
+        };
+        const fi = $('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.hidden = true; fi.addEventListener('change', () => { if (fi.files[0]) addImg(fi.files[0]); fi.value = ''; });
+        const ib = $('button', 'pj-fb', '🖼'); ib.title = 'Chèn ảnh'; ib.setAttribute('aria-label', 'Chèn ảnh'); ib.addEventListener('mousedown', e => e.preventDefault()); ib.addEventListener('click', () => fi.click()); fmt.append(ib, fi);
+        ed.addEventListener('paste', e => {
+          const img = [...(e.clipboardData.files || [])].find(x => /^image\//.test(x.type)); if (img) { e.preventDefault(); addImg(img); return; }
+          const t = e.clipboardData.getData('text/plain'); if (!t) return; e.preventDefault();
+          document.execCommand('insertHTML', false, escH(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>'));
+        });
+        ed.addEventListener('click', e => { const a = e.target.closest('a'); if (a && a.href) { e.preventDefault(); window.open(a.href, '_blank', 'noopener'); } });   // link trong note: bấm là mở
+        let prev = null; const undo = $('button', 'pj-fb wide', '↶ Hoàn tác'); undo.hidden = true;
+        const tidy = $('button', 'pj-fb wide', '✨ Sắp xếp'); tidy.title = 'Sắp xếp nội dung cho gọn (Gemini)';
+        tidy.addEventListener('click', async () => {
+          const txt = ed.innerText.trim(); if (!txt || tidy.disabled) return; tidy.disabled = true; tidy.textContent = '⏳ Đang sắp xếp…';
+          try { const res = await chrome.runtime.sendMessage({ type: 'note-tidy', text: txt }); if (!res || !res.ok) throw new Error(res && res.error === 'nokey' ? 'Cần mã Gemini (HaoHao → Thông tin → Tóm tắt)' : (res && res.error) || 'Mất kết nối');
+            prev = ed.innerHTML; ed.innerHTML = res.html; undo.hidden = false; saveNote(); }
+          catch (e) { saved.textContent = '⚠ ' + e.message; setTimeout(() => { saved.textContent = ''; }, 4000); }
+          tidy.disabled = false; tidy.textContent = '✨ Sắp xếp';
+        });
+        undo.addEventListener('click', () => { if (prev == null) return; ed.innerHTML = prev; prev = null; undo.hidden = true; saveNote(); });
+        const bt = $('div', 'pj-ntf'); bt.append(fmt, $('div', 'pj-sp'), undo, tidy);
+        nt.append(tb, ed, bt); return nt;
+      };
+      const first = f.rows.find(x => x.id === selRow && real(x)) || f.rows.find(real) || null; selRow = null; pick(first);
+    }
+    D.append(S, M); W.append(D);
+    quickLinks(W, p);   // V1.43: lối tắt riêng của dự án (giống lối tắt mảng) – vd trang airdrop, sàn, Drive
+  }
+
+  let rendering = false;
+  function render(force) {
+    if (rendering) { setTimeout(() => render(force), 0); return; }   // V1.43: ô đang mất focus (change/blur) lúc vẽ lại → vẽ sau
+    if (!ready || (!force && editing())) return;
+    rendering = true; try { render0(); } finally { rendering = false; }
+  }
+  // ⭐ V1.65: HaoHao Pro – trang Dự án cần Pro sau 2 tháng mở khoá toàn bộ
+  let proLocked = false;
+  const proCheck = () => chrome.runtime.sendMessage({ type: 'pro-st' }).then(s => { const L = !!(s && !s.ok); if (L !== proLocked) { proLocked = L; if (ready) render(true); } }).catch(() => {});
+  proCheck();
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.proLock || ch.proLic)) proCheck(); });
+  function proLockCard(W) {
+    const c = $('div', 'pj-pro');
+    c.append($('div', 'pj-pro-t', '⭐ Trang Dự án thuộc gói HaoHao Pro'), $('div', 'pj-pro-s', 'Bạn đã dùng hết 2 tháng mở khoá toàn bộ. Dữ liệu dự án của bạn vẫn còn nguyên – kích hoạt Pro là mở lại ngay.'));
+    const g = $('div', 'pj-pro-g'); HT.PRO.plans.forEach(([k, l, p]) => { const x = $('div', 'pj-pro-pl' + (k === 'y1' ? ' hot' : '')); x.append($('b', '', l), $('span', '', p.toLocaleString('vi-VN') + 'đ')); g.append(x); });
+    const b = $('button', 'pj-btn', '⭐ Mua / Kích hoạt Pro'); b.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {}));
+    c.append(g, b); W.append(c);
+  }
+  function render0() {
+    const W = $('div', 'pj-wrap'), p = openId && proj();
+    { const br = $('div', 'pj-brand'), im = document.createElement('img'); im.src = 'icons/icon48.png'; im.alt = ''; const tx = $('div', ''); tx.append($('b', '', 'HaoHao'), $('small', '', 'Quản lý dự án')); br.append(im, tx); W.append(br); }   // V1.64: biểu tượng HaoHao góc trái
+    if (proLocked) { proLockCard(W); root.replaceChildren(W); return; }
+    if (rutBg) setTimeout(() => { if (rutBg && !rutBg.isConnected) root.append(rutBg); }, 0);   // V1.65: hết 2 tháng dùng thử, chưa mua Pro
+    if (p) detail(W, p); else { openId = null; if (data.cur === '$all' && areas().length) overview(W); else board(W); }
+    root.replaceChildren(W);
+  }
+  chrome.storage.local.get(['projBoard', 'todos']).then(({ projBoard, todos: td }) => {
+    if (projBoard && Array.isArray(projBoard.projects)) data = projBoard;
+    todos = Array.isArray(td) ? td : [];
+    if (migrate() | todoSync()) save();
+    ready = true; render(true); loadRate();
+  }).catch(() => { ready = true; render(true); });
+  let pend = null;
+  chrome.storage.onChanged.addListener((ch, area) => {
+    if (area !== 'local') return;
+    if (ch.todos) { todos = Array.isArray(ch.todos.newValue) ? ch.todos.newValue : []; if (ready && todoSync()) { save(); if (!editing()) render(true); } else if (ready && !editing()) render(true); }
+    if (!ch.projBoard || !ch.projBoard.newValue) return;
+    const v = ch.projBoard.newValue, js = JSON.stringify(v);
+    if (js === lastSaved || js === JSON.stringify(data)) return;   // của chính trang này
+    if (editing()) { pend = v; return; }                            // tab khác vừa sửa: đợi gõ xong mới nạp
+    data = v; migrate(); lastSaved = JSON.stringify(data); render();
+  });
+  root.addEventListener('focusout', () => setTimeout(() => { if (pend && !editing()) { data = pend; pend = null; migrate(); lastSaved = JSON.stringify(data); render(true); } }, 0));
+})();
