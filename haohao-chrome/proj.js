@@ -355,8 +355,16 @@
     if (anyU) W.append($('div', 'pj-rate', '💱 Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') + (RATE_AT ? ' · cập nhật ' + new Date(RATE_AT).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '')));
 
     // 1) 4 ô số
-    const k4 = $('div', 'pj-kpis');
+    const k4 = $('div', 'pj-kpis k6');
     const kp = (lb, v, cls, sub) => { const d = $('div', 'pj-kpi ' + (cls || '')); d.append($('span', '', lb), $('b', '', v)); if (sub) d.append($('small', '', sub)); k4.append(d); };
+    { // V1.83: 🏦 Tổng tài sản = tổng thu − đã rút (vốn bỏ vào + lãi còn giữ lại) · luôn tính từ trước tới nay, không theo kỳ
+      const mAll = OP().filter(p => !ledger(p) && (p.von || p.lai));
+      const HA = OP().flatMap(p => (p.folders || []).filter(f => f.kind === 'hold' && (f.holds || []).length).map(f => holdCalc(f)));
+      const tA = all.filter(x => x.k === 'thu').reduce((a, x) => a + x.v, 0) + mAll.reduce((a, p) => a + mV(p, 'von') + mV(p, 'lai'), 0) + HA.reduce((a, h) => a + toVnd(h.val, 'usdt'), 0);
+      const cA = all.filter(x => x.k === 'chi').reduce((a, x) => a + x.v, 0) + mAll.reduce((a, p) => a + mV(p, 'von'), 0) + HA.reduce((a, h) => a + toVnd(h.cost, 'usdt'), 0);
+      const rA = areas().reduce((a, A) => a + (isIdeaA(A) ? 0 : rutSum(A)), 0);
+      kp('🏦 Tổng tài sản', fmtC(tA - rA, cu), 'tsan', 'Vốn ' + fmtC(cA, cu) + ' · lãi giữ lại ' + fmtC(tA - cA - rA, cu, true));
+    }
     kp('Tổng thu', fmtC(thu, cu), 'thu'); kp('Tổng chi', fmtC(chi, cu), 'chi');
     kp(loi < 0 ? 'Lỗ' : 'Lợi nhuận', fmtC(loi, cu, true), 'loi' + (loi > 0 ? ' pos' : loi < 0 ? ' neg' : ''), R.label);
     kp('Tỷ suất lãi', ty == null ? '–' : (ty > 0 ? '+' : '') + ty.toLocaleString('vi-VN') + '%', 'ty' + (ty > 0 ? ' pos' : ty < 0 ? ' neg' : ''), 'lợi nhuận / chi');
