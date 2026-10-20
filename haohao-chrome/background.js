@@ -522,7 +522,6 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     return true;
   }
   // V1.85: 🌐 dịch cả trang qua Google Dịch (máy chủ HaoHao gửi nhiều đoạn 1 lần) – nhanh như Chrome
-  if (msg.type === 'open-pdfview') { openPdfView(msg.url, sender.tab); return; }
   if (msg.type === 'g-translate') { fetch(HT.PRICE_API + '/dich', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: msg.q || [], tl: msg.tl || 'vi' }) }).then(r => r.json()).then(r => send(r && r.ok ? r : { ok: false, error: (r && r.error) || 'Google Dịch lỗi' })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-translate') { aiTranslate(msg).then(r => send({ ok: true, ...r })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'subs-relay' && sender.tab && /^hh-subs-(offer|active|status|hint|nosub)$/.test(msg.ev)) { chrome.tabs.sendMessage(sender.tab.id, { type: 'subs-ev', ev: msg.ev, detail: msg.detail }, { frameId: 0 }).catch(() => {}); return; }
@@ -1495,12 +1494,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await chrome.storage.local.set({ todos });
     toTab({ type: 'hh-open', tab: 'todo' });
   }
-  if (info.menuItemId === 'hh-pagetr') {
-    const u = (tab && tab.url) || info.pageUrl || '';
-    // V1.86: file PDF (trên máy / trên mạng) → mở trình đọc PDF HaoHao; còn lại dịch ngay trên trang
-    if (/\.pdf([?#]|$)/i.test(u) && !/^https:\/\/(drive|docs)\.google\.com\//.test(u)) openPdfView(u, tab);
-    else toTab({ type: 'hh-page-translate' });
-  }   // V1.85: dịch cả trang qua Google Dịch
+  if (info.menuItemId === 'hh-pagetr') toTab({ type: 'hh-page-translate' });   // V1.85: dịch cả trang qua Google Dịch   // V1.85: dịch cả trang qua Google Dịch
   if (info.menuItemId === 'hh-clip') {
     toTab({ type: 'hh-clip-save' });   // trang tự đọc bộ nhớ chép (cách đã chạy chắc) rồi lưu Note
   }
@@ -2149,9 +2143,3 @@ async function updCheck(force) {
 
 const TFH = { 'x-haohao': '1' };   // V1.6: app Transfer chỉ nhận lệnh có header này (trang web lạ không gửi được)
 
-// 📄 V1.86: mở file PDF trong trình đọc PDF HaoHao (dịch phủ đúng chỗ từng đoạn)
-function openPdfView(url, tab) {
-  if (!url) return;
-  const q = '?src=' + encodeURIComponent(url) + (tab && tab.id ? '&tab=' + tab.id : '');
-  chrome.tabs.create({ url: chrome.runtime.getURL('pdfview.html') + q, index: tab && tab.index >= 0 ? tab.index + 1 : undefined, openerTabId: tab && tab.id || undefined }).catch(() => {});
-}
