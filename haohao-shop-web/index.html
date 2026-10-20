@@ -494,9 +494,9 @@ function renderHome(){
       w.innerHTML=act?
         '<a class="card active" href="#'+n.id+'" style="background:'+n.bg+'">'+
           '<span style="display:flex;justify-content:space-between;align-items:center"><span class="k" style="color:'+n.kc+'">Ngách 0'+(i+1)+'</span><span class="tag" style="color:var(--orange-deep)">HaoHao chọn</span></span>'+
-          svg(n.shape,n.ink,' style="width:60%;align-self:center;filter:drop-shadow(0 14px 16px rgba(0,0,0,.12))"')+
+          '<img src="/shop/ngach-'+n.id+'.webp" alt="" style="width:78%;max-height:62%;object-fit:contain;align-self:center;filter:drop-shadow(0 16px 18px rgba(120,60,10,.22))">'+
           '<span style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px"><span><span class="name">'+esc(n.label)+'</span><span class="sub">'+esc(n.sub)+'</span></span><span class="go">'+ARROW+'</span></span></a>'
-        :'<button class="card idle" type="button" data-i="'+i+'" aria-label="Xem ngách '+esc(n.label)+'" style="background:'+n.bg+';opacity:.92">'+svg(n.shape,n.ink,' style="width:56%"')+'<span>'+esc(n.label)+'</span></button>';
+        :'<button class="card idle" type="button" data-i="'+i+'" aria-label="Xem ngách '+esc(n.label)+'" style="background:'+n.bg+';opacity:.92">'+'<img src="/shop/ngach-'+n.id+'.webp" alt="" loading="lazy" style="width:72%;max-height:60%;object-fit:contain;filter:drop-shadow(0 12px 14px rgba(120,60,10,.18))">'+'<span>'+esc(n.label)+'</span></button>';
     });
     pips.innerHTML=NICHES.map(function(n,i){return '<button type="button" class="pip'+(i===cur?' on':'')+'" data-i="'+i+'" aria-label="Ngách '+esc(n.label)+'" aria-pressed="'+(i===cur)+'"></button>';}).join('');
     bub.textContent=NICHES[cur].label+'?';
