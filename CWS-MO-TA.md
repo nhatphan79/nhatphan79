@@ -1,4 +1,4 @@
-# Trang Chrome Web Store – HaoHao V1 (soạn 21/10/2026, cập nhật V1.2.2)
+# Trang Chrome Web Store – HaoHao V1 (soạn 21/10/2026, cập nhật V1.2.3)
 
 Tên và mô tả ngắn nằm trong `haohao-chrome/manifest.json` (tự lên Store khi nộp bản mới). Phần dưới anh dán tay vào Developer Dashboard → Store listing.
 
@@ -49,6 +49,9 @@ HaoHao luôn miễn phí, không có gói trả tiền. Mỗi thứ 6, HaoHao t�
 Chỉ cần mở xem, không bắt buộc mua hay theo dõi. Xong là HaoHao dùng đầy đủ tới thứ 6 tuần sau. Máy mới cài được dùng ngay, ít nhất 3 ngày trước lần mở khoá đầu tiên.
 Trong lúc tạm nghỉ, lời nhắc của bạn không mất: HaoHao giữ lại và báo bù ngay khi mở khoá. Dữ liệu vẫn nằm nguyên trên máy bạn.
 
+☕ MỜI HAOHAO LY CÀ PHÊ
+Thấy HaoHao có ích, bạn có thể ủng hộ tuỳ tâm bằng mã QR chuyển khoản ở trang Giới thiệu (tự nhập số tiền). Hoàn toàn tự nguyện – ủng hộ hay không, HaoHao vẫn như nhau.
+
 ℹ️ MINH BẠCH
 • HaoHao thay trang Tab mới của Chrome. Muốn dùng lại Tab gốc: tắt hoặc gỡ HaoHao.
 • Link Shopee / TikTok Shop trong HaoHao có gắn mã tiếp thị (giá không đổi). Nếu bạn mua qua link này, HaoHao nhận một khoản hoa hồng nhỏ để duy trì miễn phí. HaoHao không tự mở link khi bạn chưa bấm.
@@ -64,5 +67,5 @@ Liên hệ: Phan Thanh Nhật – 0366 159 790 – nhatphan79@gmail.com
 - Không mua lượt cài / đánh giá (vi phạm luật Store, có thể bị gỡ).
 - **Ô "Hướng dẫn kiểm tra" (Test instructions)** ở mục Quyền riêng tư / Gửi duyệt: dán đoạn dưới để người duyệt không tưởng HaoHao bị lỗi khi thấy màn hình tạm nghỉ:
 ```
-HaoHao is free. Every Friday (00:00 local time) the extension pauses until the user opens 4 links once: haohaostore.com, our Shopee showcase, our TikTok Shop showcase, and our Facebook page. No purchase, login or follow is required; simply opening each link unlocks all features until next Friday. New installs work fully for at least 3 days. Reminders that fire while paused are kept and shown after unlocking. Shopee/TikTok links contain affiliate tags (disclosed in the UI and description).
+HaoHao is free. Every Friday (00:00 local time) the extension pauses until the user opens 4 links once: haohaostore.com, our Shopee showcase, our TikTok Shop showcase, and our Facebook page. No purchase, login or follow is required; simply opening each link unlocks all features until next Friday. New installs work fully for at least 3 days. Reminders that fire while paused are kept and shown after unlocking. An optional bank-transfer QR for voluntary donations is shown on the About page; donating does not change any feature. Shopee/TikTok links contain affiliate tags (disclosed in the UI and description).
 ```
