@@ -654,6 +654,7 @@
 "Ẩn nhắc nhẹ": "Hide reminder",
 "Link tiếp thị · Giá không đổi": "Affiliate link · Same price",
 "ⓘ Link tiếp thị · Giá không đổi": "ⓘ Affiliate link · Same price",
+"ⓘ Link tiếp thị · Giá không đổi so với tự mua": "ⓘ Affiliate links · Same price as buying yourself",
 "🔗 Nút mua, lấy mã và tìm trên Shopee, TikTok Shop: Link tiếp thị · Giá không đổi.": "🔗 Buy, coupon and search buttons for Shopee and TikTok Shop: affiliate link · same price.",
 "🔥 Deal hôm nay": "🔥 Today's deals",
 "🧡 Cửa hàng HaoHao ›": "🧡 HaoHao store ›",

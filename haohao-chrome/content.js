@@ -933,6 +933,7 @@
   .tnote2 { font-size: 11.5px; color: #6B7394; margin: 4px 0; }
   .tnote { font-size: 11px; color: #8A91AE; margin-top: 8px; line-height: 1.4; }
   .aff-note { margin: 6px 12px 0; color: #B7791F; font-weight: 700; }
+  .aff-foot { margin: 6px 12px 4px; color: #8A93B2; font-size: 11px; text-align: center; }
   .buybox { border-radius: 14px; padding: 12px; margin: 6px 0 8px; background: linear-gradient(135deg, #FFF1EE, #FFF8E8); border: 1.5px solid #F7B5A5; }
   .buybox .bt { font-size: 15px; font-weight: 800; color: #D0391B; }
   .buybox .big2 { display: block; text-align: center; margin: 10px 0 2px; padding: 10px 12px; font-size: 14px; background: #EE4D2D; }
@@ -4358,9 +4359,10 @@
   }
   let shopSub = 'check', shopView = 'find', prodChecking = false, prodMsg = '';
   const svMore = new Set();
-  function renderShop(V) {
+  // V1.100: dòng báo link tiếp thị (luật Chrome Web Store, có từ V1.56) chuyển từ đầu xuống ĐÁY bảng Mua sắm, chữ nhỏ xám (anh Nhật 21/10)
+  function renderShop(V) { renderShopBody(V); if (HT.STORE) V.append(el('div', 'aff-foot', 'ⓘ Link tiếp thị · Giá không đổi so với tự mua')); }
+  function renderShopBody(V) {
     shopAlert = false;
-    if (HT.STORE) V.append(el('div', 'tnote aff-note', HT.AFF_NOTE));   // V1.56: báo link tiếp thị trong giao diện (luật Chrome Web Store)
     const p = detectProduct(), item = isItemPage(), shopPg = !item && isShopeeShop();
     const nSaved = products.length ? ` (${products.length})` : '';
     if (item || shopPg) {
