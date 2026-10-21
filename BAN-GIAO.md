@@ -51,6 +51,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 6. Tự tìm file trên máy anh, không hỏi đường dẫn.
 7. Chrome: Claude chỉ xem màn hình, không bấm, không mở được `chrome://extensions`. Tab Shopee do Claude mở bị trắng → anh mở tab thường, Claude chụp màn hình.
 8. Shopee của anh hay hiện **giao diện tiếng Anh** → khi đọc trang luôn tính cả chữ tiếng Anh.
+9. ⚠️ **Không tạo file/thư mục tên bắt đầu bằng "_" (hoặc ".") trong thư mục HaoHao trên máy anh** – Chrome báo "Cannot load extension… Filenames starting with \"_\" are reserved" và **tắt luôn HaoHao** (21/10: thư mục `_cap-nhat` của Claude gây lỗi này, đã xoá). Chép bản mới: đưa zip vào thư mục tên thường (vd `cap-nhat-tam`), giải nén, manifest chép sau cùng, rồi xoá zip.
 
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
