@@ -18,6 +18,7 @@ Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V
 | Mã giảm giá / link cho máy khách | kho này: `haohao-extension/coupons.json` | máy khách tự đọc; KHÔNG xoá thư mục này |
 | Máy chủ Cloudflare | `server/haohao-gia-worker.js` | key AT_KEY, RH_KEY, GEMINI_KEY anh tự dán, Claude không gõ key |
 | Web cửa hàng | kho này: `haohao-shop-web/` → haohaostore.com (máy tính) + `/app` (điện thoại) | đẩy GitHub là web đổi sau ≤5 phút; sửa trên canvas trước |
+| Bài thử tự động HaoHao Convert | kho này: `kiem-thu-convert/` – `bash kiem-thu-convert/chay-tat-ca.sh` (13 bài, nạp tiện ích thật vào Chromium) | ngoài `haohao-chrome/` nên không đóng gói; sửa Convert xong chạy lại trước khi đẩy |
 | HaoHao V2 (app Windows) | kho này: `haohao-v2/` (Electron) | đóng gói: `npm install` rồi `npm run dist` (cần wine + wine32 trên Linux) → `dist/HaoHao-V2-Setup-x.y.z.exe` |
 
 - HaoHao **tự nạp lại** khi số phiên bản trong `manifest.json` đổi (background.js kiểm tra mỗi 3–30 giây). Không cần bấm ↻, chỉ F5 trang. ⚠️ **V1.78–V1.91 phần này bị tắt nhầm** (điều kiện `HT.STORE`), sửa ở V1.92 – sau khi anh bấm ↻ một lần thì tự nạp lại như cũ.
@@ -222,7 +223,10 @@ Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
 **HaoHao V1**
-- [ ] Đồng bộ dữ liệu với HaoHao V2: thêm phần nói chuyện với app (`127.0.0.1:47321`) vào bản tiện ích kế tiếp, SAU khi Chrome Web Store duyệt bản đang nộp (thêm quyền 127.0.0.1 → ghi lý do "kết nối app HaoHao V2").
+- ✅ **HaoHao Convert: MIỄN PHÍ** (anh Nhật 21/10) – không khoá Pro dù nằm trong Tiện ích.
+- [ ] Báo "HaoHao vừa cập nhật, bấm F5" (cần cho cả máy anh – cập nhật nhiều lần/ngày – lẫn khách Store khi Chrome tự cập nhật): đã giải thích 21/10, **chờ anh bảo làm**.
+- [ ] Nhạc nền Pomodoro (15MB) tải khi nghe lần đầu cho gói Store nhẹ: **anh để chờ** (21/10).
+- [ ] (anh: chờ, 21/10) Đồng bộ dữ liệu với HaoHao V2: thêm phần nói chuyện với app (`127.0.0.1:47321`) vào bản tiện ích kế tiếp, SAU khi Chrome Web Store duyệt bản đang nộp (thêm quyền 127.0.0.1 → ghi lý do "kết nối app HaoHao V2").
 - [ ] Gemini dịch lại cả trang: đã đề xuất (giữ bản Google trong lúc chờ, mẫu flash-lite, gói 20 đoạn × 3 song song, thanh báo %) – chờ anh đồng ý.
 - [ ] Báo "HaoHao vừa cập nhật, bấm F5" khi trang đang mở mất kết nối sau khi tải lại tiện ích – chờ anh đồng ý.
 
