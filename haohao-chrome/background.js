@@ -576,7 +576,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'img-dist') { imgDists(msg).then(send).catch(() => send({ d: [] })); return true; }
   if (msg.type === 'reviews-scan') { reviewsScan(msg).then(send).catch(() => send({ items: [] })); return true; }
   if (msg.type === 'prod-update') { prodUpdate(msg.ids || [], sender.tab && sender.tab.id).then(r => send(r)).catch(e => send({ ok: false, error: e.message })); return true; }
-  if (msg.type === 'open-doifile') {   // V1.87: 🔄 Đổi file – mở (hoặc chuyển sang) trang doifile.html
+  if (msg.type === 'open-doifile') {   // V1.87: 🔄 Đổi file – mở (hoặc chuyển sang) trang doifile.html (V1.94: trả lời để trang biết đã mở)
+    try { send({ ok: true }); } catch {}
     const u = chrome.runtime.getURL('doifile.html');
     chrome.tabs.query({ url: u }).then(t => { if (t[0]) { chrome.tabs.update(t[0].id, { active: true }); chrome.windows.update(t[0].windowId, { focused: true }); } else chrome.tabs.create({ url: u, active: true }); }).catch(() => chrome.tabs.create({ url: u, active: true }));
     return;

@@ -119,7 +119,11 @@
   // V1.87: 🔄 Đổi file (V1.88 đổi tên: HaoHao Convert) – kéo thả đổi định dạng + công cụ ảnh, mở trang riêng doifile.html
   TOOLS.push({ id: 'doifile', label: 'HaoHao Convert', emoji: '🔄', color: '#E8513C', desc: 'Kéo thả đổi JPG, PNG, PDF, HEIC…; cắt, thêm nền, nén ảnh',
     icon: '<path d="M4 9a8 8 0 0 1 14.5-3.5L20 7M20 15a8 8 0 0 1-14.5 3.5L4 17" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 3v4h-4M4 21v-4h4" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' });
-  const openDoi = () => { try { chrome.runtime.sendMessage({ type: 'open-doifile' }); } catch {} };
+  // V1.94: phần chạy nền cũ (chưa nạp lại) không biết 'open-doifile' → không trả lời thì tự mở (được ở Tab mới / trang của HaoHao)
+  const openDoi = () => {
+    const url = chrome.runtime.getURL('doifile.html'), fb = () => { if (location.protocol === 'chrome-extension:') location.href = url; else window.open(url, '_blank'); };
+    try { chrome.runtime.sendMessage({ type: 'open-doifile' }, r => { if (chrome.runtime.lastError || !r) fb(); }); } catch { fb(); }
+  };
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
   // V1.64: Góp ý chuyển sang trang Giới thiệu (Cài đặt) – không còn trong Tiện ích
