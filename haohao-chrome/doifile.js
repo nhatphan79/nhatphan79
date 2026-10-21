@@ -57,6 +57,7 @@ let xlsxP; const xlsxLib = () => xlsxP ||= globalThis.XLSX ? Promise.resolve(glo
   s.onerror = () => no(new Error('Không nạp được bộ đọc Excel')); document.head.append(s);
 });
 let pdflibP; const pdflib = () => pdflibP ||= import(URLX('lib/pdflib/pdf-lib.esm.min.js'));
+let pwP; const pdfWord = () => pwP ||= Promise.all([import(URLX('doifile-pdfword.js')), pdfjs()]).then(([m, Pj]) => { m.init(Pj, makeZip); return m; });   // V1.96: PDF → Word giữ cấu trúc
 const tiff = () => tifP ||= import(URLX('lib/tiff/utif.mjs')).then(m => m.default);
 const heif = () => heifP ||= new Promise((res, rej) => {
   const done = async () => {
@@ -485,7 +486,8 @@ async function convert(files, to, step) {
     if (kind === 'xls') { out.push(...await convertXls(f, to, step)); continue; }
     if (kind === 'pdf') {
       const doc = await openPDF(f), N = doc.numPages;
-      if (to === 'TXT' || to === 'DOCX') {
+      if (to === 'DOCX') { const m = await pdfWord(); out.push({ blob: await m.pdfToDocx(doc, (W.pdfMode || 'flow'), (k, n) => step(i + k / n, files.length)), name: b + '.docx' }); try { await doc.destroy(); } catch {} continue; }   // V1.96
+      if (to === 'TXT') {
         const texts = []; for (let n = 1; n <= N; n++) texts.push(await pageText(doc, n));
         if (!texts.join('').trim()) throw new Error('PDF này là ảnh scan, không có chữ để lấy');
         if (to === 'TXT') out.push({ blob: new Blob(['﻿' + texts.join('\n\n')], { type: MIME.TXT }), name: b + '.txt' });
@@ -704,6 +706,7 @@ async function choose(i) {
   if (skip > 0) toast(gop ? `Bỏ qua ${skip} file không phải ảnh/PDF/Excel` : `Chỉ làm ${files.length} file ${KIND_NAME[W.kind]}, bỏ qua ${skip} file khác loại`);
   if (W.mode === 'tool') { closeWheel(); return openTool(it.id, files); }
   if (!gop && W.kind === 'xls' && it.id === 'PDF' && files.length === 1) { closeWheel(); return openXlsPdf(files[0]); }   // V1.95: hộp chỉnh trước khi xuất PDF
+  if (!gop && W.kind === 'pdf' && it.id === 'DOCX') { closeWheel(); return openPdfWord(files); }   // V1.96: hỏi kiểu chuyển PDF → Word
   W.busy = true; W.wheel.classList.add('busy'); hubText(); setHot(i);
   const name = files.length > 1 ? `${files.length} file` : files[0].name;
   try {
@@ -1288,6 +1291,26 @@ async function toolMeta(src, files) {
   });
 }
 
+/* 📝 PDF → Word: chọn kiểu (V1.96) */
+function openPdfWord(files) {
+  const D = dialog('Chuyển PDF sang Word', { applyText: files.length > 1 ? `Chuyển ${files.length} file` : 'Chuyển sang Word' });
+  let mode = 'flow';
+  const card = (v, title, desc) => { const b = $e('button', 'hhd-mode'); b.type = 'button'; b.dataset.v = v; b.append($e('b', '', title), $e('span', '', desc)); b.addEventListener('click', () => { mode = v; [...wrap.children].forEach(x => x.classList.toggle('on', x.dataset.v === v)); }); return b; };
+  const wrap = $e('div', 'hhd-modes');
+  wrap.append(card('flow', '✍️ Dễ sửa (khuyên dùng)', 'Dựng lại đoạn văn, căn lề, cỡ chữ, đậm/nghiêng/màu; bảng có kẻ thành bảng Word thật; hình đặt đúng chỗ. Sửa chữ thoải mái, chữ tự xuống dòng.'),
+    card('exact', '📐 Giữ nguyên bố cục', 'Trông giống hệt PDF: nền, đường kẻ, hình y nguyên, từng dòng chữ đặt đúng chỗ. Sửa được chữ trong từng dòng nhưng không tự xuống dòng.'));
+  wrap.firstChild.classList.add('on');
+  const st = $e('div', 'hhd-note', files.length > 1 ? `${files.length} file PDF` : files[0].name);
+  D.body.append(wrap, st, $e('div', 'hhd-note', 'PDF scan (chỉ là ảnh chụp) không có chữ để chuyển. Phông chữ lấy theo PDF; máy không có phông đó thì Word dùng phông gần giống.'));
+  D.reset.style.visibility = 'hidden';
+  D.ok.addEventListener('click', async () => {
+    D.ok.disabled = true; W.pdfMode = mode;
+    try { const res = await convert(files, 'DOCX', (k, n) => { D.ok.textContent = n > 1 ? `Đang chuyển ${Math.min(n, Math.floor(k) + 1)}/${n}…` : 'Đang chuyển…'; st.textContent = `⏳ Đang đọc từng trang… ${Math.round(k / Math.max(1, n) * 100)}%`; }); D.close(); await deliver(res); }
+    catch (e) { console.warn('[HaoHao Convert] pdf→docx', e); D.ok.disabled = false; D.ok.textContent = 'Chuyển sang Word'; st.textContent = '⚠️ ' + errText(e); }
+    finally { W.pdfMode = null; }
+  });
+}
+
 /* 📄 Excel → PDF: hộp chỉnh trước khi xuất (V1.95) – mặc định theo thiết lập in của file */
 async function openXlsPdf(file) {
   toast('⏳ Đang đọc file Excel…', 4000);
@@ -1360,4 +1383,4 @@ function initPage() {
 }
 buildTray(); loadDir();
 if (PAGE) initPage();
-window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { xlsBook, xlsPlan, xlsPdfBlob, openXlsPdf, convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
+window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { openPDF, pdfWord, openPdfWord, xlsBook, xlsPlan, xlsPdfBlob, openXlsPdf, convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };

@@ -123,3 +123,11 @@
 .hhd-pos button { width: 30px; height: 26px; border: 1px solid var(--hd-bd); background: var(--hd-card); color: var(--hd-ink); border-radius: 6px; cursor: pointer; font-size: 13px; padding: 0; }
 .hhd-pos button.on { background: var(--hd-hot); border-color: var(--hd-hot); color: #fff; }
 .hhd-sw button[data-v="none"] { font-size: 14px; line-height: 1; }
+
+/* V1.96: chọn kiểu PDF → Word */
+.hhd-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .hhd-modes { grid-template-columns: 1fr; } }
+.hhd-mode { text-align: left; border: 2px solid var(--hd-bd); background: var(--hd-card); color: var(--hd-ink); border-radius: 14px; padding: 12px 14px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 4px; }
+.hhd-mode b { font-size: 14px; }
+.hhd-mode span { font-size: 12.5px; color: var(--hd-soft); line-height: 1.45; }
+.hhd-mode.on { border-color: var(--hd-hot); box-shadow: 0 0 0 3px rgba(232, 81, 60, .15); }

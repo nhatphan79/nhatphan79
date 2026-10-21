@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – Trợ lý cá nhân",
-  "version": "1.10.362",
-  "version_name": "V1.95",
+  "version": "1.10.363",
+  "version_name": "V1.96",
   "description": "Chú hamster trợ lý trên Chrome: việc cần làm, nhắc nhở, ghi chú, dự án, tập trung, dịch nhanh. Bớt quên, bớt rối.",
   "permissions": [
     "storage",
