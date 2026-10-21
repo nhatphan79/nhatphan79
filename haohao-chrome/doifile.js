@@ -361,11 +361,32 @@ function tableCanvases(rows, title, mode) {
   });
   return out;
 }
-async function bookSheets(file) { const X = await xlsxLib(), wb = await readBook(file); return { X, wb, sheets: wb.SheetNames.map(n => ({ name: n, rows: sheetRows(X, wb.Sheets[n]) })).filter(s => s.rows.length) }; }
-async function xlsPages(file) {   // dùng cho PDF và Gộp PDF
-  const { sheets } = await bookSheets(file); if (!sheets.length) throw new Error(`"${file.name}" không có dữ liệu`);
-  const pages = []; sheets.forEach(sh => pages.push(...tableCanvases(sh.rows, sheets.length > 1 ? sh.name : '', 'pdf'))); return pages;
+// V1.95: Excel → PDF giống Excel in (doifile-xls.js: định dạng ô, ô gộp, logo, thiết lập in)
+let xlsModP; const xlsMod = () => xlsModP ||= Promise.all([import(URLX('doifile-xls.js')), xlsxLib()]).then(([m, X]) => { m.init(X); return m; });
+async function xlsBook(file) {
+  const m = await xlsMod(), e = EXT(file.name); let buf;
+  if (e === 'xlsx' || e === 'xlsm') buf = await file.arrayBuffer();
+  else { const X = await xlsxLib(), wb = await readBook(file); buf = X.write(wb, { bookType: 'xlsx', type: 'array' }); }   // .xls/.csv/.ods: đổi sang xlsx trong máy rồi đọc
+  return { m, book: await m.parseXlsx(buf) };
 }
+const XR = 2.5;   // độ nét khi xuất: 2,5 điểm ảnh / 1 pt ≈ 180 dpi
+function xlsPlan(m, book, over) {   // → [{sh, L, pg, name}]
+  const out = [];
+  book.sheets.forEach((sh, i) => {
+    if (!m.hasData(sh) || (over && over.skip && over.skip.has(i))) return;
+    const d = m.sheetDefaults(sh), o = { ...d };
+    if (over) for (const k of ['paper', 'orient', 'fit', 'pct', 'margin', 'hc', 'area']) if (over[k] != null && over[k] !== 'file') o[k] = k === 'paper' ? +over[k] : k === 'hc' ? over[k] === '1' : over[k];
+    if (over && over.fit === 'pct') o.pct = over.pct; if (over && over.titles) o.titles = over.titles;
+    const L = m.layout(sh, o); L.pages.forEach(pg => out.push({ sh, L, pg, name: sh.name }));
+  });
+  return out;
+}
+async function xlsPdfBlob(m, plan, step) {
+  const ps = [];
+  for (let k = 0; k < plan.length; k++) { step && step(k, plan.length); const p = plan[k], c = m.renderPage(p.sh, p.L, p.pg, XR); ps.push({ data: await U8(await toBlob(c, 'image/jpeg', .92)), w: c.width, h: c.height, pw: p.L.pw, ph: p.L.ph }); }
+  return makePDF(ps);
+}
+async function bookSheets(file) { const X = await xlsxLib(), wb = await readBook(file); return { X, wb, sheets: wb.SheetNames.map(n => ({ name: n, rows: sheetRows(X, wb.Sheets[n]) })).filter(s => s.rows.length) }; }
 const sheetName = (n, used) => { let b = String(n).replace(/[\[\]:*?\/\\]/g, ' ').trim().slice(0, 31) || 'Sheet'; let x = b, k = 2; while (used.has(x.toLowerCase())) { const suf = ` (${k++})`; x = b.slice(0, 31 - suf.length) + suf; } used.add(x.toLowerCase()); return x; };
 const safeFile = n => String(n).replace(/[\\/:*?"<>|]/g, ' ').trim() || 'sheet';
 async function convertXls(f, to, step) {
@@ -374,7 +395,7 @@ async function convertXls(f, to, step) {
   const { X, wb, sheets } = await bookSheets(f); if (!sheets.length) throw new Error(`"${f.name}" không có dữ liệu`);
   const nm = (sh, ext, part) => (sheets.length > 1 ? `${b} - ${safeFile(sh.name)}` : b) + (part ? ` (phần ${part})` : '') + '.' + ext;
   if (to === 'CSV') sheets.forEach(sh => out.push({ blob: new Blob(['\uFEFF' + X.utils.sheet_to_csv(wb.Sheets[sh.name], { blankrows: false })], { type: MIME.CSV }), name: nm(sh, 'csv') }));
-  else if (to === 'PDF') { const ps = []; for (const sh of sheets) for (const c of tableCanvases(sh.rows, sheets.length > 1 ? sh.name : '', 'pdf')) ps.push(await pageFromCanvas(c, true)); out.push({ blob: makePDF(ps), name: b + '.pdf' }); }
+  else if (to === 'PDF') { const { m, book } = await xlsBook(f), plan = xlsPlan(m, book); if (!plan.length) throw new Error(`"${f.name}" không có dữ liệu`); out.push({ blob: await xlsPdfBlob(m, plan), name: b + '.pdf' }); }
   else for (const sh of sheets) { const cs = tableCanvases(sh.rows, sheets.length > 1 ? sh.name : '', 'img'); for (let k = 0; k < cs.length; k++) out.push({ blob: await encode(cs[k], to), name: nm(sh, EXT_OF[to], cs.length > 1 ? k + 1 : 0) }); }
   if (out.length > 10) return [{ blob: await makeZip(out.map(x => ({ name: x.name, data: x.blob }))), name: `${b} (${out.length} file ${to}).zip` }];
   return out;
@@ -405,7 +426,11 @@ async function mergeToPdf(files, step) {   // nhiều ảnh + PDF (lẫn lộn) 
   for (let i = 0; i < files.length; i++) {
     step(i, files.length); const f = files[i];
     if (kindOf(f) === 'pdf') { const src = await loadPdfLib(f); (await out.copyPages(src, src.getPageIndices())).forEach(pg => out.addPage(pg)); continue; }
-    if (kindOf(f) === 'xls') { for (const c of await xlsPages(f)) { const pg = await pageFromCanvas(c, true), im = await out.embedJpg(pg.data); out.addPage([pg.pw, pg.ph]).drawImage(im, { x: 0, y: 0, width: pg.pw, height: pg.ph }); } continue; }   // V1.90: bảng Excel in vào PDF
+    if (kindOf(f) === 'xls') {   // V1.95: bảng Excel in vào PDF theo thiết lập in của file
+      const { m, book } = await xlsBook(f);
+      for (const p of xlsPlan(m, book)) { const c = m.renderPage(p.sh, p.L, p.pg, XR), im = await out.embedJpg(await U8(await toBlob(c, 'image/jpeg', .92))); out.addPage([p.L.pw, p.L.ph]).drawImage(im, { x: 0, y: 0, width: p.L.pw, height: p.L.ph }); }
+      continue;
+    }
     const e = EXT(f.name), buf = new Uint8Array(await f.arrayBuffer()); let img = null;
     if ((/^(jpe?g|jfif)$/.test(e) || f.type === 'image/jpeg') && ((readExif(buf) || {}).orient || 1) === 1) { try { img = await out.embedJpg(buf); } catch {} }   // JPG đúng chiều: nhúng nguyên bản, không nén lại
     else if (e === 'png' || f.type === 'image/png') { try { img = await out.embedPng(buf); } catch {} }
@@ -678,6 +703,7 @@ async function choose(i) {
   const skip = (W.picked || files.length) - files.length;
   if (skip > 0) toast(gop ? `Bỏ qua ${skip} file không phải ảnh/PDF/Excel` : `Chỉ làm ${files.length} file ${KIND_NAME[W.kind]}, bỏ qua ${skip} file khác loại`);
   if (W.mode === 'tool') { closeWheel(); return openTool(it.id, files); }
+  if (!gop && W.kind === 'xls' && it.id === 'PDF' && files.length === 1) { closeWheel(); return openXlsPdf(files[0]); }   // V1.95: hộp chỉnh trước khi xuất PDF
   W.busy = true; W.wheel.classList.add('busy'); hubText(); setHot(i);
   const name = files.length > 1 ? `${files.length} file` : files[0].name;
   try {
@@ -1262,6 +1288,57 @@ async function toolMeta(src, files) {
   });
 }
 
+/* 📄 Excel → PDF: hộp chỉnh trước khi xuất (V1.95) – mặc định theo thiết lập in của file */
+async function openXlsPdf(file) {
+  toast('⏳ Đang đọc file Excel…', 4000);
+  let m, book; try { ({ m, book } = await xlsBook(file)); } catch (e) { console.warn('[HaoHao Convert] xls', e); return toast('⚠️ ' + errText(e), 6000); }
+  const tt = document.querySelector('.hhd-toast'); if (tt) tt.hidden = true;
+  const live = book.sheets.map((sh, i) => ({ sh, i })).filter(q => m.hasData(q.sh));
+  if (!live.length) return toast('⚠️ File Excel này không có dữ liệu');
+  const D = dialog('Xuất PDF từ Excel', { applyText: 'Xuất PDF' });
+  const def = () => ({ paper: 'file', orient: 'file', fit: 'file', pct: 100, margin: 'file', hc: 'file', area: 'file', titles: '', skip: new Set() });
+  let o = def(), plan = [], cur = 0;
+  const d0 = m.sheetDefaults(live[0].sh), fitName = { w1: 'vừa chiều ngang 1 trang', p1: 'vừa 1 trang', pct: d0.pct + '%' };
+  const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv); box.style.minHeight = '260px';
+  const nav = $e('div', 'hhd-row'); nav.style.justifyContent = 'center'; nav.style.marginTop = '8px';
+  const prev = $e('button', 'hhd-btn', '‹'), next = $e('button', 'hhd-btn', '›'), lab = $e('span', '', ''); lab.style.cssText = 'min-width:170px;text-align:center;color:var(--hd-soft)';
+  nav.append(prev, lab, next);
+  const show = () => {
+    if (!plan.length) { lab.textContent = 'Không có trang nào'; cv.width = 10; cv.height = 10; return; }
+    cur = Math.max(0, Math.min(cur, plan.length - 1)); const p = plan[cur], mw = Math.min(600, innerWidth - 80), mh = Math.min(430, innerHeight * .5), r = Math.min(mw / p.L.pw, mh / p.L.ph);
+    const c = m.renderPage(p.sh, p.L, p.pg, Math.min(2, r * (devicePixelRatio || 1))); cv.width = c.width; cv.height = c.height; cv.style.width = Math.round(p.L.pw * r) + 'px'; cv.style.height = Math.round(p.L.ph * r) + 'px'; cv.style.boxShadow = '0 2px 10px rgba(0,0,0,.18)';
+    cv.getContext('2d').drawImage(c, 0, 0); lab.textContent = `Trang ${cur + 1}/${plan.length}${live.length > 1 ? ' · ' + p.name : ''}`; prev.disabled = cur === 0; next.disabled = cur >= plan.length - 1;
+  };
+  const rebuild = () => { plan = xlsPlan(m, book, o); show(); };
+  prev.addEventListener('click', () => { cur--; show(); }); next.addEventListener('click', () => { cur++; show(); });
+  const sel = (opts, v, on) => { const s = $e('select'); opts.forEach(([a, t]) => { const op = $e('option', '', t); op.value = a; s.append(op); }); s.value = v; s.addEventListener('change', () => on(s.value)); return s; };
+  const paperS = sel([['file', `Theo file (${m.PAPER_NAMES[d0.paper] || 'A4'})`], ['9', 'A4'], ['8', 'A3'], ['11', 'A5'], ['1', 'Letter']], 'file', v => { o.paper = v; rebuild(); });
+  const orB = segBtns([['file', `Theo file (${d0.orient === 'land' ? 'ngang' : 'dọc'})`], ['port', 'Dọc'], ['land', 'Ngang']], 'file', v => { o.orient = v; rebuild(); });
+  const pctIn = $e('input'); pctIn.type = 'number'; pctIn.min = 10; pctIn.max = 400; pctIn.value = 100; pctIn.hidden = true; pctIn.addEventListener('change', () => { o.pct = Math.max(10, Math.min(400, +pctIn.value || 100)); rebuild(); });
+  const fitS = sel([['file', `Theo file (${fitName[d0.fit] || '100%'})`], ['w1', 'Vừa chiều ngang 1 trang'], ['p1', 'Vừa gọn 1 trang'], ['pct', 'Tỉ lệ % tự nhập']], 'file', v => { o.fit = v; pctIn.hidden = v !== 'pct'; rebuild(); });
+  const mgB = segBtns([['file', 'Theo file'], ['normal', 'Thường'], ['narrow', 'Hẹp'], ['wide', 'Rộng']], 'file', v => { o.margin = v; rebuild(); });
+  const hcB = segBtns([['file', `Theo file (${d0.hc ? 'có' : 'không'})`], ['1', 'Có'], ['0', 'Không']], 'file', v => { o.hc = v; rebuild(); });
+  const tIn = $e('input'); tIn.type = 'text'; tIn.placeholder = d0.titles ? `Theo file: ${d0.titles}` : 'vd 1:3'; tIn.style.cssText = 'width:120px;font:inherit;font-size:12.5px;padding:4px 7px;border:1px solid var(--hd-bd);border-radius:8px;background:var(--hd-card);color:var(--hd-ink)';
+  tIn.addEventListener('keydown', e => e.stopPropagation()); tIn.addEventListener('change', () => { o.titles = /^\s*\d+\s*:\s*\d+\s*$/.test(tIn.value) ? tIn.value.replace(/\s/g, '') : ''; rebuild(); });
+  D.body.append(box, nav);
+  if (live.length > 1) {
+    const w = $e('div', 'hhd-sw'); w.style.gap = '10px';
+    live.forEach(q => { const lb = $e('label'); lb.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:12.5px'; const cb = $e('input'); cb.type = 'checkbox'; cb.checked = true; cb.addEventListener('change', () => { cb.checked ? o.skip.delete(q.i) : o.skip.add(q.i); cur = 0; rebuild(); }); lb.append(cb, q.sh.name); w.append(lb); });
+    D.body.append(row('Sheet', w));
+  }
+  D.body.append(row('Khổ giấy', paperS), row('Hướng giấy', orB), row('Co giãn', fitS, pctIn), row('Lề', mgB), row('Căn giữa ngang', hcB));
+  if (live.some(q => q.sh.area)) D.body.append(row('Vùng in', segBtns([['file', 'Theo file'], ['all', 'Cả sheet']], 'file', v => { o.area = v; rebuild(); })));
+  D.body.append(row('Dòng lặp mỗi trang', tIn), $e('div', 'hhd-note', 'Mặc định lấy đúng thiết lập in trong file Excel (vùng in, khổ giấy, vừa trang, lề…). Màu ô, khung kẻ, ô gộp, logo được giữ; biểu đồ và định dạng có điều kiện chưa vẽ được.'));
+  D.reset.addEventListener('click', () => { o = def(); paperS.value = 'file'; orB.set('file'); fitS.value = 'file'; pctIn.hidden = true; mgB.set('file'); hcB.set('file'); tIn.value = ''; cur = 0; rebuild(); });
+  D.ok.addEventListener('click', async () => {
+    if (!plan.length) return toast('Chọn ít nhất 1 sheet');
+    D.ok.disabled = true; D.ok.textContent = 'Đang xuất…';
+    try { const blob = await xlsPdfBlob(m, plan, (k, n) => { D.ok.textContent = `Đang xuất ${k + 1}/${n}…`; }); D.close(); await deliver([{ blob, name: BASE(file.name) + '.pdf' }]); }
+    catch (e) { D.ok.disabled = false; D.ok.textContent = 'Xuất PDF'; toast('⚠️ ' + errText(e), 6000); }
+  });
+  rebuild();
+}
+
 /* ───────────────────────── khởi động ───────────────────────── */
 function pickFiles() {
   const i = $e('input'); i.type = 'file'; i.multiple = true; i.accept = 'image/*,.heic,.heif,.tif,.tiff,.avif,.pdf,.docx,.txt,.md,.csv,.xlsx,.xlsm,.xls,.ods';
@@ -1283,4 +1360,4 @@ function initPage() {
 }
 buildTray(); loadDir();
 if (PAGE) initPage();
-window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
+window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { xlsBook, xlsPlan, xlsPdfBlob, openXlsPdf, convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
