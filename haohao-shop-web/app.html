@@ -45,6 +45,7 @@ img{display:block}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 16px 4px;margin:0 -16px}.chips::-webkit-scrollbar{display:none}
 .chip{flex:none;padding:8px 14px;border-radius:18px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--soft);white-space:nowrap}
 .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.gseg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;padding:4px;margin-bottom:10px;border-radius:14px;background:#fff;border:1px solid var(--line)}.gseg a{height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;color:var(--soft)}.gseg a.on{background:var(--acc);color:#fff;font-weight:800}
 /* lưới sản phẩm */
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .pc{display:flex;flex-direction:column;background:#fff;border-radius:16px;overflow:hidden;position:relative}
@@ -245,12 +246,28 @@ function vCatList(sel){   /* 20/10: mẫu 4A – cột ngách bên trái, lướ
    (best?'<a class="dm-hot" href="#/sp/'+best.id+'"><span style="font-size:20px">🔥</span><span style="flex:1;min-width:0"><b>Bán chạy nhất</b><br><span>'+esc(best.n.slice(0,42))+'… · '+esc((best.soldTxt||'').replace(' đã bán',''))+' đã bán</span></span><span style="color:var(--acc);font-weight:800">›</span></a>':'')+
    '</div></div>';
 }
-function vNiche(id,topic,s){
+/* 21/10: lọc giới tính – Thời trang: Nam/Nữ · Mẹ & Bé › Bé phong cách: Bé trai/Bé gái (nhận theo tên SP) */
+var GIOI={'thoi-trang':[['nam','Nam'],['nu','Nữ']],'be':[['trai','Bé trai'],['gai','Bé gái']]};
+function gKind(id,topic){ return id==='thoi-trang'?'thoi-trang':(id==='me-be'&&/phong cach/.test(fold(topic))?'be':''); }
+function gOf(x){ if(x._g) return x._g; var t=' '+fold(x.n).replace(/[^a-z0-9]+/g,' ')+' ', g={};
+  t=t.replace(/ viet nam /g,' ').replace(/ nam cham /g,' ').replace(/ mien nam /g,' ').replace(/ phuong nam /g,' ');
+  var both=/ unisex | nam nu | nu nam /.test(t);
+  if(both||/ nam | men | mens | cho nam /.test(t)) g.nam=1;
+  if(both||/ nu | women | womens | cho nu | nu tinh /.test(t)) g.nu=1;
+  if(/ be trai | con trai | cau be | boy | boys /.test(t)) g.trai=1;
+  if(/ be gai | con gai | gai | girl | girls /.test(t)) g.gai=1;
+  if(!g.trai&&!g.gai){ g.trai=1; g.gai=1; }   /* đồ bé không ghi trai/gái → hiện ở cả hai */
+  return (x._g=g); }
+function vNiche(id,topic,s,g){
   var n=NI[id]; if(!n) return vCatList();
-  var subs=khuList(id), l=D.items.filter(function(x){return x.niche===id&&(!topic||inKhu(x,id,topic));});
-  return bar(esc(n.full||n.label),true)+'<div class="sec" style="padding-top:12px"><div class="chips"><a class="chip'+(!topic?' on':'')+'" href="#/danh-muc/'+id+'">Tất cả</a>'+subs.map(function(t){return '<a class="chip'+(t===topic?' on':'')+'" href="#/danh-muc/'+id+'/'+encodeURIComponent(t)+'">'+esc(t)+'</a>';}).join('')+'</div>'+
-   '<div class="chips" style="margin-top:6px">'+SORTS.map(function(o){return '<a class="chip'+(o[0]===s?' on':'')+'" style="padding:6px 12px;font-size:12px" href="#/danh-muc/'+id+(topic?'/'+encodeURIComponent(topic):'')+'?s='+o[0]+'">'+o[1]+'</a>';}).join('')+'</div>'+
-   '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+l.length+' sản phẩm</p>'+(READY?grid(sortList(l,s)):skel())+'</div>';
+  var gk=gKind(id,topic), go=gk?GIOI[gk]:null; if(!go||!go.some(function(o){return o[0]===g;})) g='';
+  function L(t,ss,gg){ var q=[]; if(ss&&ss!=='lq') q.push('s='+ss); if(gg) q.push('g='+gg); return '#/danh-muc/'+id+(t?'/'+encodeURIComponent(t):'')+(q.length?'?'+q.join('&'):''); }
+  var subs=khuList(id), l=D.items.filter(function(x){return x.niche===id&&(!topic||inKhu(x,id,topic))&&(!g||gOf(x)[g]);});
+  var seg=go?'<div class="gseg" role="group" aria-label="Lọc theo giới tính"><a href="'+L(topic,s,'')+'"'+(!g?' class="on" aria-current="true"':'')+'>Tất cả</a>'+go.map(function(o){return '<a href="'+L(topic,s,o[0])+'"'+(o[0]===g?' class="on" aria-current="true"':'')+'>'+o[1]+'</a>';}).join('')+'</div>':'';
+  var keepG=gk==='thoi-trang'?g:'';
+  return bar(esc(n.full||n.label),true)+'<div class="sec" style="padding-top:12px">'+seg+'<div class="chips"><a class="chip'+(!topic?' on':'')+'" href="'+L('',s,keepG)+'">Tất cả</a>'+subs.map(function(t){return '<a class="chip'+(t===topic?' on':'')+'" href="'+L(t,s,keepG)+'">'+esc(t)+'</a>';}).join('')+'</div>'+
+   '<div class="chips" style="margin-top:6px">'+SORTS.map(function(o){return '<a class="chip'+(o[0]===s?' on':'')+'" style="padding:6px 12px;font-size:12px" href="'+L(topic,o[0],g)+'">'+o[1]+'</a>';}).join('')+'</div>'+
+   '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+l.length+' sản phẩm</p>'+(READY?grid(sortList(l,s),g?'Chưa có sản phẩm phù hợp – thử chọn “Tất cả”.':''):skel())+'</div>';
 }
 var DF=[['g30','🔥 Giảm trên 30%'],['u50','💸 Dưới 50k'],['u99','🏷️ Dưới 99k'],['u200','💰 Dưới 200k'],['ban','⭐ Bán chạy']];
 function vDeals(nid,f){   /* 20/10: thêm bộ lọc Sale */
@@ -341,7 +358,7 @@ function route(){
   if(seg[0]==='danh-muc'&&!seg[1]&&qs.n) ls('dmn',qs.n);
   if(!seg.length) html=vHome();
   else if(seg[0]==='tim') html=vSearch(qs.q||'',qs.s||'lq');
-  else if(seg[0]==='danh-muc') html=seg[1]?vNiche(seg[1],seg[2]||'',qs.s||'lq'):vCatList(qs.n||ls('dmn'));
+  else if(seg[0]==='danh-muc') html=seg[1]?vNiche(seg[1],seg[2]||'',qs.s||'lq',qs.g||''):vCatList(qs.n||ls('dmn'));
   else if(seg[0]==='uu-dai') html=vDeals(seg[1]||'',qs.f||'');
   else if(seg[0]==='yeu-thich') html=vFav(seg[1]||'');
   else if(seg[0]==='ca-nhan') html=vMe();
