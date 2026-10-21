@@ -2118,7 +2118,9 @@ async function reviewsScanOne({ url, key }) {
 // 🔄 1.9.59 TỰ CẬP NHẬT (chỉ bản cài từ thư mục – "Tiện ích đã giải nén"): Claude ghi file mới vào thư mục,
 // HaoHao thấy manifest.json đổi thì tự tải lại, không cần tải zip / bấm ↻. Bản trên Chrome Web Store không chạy phần này.
 (() => {
-  if (HT.STORE || 'update_url' in chrome.runtime.getManifest()) return;
+  // V1.92: chỉ dựa vào update_url (bản cài từ Store luôn có). Trước đây có cả HT.STORE → từ V1.78 (HT.STORE = true) bản chạy từ
+  //        thư mục trên máy anh KHÔNG tự nạp lại nữa, manifest mới (vd quyền wasm-unsafe-eval V1.87) không có hiệu lực.
+  if ('update_url' in chrome.runtime.getManifest()) return;
   const running = chrome.runtime.getManifest().version;   // so theo SỐ PHIÊN BẢN: mỗi lần cập nhật đều tăng số
   const check = async () => {
     try {

@@ -512,6 +512,9 @@ async function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(u), 60000); return { where: 'Tải về', name };
 }
 
+// V1.92: lỗi do Chrome chưa nạp manifest mới (chưa cho chạy WebAssembly) → báo dễ hiểu
+const wasmBlocked = e => /Content Security Policy|wasm-unsafe-eval|unsafe-eval|no available backend/i.test(String(e && (e.message || e)));
+const errText = e => wasmBlocked(e) ? 'Chrome chưa nạp lại HaoHao bản mới. Mở trang chrome://extensions, bấm nút ↻ ở HaoHao rồi thử lại.' : ((e && e.message) || String(e));
 /* ───────────────────────── thông báo nhỏ ───────────────────────── */
 let toastT; function toast(msg, ms = 2600) { let t = document.querySelector('.hhd-toast'); if (!t) { t = $e('div', 'hhd-toast'); document.body.append(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 
@@ -680,7 +683,7 @@ async function choose(i) {
   try {
     const res = await (gop ? gopTach : convert)(files, it.id === 'GOP' ? undefined : it.id, (k, n) => { if (n > 1) { W.busy = `Đang làm ${Math.min(n, Math.floor(k) + 1)}/${n}…`; hubText(); } });
     closeWheel(); await deliver(res);
-  } catch (e) { console.warn('[HaoHao Convert]', e); closeWheel(); addError(name, (e && e.message) || 'Không đổi được file này'); toast('⚠️ ' + ((e && e.message) || 'Không đổi được file này'), 4000); }
+  } catch (e) { console.warn('[HaoHao Convert]', e); closeWheel(); addError(name, errText(e) || 'Không đổi được file này'); toast('⚠️ ' + (errText(e) || 'Không đổi được file này'), 6000); }
 }
 
 /* kéo-thả trên cả trang */
@@ -760,7 +763,7 @@ async function toolSave(results) { await deliver(results); }
 async function openTool(id, files) {
   const imgs = files.filter(f => kindOf(f) === 'img');
   if (!imgs.length) return toast('Công cụ chỉ dùng cho ảnh');
-  let src; try { toast('⏳ Đang mở ảnh…', 1500); src = await decodeImage(imgs[0]); } catch (e) { return toast('⚠️ ' + e.message, 4000); }
+  let src; try { toast('⏳ Đang mở ảnh…', 1500); src = await decodeImage(imgs[0]); } catch (e) { return toast('⚠️ ' + errText(e), 6000); }
   const tt = document.querySelector('.hhd-toast'); if (tt) tt.hidden = true;
   const T = { sua: toolEdit, size: toolSize, xnen: toolXnen, logo: toolLogo, nen: toolNen, che: toolChe, note: toolNote, meta: toolMeta }[id];
   T(src, imgs);
@@ -1027,7 +1030,7 @@ async function toolXnen(src, files) {
   const S = stage(src); D.body.append(S.box);
   const wait = $e('div', 'hhd-note', '⏳ Đang chạy AI tách nền ngay trên máy… (lần đầu mất vài giây để nạp bộ AI)'); wait.style.cssText = 'text-align:center;font-size:13.5px'; D.body.append(wait);
   D.ok.disabled = true; S.x.globalAlpha = .35; S.x.drawImage(S.prev, 0, 0); S.x.globalAlpha = 1;
-  let base; try { base = await aiMask(src); } catch (e) { console.warn('[HaoHao Convert] AI', e); wait.textContent = '⚠️ Không chạy được AI xoá nền: ' + (e && e.message || e); return; }
+  let base; try { base = await aiMask(src); } catch (e) { console.warn('[HaoHao Convert] AI', e); wait.textContent = '⚠️ Không chạy được AI xoá nền. ' + errText(e); return; }
   if (!document.body.contains(D.ov)) return;
   wait.remove(); D.ok.disabled = false;
   const def = () => ({ gon: 20, mem: 2, out: 'trong', col: '#ffffff', brush: 'xem', r: Math.max(6, Math.round(Math.max(src.width, src.height) / 60)) });
