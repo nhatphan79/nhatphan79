@@ -227,6 +227,8 @@ Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 **HaoHao V1**
 - ✅ **HaoHao Convert: MIỄN PHÍ** (anh Nhật 21/10) – không khoá Pro dù nằm trong Tiện ích.
 - [ ] Báo "HaoHao vừa cập nhật, bấm F5" (cần cho cả máy anh – cập nhật nhiều lần/ngày – lẫn khách Store khi Chrome tự cập nhật): đã giải thích 21/10, **chờ anh bảo làm**.
+- [ ] **Chiếu không dây lên TV / máy chiếu** (anh để sau, 21/10): đã đề xuất A = nút "📺 Chiếu" mở nhanh Cast của Chrome + Miracast (Windows + K) kèm hướng dẫn; B = "HaoHao Chiếu" qua trình duyệt TV (mã 4 số, haohaostore.com/chieu, WebRTC, cần sửa máy chủ + Web). Chờ anh cho biết loại TV/máy chiếu.
+- ❌ Anh bỏ (21/10): HaoHao Boss (nói 1 câu → Lịch/Nhắc/Todo), Họp song ngữ (ghi âm + dịch).
 - [ ] Nhạc nền Pomodoro (15MB) tải khi nghe lần đầu cho gói Store nhẹ: **anh để chờ** (21/10).
 - [ ] (anh: chờ, 21/10) Đồng bộ dữ liệu với HaoHao V2: thêm phần nói chuyện với app (`127.0.0.1:47321`) vào bản tiện ích kế tiếp, SAU khi Chrome Web Store duyệt bản đang nộp (thêm quyền 127.0.0.1 → ghi lý do "kết nối app HaoHao V2").
 - [ ] Gemini dịch lại cả trang: đã đề xuất (giữ bản Google trong lúc chờ, mẫu flash-lite, gói 20 đoạn × 3 song song, thanh báo %) – chờ anh đồng ý.
