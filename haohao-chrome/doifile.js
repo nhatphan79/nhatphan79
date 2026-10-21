@@ -1183,21 +1183,33 @@ function warp(src, q, maxSide, a4) {   // làm phẳng tứ giác q về hình c
   ox.putImageData(od, 0, 0); return out;
 }
 function rot90(c, r) { if (!r) return c; const odd = r % 2, o = mkCanvas(odd ? c.height : c.width, odd ? c.width : c.height), x = o.getContext('2d'); x.translate(o.width / 2, o.height / 2); x.rotate(r * Math.PI / 2); x.drawImage(c, -c.width / 2, -c.height / 2); return o; }
-function scanFilter(c, mode, dam) {   // xoá bóng (chia cho nền ước lượng) rồi lọc
+function scanFilter(c, mode, dam) {   // V1.99: giống máy scan văn phòng (mẫu Ricoh MP 5054 anh Nhật gửi): nền trắng tinh, giữ màu mực, nét sắc, không ép đen trắng
   if (mode === 'goc') return c;
   const W = c.width, H = c.height, x = c.getContext('2d'), img = x.getImageData(0, 0, W, H), d = img.data;
-  // nền: thu nhỏ, lấy giá trị sáng nhất lân cận (xoá chữ), làm mờ, phóng to lại
+  // 1) nền ước lượng: thu nhỏ, lấy giá trị sáng nhất lân cận (xoá chữ), làm mờ, phóng to → chia để xoá bóng, ánh vàng
   const sw = Math.max(4, Math.round(W / 22)), sh = Math.max(4, Math.round(H / 22)), s = mkCanvas(sw, sh), sx = s.getContext('2d'); sx.drawImage(c, 0, 0, sw, sh);
   let bd = sx.getImageData(0, 0, sw, sh);
   for (let it = 0; it < 2; it++) { const a = bd.data, b = new Uint8ClampedArray(a); for (let yy = 0; yy < sh; yy++) for (let xx = 0; xx < sw; xx++) { const i = (yy * sw + xx) * 4; for (let ch = 0; ch < 3; ch++) { let m = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.min(sw - 1, Math.max(0, xx + dx)), Y = Math.min(sh - 1, Math.max(0, yy + dy)); m = Math.max(m, a[(Y * sw + X) * 4 + ch]); } b[i + ch] = m; } } bd = new ImageData(b, sw, sh); }
   sx.putImageData(bd, 0, 0); const bg = mkCanvas(W, H), bx = bg.getContext('2d'); bx.filter = `blur(${Math.max(2, W / 120)}px)`; bx.imageSmoothingQuality = 'high'; bx.drawImage(s, 0, 0, W, H);
-  const B = bx.getImageData(0, 0, W, H).data, th = 105 + dam * .8;   // mặc định 145: nền màu nhạt (ô xanh, vàng) ra trắng, chữ ra đen
-  for (let i = 0; i < d.length; i += 4) {
-    const r = Math.min(255, d[i] * 255 / Math.max(30, B[i])), g = Math.min(255, d[i + 1] * 255 / Math.max(30, B[i + 1])), bl = Math.min(255, d[i + 2] * 255 / Math.max(30, B[i + 2]));
-    if (mode === 'mau') { const lv = v => Math.max(0, Math.min(255, (v - 25) * 255 / 215)); let R = lv(r), G = lv(g), Bb = lv(bl); const m = (R + G + Bb) / 3; R = m + (R - m) * 1.2; G = m + (G - m) * 1.2; Bb = m + (Bb - m) * 1.2; d[i] = R; d[i + 1] = G; d[i + 2] = Bb; continue; }
-    const y = r * .299 + g * .587 + bl * .114;
-    if (mode === 'xam') { const v = Math.max(0, Math.min(1, (y - 35) / 200)); d[i] = d[i + 1] = d[i + 2] = Math.pow(v, 1.25) * 255; continue; }
-    const v = y < th - 18 ? 0 : y > th + 18 ? 255 : (y - th + 18) / 36 * 255; d[i] = d[i + 1] = d[i + 2] = v;   // đen trắng, mép chữ mềm
+  const B = bx.getImageData(0, 0, W, H).data;
+  // 2) làm nét nhẹ (unsharp) trên bản đã xoá bóng
+  const n = new Float32Array(W * H * 3);
+  for (let i = 0, p = 0; i < d.length; i += 4, p += 3) for (let ch = 0; ch < 3; ch++) n[p + ch] = Math.min(255, d[i + ch] * 255 / Math.max(30, B[i + ch]));
+  const nc = mkCanvas(W, H), ncx = nc.getContext('2d'), nd = ncx.createImageData(W, H);
+  for (let i = 0, p = 0; i < nd.data.length; i += 4, p += 3) { nd.data[i] = n[p]; nd.data[i + 1] = n[p + 1]; nd.data[i + 2] = n[p + 2]; nd.data[i + 3] = 255; }
+  ncx.putImageData(nd, 0, 0); const bl = mkCanvas(W, H), blx = bl.getContext('2d'); blx.filter = `blur(${Math.max(.8, W / 1600)}px)`; blx.drawImage(nc, 0, 0); const BL = blx.getImageData(0, 0, W, H).data;
+  const amt = mode === 'bw' ? .9 : .6, k = dam / 50;   // Độ đậm: 0 → nhạt, 50 → chuẩn, 100 → đậm
+  const blackPt = mode === 'bw' ? 55 + 35 * k : 6 + 10 * k, whitePt = mode === 'bw' ? 205 : 228, gam = mode === 'bw' ? 1.35 + .25 * k : .98 + .07 * k;
+  const lv = v => { const t = Math.max(0, Math.min(1, (v - blackPt) / (whitePt - blackPt))); return Math.pow(t, gam) * 255; };
+  for (let i = 0, p = 0; i < d.length; i += 4, p += 3) {
+    let r = n[p] + (n[p] - BL[i]) * amt, g = n[p + 1] + (n[p + 1] - BL[i + 1]) * amt, b = n[p + 2] + (n[p + 2] - BL[i + 2]) * amt;
+    if (mode === 'scan') {   // giữ màu: chỉnh sáng theo độ sáng, giữ sắc độ, tăng màu nhẹ
+      const y = r * .299 + g * .587 + b * .114, y2 = lv(y), f = y > 1 ? y2 / y : 0;
+      r *= f; g *= f; b *= f; const m = (r + g + b) / 3; r = m + (r - m) * 1.2; g = m + (g - m) * 1.2; b = m + (b - m) * 1.2;
+      if (y2 > 247) r = g = b = 255;   // nền: trắng tinh như máy scan
+      d[i] = r; d[i + 1] = g; d[i + 2] = b; continue;
+    }
+    const v = lv(r * .299 + g * .587 + b * .114); d[i] = d[i + 1] = d[i + 2] = v > 247 ? 255 : v;   // xám / đen trắng: tông xám, không ép 2 màu → ảnh chân dung không cháy, không lốm đốm
   }
   const o = mkCanvas(W, H); o.getContext('2d').putImageData(img, 0, 0); return o;
 }
@@ -1205,7 +1217,7 @@ async function toolScan(src0, files) {
   const D = dialog('Scan giấy tờ', { applyText: files.length > 1 ? `Lưu ${files.length} trang` : 'Lưu bản scan' });
   const items = [{ src: src0, q: scanCorners(src0), rot: 0 }];
   for (let i = 1; i < files.length; i++) items.push(null);
-  let cur = 0, view = 'goc', mode = 'bw', dam = 50, out = 'PDF', drag = -1, a4 = true;
+  let cur = 0, view = 'goc', mode = 'scan', dam = 50, out = 'PDF', drag = -1, a4 = true;
   const load = async i => { if (!items[i]) { const s = await decodeImage(files[i]); items[i] = { src: s, q: scanCorners(s), rot: 0 }; } return items[i]; };
   const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv); box.style.minHeight = '300px'; const x = cv.getContext('2d');
   const MW = Math.min(640, innerWidth - 70), MH = Math.min(400, innerHeight * .46); let k = 1, prevC = null;
@@ -1232,8 +1244,8 @@ async function toolScan(src0, files) {
   const nav = $e('div', 'hhd-row'); nav.style.justifyContent = 'center'; const pv = $e('button', 'hhd-btn', '‹'), nx = $e('button', 'hhd-btn', '›'), lab = $e('span', '', ''); lab.style.cssText = 'min-width:90px;text-align:center;color:var(--hd-soft)'; nav.append(pv, lab, nx);
   pv.addEventListener('click', () => { cur--; draw(); }); nx.addEventListener('click', () => { cur++; draw(); });
   const vb = segBtns([['goc', '① Chỉnh 4 góc'], ['kq', '② Xem bản scan']], view, v => { view = v; draw(); }); vb.classList.add('hhd-tabs'); const tw = $e('div', 'hhd-tabw'); tw.append(vb);
-  const mb = segBtns([['bw', 'Đen trắng'], ['xam', 'Xám'], ['mau', 'Màu rõ nét'], ['goc', 'Ảnh gốc']], mode, v => { mode = v; damR.hidden = v !== 'bw'; view = 'kq'; vb.set('kq'); draw(); });
-  const [dS] = slider(0, 100, dam, v => { dam = v; if (view === 'kq') { clearTimeout(dS._t); dS._t = setTimeout(draw, 120); } }, v => v + '%'); const damR = row('Độ đậm chữ', dS);
+  const mb = segBtns([['scan', 'Như máy scan'], ['bw', 'Đen trắng'], ['xam', 'Xám'], ['goc', 'Ảnh gốc']], mode, v => { mode = v; damR.hidden = v === 'goc'; view = 'kq'; vb.set('kq'); draw(); });
+  const [dS] = slider(0, 100, dam, v => { dam = v; if (view === 'kq') { clearTimeout(dS._t); dS._t = setTimeout(draw, 120); } }, v => v + '%'); const damR = row('Độ đậm', dS);
   const rb = $e('div'); rb.style.cssText = 'display:flex;gap:6px';
   const bt = (t, f) => { const b = $e('button', 'hhd-btn', t); b.addEventListener('click', f); rb.append(b); };
   bt('↺ Xoay', async () => { const it = await load(cur); it.rot = (it.rot + 3) % 4; view = 'kq'; vb.set('kq'); draw(); });
@@ -1242,14 +1254,14 @@ async function toolScan(src0, files) {
   const kb = segBtns([['a4', 'A4'], ['tu', 'Giữ như ảnh']], 'a4', v => { a4 = v === 'a4'; view = 'kq'; vb.set('kq'); draw(); });
   const ob = segBtns([['PDF', files.length > 1 ? 'PDF (1 file nhiều trang)' : 'PDF'], ['JPG', 'JPG'], ['PNG', 'PNG']], out, v => { out = v; });
   D.body.append(tw, box, nav, row('Kiểu scan', mb), damR, row('Trang', rb), row('Khổ trang', kb), row('Lưu thành', ob), $e('div', 'hhd-note', 'Kéo 4 chấm tròn vào đúng 4 góc tờ giấy. HaoHao làm phẳng, xoá bóng và làm trắng nền. Bản scan là ảnh (chưa bôi đen chữ được).'));
-  D.reset.addEventListener('click', async () => { for (const it of items) if (it) { it.q = scanCorners(it.src); it.rot = 0; } mode = 'bw'; dam = 50; a4 = true; kb.set('a4'); mb.set(mode); dS.setv(dam); damR.hidden = false; view = 'goc'; vb.set(view); draw(); });
+  D.reset.addEventListener('click', async () => { for (const it of items) if (it) { it.q = scanCorners(it.src); it.rot = 0; } mode = 'scan'; dam = 50; a4 = true; kb.set('a4'); mb.set(mode); dS.setv(dam); damR.hidden = false; view = 'goc'; vb.set(view); draw(); });
   D.ok.addEventListener('click', async () => {
     D.ok.disabled = true; const pages = [], res = [];
     for (let i = 0; i < files.length; i++) {
       D.ok.textContent = `Đang làm ${i + 1}/${files.length}…`; const it = await load(i), c = rot90(scanFilter(warp(it.src, it.q, 2600, a4), mode, dam), it.rot);
       if (out === 'PDF') { const land = c.width > c.height, pw = land ? 841.89 : 595.28, ph = land ? 595.28 : 841.89, s = Math.min(pw / c.width, ph / c.height), pg = mkCanvas(Math.round(pw * 3), Math.round(ph * 3)), px = pg.getContext('2d');
         px.fillStyle = '#fff'; px.fillRect(0, 0, pg.width, pg.height); const w2 = c.width * s * 3, h2 = c.height * s * 3; px.imageSmoothingQuality = 'high'; px.drawImage(c, (pg.width - w2) / 2, (pg.height - h2) / 2, w2, h2);
-        pages.push({ data: await U8(await toBlob(pg, 'image/jpeg', mode === 'bw' ? .8 : .85)), w: pg.width, h: pg.height, pw, ph }); }
+        pages.push({ data: await U8(await toBlob(pg, 'image/jpeg', .85)), w: pg.width, h: pg.height, pw, ph }); }
       else res.push({ blob: await encode(c, out, .9), name: `${BASE(files[i].name)} scan.${EXT_OF[out]}` });
     }
     if (out === 'PDF') res.push({ blob: makePDF(pages), name: `${BASE(files[0].name)} scan${files.length > 1 ? ` (${files.length} trang)` : ''}.pdf` });
