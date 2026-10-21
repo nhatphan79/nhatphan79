@@ -3,6 +3,7 @@
 #  - bật HT.STORE = true (common.js): xem kiểm tra không gắn link tiếp thị, lấy mã chỉ gắn link khi có mã thật,
 #    báo link tiếp thị trong giao diện, không khoá Tiện ích, không tự cập nhật, không có ô khoá soi sản phẩm của chủ app
 #  - manifest: tên 'HaoHao – Trợ lý cá nhân', bỏ quyền geolocation, bỏ cổng app HaoHao 3D (127.0.0.1:47321) chưa phát hành
+#  - V1.87: mỗi lần chạy cất thêm haohao-store/da-nop/HaoHao-Store-<version_name>.zip (bản đã nộp, không ghi đè)
 #  Chạy: python3 haohao-store/dong-goi-store.py   (từ gốc kho)
 import json, os, zipfile, re
 here = os.path.dirname(os.path.abspath(__file__)); src = os.path.join(os.path.dirname(here), 'haohao-chrome')
@@ -26,3 +27,9 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
                 data = (json.dumps(m, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
             z.writestr(rel, data); n += 1
 print(n, 'file ->', out, os.path.getsize(out), 'byte')
+# V1.87: cất thêm 1 bản theo tên phiên bản vào haohao-store/da-nop/ (không bao giờ ghi đè bản đã có)
+import shutil
+vn = json.loads(open(os.path.join(src, 'manifest.json'), encoding='utf-8').read()).get('version_name', 'V1.x')
+keep = os.path.join(here, 'da-nop', f'HaoHao-Store-{vn}.zip'); os.makedirs(os.path.dirname(keep), exist_ok=True)
+if os.path.exists(keep): print('⚠️ đã có', keep, '– không ghi đè (đổi version_name trước khi nộp bản mới)')
+else: shutil.copy2(out, keep); print('đã cất bản lưu ->', keep)
