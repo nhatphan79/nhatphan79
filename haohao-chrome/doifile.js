@@ -38,12 +38,13 @@ const FORMATS = {
   other: []
 };
 const KIND_NAME = { img: 'ảnh', pdf: 'PDF', docx: 'Word', txt: 'văn bản', xls: 'Excel', other: 'file' };
-const TOOLS = [
-  { id: 'crop', label: 'Cắt', ic: '<path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/>' },
-  { id: 'bg', label: 'Thêm nền', ic: '<rect x="3" y="3" width="18" height="18" rx="4"/><rect x="7.5" y="7.5" width="9" height="9" rx="2"/>' },
+const TOOLS = [   // V1.91: Cắt + Thêm nền + Chỉnh sửa gộp thành 1 mục; thêm Kích thước, Xoá nền, Đóng logo
+  { id: 'sua', label: 'Chỉnh sửa', ic: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>' },
+  { id: 'size', label: 'Kích thước', ic: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4M7 9v4M17 15h-4M17 15v-4"/>' },
+  { id: 'xnen', label: 'Xoá nền', ic: '<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><circle cx="12" cy="10" r="3"/><path d="M7 18c1-3 3-4.5 5-4.5s4 1.5 5 4.5"/>' },
+  { id: 'logo', label: 'Đóng logo', ic: '<path d="M9 3h6v5l3 4H6l3-4z"/><path d="M4 15h16v4H4z"/>' },
   { id: 'nen', label: 'Nén', ic: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>' },
   { id: 'che', label: 'Che', ic: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>' },
-  { id: 'sua', label: 'Chỉnh sửa', ic: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>' },
   { id: 'note', label: 'Ghi chú', ic: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>' },
   { id: 'meta', label: 'Thông tin ẩn', ic: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.5"/>' }
 ];
@@ -761,77 +762,10 @@ async function openTool(id, files) {
   if (!imgs.length) return toast('Công cụ chỉ dùng cho ảnh');
   let src; try { toast('⏳ Đang mở ảnh…', 1500); src = await decodeImage(imgs[0]); } catch (e) { return toast('⚠️ ' + e.message, 4000); }
   const tt = document.querySelector('.hhd-toast'); if (tt) tt.hidden = true;
-  const T = { crop: toolCrop, bg: toolBg, nen: toolNen, che: toolChe, sua: toolSua, note: toolNote, meta: toolMeta }[id];
+  const T = { sua: toolEdit, size: toolSize, xnen: toolXnen, logo: toolLogo, nen: toolNen, che: toolChe, note: toolNote, meta: toolMeta }[id];
   T(src, imgs);
 }
 const firstOnly = files => files.length > 1 ? `Chỉ làm ảnh đầu tiên (${files[0].name})` : '';
-
-/* ✂️ Cắt */
-function toolCrop(src, files) {
-  const D = dialog('Cắt ảnh', { foot: firstOnly(files) }), S = stage(src), W0 = src.width, H0 = src.height;
-  let r = { x: 0, y: 0, w: W0, h: H0 }, ratio = 0, drag = null;
-  const wIn = $e('input'), hIn = $e('input'); [wIn, hIn].forEach(i => { i.type = 'number'; i.min = 1; });
-  const HS = 11 / S.k;
-  const draw = () => {
-    const x = S.x, k = S.k; x.clearRect(0, 0, S.cv.width, S.cv.height); x.drawImage(S.prev, 0, 0);
-    x.save(); x.fillStyle = 'rgba(20,16,30,.55)'; x.beginPath(); x.rect(0, 0, S.cv.width, S.cv.height); x.rect(r.x * k, r.y * k, r.w * k, r.h * k); x.fill('evenodd');
-    x.strokeStyle = '#E8513C'; x.lineWidth = 2; x.strokeRect(r.x * k + 1, r.y * k + 1, r.w * k - 2, r.h * k - 2);
-    x.strokeStyle = 'rgba(255,255,255,.45)'; x.lineWidth = 1; x.beginPath();
-    for (let i = 1; i < 3; i++) { x.moveTo((r.x + r.w * i / 3) * k, r.y * k); x.lineTo((r.x + r.w * i / 3) * k, (r.y + r.h) * k); x.moveTo(r.x * k, (r.y + r.h * i / 3) * k); x.lineTo((r.x + r.w) * k, (r.y + r.h * i / 3) * k); }
-    x.stroke(); x.fillStyle = '#E8513C';
-    handles().forEach(([hx, hy]) => x.fillRect(hx * k - 5, hy * k - 5, 10, 10)); x.restore();
-    wIn.value = Math.round(r.w); hIn.value = Math.round(r.h);
-  };
-  const handles = () => { const { x, y, w, h } = r; return [[x, y, 'nw'], [x + w / 2, y, 'n'], [x + w, y, 'ne'], [x + w, y + h / 2, 'e'], [x + w, y + h, 'se'], [x + w / 2, y + h, 's'], [x, y + h, 'sw'], [x, y + h / 2, 'w']]; };
-  const clamp = () => { r.w = Math.max(8, Math.min(r.w, W0)); r.h = Math.max(8, Math.min(r.h, H0)); r.x = Math.min(Math.max(0, r.x), W0 - r.w); r.y = Math.min(Math.max(0, r.y), H0 - r.h); };
-  const fitRatio = () => { if (!ratio) return; let w = W0, h = w / ratio; if (h > H0) { h = H0; w = h * ratio; } const cx = r.x + r.w / 2, cy = r.y + r.h / 2; r = { x: cx - w / 2, y: cy - h / 2, w, h }; clamp(); };
-  S.cv.addEventListener('pointerdown', e => {
-    const p = ptr(S.cv, e, S.k), h = handles().find(([hx, hy]) => Math.abs(hx - p.x) < HS && Math.abs(hy - p.y) < HS);
-    S.cv.setPointerCapture(e.pointerId);
-    if (h) drag = { t: h[2], r0: { ...r } };
-    else if (p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h) drag = { t: 'move', p0: p, r0: { ...r } };
-    else drag = { t: 'new', p0: p };
-  });
-  S.cv.addEventListener('pointermove', e => {
-    const p = ptr(S.cv, e, S.k);
-    if (!drag) { const h = handles().find(([hx, hy]) => Math.abs(hx - p.x) < HS && Math.abs(hy - p.y) < HS); S.cv.style.cursor = h ? (h[2].length === 2 ? h[2] + '-resize' : (h[2] === 'n' || h[2] === 's' ? 'ns-resize' : 'ew-resize')) : (p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h ? 'move' : 'crosshair'); return; }
-    const X = Math.min(Math.max(p.x, 0), W0), Y = Math.min(Math.max(p.y, 0), H0);
-    if (drag.t === 'move') { r.x = drag.r0.x + p.x - drag.p0.x; r.y = drag.r0.y + p.y - drag.p0.y; clamp(); return draw(); }
-    let ax, ay, t = drag.t;
-    if (t === 'new') { ax = drag.p0.x; ay = drag.p0.y; t = (X < ax ? 'w' : 'e') + (Y < ay ? 'n' : 's'); t = (t[1] + t[0]); }
-    const r0 = t === drag.t ? drag.r0 : null;
-    let x0, y0, x1, y1;
-    if (r0) { x0 = r0.x; y0 = r0.y; x1 = r0.x + r0.w; y1 = r0.y + r0.h; } else { x0 = x1 = ax; y0 = y1 = ay; }
-    if (t.includes('w')) x0 = X; if (t.includes('e')) x1 = X; if (t.includes('n')) y0 = Y; if (t.includes('s')) y1 = Y;
-    if (drag.t === 'new') { x0 = Math.min(ax, X); x1 = Math.max(ax, X); y0 = Math.min(ay, Y); y1 = Math.max(ay, Y); }
-    let w = Math.max(8, Math.abs(x1 - x0)), h = Math.max(8, Math.abs(y1 - y0));
-    if (ratio) {
-      if (t === 'n' || t === 's') w = h * ratio; else if (t === 'e' || t === 'w') h = w / ratio; else if (w / h > ratio) w = h * ratio; else h = w / ratio;
-      // giữ góc đối diện cố định
-      const fx = t.includes('w') ? (r0 ? r0.x + r0.w : ax) : t.includes('e') ? (r0 ? r0.x : ax) : null;
-      const fy = t.includes('n') ? (r0 ? r0.y + r0.h : ay) : t.includes('s') ? (r0 ? r0.y : ay) : null;
-      const maxW = fx == null ? W0 : t.includes('w') ? fx : W0 - fx, maxH = fy == null ? H0 : t.includes('n') ? fy : H0 - fy;
-      const s = Math.min(1, maxW / w, maxH / h); w *= s; h *= s;
-      x0 = fx == null ? (r0 ? r0.x + r0.w / 2 - w / 2 : ax - w / 2) : t.includes('w') ? fx - w : fx;
-      y0 = fy == null ? (r0 ? r0.y + r0.h / 2 - h / 2 : ay - h / 2) : t.includes('n') ? fy - h : fy;
-    } else { x0 = Math.min(x0, x1); y0 = Math.min(y0, y1); }
-    r = { x: x0, y: y0, w, h }; clamp(); draw();
-  });
-  S.cv.addEventListener('pointerup', () => { drag = null; });
-  const rb = segBtns([[0, 'Tự do'], [1, '1:1'], [16 / 9, '16:9'], [9 / 16, '9:16'], [4 / 3, '4:3'], [3 / 4, '3:4'], [4 / 5, '4:5']], 0, v => { ratio = v; fitRatio(); draw(); });
-  const sz = () => { const ww = Math.max(8, Math.min(W0, +wIn.value || r.w)); let hh = Math.max(8, Math.min(H0, +hIn.value || r.h)); return [ww, hh]; };
-  wIn.addEventListener('change', () => { let [w, h] = sz(); if (ratio) h = w / ratio; const cx = r.x + r.w / 2, cy = r.y + r.h / 2; r = { x: cx - w / 2, y: cy - h / 2, w, h }; clamp(); draw(); });
-  hIn.addEventListener('change', () => { let [w, h] = sz(); if (ratio) w = h * ratio; const cx = r.x + r.w / 2, cy = r.y + r.h / 2; r = { x: cx - w / 2, y: cy - h / 2, w, h }; clamp(); draw(); });
-  const px = $e('span', '', 'px'); px.style.color = 'var(--hd-soft)';
-  D.body.append(S.box, row('Tỉ lệ', rb), row('Kích thước', $e('span', '', 'Rộng'), wIn, $e('span', '', 'Cao'), hIn, px));
-  D.reset.addEventListener('click', () => { ratio = 0; rb.set(0); r = { x: 0, y: 0, w: W0, h: H0 }; draw(); });
-  D.ok.addEventListener('click', async () => {
-    D.ok.disabled = true;
-    const c = mkCanvas(r.w, r.h); c.getContext('2d').drawImage(src, Math.round(r.x), Math.round(r.y), Math.round(r.w), Math.round(r.h), 0, 0, c.width, c.height);
-    const f = fmtOfFile(files[0]); D.close(); await toolSave([{ blob: await encode(c, f), name: `${BASE(files[0].name)} đã cắt.${EXT_OF[f]}` }]);
-  });
-  draw();
-}
 
 /* 🖼️ Thêm nền */
 const BG_GRAD = [['#FF6A3D', '#FFC95E'], ['#F857A6', '#FF5858'], ['#FF9A8B', '#FF6A88', '#FF99AC'], ['#C471F5', '#FA71CD'], ['#7F7FD5', '#86A8E7', '#91EAE4'], ['#4FACFE', '#00F2FE'],
@@ -851,34 +785,6 @@ function compose(src, o, scale = 1) {
   x.save(); rr(); x.clip(); x.drawImage(src, ix, iy); x.restore();
   return c;
 }
-function toolBg(src, files) {
-  const D = dialog('Thêm nền', { applyText: 'Lưu kèm nền', foot: files.length > 1 ? `Áp dụng cho ${files.length} ảnh` : '' });
-  const def = () => ({ bg: BG_GRAD[0], pad: 12, rad: 6, sh: 30, ratio: 0 });
-  let o = def();
-  const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv);
-  const mw = Math.min(640, innerWidth - 70), mh = Math.min(360, innerHeight * .42);
-  const draw = () => { const k0 = Math.min(1, 900 / Math.max(src.width, src.height)); const c = compose(src, o, k0); const k = Math.min(mw / c.width, mh / c.height, 1); cv.width = c.width * k; cv.height = c.height * k; cv.getContext('2d').drawImage(c, 0, 0, cv.width, cv.height); };
-  const sw1 = $e('div', 'hhd-sw'), sw2 = $e('div', 'hhd-sw');
-  const mark = () => [...sw1.children, ...sw2.children].forEach(b => b.classList && b.classList.toggle('on', b.dataset.v === o.bg.join(',')));
-  const sw = (wrap, cols) => { const b = $e('button'); b.type = 'button'; b.dataset.v = cols.join(','); b.title = cols.join(' → '); b.style.background = cols.length > 1 ? `linear-gradient(135deg, ${cols.join(',')})` : cols[0]; b.addEventListener('click', () => { o.bg = cols; mark(); draw(); }); wrap.append(b); };
-  BG_GRAD.forEach(g => sw(sw1, g)); BG_SOLID.forEach(c => sw(sw2, [c]));
-  const pick = $e('input'); pick.type = 'color'; pick.value = '#ffffff'; pick.title = 'Chọn màu khác'; pick.addEventListener('input', () => { o.bg = [pick.value]; mark(); draw(); }); sw2.append(pick);
-  const big = Math.max(src.width, src.height);
-  const [pS] = slider(0, 40, o.pad, v => { o.pad = v; draw(); }, v => Math.round(v / 100 * big) + ' px');
-  const [rS] = slider(0, 60, o.rad, v => { o.rad = v; draw(); }, v => Math.round(Math.min(src.width, src.height) / 2 * v / 100) + ' px');
-  const [sS] = slider(0, 100, o.sh, v => { o.sh = v; draw(); }, v => v + '%');
-  const rb = segBtns([[0, 'Tự động'], [1, '1:1'], [16 / 9, '16:9'], [4 / 5, '4:5'], [9 / 16, '9:16']], 0, v => { o.ratio = v; draw(); });
-  const r1 = row('Nền', sw1), r2 = row('', sw2);
-  D.body.append(box, r1, r2, row('Khoảng đệm', pS), row('Bo góc', rS), row('Bóng đổ', sS), row('Tỉ lệ', rb));
-  D.reset.addEventListener('click', () => { o = def(); pS.setv(o.pad); rS.setv(o.rad); sS.setv(o.sh); rb.set(0); mark(); draw(); });
-  D.ok.addEventListener('click', async () => {
-    D.ok.disabled = true; D.ok.textContent = 'Đang lưu…'; const out = [];
-    for (let i = 0; i < files.length; i++) { const s = i ? await decodeImage(files[i]) : src; out.push({ blob: await encode(compose(s, o), 'PNG'), name: `${BASE(files[i].name)} có nền.png` }); }
-    D.close(); await toolSave(out);
-  });
-  mark(); draw();
-}
-
 /* 🗜️ Nén */
 function toolNen(src, files) {
   const D = dialog('Nén ảnh', { applyText: files.length > 1 ? `Nén ${files.length} ảnh` : 'Nén & lưu' });
@@ -941,7 +847,7 @@ function toolChe(src, files) {
   draw();
 }
 
-/* 🎚️ Chỉnh sửa */
+/* xoay, lật, màu – dùng trong Chỉnh sửa */
 function renderEdit(src, o) {
   const odd = o.rot % 2 === 1, w = odd ? src.height : src.width, h = odd ? src.width : src.height, c = mkCanvas(w, h), x = c.getContext('2d');
   x.filter = `brightness(${1 + o.b / 100}) contrast(${1 + o.c / 100}) saturate(${1 + o.s / 100})`;
@@ -949,24 +855,264 @@ function renderEdit(src, o) {
   if (o.w) { x.setTransform(1, 0, 0, 1, 0, 0); x.filter = 'none'; x.globalCompositeOperation = 'soft-light'; x.fillStyle = o.w > 0 ? `rgba(255,150,40,${o.w / 160})` : `rgba(40,120,255,${-o.w / 160})`; x.fillRect(0, 0, w, h); }
   return c;
 }
-function toolSua(src, files) {
-  const D = dialog('Chỉnh sửa', { foot: files.length > 1 ? `Áp dụng cho ${files.length} ảnh` : '' });
-  const def = () => ({ rot: 0, fh: false, fv: false, b: 0, c: 0, s: 0, w: 0 }); let o = def();
-  const k0 = Math.min(1, 700 / Math.max(src.width, src.height)), small = mkCanvas(src.width * k0, src.height * k0); small.getContext('2d').drawImage(src, 0, 0, small.width, small.height);
-  const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv);
-  const draw = () => { const c = renderEdit(small, o), mw = Math.min(640, innerWidth - 70), mh = Math.min(340, innerHeight * .42), k = Math.min(1, mw / c.width, mh / c.height); cv.width = c.width * k; cv.height = c.height * k; cv.getContext('2d').drawImage(c, 0, 0, cv.width, cv.height); };
-  const bt = (t, ti, fn) => { const b = $e('button', 'hhd-btn', t); b.title = ti; b.addEventListener('click', () => { fn(); draw(); }); return b; };
-  const pct = v => (v > 0 ? '+' : '') + v;
-  const [bS] = slider(-100, 100, 0, v => { o.b = v; draw(); }, pct), [cS] = slider(-100, 100, 0, v => { o.c = v; draw(); }, pct), [sS] = slider(-100, 100, 0, v => { o.s = v; draw(); }, pct), [wS] = slider(-100, 100, 0, v => { o.w = v; draw(); }, pct);
-  D.body.append(box, row('Xoay, lật', bt('↺ Trái', 'Xoay trái 90°', () => { o.rot = (o.rot + 3) % 4; }), bt('↻ Phải', 'Xoay phải 90°', () => { o.rot = (o.rot + 1) % 4; }), bt('⇋ Lật ngang', 'Lật ngang', () => { o.fh = !o.fh; }), bt('⇵ Lật dọc', 'Lật dọc', () => { o.fv = !o.fv; })),
-    row('Độ sáng', bS), row('Tương phản', cS), row('Độ đậm màu', sS), row('Ấm / lạnh', wS));
-  D.reset.addEventListener('click', () => { o = def(); [bS, cS, sS, wS].forEach(i => i.setv(0)); draw(); });
+/* 🎚️ Chỉnh sửa (V1.91: gộp Cắt + Nền + Xoay & màu vào 1 hộp, 3 thẻ) */
+const scaleTo = (s, k) => { if (k >= 1) return s; const c = mkCanvas(s.width * k, s.height * k), x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(s, 0, 0, c.width, c.height); return c; };
+const cropTo = (s, f) => { if (!f) return s; const x0 = Math.round(f.x * s.width), y0 = Math.round(f.y * s.height), w = Math.max(1, Math.round(f.w * s.width)), h = Math.max(1, Math.round(f.h * s.height)), c = mkCanvas(w, h); c.getContext('2d').drawImage(s, x0, y0, w, h, 0, 0, w, h); return c; };
+function toolEdit(src, files) {
+  const D = dialog('Chỉnh sửa', { applyText: files.length > 1 ? `Lưu ${files.length} ảnh` : 'Lưu', foot: files.length > 1 ? `Áp dụng cho ${files.length} ảnh (vùng cắt theo tỉ lệ ảnh đầu)` : '' });
+  const small = scaleTo(src, Math.min(1, 900 / Math.max(src.width, src.height)));
+  const defO = () => ({ rot: 0, fh: false, fv: false, b: 0, c: 0, s: 0, w: 0 }), defB = () => ({ on: false, bg: BG_GRAD[0], pad: 12, rad: 6, sh: 30, ratio: 0 });
+  let o = defO(), bg = defB(), tab = 'crop', E = renderEdit(small, o), r = { x: 0, y: 0, w: E.width, h: E.height }, ratio = 0, drag = null;
+  const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv); const x = cv.getContext('2d');
+  const MW = Math.min(640, innerWidth - 70), MH = Math.min(360, innerHeight * .42);
+  let k = 1;   // tỉ lệ khung xem / ảnh E
+  const frac = () => (r.x <= .5 && r.y <= .5 && r.w >= E.width - 1 && r.h >= E.height - 1) ? null : { x: r.x / E.width, y: r.y / E.height, w: r.w / E.width, h: r.h / E.height };
+  const handles = () => { const { x: a, y: b, w, h } = r; return [[a, b, 'nw'], [a + w / 2, b, 'n'], [a + w, b, 'ne'], [a + w, b + h / 2, 'e'], [a + w, b + h, 'se'], [a + w / 2, b + h, 's'], [a, b + h, 'sw'], [a, b + h / 2, 'w']]; };
+  const clamp = () => { const W0 = E.width, H0 = E.height; r.w = Math.max(8, Math.min(r.w, W0)); r.h = Math.max(8, Math.min(r.h, H0)); r.x = Math.min(Math.max(0, r.x), W0 - r.w); r.y = Math.min(Math.max(0, r.y), H0 - r.h); };
+  const fitRatio = () => { if (!ratio) return; let w = E.width, h = w / ratio; if (h > E.height) { h = E.height; w = h * ratio; } const cx = r.x + r.w / 2, cy = r.y + r.h / 2; r = { x: cx - w / 2, y: cy - h / 2, w, h }; clamp(); };
+  const show = c => { k = Math.min(1, MW / c.width, MH / c.height); cv.width = Math.max(1, Math.round(c.width * k)); cv.height = Math.max(1, Math.round(c.height * k)); x.clearRect(0, 0, cv.width, cv.height); x.drawImage(c, 0, 0, cv.width, cv.height); };
+  const draw = () => {
+    if (tab === 'crop') {
+      show(E); x.save(); x.fillStyle = 'rgba(20,16,30,.55)'; x.beginPath(); x.rect(0, 0, cv.width, cv.height); x.rect(r.x * k, r.y * k, r.w * k, r.h * k); x.fill('evenodd');
+      x.strokeStyle = '#E8513C'; x.lineWidth = 2; x.strokeRect(r.x * k + 1, r.y * k + 1, r.w * k - 2, r.h * k - 2); x.strokeStyle = 'rgba(255,255,255,.45)'; x.lineWidth = 1; x.beginPath();
+      for (let i = 1; i < 3; i++) { x.moveTo((r.x + r.w * i / 3) * k, r.y * k); x.lineTo((r.x + r.w * i / 3) * k, (r.y + r.h) * k); x.moveTo(r.x * k, (r.y + r.h * i / 3) * k); x.lineTo((r.x + r.w) * k, (r.y + r.h * i / 3) * k); }
+      x.stroke(); x.fillStyle = '#E8513C'; handles().forEach(([hx, hy]) => x.fillRect(hx * k - 5, hy * k - 5, 10, 10)); x.restore();
+      wIn.value = Math.round(r.w * fw()); hIn.value = Math.round(r.h * fw());
+    } else { const C = cropTo(E, frac()); show(bg.on ? compose(C, bg) : C); }
+  };
+  const P = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) * (cv.width / b.width) / k, y: (e.clientY - b.top) * (cv.height / b.height) / k }; };
+  const HS = () => 11 / k;
+  cv.addEventListener('pointerdown', e => {
+    if (tab !== 'crop') return; const p = P(e), h = handles().find(([hx, hy]) => Math.abs(hx - p.x) < HS() && Math.abs(hy - p.y) < HS()); cv.setPointerCapture(e.pointerId);
+    if (h) drag = { t: h[2], r0: { ...r } }; else if (p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h) drag = { t: 'move', p0: p, r0: { ...r } }; else drag = { t: 'new', p0: p };
+  });
+  cv.addEventListener('pointermove', e => {
+    if (tab !== 'crop') { cv.style.cursor = 'default'; return; }
+    const p = P(e), W0 = E.width, H0 = E.height;
+    if (!drag) { const h = handles().find(([hx, hy]) => Math.abs(hx - p.x) < HS() && Math.abs(hy - p.y) < HS()); cv.style.cursor = h ? (h[2].length === 2 ? h[2] + '-resize' : (h[2] === 'n' || h[2] === 's' ? 'ns-resize' : 'ew-resize')) : (p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h ? 'move' : 'crosshair'); return; }
+    const X = Math.min(Math.max(p.x, 0), W0), Y = Math.min(Math.max(p.y, 0), H0);
+    if (drag.t === 'move') { r.x = drag.r0.x + p.x - drag.p0.x; r.y = drag.r0.y + p.y - drag.p0.y; clamp(); return draw(); }
+    let ax, ay, t = drag.t;
+    if (t === 'new') { ax = drag.p0.x; ay = drag.p0.y; t = (Y < ay ? 'n' : 's') + (X < ax ? 'w' : 'e'); }
+    const r0 = t === drag.t ? drag.r0 : null; let x0, y0, x1, y1;
+    if (r0) { x0 = r0.x; y0 = r0.y; x1 = r0.x + r0.w; y1 = r0.y + r0.h; } else { x0 = x1 = ax; y0 = y1 = ay; }
+    if (t.includes('w')) x0 = X; if (t.includes('e')) x1 = X; if (t.includes('n')) y0 = Y; if (t.includes('s')) y1 = Y;
+    if (drag.t === 'new') { x0 = Math.min(ax, X); x1 = Math.max(ax, X); y0 = Math.min(ay, Y); y1 = Math.max(ay, Y); }
+    let w = Math.max(8, Math.abs(x1 - x0)), h = Math.max(8, Math.abs(y1 - y0));
+    if (ratio) {
+      if (t === 'n' || t === 's') w = h * ratio; else if (t === 'e' || t === 'w') h = w / ratio; else if (w / h > ratio) w = h * ratio; else h = w / ratio;
+      const fx = t.includes('w') ? (r0 ? r0.x + r0.w : ax) : t.includes('e') ? (r0 ? r0.x : ax) : null, fy = t.includes('n') ? (r0 ? r0.y + r0.h : ay) : t.includes('s') ? (r0 ? r0.y : ay) : null;
+      const maxW = fx == null ? W0 : t.includes('w') ? fx : W0 - fx, maxH = fy == null ? H0 : t.includes('n') ? fy : H0 - fy, sc = Math.min(1, maxW / w, maxH / h); w *= sc; h *= sc;
+      x0 = fx == null ? (r0 ? r0.x + r0.w / 2 - w / 2 : ax - w / 2) : t.includes('w') ? fx - w : fx; y0 = fy == null ? (r0 ? r0.y + r0.h / 2 - h / 2 : ay - h / 2) : t.includes('n') ? fy - h : fy;
+    } else { x0 = Math.min(x0, x1); y0 = Math.min(y0, y1); }
+    r = { x: x0, y: y0, w, h }; clamp(); draw();
+  });
+  cv.addEventListener('pointerup', () => { drag = null; });
+  // ── thẻ Cắt
+  const pCrop = $e('div'), wIn = $e('input'), hIn = $e('input'); [wIn, hIn].forEach(i => { i.type = 'number'; i.min = 1; });
+  const rb = segBtns([[0, 'Tự do'], [1, '1:1'], [16 / 9, '16:9'], [9 / 16, '9:16'], [4 / 3, '4:3'], [3 / 4, '3:4'], [4 / 5, '4:5']], 0, v => { ratio = v; fitRatio(); draw(); });
+  const setWH = (w, h) => { const cx = r.x + r.w / 2, cy = r.y + r.h / 2; r = { x: cx - w / 2, y: cy - h / 2, w, h }; clamp(); draw(); };
+  const fw = () => (o.rot % 2 ? src.height : src.width) / E.width;   // px ảnh gốc / px xem trước
+  wIn.addEventListener('change', () => { let w = (+wIn.value || r.w * fw()) / fw(), h = ratio ? w / ratio : r.h; setWH(w, h); });
+  hIn.addEventListener('change', () => { let h = (+hIn.value || r.h * fw()) / fw(), w = ratio ? h * ratio : r.w; setWH(w, h); });
+  const px = $e('span', '', 'px'); px.style.color = 'var(--hd-soft)';
+  pCrop.append(row('Tỉ lệ', rb), row('Kích thước', $e('span', '', 'Rộng'), wIn, $e('span', '', 'Cao'), hIn, px));
+  // ── thẻ Nền
+  const pBg = $e('div'), sw1 = $e('div', 'hhd-sw'), sw2 = $e('div', 'hhd-sw');
+  const mark = () => [...sw1.children, ...sw2.children].forEach(b => b.classList && b.classList.toggle('on', bg.on ? b.dataset.v === bg.bg.join(',') : b.dataset.v === 'none'));
+  const swb = (wrap, cols) => { const b = $e('button'); b.type = 'button'; b.dataset.v = cols ? cols.join(',') : 'none'; b.title = cols ? cols.join(' → ') : 'Không thêm nền';
+    if (cols) b.style.background = cols.length > 1 ? `linear-gradient(135deg, ${cols.join(',')})` : cols[0]; else { b.textContent = '∅'; b.style.cssText = 'background:#fff;color:#C0392B;font-weight:800'; }
+    b.addEventListener('click', () => { if (cols) { bg.on = true; bg.bg = cols; } else bg.on = false; mark(); draw(); }); wrap.append(b); };
+  swb(sw1, null); BG_GRAD.forEach(g => swb(sw1, g)); BG_SOLID.forEach(c => swb(sw2, [c]));
+  const pick = $e('input'); pick.type = 'color'; pick.value = '#ffffff'; pick.title = 'Chọn màu khác'; pick.addEventListener('input', () => { bg.on = true; bg.bg = [pick.value]; mark(); draw(); }); sw2.append(pick);
+  const [pS] = slider(0, 40, bg.pad, v => { bg.pad = v; if (bg.on) draw(); }, v => v + '%'), [rS] = slider(0, 60, bg.rad, v => { bg.rad = v; if (bg.on) draw(); }, v => v + '%'), [sS] = slider(0, 100, bg.sh, v => { bg.sh = v; if (bg.on) draw(); }, v => v + '%');
+  const brb = segBtns([[0, 'Tự động'], [1, '1:1'], [16 / 9, '16:9'], [4 / 5, '4:5'], [9 / 16, '9:16']], 0, v => { bg.ratio = v; if (bg.on) draw(); });
+  pBg.append(row('Nền', sw1), row('', sw2), row('Khoảng đệm', pS), row('Bo góc', rS), row('Bóng đổ', sS), row('Tỉ lệ khung', brb));
+  // ── thẻ Xoay & màu
+  const pAdj = $e('div'), pct = v => (v > 0 ? '+' : '') + v;
+  const reE = () => { const w0 = E.width, h0 = E.height; E = renderEdit(small, o); if (E.width !== w0 || E.height !== h0) { r = { x: 0, y: 0, w: E.width, h: E.height }; fitRatio(); } draw(); };   // xoay: giữ tỉ lệ cắt đã chọn
+  const bt = (t, ti, fn) => { const b = $e('button', 'hhd-btn', t); b.title = ti; b.addEventListener('click', () => { fn(); reE(); }); return b; };
+  const [bS] = slider(-100, 100, 0, v => { o.b = v; reE(); }, pct), [cS] = slider(-100, 100, 0, v => { o.c = v; reE(); }, pct), [s2] = slider(-100, 100, 0, v => { o.s = v; reE(); }, pct), [wS] = slider(-100, 100, 0, v => { o.w = v; reE(); }, pct);
+  pAdj.append(row('Xoay, lật', bt('↺ Trái', 'Xoay trái 90°', () => { o.rot = (o.rot + 3) % 4; }), bt('↻ Phải', 'Xoay phải 90°', () => { o.rot = (o.rot + 1) % 4; }), bt('⇋ Lật ngang', 'Lật ngang', () => { o.fh = !o.fh; }), bt('⇵ Lật dọc', 'Lật dọc', () => { o.fv = !o.fv; })),
+    row('Độ sáng', bS), row('Tương phản', cS), row('Độ đậm màu', s2), row('Ấm / lạnh', wS));
+  const panes = { crop: pCrop, bg: pBg, adj: pAdj };
+  const tabs = segBtns([['crop', '✂️ Cắt'], ['bg', '🖼️ Nền'], ['adj', '🎚️ Xoay & màu']], tab, v => { tab = v; Object.entries(panes).forEach(([kk, el]) => { el.hidden = kk !== tab; }); draw(); });
+  tabs.classList.add('hhd-tabs'); const tw = $e('div', 'hhd-tabw'); tw.append(tabs);
+  D.body.append(tw, box, pCrop, pBg, pAdj); pBg.hidden = pAdj.hidden = true;
+  D.reset.addEventListener('click', () => { o = defO(); bg = defB(); ratio = 0; rb.set(0); brb.set(0); [bS, cS, s2, wS].forEach(i => i.setv(0)); pS.setv(bg.pad); rS.setv(bg.rad); sS.setv(bg.sh); E = renderEdit(small, o); r = { x: 0, y: 0, w: E.width, h: E.height }; mark(); draw(); });
   D.ok.addEventListener('click', async () => {
-    D.ok.disabled = true; D.ok.textContent = 'Đang lưu…'; const out = [];
-    for (let i = 0; i < files.length; i++) { const s = i ? await decodeImage(files[i]) : src, f = fmtOfFile(files[i]); out.push({ blob: await encode(renderEdit(s, o), f), name: `${BASE(files[i].name)} đã sửa.${EXT_OF[f]}` }); }
+    D.ok.disabled = true; D.ok.textContent = 'Đang lưu…'; const out = [], f0 = frac();
+    for (let i = 0; i < files.length; i++) {
+      const s = i ? await decodeImage(files[i]) : src, C = cropTo(renderEdit(s, o), f0), res = bg.on ? compose(C, bg) : C, f = bg.on ? 'PNG' : fmtOfFile(files[i]);
+      out.push({ blob: await encode(res, f), name: `${BASE(files[i].name)} đã sửa.${EXT_OF[f]}` });
+    }
+    D.close(); await toolSave(out);
+  });
+  mark(); draw();
+}
+
+/* 📐 Kích thước chuẩn sàn (V1.91) */
+const SIZES = [['800x800', 'Shopee 800×800', 800, 800], ['1080x1080', 'Vuông 1080 – TikTok Shop, Facebook, Instagram', 1080, 1080], ['1080x1350', 'Facebook / Instagram dọc 4:5 (1080×1350)', 1080, 1350],
+  ['1080x1920', 'TikTok, Story, Reels 9:16 (1080×1920)', 1080, 1920], ['1920x1080', 'Ngang 16:9 – YouTube, bìa (1920×1080)', 1920, 1080], ['tu', 'Tự nhập kích thước…', 0, 0]];
+function fitTo(s, W, H, mode, fill) {
+  const c = mkCanvas(W, H), x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+  if (mode === 'lap') { const k = Math.max(W / s.width, H / s.height); x.drawImage(s, (W - s.width * k) / 2, (H - s.height * k) / 2, s.width * k, s.height * k); return c; }
+  if (fill === 'mo') { const k = Math.max(W / s.width, H / s.height); x.filter = `blur(${Math.round(Math.max(W, H) / 28)}px) brightness(.9)`; x.drawImage(s, (W - s.width * k * 1.1) / 2, (H - s.height * k * 1.1) / 2, s.width * k * 1.1, s.height * k * 1.1); x.filter = 'none'; }
+  else { x.fillStyle = fill === 'den' ? '#000' : '#fff'; x.fillRect(0, 0, W, H); }
+  const k = Math.min(W / s.width, H / s.height); x.drawImage(s, (W - s.width * k) / 2, (H - s.height * k) / 2, s.width * k, s.height * k); return c;
+}
+function toolSize(src, files) {
+  const D = dialog('Kích thước chuẩn sàn', { applyText: files.length > 1 ? `Đổi ${files.length} ảnh` : 'Đổi & lưu' });
+  const def = () => ({ p: '800x800', W: 800, H: 800, mode: 'vua', fill: 'trang', fmt: 'JPG' }); let o = def();
+  const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv);
+  const small = scaleTo(src, Math.min(1, 1200 / Math.max(src.width, src.height)));
+  const draw = () => { const sc = Math.min(1, 900 / Math.max(o.W, o.H)), c = fitTo(small, Math.round(o.W * sc), Math.round(o.H * sc), o.mode, o.fill), mw = Math.min(640, innerWidth - 70), mh = Math.min(330, innerHeight * .4), k = Math.min(1, mw / c.width, mh / c.height); cv.width = c.width * k; cv.height = c.height * k; cv.getContext('2d').drawImage(c, 0, 0, cv.width, cv.height); info.textContent = `${o.W} × ${o.H} px · ảnh gốc ${src.width} × ${src.height} px`; };
+  const info = $e('div', 'hhd-note');
+  const sel = $e('select'); SIZES.forEach(([v, t]) => { const op = $e('option', '', t); op.value = v; sel.append(op); });
+  const wIn = $e('input'), hIn = $e('input'); [wIn, hIn].forEach(i => { i.type = 'number'; i.min = 16; i.max = 8000; }); wIn.value = o.W; hIn.value = o.H;
+  const custom = row('Tự nhập', $e('span', '', 'Rộng'), wIn, $e('span', '', 'Cao'), hIn); custom.hidden = true;
+  sel.addEventListener('change', () => { const z = SIZES.find(q => q[0] === sel.value); o.p = sel.value; custom.hidden = sel.value !== 'tu'; if (z[2]) { o.W = z[2]; o.H = z[3]; wIn.value = o.W; hIn.value = o.H; } draw(); });
+  [wIn, hIn].forEach(i => i.addEventListener('change', () => { o.W = Math.max(16, Math.min(8000, +wIn.value || o.W)); o.H = Math.max(16, Math.min(8000, +hIn.value || o.H)); draw(); }));
+  const fillRow = row('Viền', segBtns([['trang', 'Trắng'], ['mo', 'Nền mờ từ ảnh'], ['den', 'Đen']], o.fill, v => { o.fill = v; draw(); }));
+  const mb = segBtns([['vua', 'Vừa khung (giữ đủ ảnh)'], ['lap', 'Lấp đầy (cắt bớt mép)']], o.mode, v => { o.mode = v; fillRow.hidden = v !== 'vua'; draw(); });
+  const fb = segBtns([['JPG', 'JPG'], ['PNG', 'PNG'], ['WEBP', 'WEBP']], o.fmt, v => { o.fmt = v; });
+  D.body.append(box, info, row('Kích thước', sel), custom, row('Cách đặt ảnh', mb), fillRow, row('Lưu thành', fb));
+  D.reset.addEventListener('click', () => { o = def(); sel.value = o.p; custom.hidden = true; wIn.value = o.W; hIn.value = o.H; mb.set(o.mode); fb.set(o.fmt); fillRow.hidden = false; draw(); });
+  D.ok.addEventListener('click', async () => {
+    D.ok.disabled = true; D.ok.textContent = 'Đang đổi…'; const out = [];
+    for (let i = 0; i < files.length; i++) { const s = i ? await decodeImage(files[i]) : src; out.push({ blob: await encode(fitTo(s, o.W, o.H, o.mode, o.fill), o.fmt, .92), name: `${BASE(files[i].name)} ${o.W}x${o.H}.${EXT_OF[o.fmt]}` }); }
     D.close(); await toolSave(out);
   });
   draw();
+}
+
+/* ✂️ Xoá nền ảnh bằng AI chạy trên máy (V1.91: U²-Net nhỏ u2netp, onnxruntime-web) */
+let aiP;
+const aiLoad = () => aiP ||= (async () => {
+  const ort = await import(URLX('lib/ort/ort.wasm.min.mjs'));
+  ort.env.wasm.wasmPaths = URLX('lib/ort/'); ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false;
+  const sess = await ort.InferenceSession.create(URLX('lib/ai/u2netp.onnx'), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+  return { ort, sess };
+})().catch(e => { aiP = null; throw e; });
+async function aiMask(src) {   // → canvas 320×320, độ trong suốt = vùng giữ lại
+  const { ort, sess } = await aiLoad(), N = 320, c = mkCanvas(N, N), x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, N, N); x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, N, N);
+  const d = x.getImageData(0, 0, N, N).data, inp = new Float32Array(3 * N * N), mean = [.485, .456, .406], std = [.229, .224, .225]; let mx = 0;
+  for (let i = 0; i < d.length; i += 4) mx = Math.max(mx, d[i], d[i + 1], d[i + 2]); mx = mx / 255 || 1;
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) for (let ch = 0; ch < 3; ch++) inp[ch * N * N + p] = (d[i + ch] / 255 / mx - mean[ch]) / std[ch];
+  const res = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', inp, [1, 3, N, N]) }), o = res[sess.outputNames[0]].data;
+  let lo = Infinity, hi = -Infinity; for (let i = 0; i < N * N; i++) { lo = Math.min(lo, o[i]); hi = Math.max(hi, o[i]); }
+  const m = mkCanvas(N, N), mx2 = m.getContext('2d'), md = mx2.createImageData(N, N);
+  for (let i = 0; i < N * N; i++) { md.data[i * 4] = md.data[i * 4 + 1] = md.data[i * 4 + 2] = 255; md.data[i * 4 + 3] = Math.round((o[i] - lo) / (hi - lo + 1e-8) * 255); }
+  mx2.putImageData(md, 0, 0); return m;
+}
+function buildMask(base, W, H, o, strokes, k) {
+  const m = mkCanvas(W, H), x = m.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(base, 0, 0, W, H);
+  const d = x.getImageData(0, 0, W, H), a = d.data, g = o.gon / 100 * .42, lo = g, hi = 1 - g;
+  for (let i = 3; i < a.length; i += 4) { const v = (a[i] / 255 - lo) / (hi - lo); a[i] = v <= 0 ? 0 : v >= 1 ? 255 : Math.round(v * 255); }
+  x.putImageData(d, 0, 0);
+  if (o.mem > 0) { const t = mkCanvas(W, H), tx = t.getContext('2d'); tx.filter = `blur(${(o.mem * Math.max(W, H) / 1400).toFixed(2)}px)`; tx.drawImage(m, 0, 0); x.clearRect(0, 0, W, H); x.drawImage(t, 0, 0); }
+  for (const s of strokes) {
+    x.save(); x.globalCompositeOperation = s.t === 'tay' ? 'destination-out' : 'source-over'; x.strokeStyle = x.fillStyle = '#fff'; x.lineWidth = s.r * 2 * k; x.lineCap = x.lineJoin = 'round';
+    x.beginPath(); s.p.forEach((p, i) => i ? x.lineTo(p.x * k, p.y * k) : x.moveTo(p.x * k, p.y * k)); if (s.p.length === 1) { x.arc(s.p[0].x * k, s.p[0].y * k, s.r * k, 0, Math.PI * 2); x.fill(); } else x.stroke(); x.restore();
+  }
+  return m;
+}
+function cutOut(img, mask, bg) {
+  const c = mkCanvas(img.width, img.height), x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height); x.globalCompositeOperation = 'destination-in'; x.drawImage(mask, 0, 0, c.width, c.height);
+  if (!bg) return c; const o = mkCanvas(c.width, c.height), ox = o.getContext('2d'); ox.fillStyle = bg; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, 0, 0); return o;
+}
+async function toolXnen(src, files) {
+  const D = dialog('Xoá nền ảnh', { applyText: files.length > 1 ? `Xoá nền ${files.length} ảnh` : 'Lưu', foot: files.length > 1 ? 'Sửa tay chỉ áp cho ảnh đầu, ảnh khác AI tự làm' : '' });
+  const S = stage(src); D.body.append(S.box);
+  const wait = $e('div', 'hhd-note', '⏳ Đang chạy AI tách nền ngay trên máy… (lần đầu mất vài giây để nạp bộ AI)'); wait.style.cssText = 'text-align:center;font-size:13.5px'; D.body.append(wait);
+  D.ok.disabled = true; S.x.globalAlpha = .35; S.x.drawImage(S.prev, 0, 0); S.x.globalAlpha = 1;
+  let base; try { base = await aiMask(src); } catch (e) { console.warn('[HaoHao Convert] AI', e); wait.textContent = '⚠️ Không chạy được AI xoá nền: ' + (e && e.message || e); return; }
+  if (!document.body.contains(D.ov)) return;
+  wait.remove(); D.ok.disabled = false;
+  const def = () => ({ gon: 20, mem: 2, out: 'trong', col: '#ffffff', brush: 'xem', r: Math.max(6, Math.round(Math.max(src.width, src.height) / 60)) });
+  let o = def(), strokes = [], cur = null;
+  const bgOf = () => o.out === 'trong' ? null : o.out === 'trang' ? '#ffffff' : o.col;
+  const draw = () => { const m = buildMask(base, S.cv.width, S.cv.height, o, cur ? strokes.concat([cur]) : strokes, S.k); S.x.clearRect(0, 0, S.cv.width, S.cv.height); S.x.drawImage(cutOut(S.prev, m, bgOf()), 0, 0); };
+  S.cv.addEventListener('pointerdown', e => { if (o.brush === 'xem') return; S.cv.setPointerCapture(e.pointerId); cur = { t: o.brush, r: o.r, p: [ptr(S.cv, e, S.k)] }; draw(); });
+  S.cv.addEventListener('pointermove', e => { if (!cur) return; cur.p.push(ptr(S.cv, e, S.k)); draw(); });
+  S.cv.addEventListener('pointerup', () => { if (cur) { strokes.push(cur); cur = null; draw(); } });
+  const colIn = $e('input'); colIn.type = 'color'; colIn.value = o.col; colIn.hidden = true; colIn.addEventListener('input', () => { o.col = colIn.value; draw(); });
+  const ob = segBtns([['trong', 'Trong suốt (PNG)'], ['trang', 'Nền trắng (JPG)'], ['mau', 'Màu khác']], o.out, v => { o.out = v; colIn.hidden = v !== 'mau'; draw(); });
+  const [gS] = slider(0, 100, o.gon, v => { o.gon = v; draw(); }, v => v + '%'), [mS] = slider(0, 10, o.mem, v => { o.mem = v; draw(); });
+  const bb = segBtns([['xem', '👁 Xem'], ['tay', '🧽 Tẩy'], ['khoi', '🖌️ Khôi phục']], o.brush, v => { o.brush = v; S.cv.style.cursor = v === 'xem' ? 'default' : 'crosshair'; });
+  const [rS2] = slider(2, 120, o.r, v => { o.r = Math.round(v * Math.max(src.width, src.height) / 1200) || 2; }, v => v);
+  rS2.value = Math.round(o.r * 1200 / Math.max(src.width, src.height)); rS2._v.textContent = rS2.value;
+  const undo = $e('button', 'hhd-btn', '↶ Hoàn tác'); undo.addEventListener('click', () => { strokes.pop(); draw(); });
+  D.body.append(row('Nền ra', ob, colIn), row('Độ gọn', gS), row('Làm mềm mép', mS), row('Sửa tay', bb, undo), row('Cỡ cọ', rS2),
+    $e('div', 'hhd-note', 'AI tách tốt ảnh sản phẩm rõ nét. Chỗ sót thì chọn 🧽 Tẩy rồi tô lên; chỗ mất thì chọn 🖌️ Khôi phục.'));
+  D.reset.addEventListener('click', () => { o = def(); strokes = []; ob.set(o.out); colIn.hidden = true; gS.setv(o.gon); mS.setv(o.mem); bb.set('xem'); draw(); });
+  D.ok.addEventListener('click', async () => {
+    D.ok.disabled = true; D.ok.textContent = 'Đang lưu…'; const out = [], bgc = bgOf(), fmt = bgc ? 'JPG' : 'PNG';
+    for (let i = 0; i < files.length; i++) {
+      const s = i ? await decodeImage(files[i]) : src, b0 = i ? await aiMask(s) : base;
+      out.push({ blob: await encode(cutOut(s, buildMask(b0, s.width, s.height, o, i ? [] : strokes, 1), bgc), fmt, .93), name: `${BASE(files[i].name)} xoá nền.${EXT_OF[fmt]}` });
+    }
+    D.close(); await toolSave(out);
+  });
+  draw();
+}
+
+/* 🏷️ Đóng dấu logo (V1.91) – nhớ logo + cài đặt cho lần sau */
+function logoMark(o, img, W) {   // tạo dấu (logo ảnh hoặc chữ) theo bề rộng ảnh W
+  const tw = Math.max(8, W * o.size / 100);
+  if (o.kind === 'anh') { if (!img) return null; const k = tw / img.width, c = mkCanvas(img.width * k, img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c; }
+  const txt = (o.text || '').trim(); if (!txt) return null;
+  const m = mkCanvas(10, 10).getContext('2d'); let fs = 100; m.font = `800 ${fs}px "Be Vietnam Pro", "Segoe UI", sans-serif`; fs = Math.max(6, fs * tw / Math.max(1, m.measureText(txt).width));
+  const c = mkCanvas(tw + fs * .4, fs * 1.45), x = c.getContext('2d'); x.font = `800 ${fs}px "Be Vietnam Pro", "Segoe UI", sans-serif`; x.textBaseline = 'middle'; x.textAlign = 'center';
+  x.lineWidth = Math.max(1, fs / 9); x.lineJoin = 'round'; x.strokeStyle = /^#f/i.test(o.color) || o.color.toLowerCase() === '#ffffff' ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.7)';
+  x.strokeText(txt, c.width / 2, c.height / 2); x.fillStyle = o.color; x.fillText(txt, c.width / 2, c.height / 2); return c;
+}
+function stamp(s, o, img) {
+  const c = mkCanvas(s.width, s.height), x = c.getContext('2d'); x.drawImage(s, 0, 0);
+  const mk = logoMark(o, img, s.width); if (!mk) return c;
+  x.globalAlpha = o.op / 100;
+  if (o.tile) {
+    const gx = mk.width * 1.7, gy = mk.height * 2.6, R = Math.hypot(c.width, c.height);
+    x.translate(c.width / 2, c.height / 2); x.rotate(-Math.PI / 6);
+    for (let yy = -R, row = 0; yy < R; yy += gy, row++) for (let xx = -R + (row % 2) * gx / 2; xx < R; xx += gx) x.drawImage(mk, xx, yy);
+    return c;
+  }
+  const mar = Math.min(s.width, s.height) * o.mar / 100, [v, h] = o.pos;
+  const px = h === 'l' ? mar : h === 'r' ? s.width - mk.width - mar : (s.width - mk.width) / 2, py = v === 't' ? mar : v === 'b' ? s.height - mk.height - mar : (s.height - mk.height) / 2;
+  x.drawImage(mk, px, py); return c;
+}
+async function toolLogo(src, files) {
+  const saved = await kvGet('logoOpt'), blob = await kvGet('logoBlob');
+  const def = () => ({ kind: 'chu', text: 'HaoHao Shop', color: '#FFFFFF', pos: 'br', size: 22, op: 85, mar: 3, tile: false });
+  let o = { ...def(), ...(saved || {}) }, img = null;
+  if (blob) { try { img = await createImageBitmap(blob); } catch {} }
+  if (!saved && img) o.kind = 'anh';
+  const D = dialog('Đóng dấu logo', { applyText: files.length > 1 ? `Đóng ${files.length} ảnh` : 'Đóng & lưu', foot: files.length > 1 ? `Áp dụng cho ${files.length} ảnh` : '' });
+  const S = stage(src);
+  const draw = () => { S.x.clearRect(0, 0, S.cv.width, S.cv.height); S.x.drawImage(stamp(S.prev, o, img), 0, 0); kvSet('logoOpt', o); };
+  const kb = segBtns([['anh', '🖼️ Ảnh logo'], ['chu', '🔤 Chữ']], o.kind, v => { o.kind = v; rA.hidden = v !== 'anh'; rC.hidden = v !== 'chu'; draw(); });
+  const th = $e('span', 'hhd-note', img ? 'Đang dùng logo đã lưu' : 'Chưa có logo'); th.style.margin = '0';
+  const pickB = $e('button', 'hhd-btn', '📁 Chọn ảnh logo…'); pickB.addEventListener('click', () => { const i = $e('input'); i.type = 'file'; i.accept = 'image/*'; i.addEventListener('change', async () => { const f = i.files[0]; if (!f) return; try { const c = await decodeImage(f), b = await toBlob(c, 'image/png'); img = await createImageBitmap(b); await kvSet('logoBlob', b); th.textContent = '✅ ' + f.name + ' (đã lưu cho lần sau)'; o.kind = 'anh'; kb.set('anh'); draw(); } catch (e) { toast('⚠️ ' + e.message); } }); i.click(); });
+  const rA = row('Logo', pickB, th);
+  const tIn = $e('input'); tIn.type = 'text'; tIn.value = o.text; tIn.maxLength = 60; tIn.style.cssText = 'flex:1;min-width:140px;font:inherit;padding:5px 8px;border:1px solid var(--hd-bd);border-radius:8px;background:var(--hd-card);color:var(--hd-ink)'; tIn.placeholder = 'Tên shop, số điện thoại…';
+  tIn.addEventListener('input', () => { o.text = tIn.value; draw(); }); tIn.addEventListener('keydown', e => e.stopPropagation());
+  const cIn = $e('input'); cIn.type = 'color'; cIn.value = o.color; cIn.addEventListener('input', () => { o.color = cIn.value; draw(); });
+  const rC = row('Chữ', tIn, cIn); rA.hidden = o.kind !== 'anh'; rC.hidden = o.kind !== 'chu';
+  const grid = $e('div', 'hhd-pos'), POS = [['tl', '↖'], ['tc', '↑'], ['tr', '↗'], ['cl', '←'], ['cc', '•'], ['cr', '→'], ['bl', '↙'], ['bc', '↓'], ['br', '↘']];
+  const markPos = () => [...grid.children].forEach(b => b.classList.toggle('on', !o.tile && b.dataset.v === o.pos));
+  POS.forEach(([v, t]) => { const b = $e('button', '', t); b.type = 'button'; b.dataset.v = v; b.addEventListener('click', () => { o.pos = v; o.tile = false; tb.set('mot'); markPos(); draw(); }); grid.append(b); });
+  const tb = segBtns([['mot', 'Một chỗ'], ['lap', 'Lặp chéo khắp ảnh']], o.tile ? 'lap' : 'mot', v => { o.tile = v === 'lap'; markPos(); draw(); });
+  const [zS] = slider(5, 60, o.size, v => { o.size = v; draw(); }, v => v + '%'), [pS] = slider(10, 100, o.op, v => { o.op = v; draw(); }, v => v + '%'), [mS] = slider(0, 10, o.mar, v => { o.mar = v; draw(); }, v => v + '%');
+  D.body.append(S.box, row('Loại', kb), rA, rC, row('Kiểu', tb), row('Vị trí', grid), row('Độ to', zS), row('Độ rõ', pS), row('Cách mép', mS));
+  D.reset.addEventListener('click', () => { const keep = { kind: o.kind, text: o.text, color: o.color }; o = { ...def(), ...keep }; tb.set('mot'); zS.setv(o.size); pS.setv(o.op); mS.setv(o.mar); markPos(); draw(); });
+  D.ok.addEventListener('click', async () => {
+    if (o.kind === 'anh' && !img) return toast('Chọn ảnh logo trước nhé'); if (o.kind === 'chu' && !o.text.trim()) return toast('Gõ chữ cần đóng lên ảnh');
+    D.ok.disabled = true; D.ok.textContent = 'Đang đóng…'; const out = [];
+    for (let i = 0; i < files.length; i++) { const s = i ? await decodeImage(files[i]) : src, f = fmtOfFile(files[i]); out.push({ blob: await encode(stamp(s, o, img), f), name: `${BASE(files[i].name)} có logo.${EXT_OF[f]}` }); }
+    D.close(); await toolSave(out);
+  });
+  markPos(); draw();
 }
 
 /* ✍️ Ghi chú */

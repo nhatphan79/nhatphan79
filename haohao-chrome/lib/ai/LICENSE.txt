@@ -1,0 +1,4 @@
+u2netp.onnx — U²-Net (small) background segmentation model
+Source: U-2-Net by Xuebin Qin et al., https://github.com/xuebinqin/U-2-Net (Apache License 2.0)
+ONNX export distributed by rembg (https://github.com/danielgatis/rembg, release v0.0.0, MIT).
+Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
