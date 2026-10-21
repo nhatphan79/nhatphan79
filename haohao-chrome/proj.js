@@ -970,12 +970,10 @@
   const proCheck = () => chrome.runtime.sendMessage({ type: 'pro-st' }).then(s => { const L = !!(s && !s.ok); if (L !== proLocked) { proLocked = L; if (ready) render(true); } }).catch(() => {});
   proCheck();
   chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.proLock || ch.proLic)) proCheck(); });
-  function proLockCard(W) {
+  function proLockCard(W) {   // 🔓 V1.2.2: khoá tuần – dữ liệu còn nguyên, mở khoá ở bảng 4 bước
     const c = $('div', 'pj-pro');
-    c.append($('div', 'pj-pro-t', '⭐ Trang Dự án thuộc gói HaoHao Pro'), $('div', 'pj-pro-s', 'Bạn đã dùng hết 2 tháng mở khoá toàn bộ. Dữ liệu dự án của bạn vẫn còn nguyên – kích hoạt Pro là mở lại ngay.'));
-    const g = $('div', 'pj-pro-g'); HT.PRO.plans.forEach(([k, l, p]) => { const x = $('div', 'pj-pro-pl' + (k === 'y1' ? ' hot' : '')); x.append($('b', '', l), $('span', '', p.toLocaleString('vi-VN') + 'đ')); g.append(x); });
-    const b = $('button', 'pj-btn', '⭐ Mua / Kích hoạt Pro'); b.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {}));
-    c.append(g, b); W.append(c);
+    c.append($('div', 'pj-pro-t', '💤 HaoHao đang tạm nghỉ'), $('div', 'pj-pro-s', 'Dữ liệu dự án của bạn vẫn còn nguyên. Làm 4 bước mở khoá tuần này là dùng lại ngay.'));
+    W.append(c);
   }
   function render0() {
     const W = $('div', 'pj-wrap'), p = openId && proj();

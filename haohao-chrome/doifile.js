@@ -717,8 +717,10 @@ function dragKind(dt) {
   const kind = kindOfMime(its[0].type), ok = k => k === 'img' || k === 'pdf' || k === 'xls', g = ok(kind) ? its.filter(i => ok(kindOfMime(i.type))) : its;
   return { kind, n: its.filter(i => kindOfMime(i.type) === kind).length, total: g.length, allX: g.every(i => kindOfMime(i.type) === 'xls') };
 }
+const wkLock = () => document.documentElement.classList.contains('hh-wl-on');   // 🔓 V1.2.2: đang khoá tuần
 function onDragOver(e) {
   if (!hasFiles(e.dataTransfer)) return;
+  if (wkLock()) { e.preventDefault(); e.dataTransfer.dropEffect = 'none'; return; }
   if (document.querySelector('.hhd-dlgov')) return;   // đang mở hộp công cụ
   if (e.target && e.target.closest && e.target.closest('#hattieu-host')) { if (W.open && !W.click) closeWheel(); return; }   // thả vào chú hamster → để HaoHao gửi sang iPhone như cũ
   e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
@@ -727,6 +729,7 @@ function onDragOver(e) {
   clearTimeout(W.dragT); W.dragT = setTimeout(() => { if (!W.busy) closeWheel(); }, 260);   // chuột ra khỏi cửa sổ → tắt
 }
 async function onDrop(e) {
+  if (wkLock() && hasFiles(e.dataTransfer)) { e.preventDefault(); return; }
   if (!hasFiles(e.dataTransfer) || !W.open || W.click) return;
   e.preventDefault(); clearTimeout(W.dragT);
   track(e.clientX, e.clientY);

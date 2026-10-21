@@ -103,21 +103,49 @@ async function proVerify(code, mid) {
   } catch { return null; }
 }
 async function proStatus() {
-  const { proStart, proLic, spyKeys } = await chrome.storage.local.get(['proStart', 'proLic', 'spyKeys']);
+  const { proLic, spyKeys, weekStart, weekLock = {} } = await chrome.storage.local.get(['proLic', 'spyKeys', 'weekStart', 'weekLock']);
   const now = Date.now(), id = await hhId(), mid = id.slice(0, 12).toUpperCase();
-  const owner = !!(spyKeys && (spyKeys.at || spyKeys.rh)), start = proStart || now, trialEnd = start + HT.PRO.trialDays * 864e5;
-  const lic = proLic ? await proVerify(proLic, mid) : null, pro = !!(lic && (lic.e === 0 || lic.e > now)), trial = now < trialEnd;
-  return { ok: owner || pro || trial, owner, trial, trialEnd, trialLeft: Math.max(0, Math.ceil((trialEnd - now) / 864e5)), pro, plan: lic && lic.p, exp: lic ? lic.e : null, code: HT.machineCode(id) };
+  const owner = !!(spyKeys && (spyKeys.at || spyKeys.rh));
+  const lic = proLic ? await proVerify(proLic, mid) : null, pro = !!(lic && (lic.e === 0 || lic.e > now));
+  // 🔓 V1.2.2: miễn phí, mở khoá theo tuần. Máy mới / vừa cập nhật: dùng tới 0h thứ 6 (máy cài mới ít nhất 3 ngày)
+  const grace = weekStart ? HT.nextFri(weekStart.t + (weekStart.fresh ? 3 * 864e5 : 0)) : HT.nextFri(now);
+  const cyc = HT.friStart(now), steps = {};
+  for (const k of HT.WEEK.steps) if ((weekLock.steps || {})[k] >= cyc) steps[k] = weekLock.steps[k];
+  const until = Math.max(grace, weekLock.until || 0), week = now < until;
+  return { ok: owner || pro || week, owner, pro, week, until, grace: now < grace, steps, plan: lic && lic.p, exp: lic ? lic.e : null, code: HT.machineCode(id) };
 }
 async function proSync() {
-  const { proStart } = await chrome.storage.local.get('proStart'); if (!proStart) await chrome.storage.local.set({ proStart: Date.now() });
+  { const { weekStart } = await chrome.storage.local.get('weekStart'); if (!weekStart) await chrome.storage.local.set({ weekStart: { t: Date.now(), fresh: false } }); }
   const st = await proStatus(), { proLock } = await chrome.storage.local.get('proLock');
-  if (!!proLock !== !st.ok) { await chrome.storage.local.set({ proLock: !st.ok }); applyAdBlock(); }
+  if (!!proLock !== !st.ok) { await chrome.storage.local.set({ proLock: !st.ok }); applyAdBlock(); if (st.ok) heldReplay(); }
+  if (!st.ok) chrome.action.setBadgeText({ text: '🔒' }).catch(() => {}); else chrome.action.getBadgeText({}).then(t => { if (t === '🔒') chrome.action.setBadgeText({ text: '' }); }).catch(() => {});
+  chrome.alarms.create('week-fri', { when: (st.ok ? st.until : HT.nextFri(Date.now())) + 2000 });
   return st;
 }
-chrome.runtime.onStartup.addListener(() => { proSync(); chrome.alarms.create('pro-check', { periodInMinutes: 360 }); });
-chrome.runtime.onInstalled.addListener(details => { proSync(); chrome.alarms.create('pro-check', { periodInMinutes: 360 }); });
-chrome.alarms.onAlarm.addListener(a => { if (a.name === 'pro-check') proSync(); });
+async function weekStep(id) {
+  if (!HT.WEEK.steps.includes(id)) return proSync();
+  const { weekLock = {} } = await chrome.storage.local.get('weekLock'), now = Date.now(), cyc = HT.friStart(now);
+  const steps = {}; for (const k of HT.WEEK.steps) if ((weekLock.steps || {})[k] >= cyc) steps[k] = weekLock.steps[k];
+  steps[id] = now;
+  const all = HT.WEEK.steps.every(k => steps[k]);
+  await chrome.storage.local.set({ weekLock: { steps, until: all ? HT.nextFri(now) : (weekLock.until || 0) } });
+  return proSync();
+}
+// khi đang khoá: lời nhắc không hiện nội dung, giữ lại tới lúc mở khoá thì báo bù
+async function heldPush(r, text, mood, extra) {
+  const { heldAlerts = [] } = await chrome.storage.local.get('heldAlerts');
+  heldAlerts.push({ r: { id: r.id, name: r.name, type: r.type }, text, mood, extra, t: Date.now() });
+  await chrome.storage.local.set({ heldAlerts: heldAlerts.slice(-30) });
+  notifyTr('hh-held', { type: 'basic', iconUrl: 'icons/icon128.png', title: 'HaoHao đang tạm nghỉ 💤', message: `Có ${Math.min(heldAlerts.length, 30)} lời nhắc đang chờ. Mở khoá HaoHao tuần này để xem nhé.`, priority: 2 });
+}
+async function heldReplay() {
+  const { heldAlerts = [] } = await chrome.storage.local.get('heldAlerts'); if (!heldAlerts.length) return;
+  await chrome.storage.local.set({ heldAlerts: [] }); chrome.notifications.clear('hh-held').catch(() => {});
+  for (const h of heldAlerts.slice(-5)) await fire(h.r, h.text + ' (nhắc bù lúc ' + new Date(h.t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ')', h.mood, h.extra || {});
+}
+chrome.runtime.onStartup.addListener(() => { proSync(); chrome.alarms.create('pro-check', { periodInMinutes: 30 }); });
+chrome.runtime.onInstalled.addListener(async details => { if (details && details.reason === 'install') { const { weekStart } = await chrome.storage.local.get('weekStart'); if (!weekStart) await chrome.storage.local.set({ weekStart: { t: Date.now(), fresh: true } }); } proSync(); chrome.alarms.create('pro-check', { periodInMinutes: 30 }); });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'pro-check' || a.name === 'week-fri') proSync(); });
 chrome.runtime.onInstalled.addListener(async details => {
   if (details && details.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('options.html#about') }).catch(() => {});   // cài lần đầu: mở trang Giới thiệu
   if (details && details.reason === 'install') { const { unlock } = await chrome.storage.local.get('unlock'); if (!unlock) await chrome.storage.local.set({ unlock: { steps: {}, until: Date.now() + 7 * 864e5, trial: true } }); }   // V1.10: máy cài mới dùng ngay 7 ngày, chưa cần mở khoá
@@ -349,6 +377,7 @@ async function addLog(entry) {
 }
 
 async function fire(r, text, mood, extra = {}) {
+  { const { proLock } = await chrome.storage.local.get('proLock'); if (proLock) return heldPush(r, text, mood, extra); }   // 🔓 V1.2.2: đang khoá tuần → giữ lại
   const { settings = {} } = await chrome.storage.local.get('settings');
   await addLog({ t: Date.now(), rule: r.name, kind: r.type, text });
   // Nhắc nhở, việc đến hạn, mail, cảnh báo giá: HaoHao ra hẳn màn hình (cửa sổ riêng, đè lên các ứng dụng khác)
@@ -463,6 +492,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
   if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
   // 💬 V1.8: góp ý → máy chủ HaoHao (chỉ chủ app đọc)
+  if (msg.type === 'week-step') { weekStep(msg.id).then(send).catch(() => send(null)); return true; }
   if (msg.type === 'pro-st') { proSync().then(send).catch(() => send(null)); return true; }
   if (msg.type === 'pro-activate') { (async () => { const id = await hhId(), j = await proVerify(msg.code, id.slice(0, 12).toUpperCase()); if (!j) return send({ ok: false, error: 'Mã không đúng hoặc không phải của máy này' }); await chrome.storage.local.set({ proLic: String(msg.code).trim() }); send({ ok: true, st: await proSync() }); })().catch(() => send({ ok: false, error: 'Lỗi kiểm tra mã' })); return true; }
   if (msg.type === 'gopy') { (async () => { try { const m = chrome.runtime.getManifest(), r = await fetch(HT.PRICE_API.replace(/\/$/, '') + '/gopy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ by: await hhId(), txt: String(msg.txt || '').slice(0, 1000), v: m.version_name || m.version }) }).then(r => r.json()); send(r); } catch { send({ ok: false }); } })(); return true; }

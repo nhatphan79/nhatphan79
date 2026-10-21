@@ -320,6 +320,10 @@ HT.PRO = {
   plans: [['m1', '1 tháng', 20000, 30], ['m3', '3 tháng', 50000, 90], ['m6', '6 tháng', 90000, 180], ['y1', '1 năm', 199000, 365], ['life', 'Trọn đời', 499000, 0]],
   bank: { name: 'BIDV', bin: '970418', acc: '8889763829', owner: 'PHAN THANH NHAT' }   // BIDV – PGD Cẩm Lệ
 };
+// 🔓 V1.2.2: Mở khoá tuần – HaoHao miễn phí; mỗi thứ 6 (0h) khoá toàn bộ, khách làm 4 bước là mở tới 0h thứ 6 tuần sau
+HT.WEEK = { store: 'https://haohaostore.com/', steps: ['hs', 'sp', 'tt', 'fb'] };
+HT.friStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 2) % 7)); return d.getTime(); };   // 0h thứ 6 gần nhất (≤ t)
+HT.nextFri = t => { const d = new Date(HT.friStart(t)); d.setDate(d.getDate() + 7); return d.getTime(); };   // 0h thứ 6 kế tiếp (> t)
 HT.machineCode = id => 'HH-' + String(id || '').slice(0, 12).toUpperCase().replace(/(.{4})(?=.)/g, '$1-');
 // mã QR chuyển khoản VietQR (chuẩn NAPAS/EMVCo) – app ngân hàng nào cũng quét được
 HT.vietQR = (bin, acc, amount, note) => {

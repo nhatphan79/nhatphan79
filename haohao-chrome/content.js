@@ -148,6 +148,10 @@
   .storebtn:hover { filter: brightness(1.06); } .storebtn:focus-visible { outline: 3px solid #23305E; outline-offset: 2px; }
   .fy .storebtn { top: auto; bottom: calc(100% + 6px); }
   @keyframes hhpop { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
+  .wrap.pale .pet svg { filter: grayscale(.85) brightness(1.08) opacity(.6) drop-shadow(0 4px 6px rgba(35,48,94,.18)); transform: rotate(-8deg) translateY(3px); transition: filter .4s, transform .4s; }
+  .wrap.pale .pet::after { content: '💤'; position: absolute; right: -6px; top: -10px; font-size: 18px; animation: hop 1.6s ease-in-out infinite; }
+  .wrap.pale .badge, .wrap.pale .pomo-pill, .wrap.pale .mus-bar, .wrap.pale .bubble:not(.lk) { display: none !important; }
+  .unl-pet { text-align: center; font-size: 34px; line-height: 1; filter: grayscale(.6); opacity: .8; }
   .wrap.tired .pet svg { filter: saturate(.55) brightness(.97) drop-shadow(0 4px 6px rgba(35,48,94,.25)); transform: rotate(-8deg) translateY(3px); transition: transform .4s; }
   .wrap.tired .pet::after { content: '💤'; position: absolute; right: -6px; top: -10px; font-size: 18px; animation: hop 1.6s ease-in-out infinite; }
   .pet:focus-visible { outline: 3px solid #23305E; outline-offset: 3px; border-radius: 50%; }
@@ -1536,6 +1540,7 @@
     document.documentElement.appendChild(host);
     ui = { host, root, pill: root.querySelector('.pomo-pill'), mus: root.querySelector('.mus-bar'), wrap: root.querySelector('.wrap'), pet: root.querySelector('.pet'), badge: root.querySelector('.badge'),
            bubble: root.querySelector('.bubble'), panel: root.querySelector('.panel'), view: root.querySelector('.view') };
+    setTimeout(() => { if (ui) setLock(LOCK); }, 0);   // 🔓 V1.2.2: áp trạng thái khoá tuần cho HaoHao vừa dựng
     placeWrap();
     setupDrag();
     const sb = root.querySelector('.storebtn');
@@ -1687,7 +1692,7 @@
       start = { x: e.clientX, y: e.clientY, r: parseFloat(ui.wrap.style.right), b: parseFloat(ui.wrap.style.bottom) };
       moved = false; held = false; ui.pet.setPointerCapture(e.pointerId); ui.pet.style.cursor = 'grabbing';
       clearTimeout(holdTimer);
-      holdTimer = setTimeout(() => { if (!moved) { held = true; setMood('happy'); chrome.runtime.sendMessage({ type: 'voice-open', target: 'idea' }).catch(() => {}); } }, 650);
+      holdTimer = setTimeout(() => { if (!moved && !LOCK) { held = true; setMood('happy'); chrome.runtime.sendMessage({ type: 'voice-open', target: 'idea' }).catch(() => {}); } }, 650);
     });
     ui.pet.addEventListener('pointermove', e => {
       if (!start) return;
@@ -1703,6 +1708,7 @@
       if (held) { held = false; return; }
       if (moved) {}
       else if (!ui.panel.hidden) closePanel();
+      else if (LOCK) openTab('todo');   // 🔓 V1.2.2: đang khoá → mở bảng mở khoá
       else if (!menuOpen && shopHello()) return;   // 1.10.141: Thứ Ba, lần bấm đầu trong ngày → chào 2 shop HaoHao
       else toggleMenu();
     });
@@ -1758,7 +1764,7 @@
   }
   function toggleMenu(force) {
     if (!ui) return;
-    menuOpen = force ?? !menuOpen;
+    menuOpen = LOCK ? false : (force ?? !menuOpen);
     ui.wrap.classList.toggle('menu-open', menuOpen);
     if (!menuOpen) { subOpen = false; ui.wrap.classList.remove('sub-open'); setTimeout(showTrustBubble, 300); }
     ui.pet.setAttribute('aria-expanded', menuOpen);
@@ -1816,12 +1822,12 @@
       }).catch(() => {});
     }, 4000);
   }
-  function say(text, mood = 'happy', title = '', toTab = 'todo', actions = null) {
-    if (!ui) return;
+  function say(text, mood = 'happy', title = '', toTab = 'todo', actions = null, force = false) {
+    if (!ui || (LOCK && !force)) return;
     if (!actions && (!ui.panel.hidden || menuOpen)) { setMood(mood); return; }
     if (actions) { toggleMenu(false); closePanel(); }
     lastBubble = Date.now();
-    ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = toTab; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb');
+    ui.bubble.innerHTML = ''; ui.bubble.dataset.tab = toTab; ui.bubble.dataset.kind = ''; ui.bubble.classList.remove('tb'); ui.bubble.classList.toggle('lk', !!force);
     if (title) ui.bubble.appendChild(el('span', 't', title));
     ui.bubble.appendChild(document.createTextNode(text));
     if (actions) {
@@ -1897,33 +1903,29 @@
   function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
   const escAttr = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // 🔓 Mở khoá Tiện ích (1.10.127): 3 bước – mở TikTok Shop HaoHao, mở Cửa hàng HaoHao trên Shopee, thích fanpage → dùng miễn phí 30 ngày, hết hạn làm lại
-  const UNLOCK_DAYS = 7;   // 1.10.134: mở khoá 7 ngày; hết hạn khách tự bấm lại TikTok Shop + Cửa hàng Shopee (fanpage chỉ 1 lần đầu)
-  let unlockSt = { steps: {}, until: 0 };
-  chrome.storage.local.get('unlock').then(d => { if (d.unlock) { unlockSt = d.unlock; if (unlockSt.until > Date.now() + UNLOCK_DAYS * 864e5) unlockSt.until = Date.now() + UNLOCK_DAYS * 864e5; } }).catch(() => {});
   // ⭐ V1.65: thay Bảng mở khoá bằng HaoHao Pro – 2 tháng đầu mở toàn bộ, sau đó Tiện ích + Dự án cần mã kích hoạt (nền kiểm tra chữ ký)
   let proSt = null;
   const proLoad = () => chrome.runtime.sendMessage({ type: 'pro-st' }).then(s => { if (s) proSt = s; }).catch(() => {});
   proLoad();
-  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.proLic || ch.proLock || ch.proStart)) proLoad().then(() => { if (ui && !ui.panel.hidden) renderPanel(); }); });
-  const isUnlocked = () => !proSt || !!proSt.ok;
-  function renderProLock(V) {
-    const box = el('div', 'pro-lock');
-    box.append(el('div', 'pro-t', '⭐ HaoHao Pro'), el('div', 'pro-s', 'Bạn đã dùng hết 2 tháng mở khoá toàn bộ. Tiện ích (Thị trường, Chặn quảng cáo, HaoHao Transfer) và trang Dự án cần gói Pro.'));
-    const g = el('div', 'pro-plans');
-    HT.PRO.plans.forEach(([k, l, p]) => { const c = el('div', 'pro-pl' + (k === 'y1' ? ' hot' : '')); c.append(el('b', '', l), el('span', '', p.toLocaleString('vi-VN') + 'đ')); g.append(c); });
-    const b = el('button', 'b', '⭐ Mua / Kích hoạt Pro'); b.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-options', hash: 'pro' }).catch(() => {}));
-    box.append(g, b, el('div', 'pro-n', 'Nhắc, Todo, Note, Mua sắm, Thông tin, Tập trung vẫn dùng miễn phí.'));
-    V.append(box);
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && (ch.proLic || ch.proLock || ch.weekLock)) proLoad().then(() => { if (ui && !ui.panel.hidden) renderPanel(); }); });
+  // 🔓 V1.2.2: khoá tuần – nền ghi proLock; đang khoá thì HaoHao tái nhạt, tạm dừng mọi tính năng, bấm vào chỉ hiện bảng 4 bước
+  let LOCK = false;
+  function setLock(on) {
+    LOCK = !!on; if (!ui) return;
+    ui.wrap.classList.toggle('pale', LOCK);
+    ui.pet.setAttribute('aria-label', LOCK ? 'HaoHao đang tạm nghỉ – bấm để mở khoá tuần này' : 'HaoHao, bấm để mở các nhánh. Bấm giữ để ghi chú bằng giọng nói');
+    if (LOCK) { toggleMenu(false); hideBubble(); }
+    if (!ui.panel.hidden) renderPanel();
   }
-  function unlockSteps() {
-    const fb = (couponFeed && couponFeed.fanpage) || HT.FANPAGE || '';
-    return [
-      { id: 'tt', label: 'Ghé TikTok Shop HaoHao', sub: '@' + ((HT.TT && HT.TT.creator) || 'haohaomall'), url: HT.ttShowcase() || 'https://www.tiktok.com/@haohaomall' },
-      { id: 'sp', label: 'Ghé HaoHao Store trên Shopee', sub: 'Hàng HaoHao tuyển chọn', url: (HT.SP && HT.SP.showcase) || 'https://collshp.com/haohaostore?view=storefront' },
-      ...(fb ? [{ id: 'fb', label: 'Thích fanpage HaoHao', sub: 'Nhận tin deal & tính năng mới', url: fb }] : [])
-    ];
+  chrome.storage.local.get('proLock').then(d => setLock(!!d.proLock)).catch(() => {});
+  chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.proLock) { const was = LOCK; setLock(!!ch.proLock.newValue); if (!was && LOCK) setTimeout(lockHello, 1500); } });
+  async function lockHello() {   // vừa sang thứ 6: 1 lần / ngày mời mở khoá
+    if (!ui || !LOCK || window !== window.top) return;
+    const day = new Date().toDateString(), { lockHelloDay = '' } = await chrome.storage.local.get('lockHelloDay').catch(() => ({}));
+    if (lockHelloDay === day) return; chrome.storage.local.set({ lockHelloDay: day }).catch(() => {});
+    say('Thứ 6 rồi! HaoHao đang tạm nghỉ 💤 Làm 4 bước nhỏ để mở khoá cả tuần nhé.', 'remind', '🔓 Mở khoá tuần này', 'todo', [{ label: '🔓 Mở khoá', fn: () => openTab('todo') }, { label: 'Để sau', ghost: true, fn: () => {} }], true);
   }
+  const isUnlocked = () => !LOCK;
   // 🛍️ V1.73: 7 ngày 1 lần mời ghé HaoHao Store xem hàng mới (duy trì kinh phí HaoHao). Khách tự bấm mới mở, ghi rõ link tiếp thị.
   //    Tuần đầu sau khi cài chưa mời; tính chung giới hạn 1 bong bóng tự hiện / giờ (autoGate); không hiện trên trang mua sắm
   async function storeWeekly() {
@@ -1937,32 +1939,44 @@
     const acts = [...(sp ? [{ label: '🛍️ Shopee', fn: () => openDeal(sp) }] : []), ...(tt ? [{ label: '🎵 TikTok Shop', fn: () => openDeal(tt) }] : []), { label: 'Để sau', ghost: true, fn: () => {} }];
     say('HaoHao Store tuần này có hàng mới tuyển chọn, ghé xem nhé! Mua qua đây là góp kinh phí nuôi HaoHao, giá không đổi.' + (HT.STORE ? ' (link tiếp thị)' : ''), 'happy', '🛍️ HaoHao Store', 'shop', acts);
   }
-  async function saveUnlock() { await chrome.storage.local.set({ unlock: unlockSt }).catch(() => {}); }
-  let unlPrev = '';   // máy chủ app xem thử: '' = lần đầu, 'renew' = hết 7 ngày (vẫn mở link, không lưu)
+  let unlFake = null;   // máy chủ app xem thử bảng mở khoá (không lưu)
+  function weekSteps() {
+    const fb = (couponFeed && couponFeed.fanpage) || HT.FANPAGE || '';
+    return [
+      { id: 'hs', ic: '🌐', label: 'Vào haohaostore.com', sub: 'Mỗi tuần một ngách hàng tuyển chọn', url: HT.WEEK.store, web: true },
+      { id: 'sp', ic: '🧡', label: 'Trang trưng bày Shopee', sub: 'HaoHao Store trên Shopee', url: (HT.SP && HT.SP.showcase) || 'https://collshp.com/haohaostore?view=storefront' },
+      { id: 'tt', ic: '🎵', label: 'Trang trưng bày TikTok Shop', sub: '@' + ((HT.TT && HT.TT.creator) || 'haohaomall'), url: HT.ttShowcase() || 'https://www.tiktok.com/@haohaomall' },
+      { id: 'fb', ic: '👍', label: 'Fanpage HaoHao', sub: 'Tin mới, mẹo dùng HaoHao', url: fb || 'https://www.facebook.com/trolyHaoHao', web: true }
+    ];
+  }
+  const friLabel = t => { const d = new Date(t - 1); return 'hết thứ 5 · ' + d.getDate() + '/' + (d.getMonth() + 1); };
   function renderUnlock(V) {
-    const preview = tab === 'tools' && toolsSub === 'unl';
-    if (!preview && unlockSt.until && !isUnlocked()) { unlockSt = unlockSt.trial ? { steps: {}, until: 0, trialEnd: true } : { steps: unlockSt.steps.fb ? { fb: unlockSt.steps.fb } : {}, until: 0, renew: true }; saveUnlock(); }   // V1.10: hết 7 ngày dùng thử → mời đủ 3 bước (có fanpage)   // hết 7 ngày: bấm lại TikTok + Shopee
-    const st = preview ? (renderUnlock.fake = renderUnlock.fake && renderUnlock.fake.mode === unlPrev ? renderUnlock.fake : { mode: unlPrev, steps: unlPrev ? { fb: 1 } : {}, renew: !!unlPrev }) : unlockSt;
-    const S = unlockSteps().filter(x => !(st.renew && x.id === 'fb')), done = S.filter(x => st.steps[x.id]).length;
+    const preview = !LOCK && tab === 'tools' && toolsSub === 'unl';
+    if (preview && !unlFake) unlFake = { steps: {} };
+    const steps = preview ? unlFake.steps : ((proSt && proSt.steps) || {});
+    const S = weekSteps(), done = S.filter(x => steps[x.id]).length;
     const box = el('div', 'unl');
     if (preview) {
-      const bar = el('div', 'unl-pv'); const bk = el('button', 'tb-back', '‹ Tiện ích'); bk.addEventListener('click', () => { toolsSub = null; renderPanel(); }); bar.append(bk);
-      [['', 'Lần đầu'], ['renew', 'Hết 7 ngày']].forEach(([k, t]) => { const c = el('button', 'chip sm' + (unlPrev === k ? ' on' : ''), t); c.addEventListener('click', () => { unlPrev = k; renderUnlock.fake = null; renderPanel(); }); bar.append(c); });
-      box.append(bar);
+      const bar = el('div', 'unl-pv'); const bk = el('button', 'tb-back', '‹ Tiện ích'); bk.addEventListener('click', () => { toolsSub = null; unlFake = null; renderPanel(); }); bar.append(bk, el('span', 'unl-s', 'Xem thử – khách thấy bảng này từ thứ 6')); box.append(bar);
     }
-    box.append(el('div', 'unl-t', st.renew ? '⏰ Hết 7 ngày dùng miễn phí' : st.trialEnd ? '⏰ Hết 7 ngày dùng thử' : '🔓 Mở khoá Tiện ích miễn phí'),
-      el('div', 'unl-s', st.renew ? 'Để HaoHao duy trì miễn phí, bạn ghé thăm shop ủng hộ nhé!' : st.trialEnd ? `Bạn thấy HaoHao hữu ích chứ? Hoàn thành ${S.length} bước để dùng tiếp miễn phí nhé!` : `Hoàn thành ${S.length} bước để dùng miễn phí.`));
+    box.append(el('div', 'unl-pet', '🐹💤'), el('div', 'unl-t', 'HaoHao đang tạm nghỉ'),
+      el('div', 'unl-s', 'HaoHao luôn miễn phí cho bạn. Mỗi thứ 6, hãy ghé shop HaoHao để mở khoá cả tuần nhé. Nếu cần mua gì, mua qua link HaoHao là bạn đã ủng hộ HaoHao rồi, giá không đổi.'));
     S.forEach((x, i) => {
-      const ok = !!st.steps[x.id], r = el('button', 'unl-r' + (ok ? ' ok' : ''));
-      r.append(el('span', 'unl-n', ok ? '✓' : String(i + 1)));
-      const tx = el('span', 'unl-x'); tx.append(el('b', '', x.label), el('small', '', x.sub)); r.append(tx, el('span', 'unl-go', ok ? 'Đã xong' : 'Mở ›'));
-      r.addEventListener('click', async () => { st.steps[x.id] = Date.now(); openDeal(x.url); if (!preview) await saveUnlock(); renderPanel(); });
+      const ok = !!steps[x.id], r = el('button', 'unl-r' + (ok ? ' ok' : ''));
+      r.append(el('span', 'unl-n', ok ? '✓' : x.ic));
+      const tx = el('span', 'unl-x'); tx.append(el('b', '', (i + 1) + '. ' + x.label), el('small', '', x.sub)); r.append(tx, el('span', 'unl-go', ok ? 'Đã ghé' : 'Mở ›'));
+      r.addEventListener('click', async () => {
+        if (x.web) window.open(x.url, '_blank', 'noopener'); else openDeal(x.url);
+        if (preview) { unlFake.steps[x.id] = Date.now(); renderPanel(); return; }
+        const st = await chrome.runtime.sendMessage({ type: 'week-step', id: x.id }).catch(() => null);
+        if (st) proSt = st;
+        if (st && st.ok) { chime && chime(); setLock(false); say('Cảm ơn bạn! HaoHao tỉnh như sáo rồi 🐹 Mở khoá tới ' + friLabel(st.until) + '.', 'happy', '🎉 Đã mở khoá', 'todo'); closePanel(); }
+        else renderPanel();
+      });
       box.append(r);
     });
-    const all = done === S.length, go = el('button', 'unl-go-all' + (all ? '' : ' off'), all ? (st.renew ? '🎉 Dùng tiếp 7 ngày' : '🎉 Mở khoá ngay') : `Còn ${S.length - done} bước`);
-    go.disabled = !all;
-    go.addEventListener('click', async () => { if (preview) { renderUnlock.fake = null; renderPanel(); return; } unlockSt.until = Date.now() + UNLOCK_DAYS * 864e5; unlockSt.renew = false; await saveUnlock(); chime && chime(); renderPanel(); });
-    box.append(go, el('div', 'unl-n2', 'ⓘ Link tiếp thị · Giá không đổi'));
+    const all = done === S.length, info = el('div', 'unl-go-all' + (all ? '' : ' off'), all ? '🎉 Đã mở khoá cả tuần' : `Còn ${S.length - done} bước – xong là tự mở khoá`);
+    box.append(info, el('div', 'unl-n2', 'Mở khoá tới 0h thứ 6 tuần sau · ⓘ Shopee, TikTok có link tiếp thị, giá không đổi'));
     V.append(box);
   }
 
@@ -1985,8 +1999,8 @@
   function renderPanel() {
     if (!ui || ui.panel.hidden) { updateBadge(); return; }
     const V = ui.view; V.innerHTML = '';
+    if (LOCK) { renderUnlock(V); updateBadge(); return; }   // 🔓 V1.2.2: khoá tuần – mọi nhánh chỉ hiện bảng 4 bước
     if (helloMode) { renderHello(V); updateBadge(); return; }
-    if ((tab === 'market' || tab === 'tools' || tab === 'adblock' || tab === 'transfer') && !isUnlocked()) { renderProLock(V); updateBadge(); return; }   // V1.65: hết dùng thử → gói Pro
     if (tab === 'tools' && toolsSub === 'unl') { renderUnlock(V); updateBadge(); return; }   // 1.10.127: Thị trường (vàng, chứng khoán, crypto) mở khoá bằng 3 bước
     ({ todo: renderTodo, idea: renderIdea, bell: renderBell, focus: renderFocus, info: renderInfo, shop: renderShop, tools: renderTools, market: renderCrypto, adblock: renderAdblock, transfer: renderTransfer }[tab] || renderTodo)(V);
     { const tp = tipEl(); if (tp) V.prepend(tp); }
@@ -2806,7 +2820,7 @@
     if (readState && !readState.loading) readState = null;
     clearTimeout(autoTimer);
     const ai = settings.ai || {};
-    if (ai.key && ai.autoYoutube && ytId() && active()) {
+    if (ai.key && ai.autoYoutube && ytId() && active() && !LOCK) {
       autoTimer = setTimeout(async () => {
         const info = srcInfo();
         if (info.kind !== 'youtube' || (readState && readState.key === info.key)) return;
@@ -2818,7 +2832,7 @@
   }, 1200);
   setTimeout(() => {   // mở thẳng một video YouTube
     const ai = settings.ai || {};
-    if (ai.key && ai.autoYoutube && ytId() && active()) readCache(srcInfo().key).then(c => { if (!c) doSummary(true); });
+    if (ai.key && ai.autoYoutube && ytId() && active() && !LOCK) readCache(srcInfo().key).then(c => { if (!c) doSummary(true); });
   }, 4000);
 
   // ---------- nhánh Ý tưởng ----------
@@ -2890,7 +2904,7 @@
   }
   chrome.runtime.onMessage.addListener(msg => { if (msg && msg.type === 'hh-page-translate' && ui && !pageTr.running) translatePage(); });   // V1.85: chuột phải → Dịch cả trang
   function showChip(e) {
-    if (!ui || !active() || ((settings.ideas || {}).chip === false && (settings.dich || {}).chip === false)) return;
+    if (!ui || !active() && !LOCK || ((settings.ideas || {}).chip === false && (settings.dich || {}).chip === false)) return;
     const s = selInfo(e); hideChip();
     if (!s || !/[\p{L}\p{N}]/u.test(s.t)) return;
     const t = s.t.slice(0, 20000), rc = s.rc;
@@ -7842,7 +7856,7 @@
     prodChecking = msg.i + '/' + msg.n; if (ui && !ui.panel.hidden && tab === 'shop') renderPanel();
   });
   chrome.runtime.onMessage.addListener(msg => { (async () => {
-    if (msg.type !== 'shop-hit' || !active()) return;
+    if (msg.type !== 'shop-hit' || !active() && !LOCK) return;
     const { products: ps = [] } = await chrome.storage.local.get('products'); products = ps;
     const it = products.find(x => x.id === msg.id); if (!it) return;
     chime();
@@ -7851,7 +7865,7 @@
     say(`${it.title.slice(0, 60)} còn ${vnd(it.price)}`, 'alert', '🛒 GIẢM GIÁ RỒI!', 'shop', buyActs(it));
   })(); });
   chrome.runtime.onMessage.addListener(msg => {
-    if (msg.type !== 'ht-alert' || !active()) return;
+    if (msg.type !== 'ht-alert' || !active() && !LOCK) return;
     if (msg.kind === 'price') { toolsSub = 'crypto'; mktSub = /triệu\/(lượng|chỉ)|\d USD/.test(msg.text || '') ? 'gold' : /nghìn đ/.test(msg.text || '') ? 'stock' : 'crypto'; }
     const t = msg.kind === 'price' ? (lay().market === 'out' ? 'market' : 'tools') : (msg.kind === 'reminder' || msg.kind === 'mail') ? 'bell' : msg.kind === 'pomo' ? 'focus' : 'todo';
     if (msg.kind === 'pomo') {
@@ -7930,7 +7944,7 @@
     }
   }, 1000);
   function focusNudge() {
-    if (!ui || !active() || !pomo || pomo.phase !== 'focus' || pomo.paused) return;
+    if (!ui || !active() && !LOCK || !pomo || pomo.phase !== 'focus' || pomo.paused) return;
     const cfg = settings.pomo || {};
     if (cfg.nudge === false) return;
     const sites = (cfg.sites ?? DISTRACT).split(/[,\s]+/).map(x => x.trim().replace(/^www\./, '')).filter(Boolean);
@@ -8061,7 +8075,7 @@
   //        Không áp cho: nhắc đúng giờ, Todo tới hạn, báo giá, Pomodoro, kiểm tra hàng Shopee, theo dõi giá món đã lưu, việc khách vừa bấm.
   async function autoGate() { const { autoBubbleAt = 0 } = await chrome.storage.local.get('autoBubbleAt').catch(() => ({})); if (Date.now() - autoBubbleAt < 3600e3) return false; await chrome.storage.local.set({ autoBubbleAt: Date.now() }).catch(() => {}); return true; }
   async function greet() {
-    if (!ui || !active() || settings.greet === false || !ui.panel.hidden || menuOpen || trust) return;
+    if (!ui || !active() && !LOCK || settings.greet === false || !ui.panel.hidden || menuOpen || trust) return;
     const { greetAt = 0 } = await chrome.storage.local.get('greetAt');
     const now = Date.now();
     const pend = todos.filter(t => !t.done);
