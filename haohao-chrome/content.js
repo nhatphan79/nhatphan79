@@ -116,6 +116,10 @@
                { id: 'info', label: 'Thông tin', emoji: '💡', color: ib.color, desc: 'Dịch, tóm tắt, giải thích', icon: ib.icon },
                { id: 'transfer', label: 'HaoHao Transfer', emoji: '📲', color: '#2E7DD7', desc: 'Chuyển ảnh, video iPhone ⇄ máy tính',
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
+  // V1.87: 🔄 Đổi file – kéo thả đổi định dạng + công cụ ảnh, mở trang riêng doifile.html
+  TOOLS.push({ id: 'doifile', label: 'Đổi file', emoji: '🔄', color: '#E8513C', desc: 'Kéo thả đổi JPG, PNG, PDF, HEIC…; cắt, thêm nền, nén ảnh',
+    icon: '<path d="M4 9a8 8 0 0 1 14.5-3.5L20 7M20 15a8 8 0 0 1-14.5 3.5L4 17" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 3v4h-4M4 21v-4h4" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' });
+  const openDoi = () => { try { chrome.runtime.sendMessage({ type: 'open-doifile' }); } catch {} };
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.
   //    Chỉ 2 ô giữa đổi được, chọn trong Pomodoro / Thông tin / Thị trường; mục không được chọn nằm trong Tiện ích.
   // V1.64: Góp ý chuyển sang trang Giới thiệu (Cài đặt) – không còn trong Tiện ích
@@ -1541,7 +1545,7 @@
       if (s.dataset.b === 'tools') toolsSub = null;
       openTab(s.dataset.b);
     }));
-    root.querySelectorAll('.sat.child').forEach(s => s.addEventListener('click', () => { const id = s.dataset.tool; if (id === 'focus' || id === 'info') return openTab(id); toolsSub = id; openTab('tools'); }));
+    root.querySelectorAll('.sat.child').forEach(s => s.addEventListener('click', () => { const id = s.dataset.tool; if (id === 'doifile') return openDoi(); if (id === 'focus' || id === 'info') return openTab(id); toolsSub = id; openTab('tools'); }));
     // V1.49: kéo thả ảnh/video vào HaoHao (linh vật hoặc bảng) → mở 📤 Máy tính → iPhone và gửi luôn
     { const isF = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files'); let dz = 0;
       host.addEventListener('dragenter', e => { if (!isF(e)) return; e.preventDefault(); dz++; host.setAttribute('data-drop', ''); });
@@ -7317,7 +7321,7 @@
       const b = el('button', 'tool'); b.style.setProperty('--c', t.color);
       const ti = el('span', 'ti'); ti.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${t.icon}</svg>`;
       const tx = el('div'); tx.append(el('b', '', t.label), el('span', 'td', t.desc)); b.append(ti, tx);
-      b.addEventListener('click', () => { if (t.id === 'focus' || t.id === 'info') return openTab(t.id); toolsSub = t.id; if (t.id === 'crypto') loadQuotes(); renderPanel(); });
+      b.addEventListener('click', () => { if (t.id === 'doifile') return openDoi(); if (t.id === 'focus' || t.id === 'info') return openTab(t.id); toolsSub = t.id; if (t.id === 'crypto') loadQuotes(); renderPanel(); });
       g.append(b);
     });
     if (!HT.STORE && spyKeys && (spyKeys.at || spyKeys.rh)) {   // chỉ máy chủ app: xem thử bảng mở khoá như khách

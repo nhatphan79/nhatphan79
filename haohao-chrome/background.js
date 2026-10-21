@@ -576,6 +576,11 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'img-dist') { imgDists(msg).then(send).catch(() => send({ d: [] })); return true; }
   if (msg.type === 'reviews-scan') { reviewsScan(msg).then(send).catch(() => send({ items: [] })); return true; }
   if (msg.type === 'prod-update') { prodUpdate(msg.ids || [], sender.tab && sender.tab.id).then(r => send(r)).catch(e => send({ ok: false, error: e.message })); return true; }
+  if (msg.type === 'open-doifile') {   // V1.87: 🔄 Đổi file – mở (hoặc chuyển sang) trang doifile.html
+    const u = chrome.runtime.getURL('doifile.html');
+    chrome.tabs.query({ url: u }).then(t => { if (t[0]) { chrome.tabs.update(t[0].id, { active: true }); chrome.windows.update(t[0].windowId, { focused: true }); } else chrome.tabs.create({ url: u, active: true }); }).catch(() => chrome.tabs.create({ url: u, active: true }));
+    return;
+  }
   if (msg.type === 'prod-open') { if (typeof msg.url === 'string' && /^https:\/\//.test(msg.url)) chrome.tabs.create({ url: msg.url, active: true }); return; }
   if (msg.type === 'vh-hunt') { voucherHunt(msg, sender).then(send).catch(e => { hunt = null; send({ ok: false, error: e.message }); }); return true; }
   if (msg.type === 'vh-stop') { huntStop('stop'); return; }

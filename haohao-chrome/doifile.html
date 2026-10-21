@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi" data-hhdoi="page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đổi file – HaoHao</title>
+<link rel="icon" href="icons/icon48.png">
+<link rel="stylesheet" href="doifile.css">
+<style>
+  :root { --bg: #FFF4EA; --ink: #23305E; --soft: #5B648A; --card: #FFFFFF; --line: rgba(35, 48, 94, .13); --hot: #E8513C; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #17132A; --ink: #F3F0FF; --soft: #B9BEDB; --card: #221D38; --line: rgba(255, 255, 255, .13); } }
+  :root[data-theme="dark"] { --bg: #17132A; --ink: #F3F0FF; --soft: #B9BEDB; --card: #221D38; --line: rgba(255, 255, 255, .13); }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 14px/1.5 "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+    background-image: radial-gradient(1100px 600px at 85% -10%, rgba(255, 140, 90, .28), transparent 60%), radial-gradient(900px 600px at -10% 110%, rgba(196, 113, 245, .2), transparent 60%); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 40px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  header img { width: 40px; height: 40px; }
+  header h1 { margin: 0; font-size: 22px; font-weight: 800; }
+  header p { margin: 0; color: var(--soft); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+  .dz { min-height: 330px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; border: 2px dashed rgba(232, 81, 60, .45);
+    background: linear-gradient(135deg, rgba(255, 106, 61, .07), rgba(255, 201, 94, .1)); transition: background .15s, border-color .15s; }
+  .dz:hover, .dz:focus-visible { border-color: var(--hot); background: linear-gradient(135deg, rgba(255, 106, 61, .12), rgba(255, 201, 94, .16)); outline: none; }
+  .dz .ring { width: 116px; height: 116px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; font-size: 46px;
+    background: conic-gradient(#FFD9C4 0 12.5%, #FFE9D9 0 25%, #FFD9C4 0 37.5%, #FFE9D9 0 50%, #FFD9C4 0 62.5%, #FFE9D9 0 75%, #FFD9C4 0 87.5%, #FFE9D9 0);
+    box-shadow: 0 10px 30px rgba(232, 81, 60, .22); position: relative; }
+  .dz .ring::after { content: ""; position: absolute; inset: 30px; border-radius: 50%; background: #FFF6EE; }
+  .dz .ring span { position: relative; z-index: 1; }
+  .dz h2 { margin: 0 0 4px; font-size: 18px; }
+  .dz p { margin: 0 0 14px; color: var(--soft); }
+  .btn { border: 0; background: var(--hot); color: #fff; font: inherit; font-weight: 700; padding: 9px 18px; border-radius: 12px; cursor: pointer; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 600; padding: 6px 12px; font-size: 12.5px; }
+  .btn.ghost:hover { border-color: var(--hot); }
+  h3 { margin: 0 0 8px; font-size: 14px; }
+  .fmt { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .fmt b { font-size: 11.5px; font-weight: 700; background: rgba(232, 81, 60, .1); color: var(--hot); border-radius: 6px; padding: 2px 7px; }
+  .muted { color: var(--soft); font-size: 12.5px; margin: 0 0 10px; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .dir { font-weight: 700; font-size: 13px; margin-bottom: 8px; word-break: break-word; }
+  .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .steps { margin: 0; padding-left: 18px; color: var(--soft); font-size: 12.5px; }
+  .steps li { margin-bottom: 4px; }
+  #hhd-trayslot { margin-top: 16px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="icons/icon48.png" alt="">
+    <div><h1>Đổi file</h1><p>Kéo file vào, thả vào ô định dạng hoặc công cụ. Mọi thứ xử lý ngay trên máy, không gửi lên mạng.</p></div>
+  </header>
+  <div class="grid">
+    <div class="card dz" id="hhd-drop" tabindex="0" role="button" aria-label="Chọn file để đổi">
+      <div class="dz-in">
+        <div class="ring" aria-hidden="true"><span>🔄</span></div>
+        <h2>Kéo file vào bất kỳ đâu trên trang</h2>
+        <p>Vòng tròn hiện ra ngay chỗ con trỏ. Giữ chuột ở giữa vòng để mở Công cụ.</p>
+        <button class="btn" id="hhd-pick" type="button">Hoặc chọn file</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <h3>Đổi được</h3>
+        <p class="muted">Ảnh (JPG, PNG, WEBP, HEIC iPhone, AVIF, TIFF, BMP, GIF) →</p>
+        <div class="fmt"><b>JPG</b><b>PNG</b><b>WEBP</b><b>AVIF</b><b>PDF</b><b>DOCX</b><b>BMP</b><b>TIFF</b></div>
+        <p class="muted">PDF → <b>JPG · PNG · WEBP</b> (mỗi trang 1 ảnh), <b>TXT · DOCX</b> (lấy chữ)<br>Word, TXT → <b>PDF · TXT · DOCX · ảnh</b></p>
+        <h3>Công cụ cho ảnh</h3>
+        <div class="fmt"><b>Cắt</b><b>Thêm nền</b><b>Nén</b><b>Che</b><b>Chỉnh sửa</b><b>Ghi chú</b><b>Thông tin ẩn</b></div>
+      </div>
+      <div class="card">
+        <h3>Nơi lưu file mới</h3>
+        <div class="dir" id="hhd-dir">Thư mục Tải về (Downloads) của Chrome</div>
+        <div class="acts">
+          <button class="btn ghost" id="hhd-dir-pick" type="button">📁 Chọn thư mục khác</button>
+          <button class="btn ghost" id="hhd-dir-re" type="button" hidden>🔓 Cho phép lại</button>
+          <button class="btn ghost" id="hhd-dir-clr" type="button" hidden>↩ Về Tải về</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Mẹo</h3>
+        <ol class="steps">
+          <li>Kéo nhiều ảnh vào ô <b>PDF</b> là gộp thành 1 file PDF.</li>
+          <li>Kéo file trong "File vừa làm" thả lại vào trang để làm tiếp (vd: Cắt xong rồi Thêm nền).</li>
+          <li>Ở Tab mới cũng kéo file vào được.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <div id="hhd-trayslot"></div>
+</div>
+<script type="module" src="doifile.js"></script>
+</body>
+</html>

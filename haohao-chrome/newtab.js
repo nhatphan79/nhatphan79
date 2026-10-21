@@ -187,6 +187,8 @@
     sw.addEventListener('click', () => { on = !on; set(on); });
   }
   // nút nhanh: mở đúng mục trong HaoHao (HaoHao chạy ngay trên trang này)
-  document.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () =>
+  document.querySelectorAll('.quick button[data-tab]').forEach(b => b.addEventListener('click', () =>
     window.dispatchEvent(new CustomEvent('hh-open', { detail: { tab: b.dataset.tab } }))));
+  // V1.87: 🔄 Đổi file – mở trang Đổi file ngay trong tab này (kéo file vào Tab mới cũng hiện vòng tròn)
+  document.getElementById('nt-doi')?.addEventListener('click', () => { location.href = 'doifile.html'; });
 })();

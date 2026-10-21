@@ -6,6 +6,7 @@
 <title>Tab mới</title>
 <link rel="stylesheet" href="newtab.css">
 <link rel="stylesheet" href="proj.css">
+<link rel="stylesheet" href="doifile.css">
 </head>
 <body>
   <header class="topbar">
@@ -47,6 +48,7 @@
       <button data-tab="focus">🍅 Tập trung</button>
       <button data-tab="shop">🛍️ Mua sắm</button>
       <button data-tab="crypto">📊 Thị trường</button>
+      <button id="nt-doi" title="Đổi định dạng file, cắt, thêm nền, nén ảnh. Kéo file vào Tab mới cũng được">🔄 Đổi file</button>
     </nav>
   </main>
   <section class="proj" id="proj" hidden aria-label="Kế hoạch dự án"></section>
@@ -58,5 +60,6 @@
   <script src="proj.js"></script>
   <script src="qrcode.js"></script>
   <script src="content.js"></script>
+  <script type="module" src="doifile.js"></script>
 </body>
 </html>
