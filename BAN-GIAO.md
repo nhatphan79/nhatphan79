@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 20/10/2026 · **Bản V1.82** (số kỹ thuật 1.10.338) · ⚠️ TỪ V1.78 CHỈ CÒN 1 BẢN = BẢN CHROME WEB STORE
+Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V1** (tiện ích Chrome) bản **V1.86** (1.10.353) · **Web cửa hàng** haohaostore.com · **HaoHao V2** (app Windows) bản **2.0.0**. ⚠️ V1 từ V1.78 chỉ còn 1 bản = bản Chrome Web Store
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -17,6 +17,8 @@ Cập nhật: 20/10/2026 · **Bản V1.82** (số kỹ thuật 1.10.338) · ⚠�
 | Gói tải app cho khách | kho này: `downloads/HaoHao-Transfer-Windows.zip` | link nằm trong coupons.json mục `transfer` |
 | Mã giảm giá / link cho máy khách | kho này: `haohao-extension/coupons.json` | máy khách tự đọc; KHÔNG xoá thư mục này |
 | Máy chủ Cloudflare | `server/haohao-gia-worker.js` | key AT_KEY, RH_KEY, GEMINI_KEY anh tự dán, Claude không gõ key |
+| Web cửa hàng | kho này: `haohao-shop-web/` → haohaostore.com (máy tính) + `/app` (điện thoại) | đẩy GitHub là web đổi sau ≤5 phút; sửa trên canvas trước |
+| HaoHao V2 (app Windows) | kho này: `haohao-v2/` (Electron) | đóng gói: `npm install` rồi `npm run dist` (cần wine + wine32 trên Linux) → `dist/HaoHao-V2-Setup-x.y.z.exe` |
 
 - HaoHao **tự nạp lại** khi số phiên bản trong `manifest.json` đổi (background.js kiểm tra mỗi 3–30 giây). Không cần bấm ↻, chỉ F5 trang.
 - Thư mục `haohao-extension/` trên kho là dòng cũ 2.30.2, chỉ còn dùng cho `coupons.json`.
@@ -37,6 +39,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 - App Transfer: mã ghép nối trong QR + lệnh điều khiển cần header `x-haohao`.
 
 ## Luật làm việc với anh
+**GHI THEO 3 SẢN PHẨM (anh Nhật 21/10):** mọi cập nhật và báo cáo ghi rõ thuộc **HaoHao V1** (tiện ích), **Web cửa hàng** (haohaostore.com + /app) hay **HaoHao V2** (app Windows); mỗi phần có bảng Đã làm riêng bên dưới.
 **LUẬT SỐ 1 (anh Nhật 20/10):** Anh nhắn gì, Claude cũng phải nói lại ý mình hiểu, đưa gợi ý, rồi hỏi anh. Anh đồng ý mới làm. Không tự chạy, không tự làm thêm.
 0. **2 tài khoản Claude thay ca:** nhatphan79 làm thứ 7 → thứ 2; anhnhatpro79 làm thứ 3 → thứ 6. Thứ 6 tài khoản anhnhatpro79 phải cập nhật file này để bàn giao cho nhatphan79.
 0b. **HaoHao Store: sửa trên canvas thiết kế trước** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj); chỉ khi anh nói "lên" mới đẩy web thật.
@@ -49,15 +52,16 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 7. Chrome: Claude chỉ xem màn hình, không bấm, không mở được `chrome://extensions`. Tab Shopee do Claude mở bị trắng → anh mở tab thường, Claude chụp màn hình.
 8. Shopee của anh hay hiện **giao diện tiếng Anh** → khi đọc trang luôn tính cả chữ tiếng Anh.
 
-## Đã làm (mới nhất trước)
+## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.86 (1.10.347–1.10.353, 20–21/10) | ⚠️ tên bản giữ V1.86 cho cả đợt này (quên tăng tên theo từng lần sửa). **Phụ đề song ngữ video ngoài YouTube:** dòng tạm do Google Dịch điền (trước là bộ dịch Chrome hay không chạy), Gemini dịch lại cho chuẩn; chưa có mã Gemini thì giữ bản Google; máy không nhận ra ngôn ngữ thì hỏi Google; bỏ qua chú thích/menu/nút của trình phát (BBC), câu đứng yên >12 giây thì tìm lại khung phụ đề. **Bôi đen / Dịch cả trang:** Google trước (nhãn 🌐 Google), nút "✨ Dịch lại bằng AI Gemini". **PDF trên Google Drive:** Dịch cả trang gom dòng thành đoạn, phủ khung trắng ghi tiếng Việt đúng chỗ, cuộn tới đâu dịch tới đó (1.10.349). Trình đọc PDF riêng (pdf.js, 1.10.350) **đã bỏ** theo ý anh (1.10.351). **Mã Gemini:** dán là tự lưu + kiểm tra nhanh qua danh sách mẫu, tối đa 10 giây, đếm giây, báo mã sai ngay (1.10.352, `ai-check`). **Nút 🧡 HaoHao Store dưới hamster** mở haohaostore.com (1.10.353). Chưa phát hành. |
+| V1.85 (1.10.346, 20/10) | Dịch cả trang qua Google Dịch (máy chủ `/dich`), phần đang nhìn dịch trước, 4 gói song song; thêm "🌍 Dịch cả trang" ở menu chuột phải và nút "🌍 Cả trang" khi bôi đen. Chưa phát hành. |
+| V1.84 (20/10) | Chặn quảng cáo: trang trong "Trang không chặn" được mở tab quảng cáo bình thường; trang mặc định (haohaostore.com, workers.dev, fomo.family, world.xyz) chạy ngầm, không hiện trong danh sách. Chưa phát hành. |
+| V1.83 (20/10) | Quản lý dự án: ô **🏦 Tổng tài sản** = vốn + lợi nhuận − đã rút; Tổng chi = vốn đã bỏ vào (đúng cột Vốn đầu tư, Lãi/lỗ, gồm vốn gốc Trade); bỏ ô Tổng thu; tỷ suất = lợi nhuận/vốn. Chưa phát hành. |
 | V1.82 (1.10.338) | Chặn quảng cáo: **Trang không chặn** – mặc định `haohaostore.com` (+ workers.dev, không xoá được), người dùng tự thêm/bỏ trong mục 🛡️ (nút "Thêm trang này", ô gõ tên trang, ✕), lưu `settings.adSkip`. Áp cho cả ẩn khung (adhide.js), chặn mạng (background `allowAllRequests`), YouTube (yt-ads.js), đóng tab tự bật, bong bóng báo. Hàm chung `HT.adSkipList/adSkipHit/adHost` (common.js). Chưa phát hành. |
 | V1.81 (1.10.337) | Tiện ích gửi giá "Mua trên app" đang hiện về kho giá (khoá `ap:sp:shop.id`, qua `price-log` như giá thường). Web HaoHao Store lấy giá Shopee mới nhất trong kho (`sp:…`, đã trừ mã shop, ≤2 ngày) và giá app (`ap:sp:…`) → khớp tiện ích; sửa cách tính trong tiện ích là web đổi theo. Máy chủ: KEY nhận `ap:`. Chưa phát hành. |
-| Web 20/10 chiều | Tên miền **haohaostore.com** (Cloudflare, nameserver lee/penny), trang chủ = Store, www → tên chính; đường dẫn sạch /thoi-trang, /thoi-trang/ao, /san-pham/<mã>, /sale (link # cũ tự chuyển); Tin tức /tin-tuc/ 5 bài SEO (tạo bằng `haohao-shop-web/tin-tuc/_tao.py` từ `bai.json`), sitemap/robots; Sale theo thiết kế (Mua theo loại, Bộ lọc, Sắp xếp); menu TIN TỨC đầu + mascot HAOHAO → haohao.ai.studio; footer gốc. Canvas thiết kế: claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj. |
 | V1.80 (1.10.336) | Chặn quảng cáo (`adhide.js`) không chạy trên trang HaoHao Store `haohao-gia.nhatphan79.workers.dev` (trước đó ẩn nhầm khu sản phẩm dẫn ra Shopee). Chưa phát hành. |
-| Web + máy chủ 20/10 | HaoHao Store: ngách theo SỐ 1–5 đầu tên danh mục collshp; Bán chạy nhất = Tất cả + ô chủ đề theo tên danh mục; khu sản phẩm thứ i = danh mục thứ i (đúng hàng anh chọn, không độn); ô tròn lọc theo tên món; tên SP tối đa 3 dòng; 5 ô tròn Thời trang ảnh chỉ có sản phẩm. Máy chủ STORE_V 5, ĐÃ Deploy. |
-| Máy chủ 19/10 | `/store`: đọc danh mục chủ app trên collshp.com/haohaostore (GraphQL công khai, cần `cid:'vn'`), 6 giờ/lần theo cron, chỉ lấy món trong danh mục (bỏ "Có thể bạn thích"); danh mục → 5 ngách web theo từ khoá tên, món → mục nhỏ theo từ khoá tên món; ghi giá vào kho `gia`. `/store?run=1&key=STATS_KEY` chạy ngay. Dùng cho web HaoHao Store. Cần Deploy |
 | V1.72 (1.10.328) | Mảng mẫu Airdrop: cột Tiến độ thay bằng **5 ô tích "5 trình duyệt"** (`p.br=[0/1 ×5]`), anh tự tích, không tự xoá theo ngày, không liên kết hồ sơ Chrome (anh chọn tự tích). Chưa phát hành. |
 | V1.73 (1.10.329) | Soi sản phẩm bản Store (anh chọn **A**): `HT.STORE` → ẩn "HH %" và nút xếp "% HH", bấm món / tìm Shopee mở **link thường** (`spyOpen` → `prod-open`, không qua `HT.aff`). Bản thường giữ nguyên. `prod-open` chỉ nhận https. Email hỗ trợ Store: nhatphan79@gmail.com. Chưa phát hành. |
 | V1.74 (1.10.330) | (1) Gmail bản Store: cài mới **mặc định tắt**; bật thì hiện hộp "🔒 Cho phép HaoHao đọc Gmail?" → Đồng ý lưu `settings.mail.gmOk`; chưa đồng ý thì nền báo lỗi `perm`, không đọc feed / dò tài khoản. Không dùng optional_host_permissions vì content script `<all_urls>` đã cấp quyền mail.google.com (Chrome tính chung) → hỏi đồng ý trong HaoHao. Bản thường giữ tự bật. (2) **Bỏ hẳn bong bóng cà phê Thứ Ba** (`coffeeDue=false`, `tiredAsk` return, bỏ chip xem thử). (3) `storeWeekly`: 7 ngày 1 lần mời ghé **HaoHao Store** (nút Shopee / TikTok Shop / Để sau, `openDeal`), tuần đầu sau cài chưa mời, qua `autoGate`, không hiện trên trang mua sắm; bản Store ghi "(link tiếp thị)". Hồ sơ Store khai thêm Personal communications. Chưa phát hành. |
@@ -184,9 +188,38 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 | 1.10.203–209 | HaoHao Transfer quản lý trong HaoHao; app chạy ngầm; nút Bật app (haohao-transfer://); QR tab mới; báo khi chuyển xong |
 | 1.10.202 | Menu Tiện ích tự chia chỗ, không đè nút |
 
+## Đã làm – Web cửa hàng (haohaostore.com + /app, máy chủ) – mới nhất trước
+| Ngày | Đã sửa |
+| --- | --- |
+| Web 21/10 | Dịch vụ dịch cho tiện ích: máy chủ `/dich` sửa lỗi gửi 1 câu bị dính ",en" vào bản dịch (Deploy 21/10). |
+| Web 20/10 tối | **Điện thoại `/app`** (PWA, 8 màn theo canvas; máy điện thoại vào haohaostore.com tự chuyển `/app`, `?desktop=1` giữ bản máy tính); Danh mục mẫu 4A (4 khu = 4 nhóm collshp + Bán chạy nhất + Giảm giá nhiều nhất); bộ lọc Ưu đãi; Cá nhân rút gọn; Tin mới ở trang chủ (`tin-moi.json`). **Biểu tượng 3D** các khu cho cả máy tính + điện thoại (ảnh `khu-*.webp`); ô Bán chạy nhất / Giảm giá nhiều nhất nền theo màu ngách. **SEO** bước 1–2: máy chủ dựng sẵn tiêu đề, mô tả, dữ liệu cấu trúc + sitemap sản phẩm; Search Console đã xác minh bằng bản ghi TXT (KHÔNG xoá). Bước 3–4 (bài theo từ khoá, Google Maps cho Tiệm) anh để sau. Ẩn phần dựng sẵn khi mở trang (hiện "Đang tải"), bộ báo lỗi bỏ qua lỗi của tiện ích khác. Nút "Cài HaoHao miễn phí" → `/cai-dat` với gạch đầu dòng theo ngách. Ảnh thẻ ngách thật, Tin tức ảnh bìa người Việt. |
+| Web 20/10 sáng | **Tiệm nhà HaoHao** (`/tiem-nha-hao`): khung Gửi đơn bắt buộc SĐT + địa chỉ, đơn gửi thẳng Zalo chủ tiệm qua **Zalo Bot** (máy chủ `/don`, secret `ZALO_BOT`, `ZALO_CHAT`); chân trang giới thiệu tiệm. Menu kiểu khung bo tròn 1 hàng cạnh logo. **D1 hết lượt đọc 20/10:** tắt nạp sản phẩm theo lịch (`FEED_ON = false`), `/store` dùng bản đệm Cloudflare / đọc thẳng collshp khi D1 lỗi; D1 reset 7h sáng, hết nữa thì cân nhắc gói 5$. |
+| Web 20/10 chiều | Tên miền **haohaostore.com** (Cloudflare, nameserver lee/penny), trang chủ = Store, www → tên chính; đường dẫn sạch /thoi-trang, /thoi-trang/ao, /san-pham/<mã>, /sale (link # cũ tự chuyển); Tin tức /tin-tuc/ 5 bài SEO (tạo bằng `haohao-shop-web/tin-tuc/_tao.py` từ `bai.json`), sitemap/robots; Sale theo thiết kế (Mua theo loại, Bộ lọc, Sắp xếp); menu TIN TỨC đầu + mascot HAOHAO → haohao.ai.studio; footer gốc. Canvas thiết kế: claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj. |
+| Web + máy chủ 20/10 | HaoHao Store: ngách theo SỐ 1–5 đầu tên danh mục collshp; Bán chạy nhất = Tất cả + ô chủ đề theo tên danh mục; khu sản phẩm thứ i = danh mục thứ i (đúng hàng anh chọn, không độn); ô tròn lọc theo tên món; tên SP tối đa 3 dòng; 5 ô tròn Thời trang ảnh chỉ có sản phẩm. Máy chủ STORE_V 5, ĐÃ Deploy. |
+| Máy chủ 19/10 | `/store`: đọc danh mục chủ app trên collshp.com/haohaostore (GraphQL công khai, cần `cid:'vn'`), 6 giờ/lần theo cron, chỉ lấy món trong danh mục (bỏ "Có thể bạn thích"); danh mục → 5 ngách web theo từ khoá tên, món → mục nhỏ theo từ khoá tên món; ghi giá vào kho `gia`. `/store?run=1&key=STATS_KEY` chạy ngay. Dùng cho web HaoHao Store. Cần Deploy |
+
+## Đã làm – HaoHao V2 (app Windows) – mới nhất trước
+| Bản | Đã sửa |
+| --- | --- |
+| 2.0.0 (21/10) – đợt 1 | App Electron cho Windows, file cài `HaoHao-V2-Setup-2.0.0.exe` (88 MB, chưa ký số → Windows hỏi "Run anyway"). Khay hệ thống + tự chạy khi bật máy (`--hidden`), bấm ✕ thu xuống khay. Mục **Việc cần làm** (gõ kèm giờ tự hẹn), **Nhắc nhở** (hằng ngày / cứ N phút / 1 lần / âm lịch, mặc định Uống nước, Thắp hương, Tan làm), **Note**, **Dự án** (chạy nguyên `proj.js` của tiện ích qua chrome.storage giả lập), **Cài đặt**. Thông báo Windows kể cả khi tắt Chrome. Dữ liệu cùng khuôn tiện ích (`todos`, `rules`, `ideas`, `ideaSeq`, `projBoard`) lưu `AppData\Roaming\HaoHao V2\haohao-data.json`. **Máy chủ đồng bộ** `127.0.0.1:47321` (`/v2/ping`, `/v2/pull?since=`, `/v2/push`), chỉ nhận tiện ích (origin chrome-extension + header `x-haohao: 1`); lần nối đầu gộp theo id; tiện ích nói chuyện trong 3 phút gần nhất thì app không nhắc trùng. Đã thử trên Linux + giả lập Windows; chưa thử trên Windows thật. Dự án trong app chưa khoá Pro. |
+
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
+**HaoHao V1**
+- [ ] Đồng bộ dữ liệu với HaoHao V2: thêm phần nói chuyện với app (`127.0.0.1:47321`) vào bản tiện ích kế tiếp, SAU khi Chrome Web Store duyệt bản đang nộp (thêm quyền 127.0.0.1 → ghi lý do "kết nối app HaoHao V2").
+- [ ] Gemini dịch lại cả trang: đã đề xuất (giữ bản Google trong lúc chờ, mẫu flash-lite, gói 20 đoạn × 3 song song, thanh báo %) – chờ anh đồng ý.
+- [ ] Báo "HaoHao vừa cập nhật, bấm F5" khi trang đang mở mất kết nối sau khi tải lại tiện ích – chờ anh đồng ý.
+
+**Web cửa hàng**
+- [ ] SEO bước 3 (bài theo từ khoá) + bước 4 (Google Maps cho Tiệm) – anh để sau. Đổi mã Zalo Bot (anh đã dán lộ trong chat) – anh để sau.
+
+**HaoHao V2**
+- [ ] Anh cài thử 2.0.0 trên Windows, bấm Cài đặt → 🔔 Thử thông báo, gửi ảnh.
+- [ ] Đợt 2: bôi đen ở mọi phần mềm + phím tắt để dịch/tóm tắt/giải thích, chụp vùng màn hình lấy chữ. Đợt 3: hamster trên màn hình, giá vàng/coin/thời tiết, gộp app Transfer.
+- [ ] Hỏi anh: Dự án trong app có khoá Pro như tiện ích không.
+
+**Chung (cũ)**
 - ❌ **ĐÃ BỎ, KHÔNG LÀM, KHÔNG NHẮC LẠI (anh Nhật 20/10):** nút "📋 Thêm vào dự án" trên mọi trang web · Trang Kế hoạch dự án (mẫu kế hoạch) · chữ "duy trì miễn phí…" ở Bảng mở khoá + lời mời cà phê thứ Ba.
 - [ ] **HaoHao Transfer – 📤 Gửi sang iPhone** (18/10): ĐÃ XONG mã + exe (V1.48–V1.51, Transfer v51/v52 – đóng gói `--no-bytecode --public-packages "*" --public`, subsystem 2). Anh Nhật đã chạy được bản no-bytecode. Còn: anh thay exe v52 (`HaoHao-Transfer-moi.exe`), thử kéo thả vào linh vật; – ĐÃ cập nhật zip cho khách 18/10.
 - [ ] Trang web "HaoHao Deal" (14/10, để sau): web riêng thương hiệu HaoHao, KHÔNG giả giao diện Shopee; giới thiệu hàng HaoHao Store (dẫn về shop Shopee/TikTok của anh) + "Deal hay hôm nay" bằng link tiếp thị (dữ liệu: kho `sp` + `/hot` trên máy chủ). Nhớ khai báo web là nguồn lưu lượng trong AccessTrade. Tự bán thẳng (giỏ hàng, COD) để sau khi có đơn đều – cần thông báo Bộ Công Thương
