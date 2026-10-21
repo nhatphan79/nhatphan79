@@ -30,5 +30,9 @@ contextBridge.exposeInMainWorld('hhApp', {
   info: () => ipcRenderer.invoke('app-info'),
   setAuto: on => ipcRenderer.invoke('set-auto', on),
   testNotify: () => ipcRenderer.invoke('test-notify'),
+  updateGet: () => ipcRenderer.invoke('update-get'),
+  updateCheck: () => ipcRenderer.invoke('update-check'),
+  updateInstall: () => ipcRenderer.invoke('update-install'),
+  onUpdate: f => { ipcRenderer.on('update-status', (_e, u) => { try { f(u); } catch (err) { console.error(err); } }); },
   open: url => ipcRenderer.invoke('open', url)
 });

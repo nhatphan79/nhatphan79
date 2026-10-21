@@ -170,6 +170,32 @@ function mergeFirst(k, mine, theirs) {
 }
 const pick = o => { const r = {}; for (const k of SYNC_KEYS) if (k in o) r[k] = o[k]; return r; };
 
+// ---------- tự cập nhật (từ 2.0.1): hỏi GitHub Releases "haohao-v2" lúc mở + 6 giờ/lần, tải ngầm phần thay đổi ----------
+// Bản mới tải xong → báo "bấm để khởi động lại"; không bấm thì tự cài lần thoát app sau.
+const UP = { st: 'idle', ver: '', pct: 0, err: '', at: 0, told: '' };
+let updater = null;
+function initUpdater() {
+  if (!app.isPackaged) return;                                    // chạy thử bằng `npm start` thì không cập nhật
+  try { updater = require('electron-updater').autoUpdater; } catch (e) { console.error('updater', e.message); return; }
+  updater.autoDownload = true; updater.autoInstallOnAppQuit = true; updater.allowDowngrade = false;
+  const send = () => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('update-status', { ...UP }); };
+  updater.on('checking-for-update', () => { UP.st = 'checking'; UP.err = ''; send(); });
+  updater.on('update-not-available', () => { UP.st = 'latest'; UP.at = Date.now(); send(); });
+  updater.on('update-available', i => { UP.st = 'downloading'; UP.ver = i.version; UP.pct = 0; send(); });
+  updater.on('download-progress', p => { UP.pct = Math.round(p.percent || 0); send(); });
+  updater.on('update-downloaded', i => {
+    UP.st = 'ready'; UP.ver = i.version; UP.at = Date.now(); send(); buildTrayMenu();
+    if (UP.told === i.version || !Notification.isSupported()) return;
+    UP.told = i.version;
+    const n = new Notification({ title: '🐹 HaoHao V2 có bản mới ' + i.version, body: 'Bấm vào đây để khởi động lại và dùng bản mới (dữ liệu giữ nguyên).', icon: path.join(__dirname, 'build', 'icon.png') });
+    n.on('click', installUpdate); n.show();
+  });
+  updater.on('error', e => { UP.st = 'error'; UP.err = String((e && e.message) || e).slice(0, 200); UP.at = Date.now(); send(); });
+  checkUpdate(); setInterval(checkUpdate, 6 * 3600e3);
+}
+function checkUpdate() { if (updater && UP.st !== 'downloading' && UP.st !== 'ready') updater.checkForUpdates().catch(() => {}); }
+function installUpdate() { if (!updater || UP.st !== 'ready') return; quitting = true; saveNow(); setImmediate(() => updater.quitAndInstall(false, true)); }
+
 // ---------- cửa sổ + khay ----------
 let win = null, tray = null, quitting = false;
 function createWin(show) {
@@ -197,16 +223,24 @@ const setAuto = on => app.setLoginItemSettings({ openAtLogin: !!on, args: ['--hi
 function buildTray() {
   tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'app', 'tray.png')));
   tray.setToolTip('HaoHao V2');
-  const menu = () => Menu.buildFromTemplate([
+  buildTrayMenu();
+  tray.on('click', showWin);
+  tray.on('right-click', buildTrayMenu);
+}
+function buildTrayMenu() {
+  if (!tray) return;
+  const upItem = UP.st === 'ready'
+    ? { label: `⬆️ Cài bản mới ${UP.ver} (khởi động lại)`, click: installUpdate }
+    : { label: UP.st === 'downloading' ? `Đang tải bản mới ${UP.ver}… ${UP.pct}%` : 'Kiểm tra bản mới', enabled: !!updater && UP.st !== 'downloading', click: checkUpdate };
+  tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Mở HaoHao', click: showWin },
     { type: 'separator' },
     { label: 'Tự chạy khi bật máy', type: 'checkbox', checked: autoOn(), click: m => { setAuto(m.checked); } },
+    upItem,
+    { label: 'Phiên bản ' + VER, enabled: false },
     { type: 'separator' },
     { label: 'Thoát HaoHao', click: () => { quitting = true; saveNow(); app.quit(); } }
-  ]);
-  tray.setContextMenu(menu());
-  tray.on('click', showWin);
-  tray.on('right-click', () => tray.setContextMenu(menu()));
+  ]));
 }
 
 // ---------- cửa sổ hỏi app (giống chrome.* của tiện ích) ----------
@@ -220,6 +254,9 @@ ipcMain.handle('st-remove', (_e, keys) => {
 ipcMain.handle('open', (_e, url) => openUrl(url));
 ipcMain.handle('app-info', () => ({ ver: VER, auto: autoOn(), ext: extAlive(), extSeen: S.extSeen || 0, file: FILE }));
 ipcMain.handle('set-auto', (_e, on) => { setAuto(on); return autoOn(); });
+ipcMain.handle('update-get', () => ({ ...UP, can: !!updater }));
+ipcMain.handle('update-check', () => { checkUpdate(); return { ...UP, can: !!updater }; });
+ipcMain.handle('update-install', () => installUpdate());
 ipcMain.handle('test-notify', () => notify('🐹 HaoHao V2', 'Thông báo chạy tốt! HaoHao sẽ nhắc bạn ở góc màn hình như thế này.'));
 ipcMain.handle('msg', (_e, m) => {                                   // lời nhắn tiện ích (chrome.runtime.sendMessage) – đợt 1 trả lời tối thiểu
   const t = m && m.type;
@@ -235,4 +272,5 @@ app.whenReady().then(() => {
   if (!S.app.firstRun) { S.app.firstRun = Date.now(); setAuto(true); saveSoon(); }   // lần đầu: bật tự chạy khi bật máy
   startServer(); buildTray(); createWin(!HIDDEN);
   tick(); setInterval(tick, 20e3);
+  setTimeout(initUpdater, 15e3);                                    // đợi máy khởi động xong rồi mới hỏi bản mới
 });

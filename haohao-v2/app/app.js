@@ -151,6 +151,29 @@
   }
   $('set-auto').addEventListener('change', async e => { const on = await hhApp.setAuto(e.target.checked); e.target.checked = on; toast(on ? 'Đã bật tự chạy khi bật máy' : 'Đã tắt tự chạy'); });
   $('set-test').addEventListener('click', () => hhApp.testNotify());
+  // cập nhật: app tự hỏi GitHub lúc mở + 6 giờ/lần; ở đây chỉ hiện trạng thái + cho bấm kiểm tra / cài
+  function renderUp(u) {
+    const t = u.at ? ' (lúc ' + new Date(u.at).toLocaleTimeString('vi', { hour: '2-digit', minute: '2-digit' }) + ')' : '';
+    const msg = !u.can ? 'Tự cập nhật chỉ chạy ở bản đã cài.'
+      : u.st === 'checking' ? 'Đang kiểm tra bản mới…'
+      : u.st === 'downloading' ? `Đang tải ngầm bản ${u.ver}… ${u.pct}%`
+      : u.st === 'ready' ? `✓ Bản ${u.ver} đã tải xong. Bấm nút bên dưới để khởi động lại và dùng bản mới (dữ liệu giữ nguyên).`
+      : u.st === 'latest' ? '✓ Đang dùng bản mới nhất' + t
+      : u.st === 'error' ? 'Chưa kiểm tra được (mất mạng?). HaoHao sẽ thử lại sau' + t
+      : 'HaoHao tự kiểm tra bản mới khi mở máy và cứ 6 giờ một lần, tải ngầm rồi báo bạn.';
+    $('set-up').textContent = msg;
+    const b = $('set-up-btn');
+    b.textContent = u.st === 'ready' ? `⬆️ Cài bản ${u.ver} ngay` : '🔄 Kiểm tra bản mới';
+    b.disabled = !u.can || u.st === 'checking' || u.st === 'downloading';
+  }
+  if (hhApp.updateGet) {
+    hhApp.updateGet().then(renderUp);
+    hhApp.onUpdate(u => renderUp({ ...u, can: true }));
+    $('set-up-btn').addEventListener('click', async () => {
+      const u = await hhApp.updateGet();
+      if (u.st === 'ready') hhApp.updateInstall(); else renderUp(await hhApp.updateCheck());
+    });
+  }
   async function syncDot() {
     const i = await hhApp.info(), s = $('sync');
     s.classList.toggle('on', !!i.ext); s.querySelector('span').textContent = i.ext ? 'Đã nối tiện ích Chrome' : 'Chưa nối tiện ích Chrome';

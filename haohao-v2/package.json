@@ -1,7 +1,7 @@
 {
   "name": "haohao-v2",
   "productName": "HaoHao V2",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "HaoHao V2 – trợ lý trên máy tính Windows, dùng chung dữ liệu với tiện ích HaoHao trên Chrome",
   "author": "Phan Thanh Nhật",
   "copyright": "© 2026 HaoHao – Phan Thanh Nhật",
@@ -41,12 +41,22 @@
       "createStartMenuShortcut": true,
       "shortcutName": "HaoHao V2",
       "runAfterFinish": true,
-      "language": "1066"
-    }
+      "language": "1066",
+      "differentialPackage": true
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://github.com/nhatphan79/nhatphan79/releases/download/haohao-v2"
+      }
+    ]
   },
   "devDependencies": {
     "electron": "38.2.2",
     "electron-builder": "26.0.12",
     "resedit": "2.0.3"
+  },
+  "dependencies": {
+    "electron-updater": "6.6.2"
   }
 }
