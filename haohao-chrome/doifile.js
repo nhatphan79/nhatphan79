@@ -1,7 +1,7 @@
 // HaoHao V1 – 🔄 HaoHao Convert (đổi file kéo-thả; V1.87, đổi tên V1.88 – 21/10/2026)
 // Kéo file vào trang → hiện vòng tròn: thả vào ô định dạng để đổi file; giữ chuột ở giữa vòng → đổi sang vòng Công cụ
 // (Cắt, Thêm nền, Nén, Che, Chỉnh sửa, Ghi chú, Thông tin ẩn). Mọi thứ chạy trên máy, không gửi file lên mạng.
-// Thư viện đóng gói sẵn trong lib/ (pdf.js, libheif, AVIF, UTIF) – chỉ nạp khi cần.
+// Thư viện đóng gói sẵn trong lib/ (pdf.js, libheif, UTIF, SheetJS, pdf-lib, onnxruntime) – chỉ nạp khi cần. V1.97: bỏ ghi AVIF (anh Nhật, bớt 3,4MB).
 const URLX = p => (globalThis.chrome && chrome.runtime && chrome.runtime.getURL) ? chrome.runtime.getURL(p) : new URL(p, import.meta.url).href;
 const PAGE = document.documentElement.dataset.hhdoi === 'page';   // doifile.html (trang riêng) hay Tab mới
 const $e = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
@@ -30,7 +30,7 @@ function kindOfMime(t) {
   return 'other';
 }
 const FORMATS = {
-  img: ['JPG', 'PNG', 'WEBP', 'AVIF', 'PDF', 'DOCX', 'GOP', 'TIFF'],   // V1.89: ô BMP → Gộp / Tách (anh Nhật)
+  img: ['JPG', 'PNG', 'WEBP', 'PDF', 'DOCX', 'GOP', 'TIFF'],   // V1.89: ô BMP → Gộp / Tách (anh Nhật)
   pdf: ['JPG', 'PNG', 'WEBP', 'TXT', 'DOCX', 'GOP'],
   docx: ['PDF', 'TXT', 'JPG', 'PNG'],
   txt: ['PDF', 'DOCX', 'JPG', 'PNG'],
@@ -43,6 +43,7 @@ const TOOLS = [   // V1.91: Cắt + Thêm nền + Chỉnh sửa gộp thành 1 m
   { id: 'size', label: 'Kích thước', ic: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4M7 9v4M17 15h-4M17 15v-4"/>' },
   { id: 'xnen', label: 'Xoá nền', ic: '<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><circle cx="12" cy="10" r="3"/><path d="M7 18c1-3 3-4.5 5-4.5s4 1.5 5 4.5"/>' },
   { id: 'logo', label: 'Đóng logo', ic: '<path d="M9 3h6v5l3 4H6l3-4z"/><path d="M4 15h16v4H4z"/>' },
+  { id: 'scan', label: 'Scan', ic: '<path d="M7 3H5a2 2 0 0 0-2 2v2M17 3h2a2 2 0 0 1 2 2v2M7 21H5a2 2 0 0 1-2-2v-2M17 21h2a2 2 0 0 0 2-2v-2"/><path d="M7 12h10M8 8h8M8 16h6"/>' },   // V1.97
   { id: 'nen', label: 'Nén', ic: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>' },
   { id: 'che', label: 'Che', ic: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>' },
   { id: 'note', label: 'Ghi chú', ic: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>' },
@@ -50,7 +51,7 @@ const TOOLS = [   // V1.91: Cắt + Thêm nền + Chỉnh sửa gộp thành 1 m
 ];
 
 /* ───────────────────────── nạp thư viện khi cần ───────────────────────── */
-let pdfjsP, heifP, avifP, tifP;
+let pdfjsP, heifP, tifP;
 const pdfjs = () => pdfjsP ||= import(URLX('lib/pdf/pdf.min.mjs')).then(m => { m.GlobalWorkerOptions.workerSrc = URLX('lib/pdf/pdf.worker.min.mjs'); return m; });
 let xlsxP; const xlsxLib = () => xlsxP ||= globalThis.XLSX ? Promise.resolve(globalThis.XLSX) : new Promise((ok, no) => {
   const s = document.createElement('script'); s.src = URLX('lib/xlsx/xlsx.full.min.js'); s.onload = () => globalThis.XLSX ? ok(globalThis.XLSX) : no(new Error('Không nạp được bộ đọc Excel'));
@@ -71,7 +72,6 @@ const heif = () => heifP ||= new Promise((res, rej) => {
   if (globalThis.libheif) return done();
   const s = document.createElement('script'); s.src = URLX('lib/heif/libheif.js'); s.onload = done; s.onerror = () => rej(new Error('Không nạp được bộ đọc HEIC')); document.head.append(s);
 });
-const avif = () => avifP ||= import(URLX('lib/avif/avif_enc.js')).then(m => m.default({ locateFile: f => URLX('lib/avif/' + f) }));
 
 /* ───────────────────────── đọc ảnh vào canvas ───────────────────────── */
 const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
@@ -116,12 +116,6 @@ function encBMP(c) {
   return new Blob([b], { type: 'image/bmp' });
 }
 async function encTIFF(c) { const U = await tiff(), d = rgba(c); return new Blob([U.encodeImage(d.data.buffer, c.width, c.height)], { type: 'image/tiff' }); }
-async function encAVIF(c, q = 60) {
-  const M = await avif(), d = rgba(c);
-  const opt = { quality: q, qualityAlpha: -1, denoiseLevel: 0, tileColsLog2: 0, tileRowsLog2: 0, speed: 8, subsample: 1, chromaDeltaQ: false, sharpness: 0, tune: 0, enableSharpYUV: false, bitDepth: 8, lossless: false };
-  const out = M.encode(new Uint8Array(d.data.buffer), c.width, c.height, opt);
-  if (!out) throw new Error('Không tạo được AVIF'); return new Blob([out], { type: 'image/avif' });
-}
 const MIME = { JPG: 'image/jpeg', PNG: 'image/png', WEBP: 'image/webp', AVIF: 'image/avif', BMP: 'image/bmp', TIFF: 'image/tiff', PDF: 'application/pdf',
   DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', TXT: 'text/plain', ZIP: 'application/zip',
   XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', CSV: 'text/csv' };
@@ -131,7 +125,6 @@ async function encode(c, fmt, q) {
     case 'JPG': return toBlob(flatten(c), 'image/jpeg', q ?? .92);
     case 'PNG': return toBlob(c, 'image/png');
     case 'WEBP': return toBlob(c, 'image/webp', q ?? .9);
-    case 'AVIF': return encAVIF(c, q != null ? Math.round(q * 100) : 60);
     case 'BMP': return encBMP(c);
     case 'TIFF': return encTIFF(c);
   }
@@ -794,7 +787,7 @@ async function openTool(id, files) {
   if (!imgs.length) return toast('Công cụ chỉ dùng cho ảnh');
   let src; try { toast('⏳ Đang mở ảnh…', 1500); src = await decodeImage(imgs[0]); } catch (e) { return toast('⚠️ ' + errText(e), 6000); }
   const tt = document.querySelector('.hhd-toast'); if (tt) tt.hidden = true;
-  const T = { sua: toolEdit, size: toolSize, xnen: toolXnen, logo: toolLogo, nen: toolNen, che: toolChe, note: toolNote, meta: toolMeta }[id];
+  const T = { sua: toolEdit, size: toolSize, xnen: toolXnen, logo: toolLogo, scan: toolScan, nen: toolNen, che: toolChe, note: toolNote, meta: toolMeta }[id];
   T(src, imgs);
 }
 const firstOnly = files => files.length > 1 ? `Chỉ làm ảnh đầu tiên (${files[0].name})` : '';
@@ -834,7 +827,7 @@ function toolNen(src, files) {
     const u = URL.createObjectURL(b), im = new Image(); im.onload = () => { const mw = Math.min(640, innerWidth - 70), mh = Math.min(300, innerHeight * .38), k = Math.min(1, mw / im.width, mh / im.height); cv.width = im.width * k; cv.height = im.height * k; cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(u); }; im.src = u;
   };
   let calcT; const re = () => { clearTimeout(calcT); calcT = setTimeout(calc, 180); };
-  const fb = segBtns([['JPG', 'JPG'], ['WEBP', 'WEBP'], ['AVIF', 'AVIF (nhẹ nhất, chậm)']], o.fmt, v => { o.fmt = v; re(); });
+  const fb = segBtns([['JPG', 'JPG'], ['WEBP', 'WEBP (nhẹ hơn)']], o.fmt, v => { o.fmt = v; re(); });
   const [qS] = slider(10, 95, o.q, v => { o.q = v; re(); }, v => v + '%');
   const sel = $e('select'); [[0, 'Giữ nguyên'], [3840, '3840 px'], [2560, '2560 px'], [1920, '1920 px'], [1280, '1280 px'], [1080, '1080 px'], [800, '800 px (Shopee)']].forEach(([v, t]) => { const op = $e('option', '', t); op.value = v; sel.append(op); });
   sel.addEventListener('change', () => { o.max = +sel.value; re(); });
@@ -1147,6 +1140,124 @@ async function toolLogo(src, files) {
   markPos(); draw();
 }
 
+/* 📄 Scan: ảnh chụp giấy tờ → bản scan (V1.97) – tìm 4 góc, làm phẳng, xoá bóng, lọc đen trắng / xám / màu */
+function scanCorners(src) {   // tìm tờ giấy (vùng sáng lớn nhất) → 4 góc (toạ độ ảnh gốc)
+  const k = Math.min(1, 480 / Math.max(src.width, src.height)), w = Math.max(8, Math.round(src.width * k)), h = Math.max(8, Math.round(src.height * k));
+  const c = mkCanvas(w, h), x = c.getContext('2d'); x.filter = 'blur(2px)'; x.drawImage(src, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h), hist = new Array(256).fill(0);
+  for (let i = 0; i < w * h; i++) { const v = (d[i * 4] * 299 + d[i * 4 + 1] * 587 + d[i * 4 + 2] * 114) / 1000 | 0; g[i] = v; hist[v]++; }
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let wb = 0, sb = 0, best = 0, th = 128; for (let t = 0; t < 256; t++) { wb += hist[t]; if (!wb) continue; const wf = w * h - wb; if (!wf) break; sb += t * hist[t]; const mb = sb / wb, mf = (sum - sb) / wf, v = wb * wf * (mb - mf) ** 2; if (v > best) { best = v; th = t; } }
+  const lab = new Int32Array(w * h).fill(-1); let bestId = -1, bestN = 0; const st = [];
+  for (let i = 0; i < w * h; i++) {
+    if (g[i] <= th || lab[i] >= 0) continue; let n = 0; st.push(i); lab[i] = i;
+    while (st.length) { const p = st.pop(); n++; const px = p % w, py = (p / w) | 0; for (const q of [px > 0 ? p - 1 : -1, px < w - 1 ? p + 1 : -1, py > 0 ? p - w : -1, py < h - 1 ? p + w : -1]) if (q >= 0 && lab[q] < 0 && g[q] > th) { lab[q] = i; st.push(q); } }
+    if (n > bestN) { bestN = n; bestId = i; }
+  }
+  const full = [[0, 0], [src.width, 0], [src.width, src.height], [0, src.height]];
+  if (bestN < w * h * .12 || bestN > w * h * .97) return full;
+  let tl = null, tr = null, br = null, bl = null, a = Infinity, b = -Infinity, cc = -Infinity, dd = Infinity;
+  for (let i = 0; i < w * h; i++) { if (lab[i] !== bestId) continue; const px = i % w, py = (i / w) | 0; if (px + py < a) { a = px + py; tl = [px, py]; } if (px + py > b) { b = px + py; br = [px, py]; } if (px - py > cc) { cc = px - py; tr = [px, py]; } if (px - py < dd) { dd = px - py; bl = [px, py]; } }
+  return [tl, tr, br, bl].map(([px, py]) => [Math.min(src.width, Math.max(0, (px + .5) / k)), Math.min(src.height, Math.max(0, (py + .5) / k))]);
+}
+function homography(dst, srcPts) {   // ánh xạ điểm (u,v) trên khung đích → (x,y) trên ảnh gốc
+  const A = [], B = [];
+  for (let i = 0; i < 4; i++) { const [u, v] = dst[i], [x, y] = srcPts[i]; A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); B.push(x); A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); B.push(y); }
+  for (let c = 0; c < 8; c++) { let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r; [A[c], A[p]] = [A[p], A[c]]; [B[c], B[p]] = [B[p], B[c]];
+    for (let r = 0; r < 8; r++) { if (r === c) continue; const f = A[r][c] / A[c][c]; for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; B[r] -= f * B[c]; } }
+  return B.map((v, i) => v / A[i][i]);
+}
+function warp(src, q, maxSide, a4) {   // làm phẳng tứ giác q về hình chữ nhật (a4: kéo về đúng tỉ lệ giấy A4 – ảnh chụp xéo làm giấy trông lùn đi)
+  const L = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  let W = Math.max(L(q[0], q[1]), L(q[3], q[2])), H = Math.max(L(q[0], q[3]), L(q[1], q[2]));
+  if (a4) { if (H >= W * .75) H = W * Math.SQRT2; else W = H * Math.SQRT2; } const s = Math.min(1, maxSide / Math.max(W, H)); W = Math.max(8, Math.round(W * s)); H = Math.max(8, Math.round(H * s));
+  const m = homography([[0, 0], [W, 0], [W, H], [0, H]], q), sw = src.width, sh = src.height;
+  const sd = src.getContext('2d').getImageData(0, 0, sw, sh).data, out = mkCanvas(W, H), ox = out.getContext('2d'), od = ox.createImageData(W, H), o = od.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const z = m[6] * x + m[7] * y + 1, fx = (m[0] * x + m[1] * y + m[2]) / z, fy = (m[3] * x + m[4] * y + m[5]) / z;
+    const x0 = Math.max(0, Math.min(sw - 2, fx | 0)), y0 = Math.max(0, Math.min(sh - 2, fy | 0)), ax = Math.max(0, Math.min(1, fx - x0)), ay = Math.max(0, Math.min(1, fy - y0));
+    const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4, j = (y * W + x) * 4;
+    for (let c = 0; c < 3; c++) o[j + c] = (sd[i00 + c] * (1 - ax) + sd[i10 + c] * ax) * (1 - ay) + (sd[i01 + c] * (1 - ax) + sd[i11 + c] * ax) * ay;
+    o[j + 3] = 255;
+  }
+  ox.putImageData(od, 0, 0); return out;
+}
+function rot90(c, r) { if (!r) return c; const odd = r % 2, o = mkCanvas(odd ? c.height : c.width, odd ? c.width : c.height), x = o.getContext('2d'); x.translate(o.width / 2, o.height / 2); x.rotate(r * Math.PI / 2); x.drawImage(c, -c.width / 2, -c.height / 2); return o; }
+function scanFilter(c, mode, dam) {   // xoá bóng (chia cho nền ước lượng) rồi lọc
+  if (mode === 'goc') return c;
+  const W = c.width, H = c.height, x = c.getContext('2d'), img = x.getImageData(0, 0, W, H), d = img.data;
+  // nền: thu nhỏ, lấy giá trị sáng nhất lân cận (xoá chữ), làm mờ, phóng to lại
+  const sw = Math.max(4, Math.round(W / 22)), sh = Math.max(4, Math.round(H / 22)), s = mkCanvas(sw, sh), sx = s.getContext('2d'); sx.drawImage(c, 0, 0, sw, sh);
+  let bd = sx.getImageData(0, 0, sw, sh);
+  for (let it = 0; it < 2; it++) { const a = bd.data, b = new Uint8ClampedArray(a); for (let yy = 0; yy < sh; yy++) for (let xx = 0; xx < sw; xx++) { const i = (yy * sw + xx) * 4; for (let ch = 0; ch < 3; ch++) { let m = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.min(sw - 1, Math.max(0, xx + dx)), Y = Math.min(sh - 1, Math.max(0, yy + dy)); m = Math.max(m, a[(Y * sw + X) * 4 + ch]); } b[i + ch] = m; } } bd = new ImageData(b, sw, sh); }
+  sx.putImageData(bd, 0, 0); const bg = mkCanvas(W, H), bx = bg.getContext('2d'); bx.filter = `blur(${Math.max(2, W / 120)}px)`; bx.imageSmoothingQuality = 'high'; bx.drawImage(s, 0, 0, W, H);
+  const B = bx.getImageData(0, 0, W, H).data, th = 105 + dam * .8;   // mặc định 145: nền màu nhạt (ô xanh, vàng) ra trắng, chữ ra đen
+  for (let i = 0; i < d.length; i += 4) {
+    const r = Math.min(255, d[i] * 255 / Math.max(30, B[i])), g = Math.min(255, d[i + 1] * 255 / Math.max(30, B[i + 1])), bl = Math.min(255, d[i + 2] * 255 / Math.max(30, B[i + 2]));
+    if (mode === 'mau') { const lv = v => Math.max(0, Math.min(255, (v - 25) * 255 / 215)); let R = lv(r), G = lv(g), Bb = lv(bl); const m = (R + G + Bb) / 3; R = m + (R - m) * 1.2; G = m + (G - m) * 1.2; Bb = m + (Bb - m) * 1.2; d[i] = R; d[i + 1] = G; d[i + 2] = Bb; continue; }
+    const y = r * .299 + g * .587 + bl * .114;
+    if (mode === 'xam') { const v = Math.max(0, Math.min(1, (y - 35) / 200)); d[i] = d[i + 1] = d[i + 2] = Math.pow(v, 1.25) * 255; continue; }
+    const v = y < th - 18 ? 0 : y > th + 18 ? 255 : (y - th + 18) / 36 * 255; d[i] = d[i + 1] = d[i + 2] = v;   // đen trắng, mép chữ mềm
+  }
+  const o = mkCanvas(W, H); o.getContext('2d').putImageData(img, 0, 0); return o;
+}
+async function toolScan(src0, files) {
+  const D = dialog('Scan giấy tờ', { applyText: files.length > 1 ? `Lưu ${files.length} trang` : 'Lưu bản scan' });
+  const items = [{ src: src0, q: scanCorners(src0), rot: 0 }];
+  for (let i = 1; i < files.length; i++) items.push(null);
+  let cur = 0, view = 'goc', mode = 'bw', dam = 50, out = 'PDF', drag = -1, a4 = true;
+  const load = async i => { if (!items[i]) { const s = await decodeImage(files[i]); items[i] = { src: s, q: scanCorners(s), rot: 0 }; } return items[i]; };
+  const box = $e('div', 'hhd-stage'), cv = $e('canvas'); box.append(cv); box.style.minHeight = '300px'; const x = cv.getContext('2d');
+  const MW = Math.min(640, innerWidth - 70), MH = Math.min(400, innerHeight * .46); let k = 1, prevC = null;
+  const draw = async () => {
+    const it = await load(cur);
+    if (view === 'goc') {
+      k = Math.min(1, MW / it.src.width, MH / it.src.height); cv.width = Math.round(it.src.width * k); cv.height = Math.round(it.src.height * k);
+      x.drawImage(it.src, 0, 0, cv.width, cv.height); const p = it.q.map(([a, b]) => [a * k, b * k]);
+      x.save(); x.fillStyle = 'rgba(20,16,30,.45)'; x.beginPath(); x.rect(0, 0, cv.width, cv.height); x.moveTo(p[0][0], p[0][1]); p.slice(1).forEach(q => x.lineTo(q[0], q[1])); x.closePath(); x.fill('evenodd');
+      x.strokeStyle = '#E8513C'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(p[0][0], p[0][1]); p.slice(1).forEach(q => x.lineTo(q[0], q[1])); x.closePath(); x.stroke();
+      p.forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 9, 0, Math.PI * 2); x.fillStyle = 'rgba(255,255,255,.9)'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#E8513C'; x.stroke(); }); x.restore();
+    } else {
+      const c = rot90(scanFilter(warp(it.src, it.q, 900, a4), mode, dam), it.rot); prevC = c;
+      k = Math.min(1, MW / c.width, MH / c.height); cv.width = Math.round(c.width * k); cv.height = Math.round(c.height * k); x.drawImage(c, 0, 0, cv.width, cv.height);
+    }
+    lab.textContent = files.length > 1 ? `Ảnh ${cur + 1}/${files.length}` : ''; pv.disabled = cur === 0; nx.disabled = cur >= files.length - 1; nav.hidden = files.length < 2;
+  };
+  const P = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (cv.width / r.width) / k, (e.clientY - r.top) * (cv.height / r.height) / k]; };
+  cv.addEventListener('pointerdown', e => { if (view !== 'goc' || !items[cur]) return; const p = P(e), it = items[cur]; let bi = -1, bd = 22 / k; it.q.forEach((q, i) => { const dd = Math.hypot(q[0] - p[0], q[1] - p[1]); if (dd < bd) { bd = dd; bi = i; } }); if (bi >= 0) { drag = bi; cv.setPointerCapture(e.pointerId); } });
+  cv.addEventListener('pointermove', e => { if (view !== 'goc') { cv.style.cursor = 'default'; return; } const it = items[cur]; if (!it) return; const p = P(e);
+    if (drag < 0) { cv.style.cursor = it.q.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 22 / k) ? 'grab' : 'default'; return; }
+    it.q[drag] = [Math.max(0, Math.min(it.src.width, p[0])), Math.max(0, Math.min(it.src.height, p[1]))]; draw(); });
+  cv.addEventListener('pointerup', () => { drag = -1; });
+  const nav = $e('div', 'hhd-row'); nav.style.justifyContent = 'center'; const pv = $e('button', 'hhd-btn', '‹'), nx = $e('button', 'hhd-btn', '›'), lab = $e('span', '', ''); lab.style.cssText = 'min-width:90px;text-align:center;color:var(--hd-soft)'; nav.append(pv, lab, nx);
+  pv.addEventListener('click', () => { cur--; draw(); }); nx.addEventListener('click', () => { cur++; draw(); });
+  const vb = segBtns([['goc', '① Chỉnh 4 góc'], ['kq', '② Xem bản scan']], view, v => { view = v; draw(); }); vb.classList.add('hhd-tabs'); const tw = $e('div', 'hhd-tabw'); tw.append(vb);
+  const mb = segBtns([['bw', 'Đen trắng'], ['xam', 'Xám'], ['mau', 'Màu rõ nét'], ['goc', 'Ảnh gốc']], mode, v => { mode = v; damR.hidden = v !== 'bw'; view = 'kq'; vb.set('kq'); draw(); });
+  const [dS] = slider(0, 100, dam, v => { dam = v; if (view === 'kq') { clearTimeout(dS._t); dS._t = setTimeout(draw, 120); } }, v => v + '%'); const damR = row('Độ đậm chữ', dS);
+  const rb = $e('div'); rb.style.cssText = 'display:flex;gap:6px';
+  const bt = (t, f) => { const b = $e('button', 'hhd-btn', t); b.addEventListener('click', f); rb.append(b); };
+  bt('↺ Xoay', async () => { const it = await load(cur); it.rot = (it.rot + 3) % 4; view = 'kq'; vb.set('kq'); draw(); });
+  bt('⟲ Tự tìm góc lại', async () => { const it = await load(cur); it.q = scanCorners(it.src); view = 'goc'; vb.set('goc'); draw(); });
+  bt('⛶ Cả ảnh', async () => { const it = await load(cur); it.q = [[0, 0], [it.src.width, 0], [it.src.width, it.src.height], [0, it.src.height]]; view = 'goc'; vb.set('goc'); draw(); });
+  const kb = segBtns([['a4', 'A4'], ['tu', 'Giữ như ảnh']], 'a4', v => { a4 = v === 'a4'; view = 'kq'; vb.set('kq'); draw(); });
+  const ob = segBtns([['PDF', files.length > 1 ? 'PDF (1 file nhiều trang)' : 'PDF'], ['JPG', 'JPG'], ['PNG', 'PNG']], out, v => { out = v; });
+  D.body.append(tw, box, nav, row('Kiểu scan', mb), damR, row('Trang', rb), row('Khổ trang', kb), row('Lưu thành', ob), $e('div', 'hhd-note', 'Kéo 4 chấm tròn vào đúng 4 góc tờ giấy. HaoHao làm phẳng, xoá bóng và làm trắng nền. Bản scan là ảnh (chưa bôi đen chữ được).'));
+  D.reset.addEventListener('click', async () => { for (const it of items) if (it) { it.q = scanCorners(it.src); it.rot = 0; } mode = 'bw'; dam = 50; a4 = true; kb.set('a4'); mb.set(mode); dS.setv(dam); damR.hidden = false; view = 'goc'; vb.set(view); draw(); });
+  D.ok.addEventListener('click', async () => {
+    D.ok.disabled = true; const pages = [], res = [];
+    for (let i = 0; i < files.length; i++) {
+      D.ok.textContent = `Đang làm ${i + 1}/${files.length}…`; const it = await load(i), c = rot90(scanFilter(warp(it.src, it.q, 2600, a4), mode, dam), it.rot);
+      if (out === 'PDF') { const land = c.width > c.height, pw = land ? 841.89 : 595.28, ph = land ? 595.28 : 841.89, s = Math.min(pw / c.width, ph / c.height), pg = mkCanvas(Math.round(pw * 3), Math.round(ph * 3)), px = pg.getContext('2d');
+        px.fillStyle = '#fff'; px.fillRect(0, 0, pg.width, pg.height); const w2 = c.width * s * 3, h2 = c.height * s * 3; px.imageSmoothingQuality = 'high'; px.drawImage(c, (pg.width - w2) / 2, (pg.height - h2) / 2, w2, h2);
+        pages.push({ data: await U8(await toBlob(pg, 'image/jpeg', mode === 'bw' ? .8 : .85)), w: pg.width, h: pg.height, pw, ph }); }
+      else res.push({ blob: await encode(c, out, .9), name: `${BASE(files[i].name)} scan.${EXT_OF[out]}` });
+    }
+    if (out === 'PDF') res.push({ blob: makePDF(pages), name: `${BASE(files[0].name)} scan${files.length > 1 ? ` (${files.length} trang)` : ''}.pdf` });
+    D.close(); await toolSave(res);
+  });
+  draw();
+}
+
 /* ✍️ Ghi chú */
 function drawShapes(x, shapes, k, base) {
   for (const s of shapes) {
@@ -1383,4 +1494,4 @@ function initPage() {
 }
 buildTray(); loadDir();
 if (PAGE) initPage();
-window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { openPDF, pdfWord, openPdfWord, xlsBook, xlsPlan, xlsPdfBlob, openXlsPdf, convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
+window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { scanCorners, warp, scanFilter, openPDF, pdfWord, openPdfWord, xlsBook, xlsPlan, xlsPdfBlob, openXlsPdf, convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
