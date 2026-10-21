@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "HaoHao – Trợ lý cá nhân",
-  "version": "1.10.368",
-  "version_name": "V1.2.0",
-  "description": "Chú hamster trợ lý trên Chrome: việc cần làm, nhắc nhở, ghi chú, dự án, tập trung, dịch nhanh. Bớt quên, bớt rối.",
+  "name": "HaoHao – Việc cần làm, Nhắc nhở, Ghi chú & Tab mới",
+  "version": "1.10.369",
+  "version_name": "V1.2.1",
+  "description": "Ghi việc cần làm, nhắc giờ, lịch âm, ghi chú, Pomodoro, dịch nhanh, so giá Shopee – chú hamster giúp bạn bớt quên, bớt rối.",
   "permissions": [
     "storage",
     "unlimitedStorage",

@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V1** (tiện ích Chrome) bản **V1.2.0** (1.10.368) · **Web cửa hàng** haohaostore.com · **HaoHao V2** (app Windows) bản **2.0.0**. ⚠️ V1 từ V1.78 chỉ còn 1 bản = bản Chrome Web Store · ✅ Store đã xuất bản công khai V1.79 (thấy 21/10)
+Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V1** (tiện ích Chrome) bản **V1.2.1** (1.10.369) · **Web cửa hàng** haohaostore.com · **HaoHao V2** (app Windows) bản **2.0.0**. ⚠️ V1 từ V1.78 chỉ còn 1 bản = bản Chrome Web Store · ✅ Store đã xuất bản công khai V1.79 (thấy 21/10)
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -57,6 +57,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.2.1 (1.10.369, 21/10) | **Tối ưu tìm kiếm Chrome Web Store** (anh Nhật đồng ý): manifest `name` → "HaoHao – Việc cần làm, Nhắc nhở, Ghi chú & Tab mới" (50 ký tự; người Việt tìm bằng các chữ này, "Trợ lý cá nhân" ít ai gõ), `description` → "Ghi việc cần làm, nhắc giờ, lịch âm, ghi chú, Pomodoro, dịch nhanh, so giá Shopee – chú hamster giúp bạn bớt quên, bớt rối." (123/132 ký tự). Không đổi code. Mô tả dài + việc làm trên trang Store: file `CWS-MO-TA.md` ở gốc kho. Tên mới chỉ hiện trên Store khi nộp bản này (Store đang chờ anh bảo mới nộp). Thư rác "Jerry" mời bán lượt cài giả: đã khuyên anh bỏ qua (vi phạm luật Store). |
 | V1.2.0 (1.10.368, 21/10) | **Đổi cách đặt tên bản sang 3 số** (anh Nhật chọn): V1.100 → **V1.2.0**, từ nay V1.2.1, V1.2.2… Chỉ đổi tên hiển thị (`version_name`, trang Cài đặt → Giới thiệu); số kỹ thuật vẫn tăng như cũ. Không đổi code. |
 | V1.100 (1.10.367, 21/10) | Bảng **Mua sắm**: dòng báo link tiếp thị (bắt buộc theo luật Chrome Web Store, `HT.STORE`) chuyển từ **đầu** xuống **đáy** bảng, chữ nhỏ xám căn giữa "ⓘ Link tiếp thị · Giá không đổi so với tự mua" (`renderShop` = `renderShopBody` + `.aff-foot`; có bản dịch tiếng Anh). Anh Nhật nói đã sửa xuống đáy trước đó nhưng kho/máy không có bản sửa nào (có lẽ chat khác chưa đẩy) → làm lại. Các chỗ khác (bong bóng, nút mua) vẫn dùng `HT.AFF_NOTE`. |
 | V1.99 (1.10.366, 21/10) | **Scan đẹp như máy scan văn phòng** (anh Nhật chê bản đen trắng ép 2 màu: chân dung cháy, hoa văn lốm đốm, chữ nhoè; gửi mẫu `SCAN0575.pdf` = Ricoh MP 5054, màu, 200dpi, nền trắng ~89%, giữ màu mực bút bi). `scanFilter` mới: xoá bóng (chia nền) → làm nét nhẹ (unsharp) → chỉnh mức theo độ sáng. Kiểu: **Như máy scan** (mặc định – giữ màu, tăng màu nhẹ, nền ≥247 thành trắng tinh), **Đen trắng** (xám tương phản cao, KHÔNG ép 2 màu → ảnh chân dung giữ chi tiết, hết lốm đốm), Xám, Ảnh gốc; thanh "Độ đậm" cho mọi kiểu. Bỏ kiểu "Màu rõ nét" (gộp vào Như máy scan). Thử ảnh thẻ mẫu (nền hoa văn, ảnh chân dung, chữ đỏ) + hợp đồng chụp xéo: nền trắng, màu tươi, chân dung rõ. |
