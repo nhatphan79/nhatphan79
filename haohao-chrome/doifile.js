@@ -28,8 +28,8 @@ function kindOfMime(t) {
   return 'other';
 }
 const FORMATS = {
-  img: ['JPG', 'PNG', 'WEBP', 'AVIF', 'PDF', 'DOCX', 'BMP', 'TIFF'],
-  pdf: ['JPG', 'PNG', 'WEBP', 'TXT', 'DOCX'],
+  img: ['JPG', 'PNG', 'WEBP', 'AVIF', 'PDF', 'DOCX', 'GOP', 'TIFF'],   // V1.89: ô BMP → Gộp / Tách (anh Nhật)
+  pdf: ['JPG', 'PNG', 'WEBP', 'TXT', 'DOCX', 'GOP'],
   docx: ['PDF', 'TXT', 'JPG', 'PNG'],
   txt: ['PDF', 'DOCX', 'JPG', 'PNG'],
   other: []
@@ -48,6 +48,7 @@ const TOOLS = [
 /* ───────────────────────── nạp thư viện khi cần ───────────────────────── */
 let pdfjsP, heifP, avifP, tifP;
 const pdfjs = () => pdfjsP ||= import(URLX('lib/pdf/pdf.min.mjs')).then(m => { m.GlobalWorkerOptions.workerSrc = URLX('lib/pdf/pdf.worker.min.mjs'); return m; });
+let pdflibP; const pdflib = () => pdflibP ||= import(URLX('lib/pdflib/pdf-lib.esm.min.js'));
 const tiff = () => tifP ||= import(URLX('lib/tiff/utif.mjs')).then(m => m.default);
 const heif = () => heifP ||= new Promise((res, rej) => {
   const done = async () => {
@@ -290,6 +291,46 @@ async function pageText(doc, n) {
   return s.replace(/[ \t]+\n/g, '\n').trim();
 }
 
+/* ───────────────────────── V1.89: Gộp / Tách (pdf-lib, giữ nguyên chữ của PDF) ───────────────────────── */
+const canGop = f => { const k = kindOf(f); return k === 'img' || k === 'pdf'; };
+async function loadPdfLib(f) {
+  const { PDFDocument } = await pdflib(), d = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
+  if (d.isEncrypted) throw new Error(`"${f.name}" có mật khẩu, không gộp/tách được`); return d;
+}
+async function mergeToPdf(files, step) {   // nhiều ảnh + PDF (lẫn lộn) → 1 PDF, theo thứ tự file
+  const { PDFDocument } = await pdflib(), out = await PDFDocument.create();
+  for (let i = 0; i < files.length; i++) {
+    step(i, files.length); const f = files[i];
+    if (kindOf(f) === 'pdf') { const src = await loadPdfLib(f); (await out.copyPages(src, src.getPageIndices())).forEach(pg => out.addPage(pg)); continue; }
+    const e = EXT(f.name), buf = new Uint8Array(await f.arrayBuffer()); let img = null;
+    if ((/^(jpe?g|jfif)$/.test(e) || f.type === 'image/jpeg') && ((readExif(buf) || {}).orient || 1) === 1) { try { img = await out.embedJpg(buf); } catch {} }   // JPG đúng chiều: nhúng nguyên bản, không nén lại
+    else if (e === 'png' || f.type === 'image/png') { try { img = await out.embedPng(buf); } catch {} }
+    if (!img) {
+      const c = await decodeImage(f), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let alpha = false;
+      for (let k = 3; k < d.length; k += 4) if (d[k] < 255) { alpha = true; break; }
+      img = alpha ? await out.embedPng(await U8(await toBlob(c, 'image/png'))) : await out.embedJpg(await U8(await toBlob(flatten(c), 'image/jpeg', .92)));
+    }
+    let w = img.width * .75, h = img.height * .75; const k = Math.min(1, 14000 / Math.max(w, h)); w *= k; h *= k;
+    out.addPage([w, h]).drawImage(img, { x: 0, y: 0, width: w, height: h });
+  }
+  return new Blob([await out.save()], { type: MIME.PDF });
+}
+async function splitPdf(f, step) {   // 1 PDF nhiều trang → mỗi trang 1 PDF (≥10 trang gói zip)
+  const { PDFDocument } = await pdflib(), src = await loadPdfLib(f), N = src.getPageCount(), b = BASE(f.name);
+  if (N < 2) throw new Error('PDF này chỉ có 1 trang, không cần tách');
+  const outs = [];
+  for (let k = 0; k < N; k++) {
+    step(k, N); const d = await PDFDocument.create(), [pg] = await d.copyPages(src, [k]); d.addPage(pg);
+    outs.push({ blob: new Blob([await d.save()], { type: MIME.PDF }), name: `${b} - trang ${String(k + 1).padStart(String(N).length, '0')}.pdf` });
+  }
+  return N >= 10 ? [{ blob: await makeZip(outs.map(x => ({ name: x.name, data: x.blob }))), name: `${b} (tách ${N} trang).zip` }] : outs;
+}
+async function gopTach(files, _to, step) {
+  if (files.length > 1) return [{ blob: await mergeToPdf(files, step), name: `${BASE(files[0].name)} (gộp ${files.length} file).pdf` }];
+  if (kindOf(files[0]) !== 'pdf') throw new Error('Kéo từ 2 file trở lên để gộp, hoặc 1 PDF nhiều trang để tách');
+  return splitPdf(files[0], step);
+}
+
 /* ───────────────────────── đổi định dạng ───────────────────────── */
 // trả về [{blob, name}]
 async function convert(files, to, step) {
@@ -412,7 +453,7 @@ async function deliver(results) {
 
 /* ───────────────────────── vòng tròn ───────────────────────── */
 const R_OUT = 192, R_IN = 74, R_HUB = 62, NS = 'http://www.w3.org/2000/svg';
-const W = { ov: null, wheel: null, svg: null, segG: null, hub: null, tip: null, items: [], mode: 'fmt', kind: 'img', files: null, hot: -1, onHub: false, hubLock: true, hubT: 0, cx: 0, cy: 0, open: false, click: false, busy: false, dragT: 0, count: 0, mimeKinds: [] };
+const W = { ov: null, wheel: null, svg: null, segG: null, hub: null, tip: null, items: [], mode: 'fmt', kind: 'img', files: null, hot: -1, onHub: false, hubLock: true, hubT: 0, cx: 0, cy: 0, open: false, click: false, busy: false, dragT: 0, count: 0, total: 0, all: null, mimeKinds: [] };
 function svgEl(tag, attrs) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; }
 function arc(a0, a1, r0, r1) {
   const p = (a, r) => [Math.cos(a) * r, Math.sin(a) * r].map(v => v.toFixed(2)).join(' ');
@@ -428,6 +469,7 @@ function buildWheel() {
   W.svg.append(defs, svgEl('circle', { class: 'hhd-ring', r: R_OUT + 8 }));
   W.segG = svgEl('g', {}); W.svg.append(W.segG, svgEl('circle', { class: 'hhd-hubc', r: R_HUB }));
   W.hub = $e('div', 'hhd-hub');
+  W.hub.style.setProperty('--hhd-mascot', `url("${URLX('icons/icon128.png')}")`);   // V1.89: chú hamster mờ làm nền giữa vòng
   W.wheel.append(W.svg, W.hub);
   W.tip = $e('div', 'hhd-tip');
   W.ov.append(W.wheel, W.tip); document.body.append(W.ov);
@@ -443,7 +485,8 @@ function buildWheel() {
 }
 function segItems() {
   if (W.mode === 'tool') return TOOLS.map(t => ({ ...t, off: W.kind !== 'img' }));
-  return (FORMATS[W.kind] || []).map(f => ({ id: f, label: f }));
+  return (FORMATS[W.kind] || []).map(f => f !== 'GOP' ? { id: f, label: f }
+    : W.total > 1 ? { id: f, label: 'Gộp PDF', long: true } : { id: f, label: 'Tách trang', long: true, off: W.kind !== 'pdf' });
 }
 function drawSegs() {
   W.segG.textContent = ''; W.items = segItems();
@@ -451,7 +494,7 @@ function drawSegs() {
   const gap = n > 1 ? .045 : 0, step = Math.PI * 2 / n, start = -Math.PI / 2 - step / 2;
   W.items.forEach((it, i) => {
     const a0 = start + i * step + gap / 2, a1 = start + (i + 1) * step - gap / 2, am = (a0 + a1) / 2, rm = (R_IN + R_OUT) / 2 + 4;
-    const g = svgEl('g', { class: 'hhd-seg' + (W.mode === 'tool' ? ' tool' : '') + (it.off ? ' off' : '') });
+    const g = svgEl('g', { class: 'hhd-seg' + (W.mode === 'tool' ? ' tool' : '') + (it.long ? ' long' : '') + (it.off ? ' off' : '') });
     g.dataset.dx = (Math.cos(am) * 7).toFixed(1); g.dataset.dy = (Math.sin(am) * 7).toFixed(1);
     g.append(svgEl('path', { d: n === 1 ? `M 0 ${-R_OUT} A ${R_OUT} ${R_OUT} 0 1 1 -0.01 ${-R_OUT} Z M 0 ${-R_IN} A ${R_IN} ${R_IN} 0 1 0 0.01 ${-R_IN} Z` : arc(a0, a1, R_IN, R_OUT), 'fill-rule': 'evenodd' }));
     const cx = Math.cos(am) * rm, cy = Math.sin(am) * rm;
@@ -466,7 +509,7 @@ function drawSegs() {
 function hubText() {
   W.hub.textContent = '';
   if (W.busy) { W.hub.append($e('div', 'hhd-spin'), $e('small', '', W.busy === true ? 'Đang làm…' : W.busy)); return; }
-  const n = W.count, what = n > 1 ? `${n} file ${KIND_NAME[W.kind]}` : (W.files && W.files[0] ? W.files[0].name : `1 file ${KIND_NAME[W.kind]}`);
+  const n = W.count, what = W.total > n ? `${W.total} file ảnh + PDF` : n > 1 ? `${n} file ${KIND_NAME[W.kind]}` : (W.files && W.files[0] ? W.files[0].name : `1 file ${KIND_NAME[W.kind]}`);
   W.hub.append($e('b', '', W.mode === 'fmt' ? '🧰 Công cụ' : '🔄 Định dạng'), $e('small', '', W.click ? 'bấm để đổi vòng' : 'giữ chuột ở đây'));
   const bar = $e('div', 'bar'); bar.append($e('i')); W.hub.append(bar);
   W.tip.textContent = W.kind === 'other' ? '⚠️ Chưa hỗ trợ loại file này · Esc để huỷ'
@@ -499,32 +542,34 @@ function placeAt(x, y) {
   W.cx = vw < 2 * m ? vw / 2 : Math.min(Math.max(x, m), vw - m); W.cy = vh < 2 * m ? vh / 2 : Math.min(Math.max(y, m), vh - m);
   W.wheel.style.left = W.cx + 'px'; W.wheel.style.top = W.cy + 'px';
 }
-function showWheel(x, y, kind, count, click) {
+function showWheel(x, y, kind, count, click, total) {
   if (!W.ov) buildWheel();
-  W.kind = kind; W.count = count; W.click = !!click; W.mode = 'fmt'; W.hubLock = true; W.onHub = false; W.busy = false;
+  W.kind = kind; W.count = count; W.total = total ?? count; W.click = !!click; W.mode = 'fmt'; W.hubLock = true; W.onHub = false; W.busy = false;
   W.wheel.classList.remove('busy', 'hubhot'); W.ov.classList.toggle('click', W.click);
-  placeAt(x, y); drawSegs(); hubText(); W.ov.hidden = false; W.open = true;
-  requestAnimationFrame(() => W.ov.classList.add('on'));
+  clearTimeout(W.hideT); placeAt(x, y); drawSegs(); hubText(); W.ov.hidden = false; W.open = true;
+  void W.ov.offsetWidth; W.ov.classList.add('on');
   if (!click) track(x, y);
 }
 function closeWheel() {
   if (!W.ov || !W.open) return;
-  W.open = false; W.files = null; clearTimeout(W.hubT); W.ov.classList.remove('on');
-  setTimeout(() => { if (!W.open) W.ov.hidden = true; }, 160);
+  W.open = false; W.files = null; W.all = null; clearTimeout(W.hubT); W.ov.classList.remove('on');
+  clearTimeout(W.hideT); W.hideT = setTimeout(() => { if (!W.open) W.ov.hidden = true; }, 160);
 }
 function openWheel(files, x, y, click) {
   const fs = [...files]; if (!fs.length) return;
-  const kind = kindOf(fs[0]), same = fs.filter(f => kindOf(f) === kind);
-  if (same.length < fs.length) toast(`Chỉ làm ${same.length} file ${KIND_NAME[kind]} cùng loại, bỏ qua ${fs.length - same.length} file khác loại`);
-  W.files = same; showWheel(x ?? innerWidth / 2, y ?? innerHeight / 2, kind, same.length, click);
+  const kind = kindOf(fs[0]), same = fs.filter(f => kindOf(f) === kind), all = canGop(fs[0]) ? fs.filter(canGop) : same;
+  showWheel(x ?? innerWidth / 2, y ?? innerHeight / 2, kind, same.length, click, all.length); W.files = same; W.all = all; W.picked = fs.length;
+  drawSegs(); hubText();
 }
 async function choose(i) {
-  const it = W.items[i], files = W.files; if (!it || !files || !files.length || it.off) return closeWheel();
+  const it = W.items[i], gop = it && it.id === 'GOP', files = gop ? (W.all || W.files) : W.files; if (!it || !files || !files.length || it.off) return closeWheel();
+  const skip = (W.picked || files.length) - files.length;
+  if (skip > 0) toast(gop ? `Bỏ qua ${skip} file không phải ảnh/PDF` : `Chỉ làm ${files.length} file ${KIND_NAME[W.kind]}, bỏ qua ${skip} file khác loại`);
   if (W.mode === 'tool') { closeWheel(); return openTool(it.id, files); }
   W.busy = true; W.wheel.classList.add('busy'); hubText(); setHot(i);
   const name = files.length > 1 ? `${files.length} file` : files[0].name;
   try {
-    const res = await convert(files, it.id, (k, n) => { if (n > 1) { W.busy = `Đang làm ${Math.min(n, Math.floor(k) + 1)}/${n}…`; hubText(); } });
+    const res = await (gop ? gopTach : convert)(files, it.id === 'GOP' ? undefined : it.id, (k, n) => { if (n > 1) { W.busy = `Đang làm ${Math.min(n, Math.floor(k) + 1)}/${n}…`; hubText(); } });
     closeWheel(); await deliver(res);
   } catch (e) { console.warn('[HaoHao Convert]', e); closeWheel(); addError(name, (e && e.message) || 'Không đổi được file này'); toast('⚠️ ' + ((e && e.message) || 'Không đổi được file này'), 4000); }
 }
@@ -535,14 +580,15 @@ function dragKind(dt) {
   const its = [...(dt.items || [])].filter(i => i.kind === 'file');
   if ([...(dt.types || [])].includes('application/x-hhd') && !its.length) return { kind: 'img', n: 1 };
   if (!its.length) return { kind: 'img', n: 1 };
-  return { kind: kindOfMime(its[0].type), n: its.length };
+  const kind = kindOfMime(its[0].type), ok = k => k === 'img' || k === 'pdf';
+  return { kind, n: its.filter(i => kindOfMime(i.type) === kind).length, total: ok(kind) ? its.filter(i => ok(kindOfMime(i.type))).length : its.length };
 }
 function onDragOver(e) {
   if (!hasFiles(e.dataTransfer)) return;
   if (document.querySelector('.hhd-dlgov')) return;   // đang mở hộp công cụ
   if (e.target && e.target.closest && e.target.closest('#hattieu-host')) { if (W.open && !W.click) closeWheel(); return; }   // thả vào chú hamster → để HaoHao gửi sang iPhone như cũ
   e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-  if (!W.open || W.click) { const k = dragKind(e.dataTransfer); showWheel(e.clientX, e.clientY, k.kind, k.n, false); }
+  if (!W.open || W.click) { const k = dragKind(e.dataTransfer); showWheel(e.clientX, e.clientY, k.kind, k.n, false, k.total); }
   else track(e.clientX, e.clientY);
   clearTimeout(W.dragT); W.dragT = setTimeout(() => { if (!W.busy) closeWheel(); }, 260);   // chuột ra khỏi cửa sổ → tắt
 }
@@ -553,10 +599,9 @@ async function onDrop(e) {
   const id = e.dataTransfer.getData('application/x-hhd');
   let files = id && RES.get(+id) ? [RES.get(+id).file] : [...(e.dataTransfer.files || [])];
   if (!files.length) return closeWheel();
-  const kind = kindOf(files[0]), same = files.filter(f => kindOf(f) === kind);
-  if (same.length < files.length) toast(`Bỏ qua ${files.length - same.length} file khác loại`);
-  W.files = same; W.count = same.length;
-  if (kind !== W.kind) {   // lúc kéo chưa biết đúng loại → mở lại vòng đúng loại để bấm chọn
+  const kind = kindOf(files[0]), same = files.filter(f => kindOf(f) === kind), all = canGop(files[0]) ? files.filter(canGop) : same;
+  const tot0 = W.total; W.files = same; W.all = all; W.picked = files.length; W.count = same.length; W.total = all.length;
+  if (kind !== W.kind || (tot0 > 1) !== (all.length > 1)) {   // lúc kéo chưa biết đúng loại → mở lại vòng đúng loại để bấm chọn
     W.kind = kind; W.click = true; W.ov.classList.add('click'); W.mode = 'fmt'; drawSegs(); hubText(); return;
   }
   if (W.hot >= 0) return choose(W.hot);
@@ -981,4 +1026,4 @@ function initPage() {
 }
 buildTray(); loadDir();
 if (PAGE) initPage();
-window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
+window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };

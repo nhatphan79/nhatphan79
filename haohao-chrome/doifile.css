@@ -25,6 +25,7 @@
 .hhd-seg text { font: 800 15px "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif; fill: var(--hd-ink); text-anchor: middle; dominant-baseline: middle; letter-spacing: .3px; }
 .hhd-seg .ic { fill: none; stroke: var(--hd-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hhd-seg.tool text { font-size: 12.5px; letter-spacing: 0; }
+.hhd-seg.long text { font-size: 14px; letter-spacing: 0; }
 .hhd-seg.hot > path { fill: url(#hhdHot); }
 .hhd-seg.hot text { fill: #fff; }
 .hhd-seg.hot .ic { stroke: #fff; }
@@ -34,6 +35,9 @@
 .hhd-wheel.hubhot .hhd-hubc { fill: #FFD9C4; }
 .hhd-hub { position: absolute; left: 50%; top: 50%; width: 118px; height: 118px; margin: -59px 0 0 -59px; border-radius: 50%;
   display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; pointer-events: none; }
+.hhd-hub::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--hhd-mascot) center 46% / 86% no-repeat; opacity: .2; filter: blur(.6px); pointer-events: none; }
+.hhd-hub > * { position: relative; z-index: 1; }
+.hhd-hub b, .hhd-hub small { text-shadow: 0 0 6px var(--hd-seg2), 0 0 2px var(--hd-seg2); }
 .hhd-hub b { font-size: 13.5px; font-weight: 800; line-height: 1.15; }
 .hhd-hub small { font-size: 10.5px; color: var(--hd-soft); line-height: 1.2; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hhd-hub .bar { width: 64px; height: 4px; border-radius: 4px; background: rgba(0, 0, 0, .08); overflow: hidden; margin-top: 3px; }
