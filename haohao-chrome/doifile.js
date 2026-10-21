@@ -30,7 +30,7 @@ function kindOfMime(t) {
   return 'other';
 }
 const FORMATS = {
-  img: ['JPG', 'PNG', 'WEBP', 'PDF', 'DOCX', 'GOP', 'TIFF'],   // V1.89: ô BMP → Gộp / Tách (anh Nhật)
+  img: ['JPG', 'PNG', 'WEBP', 'PDF', 'SCAN', 'DOCX', 'GOP', 'TIFF'],   // V1.98: Scan ra vòng định dạng, cạnh PDF (anh Nhật)   // V1.89: ô BMP → Gộp / Tách (anh Nhật)
   pdf: ['JPG', 'PNG', 'WEBP', 'TXT', 'DOCX', 'GOP'],
   docx: ['PDF', 'TXT', 'JPG', 'PNG'],
   txt: ['PDF', 'DOCX', 'JPG', 'PNG'],
@@ -43,7 +43,6 @@ const TOOLS = [   // V1.91: Cắt + Thêm nền + Chỉnh sửa gộp thành 1 m
   { id: 'size', label: 'Kích thước', ic: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4M7 9v4M17 15h-4M17 15v-4"/>' },
   { id: 'xnen', label: 'Xoá nền', ic: '<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><circle cx="12" cy="10" r="3"/><path d="M7 18c1-3 3-4.5 5-4.5s4 1.5 5 4.5"/>' },
   { id: 'logo', label: 'Đóng logo', ic: '<path d="M9 3h6v5l3 4H6l3-4z"/><path d="M4 15h16v4H4z"/>' },
-  { id: 'scan', label: 'Scan', ic: '<path d="M7 3H5a2 2 0 0 0-2 2v2M17 3h2a2 2 0 0 1 2 2v2M7 21H5a2 2 0 0 1-2-2v-2M17 21h2a2 2 0 0 0 2-2v-2"/><path d="M7 12h10M8 8h8M8 16h6"/>' },   // V1.97
   { id: 'nen', label: 'Nén', ic: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>' },
   { id: 'che', label: 'Che', ic: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>' },
   { id: 'note', label: 'Ghi chú', ic: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>' },
@@ -616,7 +615,7 @@ function buildWheel() {
 }
 function segItems() {
   if (W.mode === 'tool') return TOOLS.map(t => ({ ...t, off: W.kind !== 'img' }));
-  return (FORMATS[W.kind] || []).map(f => f !== 'GOP' ? { id: f, label: f }
+  return (FORMATS[W.kind] || []).map(f => f === 'SCAN' ? { id: f, label: 'Scan', long: true } : f !== 'GOP' ? { id: f, label: f }
     : W.total > 1 ? { id: f, label: W.allX ? 'Gộp Excel' : 'Gộp PDF', long: true }
     : W.kind === 'xls' ? { id: f, label: 'Tách sheet', long: true } : { id: f, label: 'Tách trang', long: true, off: W.kind !== 'pdf' });
 }
@@ -699,6 +698,7 @@ async function choose(i) {
   if (skip > 0) toast(gop ? `Bỏ qua ${skip} file không phải ảnh/PDF/Excel` : `Chỉ làm ${files.length} file ${KIND_NAME[W.kind]}, bỏ qua ${skip} file khác loại`);
   if (W.mode === 'tool') { closeWheel(); return openTool(it.id, files); }
   if (!gop && W.kind === 'xls' && it.id === 'PDF' && files.length === 1) { closeWheel(); return openXlsPdf(files[0]); }   // V1.95: hộp chỉnh trước khi xuất PDF
+  if (it.id === 'SCAN') { closeWheel(); return openTool('scan', files); }   // V1.98
   if (!gop && W.kind === 'pdf' && it.id === 'DOCX') { closeWheel(); return openPdfWord(files); }   // V1.96: hỏi kiểu chuyển PDF → Word
   W.busy = true; W.wheel.classList.add('busy'); hubText(); setHot(i);
   const name = files.length > 1 ? `${files.length} file` : files[0].name;
