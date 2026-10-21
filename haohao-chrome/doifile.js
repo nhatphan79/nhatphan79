@@ -17,13 +17,15 @@ function kindOf(f) {
   if (IMG_EXT.test(e) || /^image\//.test(t)) return 'img';
   if (e === 'pdf' || t === 'application/pdf') return 'pdf';
   if (e === 'docx') return 'docx';
-  if (/^(txt|md|csv|log)$/.test(e) || t === 'text/plain') return 'txt';
+  if (/^(xlsx|xlsm|xls|ods|csv)$/.test(e) || /spreadsheetml|ms-excel|opendocument\.spreadsheet|text\/csv/.test(t)) return 'xls';   // V1.90: Excel
+  if (/^(txt|md|log)$/.test(e) || t === 'text/plain') return 'txt';
   return 'other';
 }
 function kindOfMime(t) {
   if (!t || /^image\//.test(t)) return 'img';   // HEIC trên Windows thường không có loại → coi là ảnh
   if (t === 'application/pdf') return 'pdf';
   if (/wordprocessingml/.test(t)) return 'docx';
+  if (/spreadsheetml|ms-excel|opendocument\.spreadsheet|text\/csv/.test(t)) return 'xls';
   if (/^text\//.test(t)) return 'txt';
   return 'other';
 }
@@ -32,9 +34,10 @@ const FORMATS = {
   pdf: ['JPG', 'PNG', 'WEBP', 'TXT', 'DOCX', 'GOP'],
   docx: ['PDF', 'TXT', 'JPG', 'PNG'],
   txt: ['PDF', 'DOCX', 'JPG', 'PNG'],
+  xls: ['PDF', 'PNG', 'JPG', 'CSV', 'XLSX', 'GOP'],   // V1.90
   other: []
 };
-const KIND_NAME = { img: 'ảnh', pdf: 'PDF', docx: 'Word', txt: 'văn bản', other: 'file' };
+const KIND_NAME = { img: 'ảnh', pdf: 'PDF', docx: 'Word', txt: 'văn bản', xls: 'Excel', other: 'file' };
 const TOOLS = [
   { id: 'crop', label: 'Cắt', ic: '<path d="M6 2v14a2 2 0 0 0 2 2h14M2 6h14a2 2 0 0 1 2 2v14"/>' },
   { id: 'bg', label: 'Thêm nền', ic: '<rect x="3" y="3" width="18" height="18" rx="4"/><rect x="7.5" y="7.5" width="9" height="9" rx="2"/>' },
@@ -48,6 +51,10 @@ const TOOLS = [
 /* ───────────────────────── nạp thư viện khi cần ───────────────────────── */
 let pdfjsP, heifP, avifP, tifP;
 const pdfjs = () => pdfjsP ||= import(URLX('lib/pdf/pdf.min.mjs')).then(m => { m.GlobalWorkerOptions.workerSrc = URLX('lib/pdf/pdf.worker.min.mjs'); return m; });
+let xlsxP; const xlsxLib = () => xlsxP ||= globalThis.XLSX ? Promise.resolve(globalThis.XLSX) : new Promise((ok, no) => {
+  const s = document.createElement('script'); s.src = URLX('lib/xlsx/xlsx.full.min.js'); s.onload = () => globalThis.XLSX ? ok(globalThis.XLSX) : no(new Error('Không nạp được bộ đọc Excel'));
+  s.onerror = () => no(new Error('Không nạp được bộ đọc Excel')); document.head.append(s);
+});
 let pdflibP; const pdflib = () => pdflibP ||= import(URLX('lib/pdflib/pdf-lib.esm.min.js'));
 const tiff = () => tifP ||= import(URLX('lib/tiff/utif.mjs')).then(m => m.default);
 const heif = () => heifP ||= new Promise((res, rej) => {
@@ -114,8 +121,9 @@ async function encAVIF(c, q = 60) {
   if (!out) throw new Error('Không tạo được AVIF'); return new Blob([out], { type: 'image/avif' });
 }
 const MIME = { JPG: 'image/jpeg', PNG: 'image/png', WEBP: 'image/webp', AVIF: 'image/avif', BMP: 'image/bmp', TIFF: 'image/tiff', PDF: 'application/pdf',
-  DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', TXT: 'text/plain', ZIP: 'application/zip' };
-const EXT_OF = { JPG: 'jpg', PNG: 'png', WEBP: 'webp', AVIF: 'avif', BMP: 'bmp', TIFF: 'tif', PDF: 'pdf', DOCX: 'docx', TXT: 'txt', ZIP: 'zip' };
+  DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', TXT: 'text/plain', ZIP: 'application/zip',
+  XLSX: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', CSV: 'text/csv' };
+const EXT_OF = { JPG: 'jpg', PNG: 'png', WEBP: 'webp', AVIF: 'avif', BMP: 'bmp', TIFF: 'tif', PDF: 'pdf', DOCX: 'docx', TXT: 'txt', ZIP: 'zip', XLSX: 'xlsx', CSV: 'csv' };
 async function encode(c, fmt, q) {
   switch (fmt) {
     case 'JPG': return toBlob(flatten(c), 'image/jpeg', q ?? .92);
@@ -193,7 +201,7 @@ function makePDF(pages) {   // pages: [{data: Uint8Array JPEG, w, h, pw, ph}]
 }
 async function pageFromCanvas(c, a4) {
   const data = await U8(await toBlob(flatten(c), 'image/jpeg', .9));
-  if (a4) return { data, w: c.width, h: c.height, pw: 595.28, ph: 841.89 };
+  if (a4) return c.width > c.height ? { data, w: c.width, h: c.height, pw: 841.89, ph: 595.28 } : { data, w: c.width, h: c.height, pw: 595.28, ph: 841.89 };
   let pw = c.width * .75, ph = c.height * .75; const k = Math.min(1, 14000 / Math.max(pw, ph)); pw *= k; ph *= k;
   return { data, w: c.width, h: c.height, pw, ph };
 }
@@ -291,8 +299,102 @@ async function pageText(doc, n) {
   return s.replace(/[ \t]+\n/g, '\n').trim();
 }
 
+/* ───────────────────────── V1.90: Excel (SheetJS) ───────────────────────── */
+async function readBook(file) {
+  const X = await xlsxLib();
+  if (EXT(file.name) === 'csv') return X.read(await readText(file), { type: 'string', raw: false });
+  return X.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' });
+}
+function sheetRows(X, ws) {
+  const rows = X.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false }).map(r => r.map(v => v == null ? '' : String(v)));
+  let w = 0; rows.forEach(r => { for (let k = r.length - 1; k >= 0; k--) if (r[k].trim()) { w = Math.max(w, k + 1); break; } });
+  return rows.filter(r => r.some(v => v.trim())).map(r => { const o = r.slice(0, w); while (o.length < w) o.push(''); return o; });
+}
+const isNum = v => /^[-+(]?[\d.,\s]+%?\)?$/.test(v.trim()) && /\d/.test(v);
+// vẽ bảng: mode 'pdf' → các trang A4 (dọc/ngang; bảng quá rộng thì chia cột sang trang sau, lặp cột đầu), 'img' → 1 ảnh dài mỗi sheet (cắt nếu quá cao)
+function tableCanvases(rows, title, mode) {
+  const FS = 22, RH = 36, PAD = 9, MAXW = 460, MINW = 46, font = b => `${b ? 700 : 400} ${FS}px "Segoe UI", Arial, sans-serif`;
+  const m = mkCanvas(10, 10).getContext('2d'), nc = Math.max(1, ...rows.map(r => r.length)), cw = Array(nc).fill(MINW);
+  rows.forEach((r, i) => { m.font = font(i === 0); r.forEach((v, k) => { cw[k] = Math.min(MAXW, Math.max(cw[k], m.measureText(v).width + PAD * 2)); }); });
+  const fit = (x, v, w) => { if (x.measureText(v).width <= w) return v; let k = v.length; while (k > 1 && x.measureText(v.slice(0, k) + '…').width > w) k--; return v.slice(0, k) + '…'; };
+  const drawRows = (x, cols, list, y0) => {   // cols: chỉ số cột cần vẽ; luôn vẽ dòng đầu (tiêu đề cột) trước
+    const W2 = cols.reduce((a, k) => a + cw[k], 0) + 1, all = rows.length ? [[rows[0], true], ...list.map(r => [r, false])] : [];
+    let y = y0;
+    for (const [r, head] of all) {
+      let xx = .5; if (head) { x.fillStyle = '#EEF1F7'; x.fillRect(0, y, W2, RH); }
+      x.font = font(head); x.fillStyle = '#1B2240';
+      cols.forEach(k => { const v = r[k] || '', num = !head && isNum(v), t = fit(x, v, cw[k] - PAD * 2); x.textAlign = num ? 'right' : 'left'; x.fillText(t, num ? xx + cw[k] - PAD : xx + PAD, y + RH / 2 + 1); xx += cw[k]; });
+      x.strokeStyle = '#C9CFDD'; x.lineWidth = 1; x.beginPath(); x.moveTo(0, y + RH + .5); x.lineTo(W2, y + RH + .5); x.stroke(); y += RH;
+    }
+    x.strokeStyle = '#C9CFDD'; x.beginPath(); let xx = .5; x.moveTo(xx, y0); x.lineTo(xx, y); cols.forEach(k => { xx += cw[k]; x.moveTo(Math.round(xx) + .5, y0); x.lineTo(Math.round(xx) + .5, y); }); x.moveTo(0, y0 + .5); x.lineTo(W2, y0 + .5); x.stroke();
+    return W2;
+  };
+  const head = (x, t) => { if (!t) return; x.font = `700 ${FS + 6}px "Segoe UI", Arial, sans-serif`; x.fillStyle = '#1B2240'; x.textAlign = 'left'; x.fillText(t, 0, 26); };
+  const allCols = cw.map((_, k) => k), TW = cw.reduce((a, b) => a + b, 0) + 1, body = rows.slice(1), out = [];
+  if (mode === 'img') {
+    const TH = title ? 54 : 0, per = Math.max(1, Math.floor((16000 - TH - 40) / RH) - 1);
+    for (let i = 0; i === 0 || i < body.length; i += per) {
+      const part = body.slice(i, i + per), c = mkCanvas(TW + 40, (i === 0 ? TH : 0) + RH * (part.length + 1) + 40), x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.translate(20, 20); x.textBaseline = 'middle'; if (i === 0) head(x, title); drawRows(x, allCols, part, i === 0 ? TH : 0); out.push(c);
+      if (!body.length) break;
+    }
+    return out;
+  }
+  const MINSC = .8, M = 80, land = TW > 1080, PW = land ? 1754 : 1240, PH = land ? 1240 : 1754, cwid = PW - 2 * M;
+  // chia cột thành từng dải vừa trang (chữ không nhỏ hơn 62%); dải sau lặp lại cột đầu
+  const bands = [];
+  if (TW * MINSC <= cwid) bands.push(allCols);
+  else {   // số dải cần có rồi chia đều cho cân trang
+    const lim = cwid / MINSC, rest = TW - cw[0], nb = Math.max(2, Math.ceil(rest / Math.max(1, lim - cw[0]))), target = rest / nb;
+    let cur = [0], w = 0; for (let k = 1; k < nc; k++) { if (cur.length > 1 && (w + cw[k] > lim - cw[0] || (w >= target && bands.length < nb - 1))) { bands.push(cur); cur = [0]; w = 0; } cur.push(k); w += cw[k]; } bands.push(cur);
+  }
+  bands.forEach((cols, bi) => {
+    const BW = cols.reduce((a, k) => a + cw[k], 0) + 1, sc = Math.min(1, cwid / BW), usable = (PH - 2 * M) / sc;
+    const t = bands.length > 1 ? `${title ? title + ' · ' : ''}phần ${bi + 1}/${bands.length}` : title, TH = t ? 54 : 0;
+    let i = 0, first = true;
+    do {
+      const n = Math.max(1, Math.floor((usable - (first ? TH : 0) - RH) / RH)), part = body.slice(i, i + n);
+      const c = mkCanvas(PW, PH), x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, PW, PH); x.translate(M, M); x.scale(sc, sc); x.textBaseline = 'middle';
+      if (first) head(x, t); drawRows(x, cols, part, first ? TH : 0); out.push(c); i += n; first = false;
+    } while (i < body.length);
+  });
+  return out;
+}
+async function bookSheets(file) { const X = await xlsxLib(), wb = await readBook(file); return { X, wb, sheets: wb.SheetNames.map(n => ({ name: n, rows: sheetRows(X, wb.Sheets[n]) })).filter(s => s.rows.length) }; }
+async function xlsPages(file) {   // dùng cho PDF và Gộp PDF
+  const { sheets } = await bookSheets(file); if (!sheets.length) throw new Error(`"${file.name}" không có dữ liệu`);
+  const pages = []; sheets.forEach(sh => pages.push(...tableCanvases(sh.rows, sheets.length > 1 ? sh.name : '', 'pdf'))); return pages;
+}
+const sheetName = (n, used) => { let b = String(n).replace(/[\[\]:*?\/\\]/g, ' ').trim().slice(0, 31) || 'Sheet'; let x = b, k = 2; while (used.has(x.toLowerCase())) { const suf = ` (${k++})`; x = b.slice(0, 31 - suf.length) + suf; } used.add(x.toLowerCase()); return x; };
+const safeFile = n => String(n).replace(/[\\/:*?"<>|]/g, ' ').trim() || 'sheet';
+async function convertXls(f, to, step) {
+  const b = BASE(f.name), out = [];
+  if (to === 'XLSX') { const X = await xlsxLib(), wb = await readBook(f); return [{ blob: new Blob([X.write(wb, { bookType: 'xlsx', type: 'array' })], { type: MIME.XLSX }), name: b + '.xlsx' }]; }
+  const { X, wb, sheets } = await bookSheets(f); if (!sheets.length) throw new Error(`"${f.name}" không có dữ liệu`);
+  const nm = (sh, ext, part) => (sheets.length > 1 ? `${b} - ${safeFile(sh.name)}` : b) + (part ? ` (phần ${part})` : '') + '.' + ext;
+  if (to === 'CSV') sheets.forEach(sh => out.push({ blob: new Blob(['\uFEFF' + X.utils.sheet_to_csv(wb.Sheets[sh.name], { blankrows: false })], { type: MIME.CSV }), name: nm(sh, 'csv') }));
+  else if (to === 'PDF') { const ps = []; for (const sh of sheets) for (const c of tableCanvases(sh.rows, sheets.length > 1 ? sh.name : '', 'pdf')) ps.push(await pageFromCanvas(c, true)); out.push({ blob: makePDF(ps), name: b + '.pdf' }); }
+  else for (const sh of sheets) { const cs = tableCanvases(sh.rows, sheets.length > 1 ? sh.name : '', 'img'); for (let k = 0; k < cs.length; k++) out.push({ blob: await encode(cs[k], to), name: nm(sh, EXT_OF[to], cs.length > 1 ? k + 1 : 0) }); }
+  if (out.length > 10) return [{ blob: await makeZip(out.map(x => ({ name: x.name, data: x.blob }))), name: `${b} (${out.length} file ${to}).zip` }];
+  return out;
+}
+async function mergeXlsx(files, step) {
+  const X = await xlsxLib(), nb = X.utils.book_new(), used = new Set();
+  for (let i = 0; i < files.length; i++) {
+    step(i, files.length); const wb = await readBook(files[i]), fb = BASE(files[i].name);
+    wb.SheetNames.forEach(sn => X.utils.book_append_sheet(nb, wb.Sheets[sn], sheetName(wb.SheetNames.length > 1 ? `${fb} - ${sn}` : fb, used)));
+  }
+  return new Blob([X.write(nb, { bookType: 'xlsx', type: 'array' })], { type: MIME.XLSX });
+}
+async function splitXlsx(f, step) {
+  const X = await xlsxLib(), wb = await readBook(f), b = BASE(f.name);
+  if (wb.SheetNames.length < 2) throw new Error('File Excel này chỉ có 1 sheet, không cần tách');
+  const outs = wb.SheetNames.map((sn, k) => { step(k, wb.SheetNames.length); const nb = X.utils.book_new(); X.utils.book_append_sheet(nb, wb.Sheets[sn], sheetName(sn, new Set())); return { blob: new Blob([X.write(nb, { bookType: 'xlsx', type: 'array' })], { type: MIME.XLSX }), name: `${b} - ${safeFile(sn)}.xlsx` }; });
+  return outs.length >= 10 ? [{ blob: await makeZip(outs.map(x => ({ name: x.name, data: x.blob }))), name: `${b} (tách ${outs.length} sheet).zip` }] : outs;
+}
+
 /* ───────────────────────── V1.89: Gộp / Tách (pdf-lib, giữ nguyên chữ của PDF) ───────────────────────── */
-const canGop = f => { const k = kindOf(f); return k === 'img' || k === 'pdf'; };
+const canGop = f => { const k = kindOf(f); return k === 'img' || k === 'pdf' || k === 'xls'; };
 async function loadPdfLib(f) {
   const { PDFDocument } = await pdflib(), d = await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true });
   if (d.isEncrypted) throw new Error(`"${f.name}" có mật khẩu, không gộp/tách được`); return d;
@@ -302,6 +404,7 @@ async function mergeToPdf(files, step) {   // nhiều ảnh + PDF (lẫn lộn) 
   for (let i = 0; i < files.length; i++) {
     step(i, files.length); const f = files[i];
     if (kindOf(f) === 'pdf') { const src = await loadPdfLib(f); (await out.copyPages(src, src.getPageIndices())).forEach(pg => out.addPage(pg)); continue; }
+    if (kindOf(f) === 'xls') { for (const c of await xlsPages(f)) { const pg = await pageFromCanvas(c, true), im = await out.embedJpg(pg.data); out.addPage([pg.pw, pg.ph]).drawImage(im, { x: 0, y: 0, width: pg.pw, height: pg.ph }); } continue; }   // V1.90: bảng Excel in vào PDF
     const e = EXT(f.name), buf = new Uint8Array(await f.arrayBuffer()); let img = null;
     if ((/^(jpe?g|jfif)$/.test(e) || f.type === 'image/jpeg') && ((readExif(buf) || {}).orient || 1) === 1) { try { img = await out.embedJpg(buf); } catch {} }   // JPG đúng chiều: nhúng nguyên bản, không nén lại
     else if (e === 'png' || f.type === 'image/png') { try { img = await out.embedPng(buf); } catch {} }
@@ -326,8 +429,11 @@ async function splitPdf(f, step) {   // 1 PDF nhiều trang → mỗi trang 1 PD
   return N >= 10 ? [{ blob: await makeZip(outs.map(x => ({ name: x.name, data: x.blob }))), name: `${b} (tách ${N} trang).zip` }] : outs;
 }
 async function gopTach(files, _to, step) {
+  const allX = files.every(f => kindOf(f) === 'xls');
+  if (allX && files.length > 1) return [{ blob: await mergeXlsx(files, step), name: `${BASE(files[0].name)} (gộp ${files.length} file).xlsx` }];
+  if (allX) return splitXlsx(files[0], step);
   if (files.length > 1) return [{ blob: await mergeToPdf(files, step), name: `${BASE(files[0].name)} (gộp ${files.length} file).pdf` }];
-  if (kindOf(files[0]) !== 'pdf') throw new Error('Kéo từ 2 file trở lên để gộp, hoặc 1 PDF nhiều trang để tách');
+  if (kindOf(files[0]) !== 'pdf') throw new Error('Kéo từ 2 file trở lên để gộp, hoặc 1 PDF/Excel nhiều trang để tách');
   return splitPdf(files[0], step);
 }
 
@@ -350,6 +456,7 @@ async function convert(files, to, step) {
   }
   for (let i = 0; i < files.length; i++) {
     step(i, files.length); const f = files[i], b = BASE(f.name);
+    if (kind === 'xls') { out.push(...await convertXls(f, to, step)); continue; }
     if (kind === 'pdf') {
       const doc = await openPDF(f), N = doc.numPages;
       if (to === 'TXT' || to === 'DOCX') {
@@ -486,7 +593,8 @@ function buildWheel() {
 function segItems() {
   if (W.mode === 'tool') return TOOLS.map(t => ({ ...t, off: W.kind !== 'img' }));
   return (FORMATS[W.kind] || []).map(f => f !== 'GOP' ? { id: f, label: f }
-    : W.total > 1 ? { id: f, label: 'Gộp PDF', long: true } : { id: f, label: 'Tách trang', long: true, off: W.kind !== 'pdf' });
+    : W.total > 1 ? { id: f, label: W.allX ? 'Gộp Excel' : 'Gộp PDF', long: true }
+    : W.kind === 'xls' ? { id: f, label: 'Tách sheet', long: true } : { id: f, label: 'Tách trang', long: true, off: W.kind !== 'pdf' });
 }
 function drawSegs() {
   W.segG.textContent = ''; W.items = segItems();
@@ -509,7 +617,7 @@ function drawSegs() {
 function hubText() {
   W.hub.textContent = '';
   if (W.busy) { W.hub.append($e('div', 'hhd-spin'), $e('small', '', W.busy === true ? 'Đang làm…' : W.busy)); return; }
-  const n = W.count, what = W.total > n ? `${W.total} file ảnh + PDF` : n > 1 ? `${n} file ${KIND_NAME[W.kind]}` : (W.files && W.files[0] ? W.files[0].name : `1 file ${KIND_NAME[W.kind]}`);
+  const n = W.count, what = W.total > n ? `${W.total} file` : n > 1 ? `${n} file ${KIND_NAME[W.kind]}` : (W.files && W.files[0] ? W.files[0].name : `1 file ${KIND_NAME[W.kind]}`);
   W.hub.append($e('b', '', W.mode === 'fmt' ? '🧰 Công cụ' : '🔄 Định dạng'), $e('small', '', W.click ? 'bấm để đổi vòng' : 'giữ chuột ở đây'));
   const bar = $e('div', 'bar'); bar.append($e('i')); W.hub.append(bar);
   W.tip.textContent = W.kind === 'other' ? '⚠️ Chưa hỗ trợ loại file này · Esc để huỷ'
@@ -542,9 +650,9 @@ function placeAt(x, y) {
   W.cx = vw < 2 * m ? vw / 2 : Math.min(Math.max(x, m), vw - m); W.cy = vh < 2 * m ? vh / 2 : Math.min(Math.max(y, m), vh - m);
   W.wheel.style.left = W.cx + 'px'; W.wheel.style.top = W.cy + 'px';
 }
-function showWheel(x, y, kind, count, click, total) {
+function showWheel(x, y, kind, count, click, total, allX) {
   if (!W.ov) buildWheel();
-  W.kind = kind; W.count = count; W.total = total ?? count; W.click = !!click; W.mode = 'fmt'; W.hubLock = true; W.onHub = false; W.busy = false;
+  W.kind = kind; W.count = count; W.total = total ?? count; W.allX = allX ?? kind === 'xls'; W.click = !!click; W.mode = 'fmt'; W.hubLock = true; W.onHub = false; W.busy = false;
   W.wheel.classList.remove('busy', 'hubhot'); W.ov.classList.toggle('click', W.click);
   clearTimeout(W.hideT); placeAt(x, y); drawSegs(); hubText(); W.ov.hidden = false; W.open = true;
   void W.ov.offsetWidth; W.ov.classList.add('on');
@@ -558,13 +666,13 @@ function closeWheel() {
 function openWheel(files, x, y, click) {
   const fs = [...files]; if (!fs.length) return;
   const kind = kindOf(fs[0]), same = fs.filter(f => kindOf(f) === kind), all = canGop(fs[0]) ? fs.filter(canGop) : same;
-  showWheel(x ?? innerWidth / 2, y ?? innerHeight / 2, kind, same.length, click, all.length); W.files = same; W.all = all; W.picked = fs.length;
+  showWheel(x ?? innerWidth / 2, y ?? innerHeight / 2, kind, same.length, click, all.length, all.every(f => kindOf(f) === 'xls')); W.files = same; W.all = all; W.picked = fs.length;
   drawSegs(); hubText();
 }
 async function choose(i) {
   const it = W.items[i], gop = it && it.id === 'GOP', files = gop ? (W.all || W.files) : W.files; if (!it || !files || !files.length || it.off) return closeWheel();
   const skip = (W.picked || files.length) - files.length;
-  if (skip > 0) toast(gop ? `Bỏ qua ${skip} file không phải ảnh/PDF` : `Chỉ làm ${files.length} file ${KIND_NAME[W.kind]}, bỏ qua ${skip} file khác loại`);
+  if (skip > 0) toast(gop ? `Bỏ qua ${skip} file không phải ảnh/PDF/Excel` : `Chỉ làm ${files.length} file ${KIND_NAME[W.kind]}, bỏ qua ${skip} file khác loại`);
   if (W.mode === 'tool') { closeWheel(); return openTool(it.id, files); }
   W.busy = true; W.wheel.classList.add('busy'); hubText(); setHot(i);
   const name = files.length > 1 ? `${files.length} file` : files[0].name;
@@ -580,15 +688,15 @@ function dragKind(dt) {
   const its = [...(dt.items || [])].filter(i => i.kind === 'file');
   if ([...(dt.types || [])].includes('application/x-hhd') && !its.length) return { kind: 'img', n: 1 };
   if (!its.length) return { kind: 'img', n: 1 };
-  const kind = kindOfMime(its[0].type), ok = k => k === 'img' || k === 'pdf';
-  return { kind, n: its.filter(i => kindOfMime(i.type) === kind).length, total: ok(kind) ? its.filter(i => ok(kindOfMime(i.type))).length : its.length };
+  const kind = kindOfMime(its[0].type), ok = k => k === 'img' || k === 'pdf' || k === 'xls', g = ok(kind) ? its.filter(i => ok(kindOfMime(i.type))) : its;
+  return { kind, n: its.filter(i => kindOfMime(i.type) === kind).length, total: g.length, allX: g.every(i => kindOfMime(i.type) === 'xls') };
 }
 function onDragOver(e) {
   if (!hasFiles(e.dataTransfer)) return;
   if (document.querySelector('.hhd-dlgov')) return;   // đang mở hộp công cụ
   if (e.target && e.target.closest && e.target.closest('#hattieu-host')) { if (W.open && !W.click) closeWheel(); return; }   // thả vào chú hamster → để HaoHao gửi sang iPhone như cũ
   e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
-  if (!W.open || W.click) { const k = dragKind(e.dataTransfer); showWheel(e.clientX, e.clientY, k.kind, k.n, false, k.total); }
+  if (!W.open || W.click) { const k = dragKind(e.dataTransfer); showWheel(e.clientX, e.clientY, k.kind, k.n, false, k.total, k.allX); }
   else track(e.clientX, e.clientY);
   clearTimeout(W.dragT); W.dragT = setTimeout(() => { if (!W.busy) closeWheel(); }, 260);   // chuột ra khỏi cửa sổ → tắt
 }
@@ -600,8 +708,8 @@ async function onDrop(e) {
   let files = id && RES.get(+id) ? [RES.get(+id).file] : [...(e.dataTransfer.files || [])];
   if (!files.length) return closeWheel();
   const kind = kindOf(files[0]), same = files.filter(f => kindOf(f) === kind), all = canGop(files[0]) ? files.filter(canGop) : same;
-  const tot0 = W.total; W.files = same; W.all = all; W.picked = files.length; W.count = same.length; W.total = all.length;
-  if (kind !== W.kind || (tot0 > 1) !== (all.length > 1)) {   // lúc kéo chưa biết đúng loại → mở lại vòng đúng loại để bấm chọn
+  const tot0 = W.total, ax0 = W.allX, allX = all.every(f => kindOf(f) === 'xls'); W.files = same; W.all = all; W.picked = files.length; W.count = same.length; W.total = all.length; W.allX = allX;
+  if (kind !== W.kind || (tot0 > 1) !== (all.length > 1) || (all.length > 1 && ax0 !== allX)) {   // lúc kéo chưa biết đúng loại → mở lại vòng đúng loại để bấm chọn
     W.kind = kind; W.click = true; W.ov.classList.add('click'); W.mode = 'fmt'; drawSegs(); hubText(); return;
   }
   if (W.hot >= 0) return choose(W.hot);
@@ -1007,7 +1115,7 @@ async function toolMeta(src, files) {
 
 /* ───────────────────────── khởi động ───────────────────────── */
 function pickFiles() {
-  const i = $e('input'); i.type = 'file'; i.multiple = true; i.accept = 'image/*,.heic,.heif,.tif,.tiff,.avif,.pdf,.docx,.txt,.md,.csv';
+  const i = $e('input'); i.type = 'file'; i.multiple = true; i.accept = 'image/*,.heic,.heif,.tif,.tiff,.avif,.pdf,.docx,.txt,.md,.csv,.xlsx,.xlsm,.xls,.ods';
   i.addEventListener('change', () => { if (i.files.length) openWheel(i.files, innerWidth / 2, innerHeight / 2, true); }); i.click();
 }
 function initPage() {
@@ -1026,4 +1134,4 @@ function initPage() {
 }
 buildTray(); loadDir();
 if (PAGE) initPage();
-window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
+window.HHDoi = { open: (files, x, y) => openWheel(files, x, y, true), pick: pickFiles, convert, _t: { convertXls, gopTach, makePDF, makeDOCX, makeZip, readExif, stripJpeg, decodeImage, encode, docxText, textPages } };
