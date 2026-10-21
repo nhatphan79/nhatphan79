@@ -300,6 +300,13 @@ $('#zaloCopy').addEventListener('click', () => copyBtn($('#zaloCopy'), ZALO0, '�
 // ---------- Giới thiệu: phiên bản đang cài; #about mở thẳng tab này ----------
 try { const mf = chrome.runtime.getManifest(); $('#abVer').textContent = `Phiên bản ${mf.version_name || mf.version} · Bản quyền thuộc Phan Thanh Nhật`; } catch {}
 if (location.hash === '#about') document.querySelector('nav button[data-tab="about"]').click();
+// ☕ V1.2.2: mã QR ủng hộ cà phê (VietQR, không ghi số tiền – khách tự nhập); #cafe mở thẳng tới đây
+{
+  const B = HT.PRO.bank, note = 'Ung ho HaoHao';
+  $('#cafeBank').textContent = `${B.name} · ${B.acc} · ${B.owner} · Nội dung: ${note}`;
+  if (typeof qrcode === 'function') { const q = qrcode(0, 'M'); q.addData(HT.vietQR(B.bin, B.acc, 0, note)); q.make(); $('#cafeQr').src = q.createDataURL(6, 2); }
+  if (location.hash === '#cafe') { document.querySelector('nav button[data-tab="about"]').click(); setTimeout(() => { const c = $('#cafe'); c.scrollIntoView({ block: 'center' }); c.classList.add('flash'); }, 150); }
+}
 // ⭐ V1.65: trang HaoHao Pro – chọn gói, QR chuyển khoản BIDV (VietQR), mã máy, dán mã kích hoạt
 {
   let st = null, sel = 'y1';

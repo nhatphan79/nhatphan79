@@ -170,3 +170,14 @@ form { background: var(--paper); border: 2px solid var(--ink); border-radius: 20
 @media (max-width: 900px) { .pro-plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .pro-renew { margin-top: 14px; }
+
+/* ☕ V1.2.2: ủng hộ cà phê – QR VietQR không ghi số tiền */
+.ab-cafe { display: flex; gap: 20px; align-items: center; margin-top: 16px; padding: 16px 20px; border: 2px solid var(--ink); border-radius: 16px; background: #FFF8EC; box-shadow: 6px 6px 0 var(--honey); }
+.ab-cafe .cafe-qr { flex: none; background: #fff; padding: 8px; border-radius: 12px; border: 1px solid #E3E6F0; }
+.ab-cafe .cafe-qr img { display: block; width: 168px; height: 168px; image-rendering: pixelated; }
+.ab-cafe h3 { margin: 0 0 6px; }
+.ab-cafe p { margin: 0 0 6px; }
+.ab-cafe .cafe-ty { color: #B26B00; font-weight: 700; }
+.ab-cafe.flash { animation: cafeFlash 1.2s ease 2; }
+@keyframes cafeFlash { 50% { box-shadow: 6px 6px 0 var(--honey), 0 0 0 6px rgba(242, 167, 27, .35); } }
+@media (max-width: 640px) { .ab-cafe { flex-direction: column; text-align: center; } }
