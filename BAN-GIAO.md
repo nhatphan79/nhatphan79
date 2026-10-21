@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V1** (tiện ích Chrome) bản **V1.100** (1.10.367) · **Web cửa hàng** haohaostore.com · **HaoHao V2** (app Windows) bản **2.0.0**. ⚠️ V1 từ V1.78 chỉ còn 1 bản = bản Chrome Web Store
+Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V1** (tiện ích Chrome) bản **V1.2.0** (1.10.368) · **Web cửa hàng** haohaostore.com · **HaoHao V2** (app Windows) bản **2.0.0**. ⚠️ V1 từ V1.78 chỉ còn 1 bản = bản Chrome Web Store
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -45,7 +45,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 0. **2 tài khoản Claude thay ca:** nhatphan79 làm thứ 7 → thứ 2; anhnhatpro79 làm thứ 3 → thứ 6. Thứ 6 tài khoản anhnhatpro79 phải cập nhật file này để bàn giao cho nhatphan79.
 0b. **HaoHao Store: sửa trên canvas thiết kế trước** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj); chỉ khi anh nói "lên" mới đẩy web thật.
 1. **Trước khi sửa: gợi ý ngắn sẽ làm gì → anh đồng ý mới làm.** Anh nói thẳng "làm X" thì làm đúng X, không bày thêm.
-2. **Mỗi lần sửa xong:** tăng tên bản (`version_name`) thêm 1: V1.0 → V1.1 → V1.2 … → V1.9 → V1.10 → … V1.100 (luôn giữ "V1.", số sau 1–3 chữ số, KHÔNG lên V2) và tăng số kỹ thuật `version` (chạy ngầm cho tự nạp lại); báo cáo / bảng Đã làm ghi theo tên V1.x; đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
+2. **Mỗi lần sửa xong:** tăng tên bản (`version_name`) theo **3 số (anh Nhật chốt 21/10)**: từ **V1.2.0** → V1.2.1 → V1.2.2 … (mỗi lần sửa tăng số cuối; thay đổi lớn thì lên V1.3.0). Đợt cũ V1.0 → V1.100 coi là "đời 1.1"; dùng 3 số để không trùng các bản V1.2, V1.3… cũ. Luôn tăng cả số kỹ thuật `version` (chạy ngầm cho tự nạp lại); báo cáo / bảng Đã làm ghi theo tên V1.x.y; đẩy `haohao-chrome/` + `haohao-workbench.html` + file này lên GitHub, cập nhật trang giả lập HaoHao V1.
 3. **Tin nhắn anh chưa rõ: nói lại ý mình hiểu + hỏi "đúng chưa anh Nhật?" trước khi làm.**
 4. Trả lời ngắn, báo ✅ / ⚠️ / ❌. Cần anh làm gì thì nói đúng 1 dòng.
 5. Anh nói "dừng" là dừng hết.
@@ -57,6 +57,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.2.0 (1.10.368, 21/10) | **Đổi cách đặt tên bản sang 3 số** (anh Nhật chọn): V1.100 → **V1.2.0**, từ nay V1.2.1, V1.2.2… Chỉ đổi tên hiển thị (`version_name`, trang Cài đặt → Giới thiệu); số kỹ thuật vẫn tăng như cũ. Không đổi code. |
 | V1.100 (1.10.367, 21/10) | Bảng **Mua sắm**: dòng báo link tiếp thị (bắt buộc theo luật Chrome Web Store, `HT.STORE`) chuyển từ **đầu** xuống **đáy** bảng, chữ nhỏ xám căn giữa "ⓘ Link tiếp thị · Giá không đổi so với tự mua" (`renderShop` = `renderShopBody` + `.aff-foot`; có bản dịch tiếng Anh). Anh Nhật nói đã sửa xuống đáy trước đó nhưng kho/máy không có bản sửa nào (có lẽ chat khác chưa đẩy) → làm lại. Các chỗ khác (bong bóng, nút mua) vẫn dùng `HT.AFF_NOTE`. |
 | V1.99 (1.10.366, 21/10) | **Scan đẹp như máy scan văn phòng** (anh Nhật chê bản đen trắng ép 2 màu: chân dung cháy, hoa văn lốm đốm, chữ nhoè; gửi mẫu `SCAN0575.pdf` = Ricoh MP 5054, màu, 200dpi, nền trắng ~89%, giữ màu mực bút bi). `scanFilter` mới: xoá bóng (chia nền) → làm nét nhẹ (unsharp) → chỉnh mức theo độ sáng. Kiểu: **Như máy scan** (mặc định – giữ màu, tăng màu nhẹ, nền ≥247 thành trắng tinh), **Đen trắng** (xám tương phản cao, KHÔNG ép 2 màu → ảnh chân dung giữ chi tiết, hết lốm đốm), Xám, Ảnh gốc; thanh "Độ đậm" cho mọi kiểu. Bỏ kiểu "Màu rõ nét" (gộp vào Như máy scan). Thử ảnh thẻ mẫu (nền hoa văn, ảnh chân dung, chữ đỏ) + hợp đồng chụp xéo: nền trắng, màu tươi, chân dung rõ. |
 | V1.98 (1.10.365, 21/10) | HaoHao Convert: ô **Scan** chuyển ra **vòng định dạng của ảnh** (cạnh PDF; vòng ảnh 8 ô: JPG PNG WEBP PDF Scan DOCX Gộp/Tách TIFF), bỏ khỏi vòng Công cụ (về lại 8 ô). Anh Nhật chê bản scan Đen trắng "xấu quá" → sửa ở V1.99. |
