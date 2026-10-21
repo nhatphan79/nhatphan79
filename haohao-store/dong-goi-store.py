@@ -8,7 +8,7 @@
 import json, os, zipfile, re
 here = os.path.dirname(os.path.abspath(__file__)); src = os.path.join(os.path.dirname(here), 'haohao-chrome')
 out = os.path.join(here, 'HaoHao-Store.zip')
-SKIP_DIRS = {'server-cloudflare', '.git', 'node_modules'}
+SKIP_DIRS = {'server-cloudflare', '.git', 'node_modules', '_metadata'}   # V1.2.2: _metadata do Chrome tự sinh, Store không nhận
 n = 0
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
     for r, dirs, files in os.walk(src):
@@ -21,7 +21,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
                 t = data.decode('utf-8'); assert 'HT.STORE = true;' in t or 'HT.STORE = false;' in t; data = t.replace('HT.STORE = false;', 'HT.STORE = true;', 1).encode('utf-8')   # V1.78: mã chính đã là bản Store
             elif rel == 'manifest.json':
                 m = json.loads(data.decode('utf-8'))
-                m['name'] = 'HaoHao – Trợ lý cá nhân'   # V1.76: khớp tên trên trang Store
+                # V1.2.1: dùng đúng tên trong manifest (tên mới tối ưu tìm kiếm), không ép tên cũ nữa
                 m['permissions'] = [x for x in m['permissions'] if x != 'geolocation']
                 m['host_permissions'] = [x for x in m['host_permissions'] if '127.0.0.1:47321' not in x]
                 data = (json.dumps(m, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
