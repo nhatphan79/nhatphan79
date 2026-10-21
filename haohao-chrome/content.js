@@ -116,8 +116,8 @@
                { id: 'info', label: 'Thông tin', emoji: '💡', color: ib.color, desc: 'Dịch, tóm tắt, giải thích', icon: ib.icon },
                { id: 'transfer', label: 'HaoHao Transfer', emoji: '📲', color: '#2E7DD7', desc: 'Chuyển ảnh, video iPhone ⇄ máy tính',
                  icon: '<rect x="3" y="4" width="7" height="13" rx="1.8" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="7" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 20h8M12 17v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' }); }
-  // V1.87: 🔄 Đổi file – kéo thả đổi định dạng + công cụ ảnh, mở trang riêng doifile.html
-  TOOLS.push({ id: 'doifile', label: 'Đổi file', emoji: '🔄', color: '#E8513C', desc: 'Kéo thả đổi JPG, PNG, PDF, HEIC…; cắt, thêm nền, nén ảnh',
+  // V1.87: 🔄 Đổi file (V1.88 đổi tên: HaoHao Convert) – kéo thả đổi định dạng + công cụ ảnh, mở trang riêng doifile.html
+  TOOLS.push({ id: 'doifile', label: 'HaoHao Convert', emoji: '🔄', color: '#E8513C', desc: 'Kéo thả đổi JPG, PNG, PDF, HEIC…; cắt, thêm nền, nén ảnh',
     icon: '<path d="M4 9a8 8 0 0 1 14.5-3.5L20 7M20 15a8 8 0 0 1-14.5 3.5L4 17" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 3v4h-4M4 21v-4h4" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' });
   const openDoi = () => { try { chrome.runtime.sendMessage({ type: 'open-doifile' }); } catch {} };
   // 📌 Mục chính cố định 7 nhánh: Nhắc · Todo · Note · [ô 1] · [ô 2] · Mua sắm · Tiện ích.

@@ -1,4 +1,4 @@
-// HaoHao V1 – 🔄 Đổi file (V1.87, 21/10/2026)
+// HaoHao V1 – 🔄 HaoHao Convert (đổi file kéo-thả; V1.87, đổi tên V1.88 – 21/10/2026)
 // Kéo file vào trang → hiện vòng tròn: thả vào ô định dạng để đổi file; giữ chuột ở giữa vòng → đổi sang vòng Công cụ
 // (Cắt, Thêm nền, Nén, Che, Chỉnh sửa, Ghi chú, Thông tin ẩn). Mọi thứ chạy trên máy, không gửi file lên mạng.
 // Thư viện đóng gói sẵn trong lib/ (pdf.js, libheif, AVIF, UTIF) – chỉ nạp khi cần.
@@ -526,7 +526,7 @@ async function choose(i) {
   try {
     const res = await convert(files, it.id, (k, n) => { if (n > 1) { W.busy = `Đang làm ${Math.min(n, Math.floor(k) + 1)}/${n}…`; hubText(); } });
     closeWheel(); await deliver(res);
-  } catch (e) { console.warn('[HaoHao Đổi file]', e); closeWheel(); addError(name, (e && e.message) || 'Không đổi được file này'); toast('⚠️ ' + ((e && e.message) || 'Không đổi được file này'), 4000); }
+  } catch (e) { console.warn('[HaoHao Convert]', e); closeWheel(); addError(name, (e && e.message) || 'Không đổi được file này'); toast('⚠️ ' + ((e && e.message) || 'Không đổi được file này'), 4000); }
 }
 
 /* kéo-thả trên cả trang */
