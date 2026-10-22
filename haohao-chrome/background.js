@@ -57,7 +57,12 @@ chrome.runtime.onMessage.addListener((m, s) => {
   if (m && m.type === 'hh-user-link' && s.tab) userClick.set(s.tab.id, { host: hostOf(m.href), href: String(m.href || '').slice(0, 2000), t: Date.now() });
   if (m && m.type === 'hh-ad-note' && s.tab) chrome.tabs.sendMessage(s.tab.id, { type: 'hh-ad-toast', kind: m.kind, n: m.n || 0 }, { frameId: 0 }).catch(() => {});
 });
-chrome.tabs.onCreated.addListener(t => { if (t.openerTabId) { popWatch.set(t.id, t.openerTabId); setTimeout(() => popWatch.delete(t.id), 20000); } });
+chrome.tabs.onCreated.addListener(async t => {
+  if (!t.openerTabId) return;
+  popWatch.set(t.id, t.openerTabId); setTimeout(() => popWatch.delete(t.id), 20000);
+  // V1.2.4: tab mở ra từ trang trong "Trang không chặn" (vd world.xyz mở trang đăng nhập / ví) → bỏ canh ngay, kể cả khi trang gốc đã chuyển đi chỗ khác
+  try { const op = await chrome.tabs.get(t.openerTabId), { settings = {} } = await chrome.storage.local.get('settings'); if (HT.adSkipHit(hostOf(op.url || op.pendingUrl), settings)) popWatch.delete(t.id); } catch {}
+});
 chrome.tabs.onRemoved.addListener(id => { popWatch.delete(id); userClick.delete(id); });
 chrome.tabs.onUpdated.addListener(async (id, ch, tab) => {
   if (!popWatch.has(id)) return;
