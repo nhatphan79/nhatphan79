@@ -27,6 +27,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS may (id TEXT PRIMARY KEY, v TEXT, d0 INTEGER, d1 INTEGER, gone INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS go (d INTEGER, id TEXT, v TEXT, why TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS st (k TEXT PRIMARY KEY, v TEXT)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS ct (id TEXT PRIMARY KEY, w TEXT, v TEXT, at INTEGER)'),   // 🏗️ 01/11: bản chụp trang Công trình để xem trên điện thoại
     env.DB.prepare('CREATE TABLE IF NOT EXISTS tu (d INTEGER, q TEXT, src TEXT, n INTEGER, PRIMARY KEY (d, q, src))'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS cho (id INTEGER PRIMARY KEY AUTOINCREMENT, by TEXT, shop TEXT, code TEXT, label TEXT, url TEXT, until INTEGER, at INTEGER, ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, used INTEGER DEFAULT 0)'),
@@ -257,6 +258,27 @@ async function choList(env, by = '') {
   return { ok: true, items: results.map(({ by: b, ...x }) => ({ ...x, mine: !!by && b === by })) };
 }
 // 13/10: địa chỉ IP người gửi (Cloudflare cấp, khó giả) → băm, không lưu IP thật
+// 🏗️ 01/11 (HaoHao V1.2.7): trang Công trình xem trên điện thoại – tiện ích đẩy bản chụp (không kèm ảnh) lên /ct,
+//    điện thoại mở haohaostore.com/cong-trinh#<id> đọc /ct?id=. id = mã xem (khó đoán), w = mã ghi (chỉ lưu băm SHA-256).
+const CT_ID = /^[a-z0-9]{20,40}$/, CT_W = /^[a-z0-9]{24,64}$/;
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('haohao-ct|' + t)))].map(x => x.toString(16).padStart(2, '0')).join('');
+async function ctPut(env, req) {
+  if (Number(req.headers.get('content-length') || 0) > 1500000) return { ok: false, error: 'quá lớn (tối đa 1,5MB)' };
+  const b = await req.json().catch(() => null), id = String(b && b.id || ''), w = String(b && b.w || '');
+  if (!CT_ID.test(id) || !CT_W.test(w)) return { ok: false, error: 'mã sai' };
+  const hw = await sha(w), old = await env.DB.prepare('SELECT w FROM ct WHERE id = ?').bind(id).first();
+  if (old && old.w !== hw) return { ok: false, error: 'không có quyền' };
+  if (b.del) { await env.DB.prepare('DELETE FROM ct WHERE id = ?').bind(id).run(); return { ok: true, del: true }; }
+  const v = JSON.stringify(b.v || null); if (v.length > 1400000) return { ok: false, error: 'quá lớn' };
+  await env.DB.prepare('INSERT INTO ct (id, w, v, at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET v = excluded.v, at = excluded.at').bind(id, hw, v, Date.now()).run();
+  return { ok: true, at: Date.now() };
+}
+async function ctGet(env, id) {
+  id = String(id || ''); if (!CT_ID.test(id)) return { ok: false, error: 'mã sai' };
+  const r = await env.DB.prepare('SELECT v, at FROM ct WHERE id = ?').bind(id).first();
+  if (!r) return { ok: false, error: 'chưa có dữ liệu' };
+  let v = null; try { v = JSON.parse(r.v); } catch {} return { ok: true, at: r.at, v };
+}
 async function ipHash(req) {
   const ip = req.headers.get('CF-Connecting-IP') || ''; if (!ip) return '';
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('haohao|' + ip));
@@ -727,6 +749,12 @@ export default {
       if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/dich' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 200000) return json({ ok: false, error: 'too big' }, 413); try { return json(await dichTrang(await req.json().catch(() => null))); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
+      if (u.pathname === '/ct' && req.method === 'POST') return json(await ctPut(env, req));
+      if (u.pathname === '/ct') return json(await ctGet(env, u.searchParams.get('id')), 200, { 'cache-control': 'no-store' });
+      if (u.pathname === '/cong-trinh' || u.pathname === '/cong-trinh/') { const r = await shopFile('cong-trinh.html', 'html'); const h = new Headers(r.headers); h.set('cache-control', 'no-cache'); h.set('x-robots-tag', 'noindex'); return new Response(r.body, { status: r.status, headers: h }); }
+      if (u.pathname === '/ct/site.js') return await shopFile('ct/site.js', 'js');
+      if (u.pathname === '/ct/site.css') return await shopFile('ct/site.css', 'css');
+      if (u.pathname === '/ct/icon48.png') return await shopFile('ct/icon48.png', 'png');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
         if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }

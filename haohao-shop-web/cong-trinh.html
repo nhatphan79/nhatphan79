@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#23305E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Công trình">
+<link rel="apple-touch-icon" href="/shop/icon-192.png">
+<link rel="icon" href="/ct/icon48.png">
+<title>Công trình – HaoHao</title>
+<!-- 🏗️ 01/11 (HaoHao V1.2.7): trang Công trình xem trên điện thoại. Dữ liệu: /ct?id=<mã sau dấu #>, do tiện ích HaoHao trên máy tính đẩy lên.
+     Dùng chung site.js / site.css với tiện ích (bản chép ở ct/ – sửa tiện ích thì chép lại 2 file này). Chỉ xem (window.SB_RO). -->
+<link rel="stylesheet" href="/ct/site.css">
+<style>
+  html, body { margin: 0; background: #fff; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: #23305E; }
+  .msg { max-width: 460px; margin: 18vh auto 0; padding: 0 20px; text-align: center; }
+  .msg .ic { font-size: 56px; }
+  .msg h1 { font-size: 20px; margin: 10px 0 8px; }
+  .msg p { color: #6B7280; line-height: 1.55; margin: 0 0 16px; }
+  .msg input { font: inherit; width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1.5px solid #E5E7EB; border-radius: 12px; margin-bottom: 10px; }
+  .msg button { font: inherit; font-weight: 700; border: 0; background: #23305E; color: #fff; padding: 12px 20px; border-radius: 12px; cursor: pointer; width: 100%; }
+  .sbx { padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: max(40px, env(safe-area-inset-bottom)); }
+  @media (max-width: 700px) {
+    .sbx { padding-left: 12px; padding-right: 12px; }
+    .sb-head { gap: 8px; } .sb-brand small { display: none; }
+    .sb-sitesel { order: 5; flex: 1 1 100%; max-width: none; }
+    .sb-tabs { margin-left: -12px; margin-right: -12px; border-radius: 0; padding: 4px 8px; }
+    .sb-tab { padding: 8px 11px; font-size: 13px; }
+    .sb-ring { width: 96px; height: 96px; } .sb-ring b { font-size: 22px; }
+    .sb-hero { flex-direction: row; align-items: center; gap: 12px; } .sb-hero h1 { font-size: 19px; }
+    .sb-card { padding: 14px; border-radius: 14px; }
+    .sb-sech h2 { font-size: 18px; } .sb-sech span { min-width: 0; }
+    .sb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sb-t { min-width: 640px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<section class="sbx" id="site"></section>
+<script>
+(async () => {
+  const root = document.getElementById('site');
+  const ask = (title, text, err) => {
+    root.className = ''; root.innerHTML = '';
+    const d = document.createElement('div'); d.className = 'msg';
+    d.innerHTML = '<div class="ic">🏗️</div><h1></h1><p></p><input placeholder="Dán link hoặc mã từ HaoHao" aria-label="Mã xem công trình"><button type="button">Mở</button>';
+    d.querySelector('h1').textContent = title; d.querySelector('p').textContent = text;
+    const i = d.querySelector('input'), b = d.querySelector('button');
+    if (err) i.value = '';
+    b.onclick = () => { const v = (i.value.match(/[a-z0-9]{20,40}/) || [''])[0]; if (!v) { i.focus(); return; } try { localStorage.setItem('hhCt', v); } catch {} location.hash = v; location.reload(); };
+    i.onkeydown = e => { if (e.key === 'Enter') b.click(); };
+    root.append(d);
+  };
+  let id = (location.hash.match(/[a-z0-9]{20,40}/) || [''])[0];
+  if (!id) { try { id = localStorage.getItem('hhCt') || ''; } catch {} if (id) history.replaceState(null, '', '#' + id); }
+  if (!id) return ask('Công trình – HaoHao', 'Mở link "📱 Điện thoại" trong trang Công trình của HaoHao trên máy tính (quét mã QR) để xem ở đây.');
+  let r;
+  try { r = await fetch('/ct?id=' + id, { cache: 'no-store' }).then(x => x.json()); } catch { r = { ok: false, error: 'Không có mạng' }; }
+  if (!r || !r.ok || !r.v) return ask('Chưa xem được', (r && r.error === 'chưa có dữ liệu') ? 'Link này chưa có dữ liệu hoặc đã bị đổi / tắt. Trên máy tính mở HaoHao → 🏗️ Công trình → 📱 Điện thoại để lấy link mới.' : ('Lỗi: ' + ((r && r.error) || 'không rõ') + '. Kéo xuống để tải lại.'), true);
+  try { localStorage.setItem('hhCt', id); } catch {}
+  const snap = r.v; let cur = snap.cur;
+  try { const c = localStorage.getItem('hhCtCur'); if (c && snap.sites.some(s => s.id === c)) cur = c; } catch {}
+  snap.cur = cur;
+  window.SB_RO = { at: r.at }; window.SB_ICON = '/ct/icon48.png';
+  // giả lập chrome.* cho site.js (bản tiện ích) – chỉ đọc
+  const listeners = [];
+  window.chrome = {
+    storage: { local: {
+      get: async k => { const o = { siteBrain: snap, todos: [] }; if (typeof k === 'string') return { [k]: o[k] }; if (Array.isArray(k)) return Object.fromEntries(k.map(x => [x, o[x]])); return o; },
+      set: async o => { if (o.siteBrain) try { localStorage.setItem('hhCtCur', o.siteBrain.cur || ''); } catch {} } },
+      onChanged: { addListener: f => listeners.push(f) } },
+    runtime: { id: '', sendMessage: async () => ({ ok: false }) },
+    tabs: { create: async o => { window.open(o.url, '_blank', 'noopener'); } },
+    extension: { isAllowedFileSchemeAccess: cb => cb(false) }
+  };
+  window.HT = {};
+  // đổi công trình trong ô chọn: site.js gọi save() (bị chặn ở chế độ xem) – nhớ lựa chọn bằng cách theo dõi ô chọn
+  document.addEventListener('change', e => { if (e.target && e.target.classList.contains('sb-sitesel')) try { localStorage.setItem('hhCtCur', e.target.value); } catch {} }, true);
+  root.className = 'sbx';
+  const s = document.createElement('script'); s.src = '/ct/site.js'; document.body.append(s);
+})();
+</script>
+</body>
+</html>
