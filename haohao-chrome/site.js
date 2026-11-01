@@ -47,7 +47,7 @@
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
   const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['log', '📓 Nhật ký'], ['crew', '👷 Nhân lực'],
-    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['file', '📁 Hồ sơ']];
+    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ']];
 
   function newSite(name, code) {
     const s0 = today();
@@ -407,7 +407,7 @@
       c.querySelector('h3').append($('em', nl ? 'bad' : '', T.length + ' việc' + (nl ? ' · ' + nl + ' quá hạn' : '')));
       const u = $('ul', 'sb-list');
       T.slice(0, 8).forEach(t => { const li = $('li'), ck = $('input', 'sb-chk'); ck.type = 'checkbox'; ck.setAttribute('aria-label', 'Xong'); ck.disabled = RO;
-        ck.addEventListener('change', () => { t.st = 'done'; todoPush(t, true); save(); render(true); toast('✓ Xong: ' + t.t); });
+        ck.addEventListener('change', () => { t.st = 'done'; t.doneAt = d; todoPush(t, true); save(); render(true); toast('✓ Xong: ' + t.t); });
         const tx = $('span', '', t.t || '(chưa có tên)'); li.append(ck, tx, $('small', '', [t.who, t.due ? (taskLate(t) ? 'trễ ' + days(t.due, d) + ' ngày' : t.due === d ? 'hôm nay' : fd(t.due)) : ''].filter(Boolean).join(' · ')));
         if (taskLate(t)) li.classList.add('late'); u.append(li); });
       if (!T.length) u.append($('li', 'sb-none', 'Không có việc tới hạn hôm nay 👍'));
@@ -695,8 +695,133 @@
     { list: S.docs, add: () => ({ id: uid(), t: '', f: '', p: '' }), addLb: '＋ Thêm tài liệu' }));
   }
 
+  // ---------- 📑 V1.3.1: BÁO CÁO TUẦN / THÁNG ----------
+  // Mỗi ngày mở trang → ghi 1 mốc tiến độ (S.hist: { d, kh, tt }) để báo cáo biết đầu kỳ – cuối kỳ đạt bao nhiêu.
+  function snapHist(S) {
+    if (RO) return; const d = today(), pr = progress(S); S.hist = Array.isArray(S.hist) ? S.hist : [];
+    const last = S.hist[S.hist.length - 1];
+    if (last && last.d === d) { if (last.kh === pr.kh && last.tt === pr.tt) return; last.kh = pr.kh; last.tt = pr.tt; }
+    else S.hist.push({ id: d, d, kh: pr.kh, tt: pr.tt });
+    if (S.hist.length > 800) S.hist.splice(0, S.hist.length - 800);
+    saveSoon();
+  }
+  const histAt = (S, d) => { const H = (S.hist || []).filter(h => h.d <= d); return H.length ? H[H.length - 1] : null; };
+  let rp = { kind: 'w', off: 0 };
+  function period(kind, off) {
+    const t = new Date(today() + 'T00:00');
+    if (kind === 'w') { const dow = (t.getDay() + 6) % 7; t.setDate(t.getDate() - dow + off * 7); const a = ymd(t); return { a, b: addD(a, 6), key: 'W' + a, label: 'Tuần ' + fd(a) + ' – ' + fd(addD(a, 6)) + '/' + addD(a, 6).slice(0, 4), next: { a: addD(a, 7), b: addD(a, 13) } }; }
+    const m = new Date(t.getFullYear(), t.getMonth() + off, 1), a = ymd(m), e = new Date(m.getFullYear(), m.getMonth() + 1, 0), b = ymd(e), n2 = new Date(m.getFullYear(), m.getMonth() + 2, 0);
+    return { a, b, key: 'M' + a.slice(0, 7), label: 'Tháng ' + (m.getMonth() + 1) + '/' + m.getFullYear(), next: { a: addD(b, 1), b: ymd(n2) } };
+  }
+  const inP = (d, P) => d && d >= P.a && d <= P.b;
+  function repData(S, P) {
+    const d0 = addD(P.a, -1), dEnd = P.b < today() ? P.b : today();
+    const h0 = histAt(S, d0), h1 = P.b < today() ? histAt(S, P.b) : null, prNow = progress(S, dEnd);
+    const startKh = h0 ? h0.kh : progress(S, d0).kh, startTt = h0 ? h0.tt : null, endKh = h1 ? h1.kh : prNow.kh, endTt = h1 ? h1.tt : prNow.tt;
+    const logs = S.logs.filter(l => inP(l.d, P)).sort((a, b) => a.d < b.d ? -1 : 1);
+    const crewT = S.teams.map(t => ({ t, n: logs.reduce((a, l) => a + num((l.crew || {})[t.id]), 0) })).filter(x => x.n);
+    const other = logs.reduce((a, l) => a + num(l.other), 0), cong = crewT.reduce((a, x) => a + x.n, 0) + other;
+    const rain = logs.filter(l => /Mưa|Nghỉ/.test(l.wx || '')).length;
+    const done = S.tasks.filter(t => t.st === 'done' && inP(t.doneAt, P)), added = S.tasks.filter(t => inP(t.at, P));
+    const late = S.tasks.filter(t => t.st !== 'done' && t.due && t.due <= P.b && t.due < today());
+    const nextT = S.tasks.filter(t => t.st !== 'done' && t.due && t.due >= P.next.a && t.due <= P.next.b).sort((a, b) => a.due < b.due ? -1 : 1);
+    const costs = S.costs.filter(c => inP(c.d, P)), inc = S.incomes.filter(x => inP(x.d, P));
+    const cSum = costs.reduce((a, c) => a + num(c.amt), 0), iSum = inc.reduce((a, x) => a + num(x.amt), 0);
+    const byCat = new Map(); costs.forEach(c => { const n = (S.budget.find(b => b.id === c.cat) || {}).name || 'Khác'; byCat.set(n, (byCat.get(n) || 0) + num(c.amt)); });
+    const cAll = S.costs.filter(c => c.d && c.d <= P.b).reduce((a, c) => a + num(c.amt), 0), iAll = S.incomes.filter(x => x.d && x.d <= P.b).reduce((a, x) => a + num(x.amt), 0);
+    const debt = S.costs.filter(c => !c.paid).reduce((a, c) => a + num(c.amt), 0), B = S.budget.reduce((a, b) => a + num(b.est), 0);
+    const stock = S.stock.filter(x => inP(x.d, P)), stIn = new Map(), stOut = new Map();
+    stock.forEach(x => { const k = (x.name || '?') + '|' + (x.unit || ''), M = x.io === 'out' ? stOut : stIn; M.set(k, (M.get(k) || 0) + num(x.qty)); });
+    const matNext = S.mats.filter(m => m.st !== 've' && m.need && m.need <= P.next.b).sort((a, b) => a.need < b.need ? -1 : 1);
+    const isNew = S.issues.filter(x => inP(x.d, P)), isClosed = S.issues.filter(x => x.st === 'dong' && inP(x.closed, P)), isOpen = S.issues.filter(x => x.st !== 'dong');
+    const items = S.plan.filter(p => p.s && p.e && p.s <= P.b && p.e >= P.a);
+    const photos = logs.reduce((a, l) => a + ((l.photos || []).length || num(l.pc)), 0);
+    return { P, startKh, startTt, endKh, endTt, logs, crewT, other, cong, rain, done, added, late, nextT, costs, inc, cSum, iSum, byCat, cAll, iAll, debt, B, stIn, stOut, matNext, isNew, isClosed, isOpen, items, photos };
+  }
+  function repText(S, R, note) {
+    const P = R.P, L = [];
+    L.push('📑 BÁO CÁO ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG') + ' – ' + P.label.replace(/^(Tuần|Tháng) /, ''), '🏗️ ' + (S.code ? S.code + ' · ' : '') + S.name, '');
+    L.push('1. TIẾN ĐỘ: thực tế ' + R.endTt + '% / kế hoạch ' + R.endKh + '%' + (R.startTt != null ? ' (đầu kỳ ' + R.startTt + '% → +' + (R.endTt - R.startTt) + '%)' : '') + (R.endTt + 5 < R.endKh ? ' – CHẬM ' + (R.endKh - R.endTt) + '%' : ''));
+    R.items.forEach(p => L.push('   • ' + (p.t || p.g) + ': ' + num(p.pct) + '% (KH ' + planPct(p, P.b < today() ? P.b : today()) + '%)'));
+    L.push('', '2. CÔNG VIỆC: xong ' + R.done.length + ' · mới ' + R.added.length + ' · quá hạn ' + R.late.length);
+    R.done.slice(0, 12).forEach(t => L.push('   ✓ ' + t.t + (t.who ? ' – ' + t.who : '')));
+    R.late.slice(0, 8).forEach(t => L.push('   ❗ ' + t.t + ' – hạn ' + fd(t.due) + (t.who ? ' – ' + t.who : '')));
+    L.push('', '3. NHÂN LỰC: ' + R.logs.length + ' ngày thi công · ' + R.cong + ' công' + (R.logs.length ? ' · TB ' + Math.round(R.cong / R.logs.length) + ' người/ngày' : '') + (R.rain ? ' · ' + R.rain + ' ngày mưa/nghỉ' : ''));
+    R.crewT.forEach(x => L.push('   • ' + x.t.name + ': ' + x.n + ' công' + (num(x.t.rate) ? ' ≈ ' + money(x.n * num(x.t.rate)) + 'đ' : '')));
+    if (R.stIn.size || R.stOut.size || R.matNext.length) { L.push('', '4. VẬT TƯ:'); R.stIn.forEach((v, k) => L.push('   ⬇ ' + k.split('|')[0] + ': ' + v.toLocaleString('vi-VN') + ' ' + k.split('|')[1])); R.stOut.forEach((v, k) => L.push('   ⬆ ' + k.split('|')[0] + ': ' + v.toLocaleString('vi-VN') + ' ' + k.split('|')[1])); }
+    if (R.matNext.length) { L.push('   Cần chuẩn bị kỳ tới:'); R.matNext.slice(0, 8).forEach(m => L.push('   • ' + m.name + ' ' + (m.qty || '') + ' ' + (m.unit || '') + ' – ' + fd(m.need))); }
+    L.push('', '5. CHI PHÍ: chi ' + money(R.cSum) + 'đ · thu ' + money(R.iSum) + 'đ', '   Luỹ kế: chi ' + short(R.cAll) + (R.B ? ' / ' + short(R.B) + ' (' + Math.round(R.cAll / R.B * 100) + '%)' : '') + ' · thu ' + short(R.iAll) + ' · còn nợ ' + short(R.debt));
+    R.byCat.forEach((v, k) => L.push('   • ' + k + ': ' + money(v) + 'đ'));
+    L.push('', '6. VẤN ĐỀ: phát sinh ' + R.isNew.length + ' · đã xử lý ' + R.isClosed.length + ' · còn tồn ' + R.isOpen.length);
+    R.isOpen.slice(0, 8).forEach(x => L.push('   • ' + (x.t || '').split('\n')[0] + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '')));
+    if (R.nextT.length) { L.push('', '7. KẾ HOẠCH KỲ TỚI:'); R.nextT.slice(0, 12).forEach(t => L.push('   • ' + t.t + ' – ' + fd(t.due) + (t.who ? ' – ' + t.who : ''))); }
+    if ((note || '').trim()) L.push('', '📝 ĐÁNH GIÁ & ĐỀ XUẤT:', note.trim());
+    return L.join('\n');
+  }
+  function report(W, S) {
+    const P = period(rp.kind, rp.off), R = repData(S, P);
+    S.reports = S.reports && typeof S.reports === 'object' && !Array.isArray(S.reports) ? S.reports : {};
+    const N = S.reports[P.key] = S.reports[P.key] || { note: '' };
+    const h = sec(W, '📑 Báo cáo ' + (rp.kind === 'w' ? 'tuần' : 'tháng'), 'Tự tổng hợp từ nhật ký, công việc, vật tư, chi phí, vấn đề');
+    h.classList.add('sb-noprint');
+    const bar = $('div', 'sb-rpbar sb-noprint');
+    bar.append(chips([['w', 'Tuần'], ['m', 'Tháng']], rp.kind, v => { rp = { kind: v, off: 0 }; render(true); }));
+    const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'), cur = $('button', 'sb-btn ghost sm', rp.kind === 'w' ? 'Tuần này' : 'Tháng này');
+    [pv, nx, cur].forEach(b => b.type = 'button'); pv.setAttribute('aria-label', 'Kỳ trước'); nx.setAttribute('aria-label', 'Kỳ sau');
+    pv.addEventListener('click', () => { rp.off--; render(true); }); nx.addEventListener('click', () => { rp.off++; render(true); }); cur.addEventListener('click', () => { rp.off = 0; render(true); });
+    nav.append(pv, $('b', 'sb-rplabel', P.label), nx); if (rp.off) nav.append(cur);
+    const act = $('div', 'sb-row'), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'), pr = $('button', 'sb-btn ghost sm', '🖨 In / Lưu PDF');
+    cp.type = pr.type = 'button';
+    cp.addEventListener('click', async () => { const t = repText(S, R, N.note); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
+    pr.addEventListener('click', () => { document.body.classList.add('sb-printing'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('sb-printing'), 500); }, 50); });
+    act.append(cp, pr); bar.append(nav, act); W.append(bar);
+    if (P.a > today()) { W.append($('div', 'sb-emptybig', 'Kỳ này chưa tới.')); return; }
+
+    const doc = $('article', 'sb-rp');
+    const hd = $('header', 'sb-rph');
+    hd.append($('div', 'sb-rpk', 'BÁO CÁO ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG')), $('h1', '', S.name), $('div', 'sb-rpm', [S.code, P.label + ' (' + fdFull(P.a) + ' – ' + fdFull(P.b) + ')', S.owner ? 'CĐT: ' + S.owner : '', S.addr].filter(Boolean).join(' · ')));
+    doc.append(hd);
+    const k = $('div', 'sb-kpis');
+    k.append(kpi('Tiến độ thực tế', R.endTt + '%', R.startTt != null ? 'đầu kỳ ' + R.startTt + '% · +' + (R.endTt - R.startTt) + '%' : 'kế hoạch ' + R.endKh + '%', R.endTt + 5 < R.endKh ? 'bad' : 'good'),
+      kpi('Kế hoạch', R.endKh + '%', 'đầu kỳ ' + R.startKh + '%'), kpi('Ngày thi công', String(R.logs.length), R.rain ? R.rain + ' ngày mưa/nghỉ' : ''),
+      kpi('Nhân công', R.cong + ' công', R.logs.length ? 'TB ' + Math.round(R.cong / R.logs.length) + ' người/ngày' : ''),
+      kpi('Chi trong kỳ', short(R.cSum), 'thu ' + short(R.iSum)), kpi('Việc xong', String(R.done.length), R.late.length ? R.late.length + ' quá hạn' : 'không quá hạn', R.late.length ? 'warn' : ''),
+      kpi('Vấn đề', R.isNew.length + ' mới', R.isOpen.length + ' còn tồn', R.isOpen.length ? 'warn' : ''));
+    doc.append(k);
+    const S2 = (t, cls) => { const c = $('section', 'sb-rps ' + (cls || '')); c.append($('h2', '', t)); doc.append(c); return c; };
+    const ul = (arr, f, empty) => { const u = $('ul', 'sb-list'); arr.forEach(x => { const li = $('li'); f(x, li); u.append(li); }); if (!arr.length) u.append($('li', 'sb-none', empty || 'Không có')); return u; };
+    // 1 tiến độ
+    { const c = S2('1. Tiến độ hạng mục trong kỳ'); c.append(ul(R.items, (p, li) => { const kh = planPct(p, P.b < today() ? P.b : today()); li.append($('span', '', (p.g && p.g !== p.t ? p.g + ' · ' : '') + (p.t || p.g)), $('small', '', fd(p.s) + '–' + fd(p.e)), $('b', num(p.pct) + 10 < kh ? 'bad' : '', num(p.pct) + '% / KH ' + kh + '%')); }, 'Không có hạng mục nào trong kỳ')); }
+    // 2 công việc
+    { const c = S2('2. Công việc'); const g = $('div', 'sb-rp2');
+      const a = $('div'); a.append($('h3', '', '✓ Đã xong (' + R.done.length + ')'), ul(R.done, (t, li) => li.append($('span', '', t.t), $('small', '', [t.who, fd(t.doneAt)].filter(Boolean).join(' · ')))));
+      const b = $('div'); b.append($('h3', '', '❗ Quá hạn chưa xong (' + R.late.length + ')'), ul(R.late, (t, li) => { li.classList.add('late'); li.append($('span', '', t.t), $('small', 'bad', [t.who, 'hạn ' + fd(t.due)].filter(Boolean).join(' · '))); }));
+      g.append(a, b); c.append(g); }
+    // 3 nhân lực
+    { const c = S2('3. Nhân lực'); c.append(ul([...R.crewT, ...(R.other ? [{ t: { name: 'Khác / lẻ', rate: 0 }, n: R.other }] : [])], (x, li) => li.append($('span', '', x.t.name), $('small', '', num(x.t.rate) ? '≈ ' + money(x.n * num(x.t.rate)) + 'đ' : ''), $('b', '', x.n + ' công')), 'Chưa có nhật ký trong kỳ')); }
+    // 4 vật tư
+    { const c = S2('4. Vật tư'); const rows = [...[...R.stIn].map(([k, v]) => ['⬇ Nhập', k, v]), ...[...R.stOut].map(([k, v]) => ['⬆ Xuất', k, v])];
+      c.append(ul(rows, ([io, k, v], li) => li.append($('span', '', io + ' ' + k.split('|')[0]), $('b', '', v.toLocaleString('vi-VN') + ' ' + k.split('|')[1])), 'Không có nhập / xuất trong kỳ'));
+      if (R.matNext.length) { c.append($('h3', '', 'Cần chuẩn bị kỳ tới')); c.append(ul(R.matNext, (m, li) => li.append($('span', '', m.name + ' – ' + (m.qty || '') + ' ' + (m.unit || '')), $('small', m.need < today() ? 'bad' : '', 'cần ' + fd(m.need) + ' · ' + lbl(MST, m.st))))); } }
+    // 5 chi phí
+    { const c = S2('5. Chi phí & dòng tiền'); const k2 = $('div', 'sb-kpis');
+      k2.append(kpi('Chi trong kỳ', money(R.cSum) + 'đ'), kpi('Thu trong kỳ', money(R.iSum) + 'đ'), kpi('Luỹ kế đã chi', short(R.cAll), R.B ? Math.round(R.cAll / R.B * 100) + '% dự toán' : ''), kpi('Dòng tiền luỹ kế', short(R.iAll - R.cAll), '', R.iAll - R.cAll < 0 ? 'bad' : 'good'), kpi('Còn nợ', short(R.debt), '', R.debt ? 'warn' : ''));
+      c.append(k2, ul([...R.byCat], ([k, v], li) => li.append($('span', '', k), $('b', '', money(v) + 'đ')), 'Không có khoản chi trong kỳ')); }
+    // 6 vấn đề
+    { const c = S2('6. Vấn đề & phê duyệt'); c.append($('p', 'sb-p', 'Phát sinh ' + R.isNew.length + ' · đã xử lý ' + R.isClosed.length + ' · còn tồn ' + R.isOpen.length));
+      c.append(ul(R.isOpen, (x, li) => li.append($('span', 'sb-tag', lbl(ITYPE, x.type) || 'Vấn đề'), $('span', '', (x.t || '').split('\n')[0]), $('small', x.due && x.due < today() ? 'bad' : '', [x.who || 'chưa giao', lbl(IST, x.st), x.due ? 'hạn ' + fd(x.due) : ''].join(' · '))), 'Không có vấn đề tồn đọng')); }
+    // 7 kế hoạch kỳ tới
+    { const c = S2('7. Kế hoạch ' + (rp.kind === 'w' ? 'tuần' : 'tháng') + ' tới (' + fd(P.next.a) + ' – ' + fd(P.next.b) + ')'); c.append(ul(R.nextT, (t, li) => li.append($('span', '', t.t), $('small', '', [t.who, fd(t.due)].filter(Boolean).join(' · '))), 'Chưa có việc nào hẹn trong kỳ tới')); }
+    // 8 nhật ký
+    { const c = S2('8. Nhật ký thi công tóm tắt' + (R.photos ? ' · 📷 ' + R.photos + ' ảnh' : ''), 'sb-rplog'); c.append(ul(R.logs, (l, li) => li.append($('b', '', fd(l.d)), $('span', '', (l.work || '–').replace(/\s*\n\s*/g, '; ')), $('small', '', (l.wx || '') + ' · ' + crewOf(l) + ' người')), 'Chưa có nhật ký trong kỳ')); }
+    // ghi chú CHT
+    { const c = S2('📝 Đánh giá & đề xuất của Chỉ huy trưởng'); if (RO) c.append($('p', 'sb-p sb-pre2', N.note || '—')); else c.append(field(N, { k: 'note', lb: 'Đánh giá & đề xuất', t: 'area', rows: 4, rr: false, ph: 'Nhận xét tiến độ, chất lượng, an toàn; kiến nghị chủ đầu tư…' })); }
+    const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Chỉ huy trưởng'), $('span', '', 'Chủ đầu tư / TVGS')); doc.append(ft);
+    W.append(doc);
+  }
+
   // ---------- vẽ ----------
-  const VIEWS = { dash, plan, task, log, crew, mat, cost, issue, file };
+  const VIEWS = { dash, plan, task, log, crew, mat, cost, issue, rep: report, file };
   let rendering = false;
   function render(force) {
     if (rendering) { setTimeout(() => render(force), 0); return; }
@@ -706,7 +831,7 @@
       const y = window.scrollY, W = $('div', 'sb-wrap'), S = site(); head(W, S);
       if (!S) welcome(W);
       else {
-        fix(S);
+        fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
         const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length };
         TABS.filter(([k]) => !RO || k !== 'file').forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });

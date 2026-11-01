@@ -244,3 +244,29 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 /* V1.3.0: ☁️ tài khoản Google */
 .sb-login { background: #1A73E8; }
 .sb-acct { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+
+/* V1.3.1: 📑 báo cáo tuần / tháng */
+.sb-rpbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.sb-rpbar .sb-chips { margin: 0; }
+.sb-rplabel { font-size: 15px; min-width: 150px; text-align: center; align-self: center; }
+.sb-rp { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 26px 30px; max-width: 980px; }
+.sb-rph { border-bottom: 2px solid var(--ink); padding-bottom: 12px; margin-bottom: 16px; }
+.sb-rpk { font-size: 12px; font-weight: 800; letter-spacing: .12em; color: var(--acc); }
+.sb-rph h1 { font-size: 24px; font-weight: 850; margin: 4px 0; }
+.sb-rpm { color: var(--soft); font-size: 13px; }
+.sb-rps { margin-top: 18px; break-inside: avoid; }
+.sb-rps h2 { font-size: 15px; font-weight: 850; margin: 0 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.sb-rps h3 { font-size: 13px; font-weight: 800; color: var(--soft); margin: 10px 0 4px; }
+.sb-rp2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.sb-rplog li { align-items: baseline; } .sb-rplog li > b { flex: none; width: 46px; }
+.sb-pre2 { white-space: pre-wrap; }
+.sb-rpf { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 30px; padding-top: 10px; text-align: center; font-size: 13px; color: var(--soft); }
+.sb-rpf span:not(:first-child) { font-weight: 800; color: var(--ink); padding-bottom: 60px; }
+@media (max-width: 700px) { .sb-rp { padding: 16px; } .sb-rp2 { grid-template-columns: 1fr; } .sb-rph h1 { font-size: 19px; } }
+@media print {
+  body.sb-printing * { visibility: hidden !important; }
+  body.sb-printing .sb-rp, body.sb-printing .sb-rp * { visibility: visible !important; }
+  body.sb-printing .sb-rp { position: absolute; left: 0; top: 0; width: 100%; max-width: none; border: 0; padding: 0; }
+  body.sb-printing .sb-rp textarea { border: 0 !important; resize: none; }
+  @page { size: A4; margin: 14mm; }
+}
