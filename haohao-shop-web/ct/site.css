@@ -187,7 +187,13 @@ select.sb-in { cursor: pointer; padding-right: 2px; }
 
 /* hồ sơ */
 .sb-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.sb-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.sb-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; align-items: start; }
+.sb-fgrp { display: grid; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg2); }
+.sb-fgrp > .sb-fold { background: #fff; }
+.sb-fsub { display: grid; gap: 2px; padding: 2px 4px 4px 22px; }
+.sb-fsubi { all: unset; cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 7px; border-left: 2px solid #E8DCC8; color: var(--ink, #333); }
+.sb-fsubi:hover { background: #FFF4E0; } .sb-fsubi b { color: var(--acc); font-variant-numeric: tabular-nums; font-weight: 700; }
+.sb-fsubi:focus-visible { outline: 3px solid var(--acc); outline-offset: 1px; }
 .sb-fold { all: unset; cursor: pointer; display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--bg2); font-size: 13px; }
 .sb-fold:hover { background: #FFF4E0; }
 .sb-fold b { font-variant-numeric: tabular-nums; color: var(--acc); } .sb-fold small { font-size: 12.5px; font-weight: 600; text-transform: capitalize; }
