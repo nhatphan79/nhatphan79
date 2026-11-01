@@ -270,3 +270,27 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
   body.sb-printing .sb-rp textarea { border: 0 !important; resize: none; }
   @page { size: A4; margin: 14mm; }
 }
+
+/* V1.3.2: 🚨 cảnh báo chậm / trễ + bộ phận */
+.sb-alert { background: #FDECE7; border: 1.5px solid #F2B8A6; border-left: 6px solid var(--bad); border-radius: 14px; padding: 12px 16px; margin: 0 0 16px; color: #7A2A14; }
+.sb-alertt { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 15px; }
+.sb-alertt b { color: var(--bad); font-weight: 900; font-size: 16px; }
+.sb-alertl { list-style: none; padding: 0; margin: 8px 0 4px; }
+.sb-alertl li { display: flex; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px dashed #F2B8A6; font-size: 13.5px; }
+.sb-alertl li:first-child { border-top: 0; }
+.sb-alertl li > span:not(.sb-cat) { flex: 1; min-width: 0; }
+.sb-alertl li b { color: var(--bad); white-space: nowrap; font-size: 13px; }
+.sb-alert .sb-row { margin-top: 6px; } .sb-alert .sb-btn { background: var(--bad); }
+.sb-t tr.lateBg td { background: #FFF3EF; } .sb-t tr.warnBg td { background: #FFF9EE; }
+.sb-t tr.hot td:nth-child(2) .sb-in { font-weight: 700; }
+.sb-st.warn { background: #FFF4E0; color: var(--warn); }
+.warnt, b.warnt { color: var(--warn); font-weight: 700; }
+.sb-cat { --c: #6B7280; flex: none; display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; color: var(--c); background: color-mix(in srgb, var(--c) 12%, #fff); white-space: nowrap; }
+.sb-catchips .sb-chip { --c: var(--ink); }
+.sb-catchips .sb-chip.on { background: var(--c); }
+.sb-chipbad { font-style: normal; background: var(--bad); color: #fff; border-radius: 99px; padding: 0 6px; margin-left: 6px; font-size: 11px; }
+.sb-grph { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; font-size: 13px; color: var(--soft); font-weight: 600; }
+.sb-grph .sb-cat { font-size: 13px; padding: 4px 10px; }
+.sb-quick select.sb-in { flex: 0 0 auto; width: auto; height: 38px; border: 1.5px solid var(--line); background: #fff; }
+@media (max-width: 700px) { .sb-quick { flex-wrap: wrap; } .sb-quick .sb-in:first-child { flex: 1 1 100%; } }
+.sbx b.bad, .sbx span.bad { color: var(--bad); font-weight: 800; }

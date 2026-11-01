@@ -28,20 +28,23 @@
   const IST = { mo: 'mới', xl: 'đang xử lý', cd: 'chờ duyệt', dong: 'xong' };
   const cut = (t, n) => (t = String(t || '').replace(/\s+/g, ' ').trim()).length > n ? t.slice(0, n - 1) + '…' : t;
   const taskLate = (t, d) => t.st !== 'done' && t.due && t.due < d;
+  const CATS = { qs: 'QS', qaqc: 'QA/QC', shop: 'Shopdrawing', ht: 'Hiện trường', cdt: 'Chủ đầu tư' };
+  const catOf = t => CATS[t.cat || 'ht'] || 'Hiện trường';
+  const lagDays = (p, d) => { if (!p.s || !p.e || num(p.pct) >= 100 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
   const todayTasks = (S, d) => L(S, 'tasks').filter(t => t.st !== 'done' && (taskLate(t, d) || t.due === d || t.st === 'doing')).sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
   const head = S => '🏗️ ' + (S.code ? S.code + ' · ' : '') + (S.name || 'Công trình');
-  const taskLine = (t, d) => '• ' + (taskLate(t, d) ? '❗' : '') + cut(t.t, 70) + (t.who ? ' – ' + t.who : '') + (t.due ? (taskLate(t, d) ? ' (trễ ' + days(t.due, d) + ' ngày)' : t.due === d ? '' : ' (' + fd(t.due) + ')') : '');
+  const taskLine = (t, d) => '• ' + (taskLate(t, d) ? '❗' : '') + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 70) + (t.who ? ' – ' + t.who : '') + (t.due ? (taskLate(t, d) ? ' (trễ ' + days(t.due, d) + ' ngày)' : t.due === d ? '' : ' (' + fd(t.due) + ')') : '');
   const issueLine = (x, d) => '• ' + (x.due && x.due < d ? '❗' : '') + '[' + (ITYPE[x.type] || 'Vấn đề') + '] ' + cut(x.t, 70) + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '') + (x.st === 'cd' ? ' · chờ duyệt' : '');
 
   // 📊 bản tổng quan 1 công trình (≤ 2000 ký tự – giới hạn của Zalo)
   function overview(S, d = today()) {
     const pr = progress(S, d), late = pr.tt - pr.kh, plan = L(S, 'plan');
-    const slow = plan.filter(p => { const kh = planPct(p, d), tt = num(p.pct); return tt < 100 && tt + 10 < kh; });
+    const slow = plan.filter(p => lagDays(p, d) >= 1).sort((a, b) => lagDays(b, d) - lagDays(a, d));
     const o = ['📊 TỔNG QUAN ' + fdFull(d), head(S)];
     const ds = S.start ? days(S.start, d) : null, dl = S.end ? days(d, S.end) : null;
     o.push('📍 Giai đoạn: ' + (S.phase || '—') + (ds != null && ds >= 0 ? ' · ngày thứ ' + (ds + 1) : '') + (dl != null ? (dl >= 0 ? ' · còn ' + dl + ' ngày' : ' · QUÁ HẠN ' + (-dl) + ' ngày') : ''));
     o.push('📈 Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '% → ' + (late < -5 ? '🔴 CHẬM ' + (-late) + '%' : late > 5 ? '🟢 vượt ' + late + '%' : slow.length ? '🟡 tổng thể đúng kế hoạch, ' + slow.length + ' hạng mục chậm' : '🟢 đúng kế hoạch'));
-    slow.slice(0, 3).forEach(p => o.push('   ⚠ ' + cut(p.t || p.g, 50) + ': chậm ' + (planPct(p, d) - num(p.pct)) + '%'));
+    slow.slice(0, 4).forEach(p => o.push('   ' + (lagDays(p, d) >= 3 ? '🔴' : '🟡') + ' ' + cut(p.t || p.g, 50) + ': ' + (p.e && d > p.e ? 'QUÁ HẠN ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)'));
     const ms = plan.filter(p => p.mile && num(p.pct) < 100 && p.e).sort((a, b) => a.e < b.e ? -1 : 1)[0];
     if (ms) o.push('🏁 Mốc nghiệm thu: ' + cut(ms.t, 50) + ' – ' + fd(ms.e) + (days(d, ms.e) >= 0 ? ' (còn ' + days(d, ms.e) + ' ngày)' : ' (QUÁ ' + days(ms.e, d) + ' ngày)'));
     const T = todayTasks(S, d), nl = L(S, 'tasks').filter(t => taskLate(t, d)).length;
@@ -66,7 +69,24 @@
   }
   const todayText = (S, d = today()) => { const T = todayTasks(S, d); return ['✅ VIỆC HÔM NAY ' + fdFull(d), head(S), ...(T.length ? T.slice(0, 20).map(t => taskLine(t, d)) : ['• Không có việc tới hạn 👍'])].join('\n').slice(0, 1990); };
   const issueText = (S, d = today()) => { const X = L(S, 'issues').filter(x => x.st !== 'dong'); return ['⚠️ VẤN ĐỀ ĐANG MỞ', head(S), ...(X.length ? X.slice(0, 15).map(x => issueLine(x, d)) : ['• Không có vấn đề tồn đọng 👍'])].join('\n').slice(0, 1990); };
-  const HELP = '🤖 Bot Công trình HaoHao\nNhắn:\n• tq – tổng quan\n• hn – việc hôm nay\n• vd – vấn đề đang mở\n• id – mã cuộc trò chuyện\nMỗi ngày bot tự gửi tổng quan đúng giờ đã hẹn (khi máy và Chrome đang mở; lỡ giờ thì gửi bù lúc mở Chrome).';
+  // 🚨 V1.3.2: cảnh báo trễ hạn / chậm tiến độ – gửi 1 lần/ngày đúng giờ cảnh báo (mặc định 16:00), chỉ gửi khi có việc
+  function alertText(S, d = today(), afterHour = true) {
+    const T = L(S, 'tasks'), od = T.filter(t => taskLate(t, d)), dueToday = afterHour ? T.filter(t => t.st !== 'done' && t.due === d) : [];
+    const slow = L(S, 'plan').filter(p => lagDays(p, d) >= 1).sort((a, b) => lagDays(b, d) - lagDays(a, d));
+    const oi = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due < d);
+    if (!od.length && !dueToday.length && !slow.length && !oi.length) return '';
+    const o = ['🚨 CẢNH BÁO ' + fdFull(d), head(S)];
+    if (slow.length) { o.push('', '📅 CHẬM TIẾN ĐỘ (' + slow.length + '):'); slow.slice(0, 6).forEach(p => o.push('• ' + (lagDays(p, d) >= 3 ? '🔴 ' : '🟡 ') + cut(p.t || p.g, 50) + ': ' + (p.e && d > p.e ? 'quá hạn ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)')); }
+    if (od.length) {
+      o.push('', '❗ VIỆC QUÁ HẠN (' + od.length + '):');
+      const ord = { cao: 0, tb: 1, thap: 2 };
+      Object.values(CATS).forEach(cn => { const G = od.filter(t => catOf(t) === cn).sort((a, b) => (ord[a.pri] ?? 1) - (ord[b.pri] ?? 1) || (a.due < b.due ? -1 : 1)); if (!G.length) return; o.push('▸ ' + cn + ':'); G.slice(0, 6).forEach(t => o.push('   ' + (t.pri === 'cao' ? '🔴 ' : '• ') + cut(t.t, 60) + ' – ' + (t.who || 'chưa giao') + ' – trễ ' + days(t.due, d) + ' ngày')); });
+    }
+    if (dueToday.length) { o.push('', '⏰ HẠN HÔM NAY CHƯA XONG (' + dueToday.length + '):'); dueToday.slice(0, 8).forEach(t => o.push('• ' + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 60) + ' – ' + (t.who || 'chưa giao'))); }
+    if (oi.length) { o.push('', '⚠️ VẤN ĐỀ QUÁ HẠN (' + oi.length + '):'); oi.slice(0, 5).forEach(x => o.push('• ' + cut(x.t, 60) + ' – ' + (x.who || 'chưa giao') + ' – trễ ' + days(x.due, d) + ' ngày')); }
+    let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+  }
+  const HELP = '🤖 Bot Công trình HaoHao\nNhắn:\n• tq – tổng quan\n• hn – việc hôm nay\n• vd – vấn đề đang mở\n• cb – cảnh báo trễ / chậm\n• id – mã cuộc trò chuyện\nMỗi ngày bot tự gửi tổng quan đúng giờ đã hẹn (khi máy và Chrome đang mở; lỡ giờ thì gửi bù lúc mở Chrome).';
 
   // ---------- gọi API ----------
   async function call(token, method, body, ms = 15000) {
@@ -100,6 +120,10 @@
       if (cfg.last !== d && now.getHours() * 60 + now.getMinutes() >= h * 60 + (m || 0)) {
         try { await sendDaily(cfg); await setCfg({ last: d, err: '' }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
       }
+      const [ah, am] = String(cfg.alertTime || '16:00').split(':').map(Number);
+      if (cfg.alertOn !== false && cfg.lastAlert !== d && now.getHours() * 60 + now.getMinutes() >= ah * 60 + (am || 0)) {
+        try { const S = await sites(); let n = 0; for (const s of S) { const t = alertText(s, d); if (t) { await send(cfg, t); n++; } } await setCfg({ lastAlert: d, alertN: n }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
+      }
       if (cfg.cmd !== false) await poll(cfg, 1);
     } finally { busy = false; }
   }
@@ -114,6 +138,7 @@
       if (/^(tq|tong ?quan|tổng ?quan|bc|bao ?cao|báo ?cáo)$/.test(text)) await all(s => overview(s));
       else if (/^(hn|hom ?nay|hôm ?nay|viec|việc)$/.test(text)) await all(s => todayText(s));
       else if (/^(vd|van ?de|vấn ?đề)$/.test(text)) await all(s => issueText(s));
+      else if (/^(cb|canh ?bao|cảnh ?báo|tre|trễ)$/.test(text)) { const T = S.map(s => alertText(s)).filter(Boolean); if (T.length) for (const t of T) await send(cfg, t); else await send(cfg, '✅ Không có việc trễ hạn hay hạng mục chậm tiến độ 👍'); }
       else if (text === 'id') await send(cfg, 'Mã cuộc trò chuyện: ' + chatId);
       else await send(cfg, HELP);
     }
