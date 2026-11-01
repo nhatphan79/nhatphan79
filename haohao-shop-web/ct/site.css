@@ -308,3 +308,11 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .goodt, b.goodt { color: var(--ok); font-weight: 800; }
 .sb-rpwarn h2 { color: var(--bad); }
 .sb-list li > span.sb-cat { flex: none; }
+
+/* V1.3.6: báo cáo chỉnh tay */
+.sb-rp.editing { outline: 2px dashed var(--acc); outline-offset: 4px; background: #FFFDF8; }
+.sb-rp.editing:focus { outline-style: solid; }
+.sb-editnote { background: #FFF4E0; color: #7A4B00; margin-bottom: 12px; }
+.sb-rpsaved { width: auto; height: 32px; border: 1.5px solid var(--line); background: #fff; font-size: 13px; }
+.sb-btn.arm { background: var(--bad) !important; color: #fff !important; box-shadow: none !important; }
+@media print { .sb-noprint { display: none !important; } .sb-rp.editing { outline: 0; background: #fff; } }

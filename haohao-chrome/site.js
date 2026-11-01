@@ -212,6 +212,11 @@
     if (o.add && !RO) { const a = $('button', 'sb-add', o.addLb || '＋ Thêm dòng'); a.type = 'button'; a.addEventListener('click', () => { const r = o.add(); o.list.push(r); save(); render(true); setTimeout(() => { const tr = root.querySelector('tr[data-id="' + r.id + '"]'); const inp = tr && tr.querySelector('input[type=text],textarea'); if (inp) { inp.focus(); tr.scrollIntoView({ block: 'nearest' }); } }, 0); }); box.append(a); }
     return box;
   }
+  function delBtnTxt(txt, ask, fn) {
+    const b = $('button', 'sb-btn ghost sm', txt); b.type = 'button';
+    b.addEventListener('click', () => { if (b.classList.contains('arm')) return fn(); b.classList.add('arm'); b.textContent = ask + ' Bấm lần nữa'; setTimeout(() => { b.classList.remove('arm'); b.textContent = txt; }, 3000); });
+    return b;
+  }
   function delBtn(fn) {
     const b = $('button', 'sb-del', '🗑'); b.type = 'button'; b.title = 'Xoá (bấm 2 lần)'; b.setAttribute('aria-label', 'Xoá');
     b.addEventListener('click', () => { if (b.classList.contains('arm')) return fn(); b.classList.add('arm'); b.textContent = 'Xoá?'; setTimeout(() => { b.classList.remove('arm'); b.textContent = '🗑'; }, 2500); });
@@ -794,7 +799,14 @@
     saveSoon();
   }
   const histAt = (S, d) => { const H = (S.hist || []).filter(h => h.d <= d); return H.length ? H[H.length - 1] : null; };
-  let rp = { kind: 'w', off: 0 };
+  let rp = { kind: 'w', off: 0 }, rpEdit = false;
+  // V1.3.6: báo cáo CHỈNH TAY – sửa thẳng trên bản báo cáo rồi lưu theo kỳ (S.reports[key].html). Lọc bỏ mã lạ trước khi lưu / hiện.
+  function cleanHtml(h) {
+    const d = new DOMParser().parseFromString('<div>' + String(h || '') + '</div>', 'text/html'), root0 = d.body.firstChild;
+    root0.querySelectorAll('script,style,iframe,object,embed,link,meta,form,input,button,select,textarea').forEach(e => e.remove());
+    root0.querySelectorAll('*').forEach(e => [...e.attributes].forEach(a => { if (/^on/i.test(a.name) || (/^(href|src|xlink:href)$/i.test(a.name) && /^\s*javascript:/i.test(a.value)) || a.name === 'contenteditable') e.removeAttribute(a.name); }));
+    return [...root0.childNodes];
+  }
   function period(kind, off) {
     const t = new Date(today() + 'T00:00');
     if (kind === 'w') { const dow = (t.getDay() + 6) % 7; t.setDate(t.getDate() - dow + off * 7); const a = ymd(t); return { a, b: addD(a, 6), key: 'W' + a, label: 'Tuần ' + fd(a) + ' – ' + fd(addD(a, 6)) + '/' + addD(a, 6).slice(0, 4), next: { a: addD(a, 7), b: addD(a, 13) } }; }
@@ -863,16 +875,34 @@
     const h = sec(W, '📑 Báo cáo ' + (rp.kind === 'w' ? 'tuần' : 'tháng'), 'Tự tổng hợp từ nhật ký, công việc, vật tư, chi phí, vấn đề');
     h.classList.add('sb-noprint');
     const bar = $('div', 'sb-rpbar sb-noprint');
-    bar.append(chips([['w', 'Tuần'], ['m', 'Tháng']], rp.kind, v => { rp = { kind: v, off: 0 }; render(true); }));
+    bar.append(chips([['w', 'Tuần'], ['m', 'Tháng']], rp.kind, v => { rp = { kind: v, off: 0 }; rpEdit = false; render(true); }));
     const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'), cur = $('button', 'sb-btn ghost sm', rp.kind === 'w' ? 'Tuần này' : 'Tháng này');
     [pv, nx, cur].forEach(b => b.type = 'button'); pv.setAttribute('aria-label', 'Kỳ trước'); nx.setAttribute('aria-label', 'Kỳ sau');
-    pv.addEventListener('click', () => { rp.off--; render(true); }); nx.addEventListener('click', () => { rp.off++; render(true); }); cur.addEventListener('click', () => { rp.off = 0; render(true); });
+    pv.addEventListener('click', () => { rp.off--; rpEdit = false; render(true); }); nx.addEventListener('click', () => { rp.off++; rpEdit = false; render(true); }); cur.addEventListener('click', () => { rp.off = 0; rpEdit = false; render(true); });
     nav.append(pv, $('b', 'sb-rplabel', P.label), nx); if (rp.off) nav.append(cur);
     const act = $('div', 'sb-row'), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'), pr = $('button', 'sb-btn ghost sm', '🖨 In / Lưu PDF');
     cp.type = pr.type = 'button';
-    cp.addEventListener('click', async () => { const t = repText(S, R, N.note); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
+    cp.addEventListener('click', async () => { const t = N.html ? (root.querySelector('.sb-rp') || {}).innerText || '' : repText(S, R, N.note); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
     pr.addEventListener('click', () => { document.body.classList.add('sb-printing'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('sb-printing'), 500); }, 50); });
-    act.append(cp, pr); bar.append(nav, act); W.append(bar);
+    act.append(cp, pr);
+    if (!RO) {
+      if (!rpEdit) { const ed = $('button', 'sb-btn ghost sm', N.html ? '✏️ Sửa tiếp' : '✏️ Chỉnh tay'); ed.type = 'button'; ed.title = 'Sửa thẳng nội dung báo cáo rồi lưu lại'; ed.addEventListener('click', () => { rpEdit = true; render(true); setTimeout(() => { const d0 = root.querySelector('.sb-rp'); if (d0) d0.focus(); }, 0); }); act.append(ed); }
+      else {
+        const sv = $('button', 'sb-btn sm', '💾 Lưu báo cáo'), no = $('button', 'sb-btn ghost sm', 'Huỷ'); sv.type = no.type = 'button';
+        sv.addEventListener('click', () => { const d0 = root.querySelector('.sb-rp'); if (!d0) return; const c0 = d0.cloneNode(true); c0.removeAttribute('contenteditable'); N.html = c0.innerHTML; N.savedAt = Date.now(); N.kind = rp.kind; rpEdit = false; save(); render(true); toast('💾 Đã lưu báo cáo ' + P.label); });
+        no.addEventListener('click', () => { rpEdit = false; render(true); });
+        act.append(sv, no);
+      }
+      if (N.html && !rpEdit) act.append(delBtnTxt('🔄 Tạo lại từ dữ liệu', 'Bỏ bản chỉnh tay?', () => { delete N.html; delete N.savedAt; save(); render(true); toast('Đã tạo lại báo cáo từ dữ liệu mới nhất'); }));
+      const saved = Object.entries(S.reports || {}).filter(([, v]) => v && v.html).sort((a, b) => a[0] < b[0] ? 1 : -1);
+      if (saved.length) { const sel = $('select', 'sb-in sb-rpsaved'); sel.setAttribute('aria-label', 'Báo cáo đã lưu'); const o0 = $('option', '', '📚 Đã lưu (' + saved.length + ')'); o0.value = ''; sel.append(o0);
+        saved.forEach(([key]) => { const o = $('option', '', key[0] === 'W' ? 'Tuần ' + fd(key.slice(1)) + '/' + key.slice(1, 5) : 'Tháng ' + (+key.slice(6, 8)) + '/' + key.slice(1, 5)); o.value = key; sel.append(o); });
+        sel.addEventListener('change', () => { const key = sel.value; if (!key) return; const kind = key[0] === 'W' ? 'w' : 'm'; for (let off = -260; off <= 52; off++) { if (period(kind, off).key === key) { rp = { kind, off }; rpEdit = false; render(true); return; } } });
+        act.append(sel); }
+    }
+    bar.append(nav, act); W.append(bar);
+    if (N.html && !rpEdit) { const bn = $('div', 'sb-note sb-noprint', '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt || Date.now()).toLocaleString('vi-VN') + '. Số liệu mới phát sinh sau đó không tự cập nhật vào bản này (bấm 🔄 Tạo lại từ dữ liệu nếu cần).'); W.append(bn); }
+    if (rpEdit) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang chỉnh tay: bấm vào chữ bất kỳ để sửa, xoá dòng không cần, gõ thêm ý. Xong bấm 💾 Lưu báo cáo.'));
     if (P.a > today()) { W.append($('div', 'sb-emptybig', 'Kỳ này chưa tới.')); return; }
 
     const doc = $('article', 'sb-rp');
@@ -906,6 +936,12 @@
     // ghi chú CHT
     { const c = S2('6. Đề xuất của Chỉ huy trưởng'); if (RO) c.append($('p', 'sb-p sb-pre2', N.note || '—')); else c.append(field(N, { k: 'note', lb: 'Đánh giá & đề xuất', t: 'area', rows: 4, rr: false, ph: 'Nhận xét tiến độ, chất lượng, an toàn; kiến nghị chủ đầu tư…' })); }
     const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Người lập'), $('span', '', 'Chỉ huy trưởng')); doc.append(ft);
+    if (N.html && !rpEdit) doc.replaceChildren(...cleanHtml(N.html));
+    else if (rpEdit) {
+      if (N.html) doc.replaceChildren(...cleanHtml(N.html));
+      doc.querySelectorAll('textarea').forEach(ta => { const d1 = $('p', 'sb-p sb-pre2', ta.value || ''); ta.replaceWith(d1); });
+      doc.contentEditable = 'true'; doc.spellcheck = false; doc.classList.add('editing');
+    }
     W.append(doc);
   }
 
