@@ -2544,6 +2544,7 @@
       if (nx) dw.append(el('div', 'empty', `Lần tới: ${nx.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })} (${L.label(nx)})`));
       fm.append(dw);
     }
+    let tiNew = null;   // V1.4.3: giờ đang gõ trong ô mà chưa bấm "Thêm giờ" → Lưu vẫn lấy
     if (e.kind === 'daily' || e.kind === 'lunar') {
       const tw = el('div'); tw.append(el('span', 'lb', 'Giờ nhắc (thêm được nhiều giờ)'));
       const line = el('div', 'line');
@@ -2553,6 +2554,7 @@
         c.append(x); line.append(c);
       });
       const ti = document.createElement('input'); ti.type = 'time'; ti.value = '12:00'; ti.setAttribute('aria-label', 'Giờ mới');
+      tiNew = ti; ti.addEventListener('input', () => { ti.dataset.touched = '1'; });
       const add = el('button', 'b ghost', 'Thêm giờ');
       add.addEventListener('click', () => { if (ti.value && !e.times.includes(ti.value)) e.times.push(ti.value); renderPanel(); });
       line.append(ti, add); tw.append(line); fm.append(tw);
@@ -2601,6 +2603,7 @@
     const save = el('button', 'b', 'Lưu lịch nhắc'), cancel = el('button', 'b ghost', 'Huỷ');
     cancel.addEventListener('click', () => { bellEdit = null; renderPanel(); });
     save.addEventListener('click', () => {
+      if ((e.kind === 'daily' || e.kind === 'lunar') && tiNew && tiNew.value && (!e.times.length || tiNew.dataset.touched) && !e.times.includes(tiNew.value)) e.times.push(tiNew.value);
       if ((e.kind === 'daily' || e.kind === 'lunar') && !e.times.length) return say('Thêm ít nhất một giờ nhắc nhé.', 'alert', '', 'bell');
       if (e.kind === 'lunar' && !(e.lunarDays || []).length) return say('Chọn ít nhất một ngày âm lịch nhé.', 'alert', '', 'bell');
       if (e.kind === 'interval' && !(e.minutes >= 5)) return say('Khoảng lặp tối thiểu 5 phút.', 'alert', '', 'bell');
