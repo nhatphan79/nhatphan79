@@ -330,3 +330,11 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-rpadd:empty::before, .sb-rpadd li:only-child:empty::before { content: 'Gõ thêm ý cho mục này…'; color: #B9A06B; }
 .sb-rpaddv { margin: 6px 0 2px; padding-left: 22px; font-size: 14px; line-height: 1.6; }
 .sb-rpadd li:only-child:has(> br:only-child)::before { content: 'Gõ thêm ý cho mục này… (Enter: xuống dòng · Tab: ý con)'; color: #B9A06B; }
+/* V1.4.2: cây thư mục khớp với máy */
+.sb-fhd { justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.sb-fst { font-size: 12.5px; color: var(--soft); }
+.sb-fold i, .sb-fsubi i { font-style: normal; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px; justify-self: end; }
+.sb-fnew { background: #E3F4EA; color: var(--ok); }
+.sb-fmiss { background: #EEF0F3; color: var(--soft); }
+.sb-fgrp.miss > .sb-fold, .sb-fsubi.miss { opacity: .5; }
+.sb-fold { grid-template-columns: auto auto 1fr auto; }

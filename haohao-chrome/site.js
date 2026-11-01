@@ -36,10 +36,10 @@
   const toast = t => { let el = root.querySelector('.sb-toast'); if (!el) { el = $('div', 'sb-toast'); el.setAttribute('role', 'status'); root.append(el); } el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 3200); };
 
   // ---------- danh mục ----------
-  // V1.4.1: cây thư mục chuẩn 2 cấp (thư mục chính → thư mục con)
-  const FTREE = [["00_TONG_QUAN_DU_AN", ["01_THONG_TIN_DU_AN", "02_TO_CHUC_NHAN_SU", "03_DANH_BA_BAO_CAO"]], ["01_PHAP_LY_HOP_DONG", ["01_HOP_DONG_PHU_LUC", "02_HO_SO_PHAP_LY_GIAY_PHEP", "03_CONG_VAN_BIEN_BAN"]], ["02_THIET_KE_BAN_VE", ["01_THIET_KE_CO_SO", "02_THIET_KE_KY_THUAT", "03_SHOP_DRAWING", "04_BAN_VE_PHOI_HOP", "05_BAN_VE_TRINH_DUYET", "06_BAN_VE_DA_PHE_DUYET"]], ["03_KE_HOACH_TIEN_DO", ["01_KE_HOACH_TONG_THE", "02_KE_HOACH_THANG_TUAN_NGAY", "03_TIEN_DO_THUC_TE", "04_BAO_CAO_BU_TIEN_DO"]], ["04_HIEN_TRUONG_THI_CONG", ["01_NHAT_KY_BAO_CAO", "02_HINH_ANH_HIEN_TRUONG", "03_BIEN_PHAP_THI_CONG", "04_TO_DOI_MAY_MOC", "05_HOP_GIAO_BAN_CONG_VIEC"]], ["05_CHAT_LUONG_QA_QC_ATLD", ["01_KE_HOACH_QUY_TRINH_CHECKLIST", "02_KIEM_TRA_NGHIEM_THU", "03_THI_NGHIEM_HO_SO_CHAT_LUONG", "04_NCR_KHAC_PHUC", "05_AN_TOAN_MOI_TRUONG"]], ["06_QS_CHI_PHI_DONG_TIEN", ["01_DU_TOAN_KHOI_LUONG_DON_GIA", "02_KHOI_LUONG_PHAT_SINH", "03_THANH_TOAN_CHU_DAU_TU_NHA_THAU", "04_CONG_NO_THU_CHI", "05_KE_HOACH_DONG_TIEN", "06_KIEM_SOAT_CHI_PHI_QUYET_TOAN"]], ["07_VAT_TU_NHAN_LUC_NHA_THAU", ["01_KE_HOACH_CUNG_UNG", "02_BAO_GIA_MUA_HANG_VAT_TU", "03_GIAO_NHAN_KHO_KIEM_KE", "04_KE_HOACH_DANH_SACH_NHAN_LUC", "05_CHAM_CONG_NANG_SUAT", "06_NHA_THAU_PHU"]], ["08_VAN_DE_RFI_PHE_DUYET", ["01_VAN_DE_VUONG_MAC", "02_RFI_DE_XUAT_XU_LY", "03_TRINH_DUYET", "04_THEO_DOI_DONG_VAN_DE"]], ["09_BAO_CAO_HOP_GIAO_BAN", ["01_BAO_CAO_NGAY_TUAN_THANG", "02_BAO_CAO_TONG_HOP", "03_BIEN_BAN_HOP"]], ["10_BAN_GIAO_HOAN_CONG_BAO_HANH", ["01_THI_NGHIEM_CHAY_THU", "02_BAN_VE_HOAN_CONG", "03_HO_SO_BAN_GIAO", "04_BAO_HANH"]], ["99_LUU_TRU_HO_SO", []]];
+  // V1.4.2: cây thư mục chuẩn 2 cấp (00–11, 99) – mỗi loại hồ sơ đúng 1 chỗ (thư mục chính → thư mục con)
+  const FTREE = [["00_QUAN_LY_CHUNG", ["01_THONG_TIN_DU_AN", "02_TO_CHUC_DANH_BA", "03_KE_HOACH_QUAN_LY"]], ["01_HOP_DONG_PHAP_LY", ["01_HD_CHU_DAU_TU", "02_HD_THAU_PHU_NCC", "03_GIAY_PHEP", "04_BAO_LANH_BAO_HIEM"]], ["02_CONG_VAN_BIEN_BAN", ["01_CONG_VAN_DEN", "02_CONG_VAN_DI", "03_BIEN_BAN_HOP"]], ["03_THIET_KE_SHOP", ["01_BAN_VE_THI_CONG_CDT", "02_SHOP_TRINH", "03_SHOP_DA_DUYET", "04_RFI_THAY_DOI_TK"]], ["04_TIEN_DO", ["01_TIEN_DO_TONG", "02_KE_HOACH_TUAN_THANG", "03_THUC_TE_BU_TIEN_DO"]], ["05_HIEN_TRUONG", ["01_NHAT_KY_THI_CONG", "02_BIEN_PHAP_THI_CONG", "03_HINH_ANH", "04_MAY_MOC"]], ["06_CHAT_LUONG_QAQC", ["01_ITP_CHECKLIST", "02_TRINH_DUYET_VAT_LIEU", "03_CO_CQ_THI_NGHIEM", "04_NT_CONG_VIEC", "05_NT_GIAI_DOAN", "06_NCR_KHAC_PHUC"]], ["07_AN_TOAN_MOI_TRUONG", ["01_KE_HOACH_ATLD", "02_HUAN_LUYEN_THE_AT", "03_KIEM_DINH_THIET_BI", "04_KIEM_TRA_SU_CO"]], ["08_QS_THANH_TOAN", ["01_DU_TOAN_BOQ", "02_PHAT_SINH", "03_TT_CHU_DAU_TU", "04_TT_THAU_PHU_NCC", "05_DONG_TIEN_CONG_NO"]], ["09_VAT_TU_NHAN_LUC", ["01_KE_HOACH_CUNG_UNG", "02_BAO_GIA_DAT_HANG", "03_NHAP_XUAT_KHO", "04_NHAN_LUC_CHAM_CONG"]], ["10_BAO_CAO", ["01_NGAY", "02_TUAN", "03_THANG"]], ["11_HOAN_CONG_BAN_GIAO", ["01_BAN_VE_HOAN_CONG", "02_NT_HOAN_THANH", "03_HO_SO_BAN_GIAO_HDSD", "04_BAO_HANH"]], ["99_LUU_TRU", []]];
   const FOLDERS = FTREE.map(x => x[0]), FPATHS = FTREE.flatMap(([k, v]) => v.length ? v.map(c => k + '\\' + c) : [k]);
-  const fNice = f => f.slice(3).replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|atld|qs|rfi|ncr)\b/g, m => m.toUpperCase());
+  const fNice = f => f.slice(3).replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|qaqc|atld|qs|rfi|ncr|itp|co cq|boq|ncc|hd|nt|tt|cdt|tk|hdsd|at)\b/g, m => m.toUpperCase().replace(" ", "-"));
   const PRI = [['cao', '🔴 Cao'], ['tb', '🟡 Vừa'], ['thap', '⚪ Thấp']];
   // V1.3.2: bộ phận / hạng mục giao việc
   // V1.3.3: danh sách bộ phận anh tự thêm / đổi tên / xoá (data.cats = [{ id, name, c }], dùng chung mọi công trình, đồng bộ theo tài khoản)
@@ -757,6 +757,26 @@
   // ---------- 📁 HỒ SƠ ----------
   const fileUrl = v => 'file:///' + v.trim().replace(/^file:\/+/i, '').replace(/\\/g, '/').split('/').map(x => encodeURIComponent(x).replace(/%3A/gi, ':')).join('/') + (/[\\/]$/.test(v.trim()) ? '' : '/');
   const fileOk = () => new Promise(res => { try { chrome.extension.isAllowedFileSchemeAccess(ok => res(!!ok)); } catch { res(false); } });
+  // V1.4.2: đọc thư mục thật trên máy (cần bật "Cho phép truy cập URL tệp") – Chrome trả trang liệt kê có addRow("tên", …, 1 = thư mục)
+  const lsDir = path => new Promise(res => { try { const x = new XMLHttpRequest(); x.open('GET', fileUrl(path)); x.timeout = 4000;
+    x.onload = () => { const out = [], re = /addRow\("((?:[^"\\]|\\.)*)","((?:[^"\\]|\\.)*)",(\d)/g; let m; while ((m = re.exec(x.responseText || ''))) { let n = ''; try { n = decodeURIComponent(m[2]).replace(/\/$/, ''); } catch {} if (!n) { try { n = JSON.parse('"' + m[1] + '"'); } catch { n = m[1]; } } if (m[3] === '1' && n !== '..' && n !== '.' && !/^[._$~]/.test(n)) out.push(n); } res(/addRow|start\(/.test(x.responseText || '') ? out : null); };
+    x.onerror = x.ontimeout = () => res(null); x.send(); } catch { res(null); } });
+  const byName = (a, b) => a.localeCompare(b, 'vi', { numeric: true });
+  async function scanDir(base) {
+    const top = await lsDir(base); if (!top) return null;
+    const t = []; for (const f of top.sort(byName).slice(0, 60)) { const sub = await lsDir(base + '\\' + f); t.push([f, (sub || []).sort(byName).slice(0, 80)]); }
+    return t;
+  }
+  // Ghép cây chuẩn + cây thật: chuẩn mà máy chưa có → "miss", máy có mà chuẩn không có → "new"
+  function mergeTree(sc) {
+    if (!sc) return FTREE.map(([k, v]) => [k, v.map(c => [c, ''])]);
+    const M = new Map(sc.map(([k, v]) => [k, v])), out = [];
+    const keys = [...new Set([...FTREE.map(x => x[0]), ...sc.map(x => x[0])])].sort(byName);
+    for (const k of keys) { const std = (FTREE.find(x => x[0] === k) || [k, null])[1], disk = M.get(k);
+      const subs = [...new Set([...(std || []), ...(disk || [])])].sort(byName).map(c => [c, disk ? (disk.includes(c) ? (std && std.includes(c) ? '' : 'new') : 'miss') : '']);
+      out.push([k, subs, !disk ? 'miss' : !std ? 'new' : '']); }
+    return out;
+  }
   async function openPath(v) {
     if (!v) return; if (/^https?:\/\//i.test(v)) { chrome.tabs.create({ url: v }).catch(() => window.open(v, '_blank')); return; }
     if (await fileOk()) { chrome.tabs.create({ url: fileUrl(v) }).catch(() => toast('⚠ Không mở được – kiểm tra lại đường dẫn')); return; }
@@ -775,22 +795,43 @@
     const row = $('div', 'sb-row');
     const op = $('button', 'sb-btn sm', '📁 Mở thư mục'); op.type = 'button'; op.addEventListener('click', () => S.dir ? openPath(S.dir) : toast('Nhập đường dẫn thư mục trước'));
     const dv = $('button', 'sb-btn ghost sm', '☁️ Mở Drive'); dv.type = 'button'; dv.addEventListener('click', () => S.drive ? openPath(S.drive) : toast('Chưa có link Drive'));
-    const ps = $('button', 'sb-btn ghost sm', '⚡ Chép lệnh tạo cây thư mục chuẩn'); ps.type = 'button'; ps.title = 'Dán vào PowerShell (Win + X → Terminal) để tạo đủ 12 thư mục chính 00–99 và các thư mục con';
+    const ps = $('button', 'sb-btn ghost sm', '⚡ Chép lệnh tạo cây thư mục chuẩn'); ps.type = 'button'; ps.title = 'Dán vào PowerShell (Win + X → Terminal) để tạo đủ thư mục chính 00–11, 99 và các thư mục con';
     ps.addEventListener('click', async () => {
       const base = (S.dir || ('D:\\DU_AN_XAY_DUNG\\01_' + folderName(S))).replace(/[\\/]+$/, '');
       const cmd = '$g = "' + base.replace(/"/g, '') + '"; ' + '@(' + FPATHS.map(x => "'" + x + "'").join(', ') + ') | ForEach-Object { New-Item -ItemType Directory -Force -Path (Join-Path $g $_) | Out-Null }; explorer $g';
       try { await navigator.clipboard.writeText(cmd); toast('⚡ Đã chép – mở PowerShell, dán (Ctrl+V), Enter'); } catch { dialog('⚡ Lệnh tạo thư mục', b => { const t = $('textarea', 'sb-in sb-ta'); t.rows = 6; t.value = cmd; b.append(t); }, () => {}, 'Đóng'); }
     });
     row.append(op, dv, ps); c.append(row); W.append(c);
-    const fc = card('Cây thư mục chuẩn', 'wide'), fl = $('div', 'sb-folders');
+    const fc = card('Cây thư mục', 'wide'), fhd = $('div', 'sb-row sb-fhd'), fst = $('span', 'sb-fst'), fl = $('div', 'sb-folders');
+    const rs = $('button', 'sb-btn ghost sm', '🔄 Quét lại thư mục trên máy'); rs.type = 'button';
+    fhd.append(fst, rs); fc.append(fhd, fl); W.append(fc);
     const base0 = () => (S.dir || '').replace(/[\\/]+$/, ''), go = p => S.dir ? openPath(base0() + '\\' + p) : toast('Nhập thư mục gốc ở trên trước');
-    FTREE.forEach(([f, subs]) => { const box = $('div', 'sb-fgrp'), b = $('button', 'sb-fold'); b.type = 'button'; b.append($('span', '', '📁'), $('b', '', f.slice(0, 2)), $('small', '', fNice(f))); b.title = S.dir ? base0() + '\\' + f : 'Nhập thư mục gốc để mở';
-      b.addEventListener('click', () => go(f)); box.append(b);
-      if (subs.length) { const ul = $('div', 'sb-fsub'); subs.forEach(c => { const x = $('button', 'sb-fsubi'); x.type = 'button'; x.append($('b', '', c.slice(0, 2)), ' ' + fNice(c).replace(/^./, m => m.toUpperCase())); x.title = S.dir ? base0() + '\\' + f + '\\' + c : 'Nhập thư mục gốc để mở'; x.addEventListener('click', () => go(f + '\\' + c)); ul.append(x); }); box.append(ul); }
-      fl.append(box); });
-    fc.append(fl); W.append(fc);
+    const draw = () => {
+      fl.textContent = ''; const sc = S.fscan && S.fscan.dir === base0() ? S.fscan.t : null, T = mergeTree(sc);
+      T.forEach(([f, subs, st]) => { const box = $('div', 'sb-fgrp' + (st === 'miss' ? ' miss' : '')), b = $('button', 'sb-fold'); b.type = 'button'; b.append($('span', '', '📁'), $('b', '', /^\d\d_/.test(f) ? f.slice(0, 2) : '＋'), $('small', '', fNice(/^\d\d_/.test(f) ? f : '00_' + f)));
+        if (st === 'new') b.append($('i', 'sb-fnew', 'mới')); if (st === 'miss') b.append($('i', 'sb-fmiss', 'chưa có'));
+        b.title = S.dir ? base0() + '\\' + f : 'Nhập thư mục gốc để mở'; b.addEventListener('click', () => go(f)); box.append(b);
+        if (subs.length) { const ul = $('div', 'sb-fsub'); subs.forEach(([c, cs]) => { const x = $('button', 'sb-fsubi' + (cs === 'miss' ? ' miss' : '')); x.type = 'button'; const num = /^\d\d_/.test(c);
+          x.append($('b', '', num ? c.slice(0, 2) : '•'), ' ' + fNice(num ? c : '00_' + c).replace(/^./, m => m.toUpperCase())); if (cs === 'new') x.append($('i', 'sb-fnew', 'mới'));
+          x.title = S.dir ? base0() + '\\' + f + '\\' + c : 'Nhập thư mục gốc để mở'; x.addEventListener('click', () => go(f + '\\' + c)); ul.append(x); }); box.append(ul); }
+        fl.append(box); });
+      fst.textContent = !S.dir ? 'Nhập thư mục gốc để HaoHao đọc thư mục trên máy' : sc ? '✓ Đã khớp với máy lúc ' + new Date(S.fscan.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) + ' – thư mục anh thêm trên máy sẽ tự hiện ở đây' : 'Đang hiện cây chuẩn – chưa đọc được thư mục trên máy';
+    };
+    const scan = async manual => {
+      if (!S.dir || RO) { draw(); return; }
+      if (!(await fileOk())) { draw(); if (manual) openPath(S.dir); return; }
+      fst.textContent = '⏳ Đang đọc thư mục trên máy…';
+      const t = await scanDir(base0());
+      if (!t) { draw(); fst.textContent = '⚠ Không đọc được thư mục – kiểm tra lại đường dẫn'; return; }
+      const v = { dir: base0(), t }, same = S.fscan && S.fscan.dir === v.dir && JSON.stringify(S.fscan.t) === JSON.stringify(t);
+      S.fscan = { ...v, at: Date.now() }; if (!same) save(); draw(); if (manual) toast('🔄 Đã cập nhật cây thư mục theo máy');
+    };
+    rs.addEventListener('click', () => scan(true));
+    draw(); scan(false);
+    if (!file.hooked) { file.hooked = true; window.addEventListener('focus', () => { const h = document.querySelector('.sb-fhd'); if (h && h.isConnected) h.querySelector('button').dispatchEvent(new CustomEvent('sb-rescan')); }); }
+    rs.addEventListener('sb-rescan', () => scan(false));
     sec(W, '📌 Tài liệu hay dùng', 'Hợp đồng, bản vẽ, dự toán… – dán đường dẫn file hoặc link');
-    W.append(table(S.docs, [{ k: 't', lb: 'Tên tài liệu', t: 'text', ph: 'Bản vẽ kết cấu rev2', rr: false }, { k: 'f', lb: 'Thư mục', t: 'sel', o: [['', '—'], ...FTREE.flatMap(([k, v]) => [[k, k], ...v.map(c => [k + '\\' + c, '   └ ' + c])]), ...[...new Set((S.docs || []).map(d => d.f))].filter(f => f && !FPATHS.includes(f) && !FOLDERS.includes(f)).map(f => [f, f + ' (cũ)'])], w: '22%' },
+    W.append(table(S.docs, [{ k: 't', lb: 'Tên tài liệu', t: 'text', ph: 'Bản vẽ kết cấu rev2', rr: false }, { k: 'f', lb: 'Thư mục', t: 'sel', o: [['', '—'], ...mergeTree(S.fscan && S.fscan.t).flatMap(([k, v]) => [[k, k], ...v.map(([c]) => [k + '\\' + c, '   └ ' + c])]), ...[...new Set((S.docs || []).map(d => d.f))].filter(f => f && !mergeTree(S.fscan && S.fscan.t).some(([k, v]) => f === k || v.some(([c]) => f === k + '\\' + c))).map(f => [f, f + ' (cũ)'])], w: '22%' },
       { k: 'p', lb: 'Đường dẫn / link', t: 'text', ph: 'D:\\…\\ban-ve.pdf hoặc https://…', rr: false }, { k: 'op', lb: '', t: 'calc', w: '44px', f: x => { const b = $('button', 'sb-open', '↗'); b.type = 'button'; b.title = 'Mở'; b.addEventListener('click', () => x.p ? openPath(/\.[a-z0-9]{2,5}$/i.test(x.p) && !/^https?:/i.test(x.p) ? x.p.replace(/[\\/][^\\/]*$/, '') : x.p) : toast('Chưa có đường dẫn')); return b; } }],
     { list: S.docs, add: () => ({ id: uid(), t: '', f: '', p: '' }), addLb: '＋ Thêm tài liệu' }));
   }
