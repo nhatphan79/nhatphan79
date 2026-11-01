@@ -298,6 +298,26 @@
     getBase: async () => (await chrome.storage.local.get('sbBaseTodo')).sbBaseTodo,
     setBase: async v => chrome.storage.local.set({ sbBaseTodo: v })
   }) : null;
+  // 📋 V1.4.8: bảng Dự án (projBoard) đồng bộ theo tài khoản (máy chủ ns=proj); ảnh dán trong ghi chú → link /sbp/<mã> để dữ liệu nhẹ
+  let ownWriteP = 0;
+  const imgRe = /src="(data:image\/[a-z]+;base64,[^"]+)"/g;
+  const engP = self.SBSync ? self.SBSync({
+    api: SB_API, path: '/sb?ns=proj', empty: () => ({ projects: [], areas: [] }),
+    token: async () => (await auth()).token || '',
+    getLocal: async () => (await chrome.storage.local.get('projBoard')).projBoard,
+    setLocal: async v => { ownWriteP = Date.now(); await chrome.storage.local.set({ projBoard: v }); },
+    getBase: async () => (await chrome.storage.local.get('sbBaseProj')).sbBaseProj,
+    setBase: async v => chrome.storage.local.set({ sbBaseProj: v }),
+    prep: async (doc, up, api) => { let ch = false;
+      for (const p of (doc && doc.projects) || []) for (const f of p.folders || []) for (const r of f.rows || []) {
+        if (typeof r.html !== 'string' || r.html.indexOf('data:image') < 0) continue;
+        const L = [...r.html.matchAll(imgRe)].map(m => m[1]); let h = r.html;
+        for (const d of L) { const id = await up(d); h = h.split(d).join(api + '/sbp/' + id); }
+        if (h !== r.html) { r.html = h; ch = true; } }
+      return ch; }
+  }) : null;
+  let tP = 0;
+  chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local' || !ch.projBoard) return; if (Date.now() - ownWriteP < 1500) return; clearTimeout(tP); tP = setTimeout(() => cloud().catch(() => {}), 2500); });
   let tT = 0;
   chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local' || !(ch.todos || ch.rules)) return; if (Date.now() - ownWrite < 1500) return; clearTimeout(tT); tT = setTimeout(() => cloud().catch(() => {}), 2500); });
   async function zaloToServer(a) {   // gửi token bot lên máy chủ để máy chủ tự nhắc (kể cả khi tắt máy)
@@ -311,6 +331,7 @@
     const a = await auth(); if (!a.token || !eng) return null;
     const r = await eng.sync();
     if (engT) { const r2 = await engT.sync(); if (!r2.ok && r.ok) Object.assign(r, { ok: r2.auth === false ? false : r.ok, err: r2.err, auth: r2.auth }); }
+    if (engP) { const r3 = await engP.sync(); if (!r3.ok && r.ok) Object.assign(r, { ok: r3.auth === false ? false : r.ok, err: 'Dự án: ' + r3.err, auth: r3.auth }); }
     zaloToServer(a).catch(() => {});
     const A = await auth(); if (A.token !== a.token) return r;   // vừa đăng xuất / đổi tài khoản
     if (r.ok) Object.assign(A, { at: Date.now(), err: '' }); else if (r.auth === false) Object.assign(A, { token: '', err: 'Hết phiên đăng nhập – đăng nhập lại' }); else A.err = r.err;
@@ -321,7 +342,7 @@
     (async () => {
       if (!/^[a-z0-9]{30}$/.test(String(m.token || ''))) return reply({ ok: false });
       const old = await auth();
-      if (old.email && old.email !== m.email) await chrome.storage.local.remove('sbBase');   // đổi tài khoản: gộp lại từ đầu, không mất dữ liệu máy này
+      if (old.email && old.email !== m.email) await chrome.storage.local.remove(['sbBase', 'sbBaseTodo', 'sbBaseProj']);   // đổi tài khoản: gộp lại từ đầu, không mất dữ liệu máy này
       await chrome.storage.local.set({ sbAuth: { token: m.token, email: m.email, name: m.name || '', at: 0, err: '' } });
       const r = await cloud(); reply({ ok: true, sync: r });
     })();
@@ -330,7 +351,7 @@
   chrome.runtime.onMessage.addListener((m, _s, reply) => {
     if (!m || (m.type !== 'sb-sync-now' && m.type !== 'sb-logout')) return;
     (async () => {
-      if (m.type === 'sb-logout') { const a = await auth(); if (a.token) fetch(SB_API + '/sb/logout', { method: 'POST', headers: { authorization: 'Bearer ' + a.token } }).catch(() => {}); await chrome.storage.local.set({ sbAuth: {} }); await chrome.storage.local.remove('sbBase'); return reply({ ok: true }); }
+      if (m.type === 'sb-logout') { const a = await auth(); if (a.token) fetch(SB_API + '/sb/logout', { method: 'POST', headers: { authorization: 'Bearer ' + a.token } }).catch(() => {}); await chrome.storage.local.set({ sbAuth: {} }); await chrome.storage.local.remove(['sbBase', 'sbBaseTodo', 'sbBaseProj']); return reply({ ok: true }); }
       reply(await cloud() || { ok: false, err: 'chưa đăng nhập' });
     })();
     return true;

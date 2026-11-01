@@ -427,17 +427,17 @@ const email = await sbWho(env, req);
 if (!email) return json({ ok: false, error: 'chưa đăng nhập', auth: false }, 401);
 if (u.pathname === '/sb/zalo' && req.method === 'POST') return sbZaloSave(env, email, req);
 const ns = u.searchParams.get('ns');
-if (ns !== 'todo' || u.pathname !== '/sb') return json({ ok: false, error: 'không có lệnh này' }, 404);
-const key = email + '#todo';
+if (!['todo', 'proj'].includes(ns) || u.pathname !== '/sb') return json({ ok: false, error: 'không có lệnh này' }, 404);
+const key = email + '#' + ns;
 if (req.method === 'GET') {
 const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(key).first();
 let v = null; try { v = r ? JSON.parse(r.v) : null; } catch {}
 return json({ ok: true, email, rev: r ? r.rev : 0, v, at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' });
 }
 if (req.method === 'PUT') {
-if (Number(req.headers.get('content-length') || 0) > 900000) return json({ ok: false, error: 'dữ liệu quá lớn' }, 413);
+if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'dữ liệu quá lớn' }, 413);
 const b = await req.json().catch(() => null);
-if (!b || !b.v || !Array.isArray(b.v.todos)) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+if (!b || !b.v || !Array.isArray(ns === 'proj' ? b.v.projects : b.v.todos)) return json({ ok: false, error: 'sai dữ liệu' }, 400);
 const base = Number(b.base) || 0, v = JSON.stringify(b.v), now = Date.now();
 const cur = await env.DB.prepare('SELECT rev, v FROM sb WHERE email = ?').bind(key).first();
 const rev = cur ? cur.rev : 0;
@@ -929,7 +929,7 @@ export default {
       if (u.pathname === '/ct/site.js') return await shopFile('ct/site.js', 'js');
       if (u.pathname === '/ct/site.css') return await shopFile('ct/site.css', 'css');
       if (u.pathname === '/ct/sbsync.js') return await shopFile('ct/sbsync.js', 'js');
-      if (u.pathname === '/ct/todo.js') return await shopFile('ct/todo.js', 'js');
+      if (u.pathname === '/ct/todo.js' || u.pathname === '/ct/proj.js') return await shopFile(u.pathname.slice(1), 'js');
       if (u.pathname === '/ct/icon48.png') return await shopFile('ct/icon48.png', 'png');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)

@@ -51,7 +51,7 @@
 
   g.SBSync = function (o) {
     const api = o.api.replace(/\/$/, '');
-    const P0 = o.path || '/sb';   // V1.4.0: '/sb?ns=todo' = Todo + Nhắc nhở
+    const P0 = o.path || '/sb';   // V1.4.0: '/sb?ns=todo' = Todo + Nhắc nhở · V1.4.8: '/sb?ns=proj' = bảng Dự án
     let busy = null, again = false;
     const st = { at: 0, err: '', rev: 0, email: '' };
     const req = async (method, path, body) => {
@@ -61,8 +61,14 @@
       if (r.status === 401) { const e = new Error(j.error || 'hết phiên đăng nhập'); e.auth = false; throw e; }
       j._status = r.status; return j;
     };
+    const upOne = async d => {   // 1 ảnh dataURL → mã p_… (đã tải rồi thì dùng lại)
+      let id = photoCache.get(d.length + ':' + d.slice(-64));
+      if (!id) { id = 'p_' + (await hex(d)).slice(0, 32); const j = await req('POST', '/sbp', { id, d }); if (!j.ok) throw new Error(j.error || 'lỗi tải ảnh'); photoCache.set(d.length + ':' + d.slice(-64), id); }
+      return id;
+    };
     async function uploadPhotos(doc) {   // dataURL → mã ảnh p_…; trả về true nếu doc đổi
       let ch = false;
+      if (o.prep) ch = !!(await o.prep(doc, upOne, api));   // V1.4.8: loại dữ liệu khác (vd Dự án) tự đổi ảnh dán trong ghi chú thành link /sbp/<mã>
       for (const S of (doc && doc.sites) || []) for (const L of S.logs || []) {
         if (!Array.isArray(L.photos)) continue;
         for (let i = 0; i < L.photos.length; i++) {

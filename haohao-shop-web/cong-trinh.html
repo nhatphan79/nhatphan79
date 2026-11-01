@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="HaoHao">
 <link rel="icon" href="/ct/icon48.png">
 <link rel="apple-touch-icon" href="/ct/icon48.png">
-<title>HaoHao – Việc cần làm & Công trình</title>
+<title>HaoHao – Việc cần làm, Dự án & Công trình</title>
 <!-- 🏗️ HaoHao SITE BRAIN trên web / điện thoại.
      V1.3.0 (01/11): đăng nhập Google → sửa được, đồng bộ với HaoHao trên máy tính (sbsync.js, máy chủ /sb).
      Link chia sẻ cũ #<mã> (không đăng nhập) → chỉ xem (/ct).  ?ext=<id tiện ích> → sau khi đăng nhập gửi phiên về HaoHao.
@@ -46,11 +46,12 @@
   }
   /* ☑️ V1.4.0: thanh chuyển trang + Việc cần làm */
   body.has-nav { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .hh-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: grid; grid-template-columns: 1fr 1fr; background: #fff; border-top: 1px solid #E5E7EB; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(35,48,94,.08); }
+  .hh-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: grid; grid-template-columns: 1fr 1fr 1fr; background: #fff; border-top: 1px solid #E5E7EB; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(35,48,94,.08); }
   .hh-nav[hidden] { display: none; }
   .hh-nav button { all: unset; cursor: pointer; text-align: center; padding: 10px 6px; border-radius: 12px; font-weight: 800; font-size: 14px; color: #6B7280; }
   .hh-nav button.on { background: #23305E; color: #fff; }
-  #todo { max-width: 720px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px 24px; color: #23305E; }
+  #proj[hidden], #todo[hidden] { display: none; }
+  #todo, #proj { max-width: 720px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px 24px; color: #23305E; }
   .td-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 4px 0 12px; }
   .td-head h1 { font-size: 22px; margin: 0; font-weight: 850; }
   .td-status { font-size: 12px; color: #6B7280; } .td-status.bad { color: #C4401F; }
@@ -90,7 +91,8 @@
 <body>
 <section class="sbx" id="site"></section>
 <section id="todo" hidden></section>
-<nav class="hh-nav" id="hhnav" hidden aria-label="Chọn trang"><button type="button" data-v="todo">☑️ Việc cần làm</button><button type="button" data-v="ct">🏗️ Công trình</button></nav>
+<section id="proj" hidden></section>
+<nav class="hh-nav" id="hhnav" hidden aria-label="Chọn trang"><button type="button" data-v="todo">☑️ Việc cần làm</button><button type="button" data-v="pj">📋 Dự án</button><button type="button" data-v="ct">🏗️ Công trình</button></nav>
 <script src="/ct/sbsync.js"></script>
 <script>
 (async () => {
@@ -153,12 +155,13 @@
     if (!doc) { screen('☁️', 'Đang tải dữ liệu…', a.email); const r = await sync(); if (!r || !r.ok) { if (!ls.get('sbAuth')) return; return screen('⚠️', 'Chưa tải được dữ liệu', (r && r.err) || 'Lỗi mạng – kéo xuống để tải lại.'); } if (!doc) doc = { sites: [], cur: null }; }
     else sync();
     // ☑️ V1.4.0: 2 trang – Việc cần làm · Công trình
-    const nav = document.getElementById('hhnav'), tdEl = document.getElementById('todo'); let booted = false, tdOn = false;
-    const show = v => { try { localStorage.setItem('hhView', v); } catch {} nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); root.hidden = v !== 'ct'; tdEl.hidden = v !== 'todo'; window.scrollTo(0, 0);
+    const nav = document.getElementById('hhnav'), tdEl = document.getElementById('todo'), pjEl = document.getElementById('proj'); let booted = false, tdOn = false, pjOn = false;
+    const show = v => { try { localStorage.setItem('hhView', v); } catch {} nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); root.hidden = v !== 'ct'; tdEl.hidden = v !== 'todo'; pjEl.hidden = v !== 'pj';
+      if (v === 'pj' && !pjOn) { pjOn = true; loadScript('/ct/proj.js').then(() => HHProj.mount(pjEl, { email: st.email, token: st.token })).catch(() => { pjEl.textContent = '⚠ Không tải được trang Dự án – kiểm tra mạng.'; }); } window.scrollTo(0, 0);
       if (v === 'ct' && !booted) { booted = true; boot(doc, { web: true }); }
       if (v === 'todo' && !tdOn) { tdOn = true; loadScript('/ct/todo.js').then(() => HHTodo.mount(tdEl, { email: st.email, token: st.token })).catch(() => { tdEl.textContent = '⚠ Không tải được trang Việc cần làm – kiểm tra mạng.'; }); } };
     nav.hidden = false; document.body.classList.add('has-nav'); nav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.v); });
-    let v0 = 'todo'; try { v0 = localStorage.getItem('hhView') || 'todo'; } catch {} show(v0 === 'ct' ? 'ct' : 'todo');
+    let v0 = 'todo'; try { v0 = localStorage.getItem('hhView') || 'todo'; } catch {} show(['ct', 'pj'].includes(v0) ? v0 : 'todo');
     setInterval(() => { if (!document.hidden) sync(); }, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
   }
