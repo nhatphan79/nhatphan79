@@ -272,20 +272,28 @@
       const sel = $('select', 'sb-sitesel'); sel.setAttribute('aria-label', 'Chọn công trình');
       data.sites.forEach(x => { const o = $('option', '', (x.code ? x.code + ' · ' : '') + x.name); o.value = x.id; sel.append(o); });
       sel.value = S.id; sel.addEventListener('change', () => { data.cur = sel.value; save(); render(true); }); h.append(sel);
-      if (!RO) { const ed = $('button', 'sb-btn ghost sm', '✏️ Thông tin'); ed.type = 'button'; ed.addEventListener('click', () => infoDlg(S)); h.append(ed); }
+      if (!RO) { const ed = $('button', 'sb-btn ghost sm sb-ico', '✏️'); ed.type = 'button'; ed.title = 'Sửa thông tin công trình'; ed.setAttribute('aria-label', 'Sửa thông tin công trình'); ed.addEventListener('click', () => infoDlg(S)); h.append(ed); }
     }
     if (RO) { const t = new Date(window.SB_RO.at || Date.now()); h.append($('small', 'sb-upd', '🕐 Cập nhật ' + t.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + t.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })));
       const rl = $('button', 'sb-btn ghost sm', '↻'); rl.type = 'button'; rl.title = 'Tải lại'; rl.setAttribute('aria-label', 'Tải lại'); rl.addEventListener('click', () => location.reload()); h.append(rl); W.append(h); return; }
     const sp = $('div'); sp.style.flex = '1'; h.append(sp);
     const add = $('button', 'sb-btn sm', '＋ Công trình'); add.type = 'button'; add.addEventListener('click', () => infoDlg(newSite(''), true));
-    const bk = $('button', 'sb-btn ghost sm', '💾 Sao lưu'); bk.type = 'button'; bk.title = 'Tải file sao lưu toàn bộ dữ liệu công trình (.json)'; bk.addEventListener('click', backup);
-    const rs = $('button', 'sb-btn ghost sm', '📂 Khôi phục'); rs.type = 'button'; rs.title = 'Nạp lại từ file sao lưu'; rs.addEventListener('click', restore);
+    // V1.4.7: gộp Sao lưu + Khôi phục vào 1 nút "💾 Dữ liệu ▾" cho đầu trang gọn 1 hàng
+    const dw = $('div', 'sb-menuw'), dv = $('button', 'sb-btn ghost sm', '💾 Dữ liệu ▾'); dv.type = 'button'; dv.title = 'Sao lưu / khôi phục dữ liệu'; dv.setAttribute('aria-haspopup', 'true'); dv.setAttribute('aria-expanded', 'false');
+    const mn = $('div', 'sb-menu'); mn.hidden = true;
+    const mi = (lb, sub, fn) => { const b = $('button', 'sb-mi'); b.type = 'button'; b.append($('b', '', lb), $('small', '', sub)); b.addEventListener('click', () => { close(); fn(); }); mn.append(b); };
+    const close = () => { mn.hidden = true; dv.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', out, true); };
+    const out = e => { if (!dw.contains(e.target)) close(); };
+    dv.addEventListener('click', () => { if (!mn.hidden) return close(); mn.hidden = false; dv.setAttribute('aria-expanded', 'true'); setTimeout(() => document.addEventListener('click', out, true)); });
+    dw.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); dv.focus(); } });
+    mi('💾 Sao lưu', 'Tải file chụp toàn bộ dữ liệu (.json)', backup); mi('📂 Khôi phục', 'Nạp lại từ file sao lưu', restore);
+    dw.append(dv, mn);
     const bt = $('button', 'sb-btn ghost sm', '🤖 Bot Zalo'); bt.type = 'button'; bt.title = 'Gửi tổng quan vào Zalo mỗi ngày'; bt.addEventListener('click', botDlg);
     if (botCfg.on && botCfg.chatId) bt.append($('i', 'sb-on', '●'));
     if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
     const mb = $('button', 'sb-btn ghost sm', '📱 Điện thoại'); mb.type = 'button'; mb.title = 'Xem trang Công trình trên điện thoại'; mb.addEventListener('click', mobileDlg);
     if (mobCfg.on) mb.append($('i', 'sb-on', '●')); if (mobCfg.on && mobCfg.err) { mb.classList.add('err'); mb.title = '⚠ Đồng bộ lỗi: ' + mobCfg.err; }
-    h.append(acctBtn()); if (!WEB) h.append(mb, bt); h.append(add, bk, rs); W.append(h);
+    h.append(acctBtn()); if (!WEB) h.append(mb, bt); h.append(add, dw); W.append(h);
   }
   // 📱 V1.2.7: xem trên điện thoại – đẩy bản chụp (bỏ ảnh) lên máy chủ HaoHao; điện thoại mở haohao-gia.nhatphan79.workers.dev/cong-trinh#<mã>
   const CT_API = 'https://haohao-gia.nhatphan79.workers.dev/ct', CT_PAGE = 'https://haohao-gia.nhatphan79.workers.dev/cong-trinh#';

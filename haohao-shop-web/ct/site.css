@@ -376,3 +376,12 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-gd.s { transform: translate(calc(-100% - 3px), -50%); } .sb-gd.e { margin-left: 3px; }
 .sb-gd.sub { font-weight: 600; color: #9AA0AA; font-size: 9px; }
 .sb-gd.grp { color: var(--ink); }
+/* V1.4.7: đầu trang gọn 1 hàng */
+@media (min-width: 1000px) { .sb-head { flex-wrap: nowrap; } .sb-head > * { flex-shrink: 0; } .sb-head .sb-sitesel { flex-shrink: 1; min-width: 160px; text-overflow: ellipsis; } }
+.sb-head .sb-sitesel { max-width: 360px; padding-top: 7px; padding-bottom: 7px; }
+.sb-head .sb-brand small { white-space: nowrap; }
+.sb-ico { padding: 7px 9px !important; }
+.sb-menuw { position: relative; }
+.sb-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(20, 30, 60, .16), 0 0 0 1px var(--line); padding: 6px; min-width: 250px; display: grid; gap: 2px; }
+.sb-mi { all: unset; cursor: pointer; display: grid; gap: 1px; padding: 8px 10px; border-radius: 8px; }
+.sb-mi:hover, .sb-mi:focus-visible { background: #FFF4E0; } .sb-mi b { font-size: 13.5px; color: var(--ink); } .sb-mi small { font-size: 12px; color: var(--soft); }
