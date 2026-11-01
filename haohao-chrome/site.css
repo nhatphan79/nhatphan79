@@ -338,3 +338,20 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-fmiss { background: #EEF0F3; color: var(--soft); }
 .sb-fgrp.miss > .sb-fold, .sb-fsubi.miss { opacity: .5; }
 .sb-fold { grid-template-columns: auto auto 1fr auto; }
+/* V1.4.3: tiến độ dạng cây giống file Excel */
+.sb-pt th.dt, .sb-pt td.dt { width: 132px; } .sb-pt th.dn, .sb-pt td.dn { width: 62px; } .sb-pt th.pc, .sb-pt td.pc { width: 70px; } .sb-pt th.mk, .sb-pt td.mk { width: 36px; text-align: center; } .sb-pt th.st, .sb-pt td.st { width: 104px; }
+.sb-pt td.dt, .sb-pt td.dn, .sb-pt td.pc, .sb-pt td.st { font-size: 13px; padding: 2px 6px; white-space: nowrap; } .sb-pt td.kh { color: var(--soft); }
+.sb-pt td.nm { min-width: 260px; } .sb-pt td.n { font-weight: 700; }
+.sb-pt tr.tot td { background: #FFF3B0; font-weight: 800; border-bottom: 1px solid #E8D77A; } .sb-pt tr.tot td.nm { text-align: center; letter-spacing: .02em; }
+.sb-pt tr.psec td { background: #DCE6F4; font-weight: 800; color: var(--ink); text-transform: uppercase; font-size: 13px; }
+.sb-pt tr.pgrp td { font-weight: 800; color: var(--ink); background: #F7F8FB; border-top: 1px solid var(--line); }
+.sb-pt tr.pgrp td.nm { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+.sb-pt tr.pleaf td.nm { padding-left: 18px; }
+.sb-pt tr.tot:hover td, .sb-pt tr.psec:hover td { background: inherit; }
+.sb-gadd { all: unset; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--acc); padding: 0 7px; border-radius: 6px; border: 1px dashed #E8C68A; line-height: 18px; opacity: 0; transition: opacity .15s; }
+.sb-pt tr.pgrp:hover .sb-gadd, .sb-gadd:focus-visible { opacity: 1; }
+.sb-glb.sec { font-weight: 800; font-size: 11.5px; text-transform: uppercase; color: var(--ink); background: #DCE6F4; padding: 3px 8px; border-radius: 6px; margin-top: 6px; }
+.sb-glb.grp { font-weight: 800; } .sb-glb.sub { font-weight: 500; color: var(--soft); padding-left: 10px; }
+.sb-gbar.sub { top: 6px; bottom: 6px; opacity: .85; }
+.sb-gtog { float: right; margin: -34px 0 8px; }
+.sb-pt tr.psec .sb-st { text-transform: none; }

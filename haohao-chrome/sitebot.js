@@ -26,6 +26,7 @@
   const MST = { de: 'đề xuất', duyet: 'đã duyệt', dat: 'đã đặt', ve: 'đã về' };
   const ITYPE = { ht: 'Hiện trường', kt: 'Kỹ thuật', td: 'Tiến độ', cp: 'Chi phí', pd: 'Xin duyệt' };
   const IST = { mo: 'mới', xl: 'đang xử lý', cd: 'chờ duyệt', dong: 'xong' };
+  const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
   const cut = (t, n) => (t = String(t || '').replace(/\s+/g, ' ').trim()).length > n ? t.slice(0, n - 1) + '…' : t;
   const taskLate = (t, d) => t.st !== 'done' && t.due && t.due < d;
   const CATS0 = { qs: 'QS', qaqc: 'QA/QC', shop: 'Shopdrawing', ht: 'Hiện trường', cdt: 'Chủ đầu tư' };
@@ -45,7 +46,7 @@
     const ds = S.start ? days(S.start, d) : null, dl = S.end ? days(d, S.end) : null;
     o.push('📍 Giai đoạn: ' + (S.phase || '—') + (ds != null && ds >= 0 ? ' · ngày thứ ' + (ds + 1) : '') + (dl != null ? (dl >= 0 ? ' · còn ' + dl + ' ngày' : ' · QUÁ HẠN ' + (-dl) + ' ngày') : ''));
     o.push('📈 Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '% → ' + (late < -5 ? '🔴 CHẬM ' + (-late) + '%' : late > 5 ? '🟢 vượt ' + late + '%' : slow.length ? '🟡 tổng thể đúng kế hoạch, ' + slow.length + ' hạng mục chậm' : '🟢 đúng kế hoạch'));
-    slow.slice(0, 4).forEach(p => o.push('   ' + (lagDays(p, d) >= 3 ? '🔴' : '🟡') + ' ' + cut(p.t || p.g, 50) + ': ' + (p.e && d > p.e ? 'QUÁ HẠN ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)'));
+    slow.slice(0, 4).forEach(p => o.push('   ' + (lagDays(p, d) >= 3 ? '🔴' : '🟡') + ' ' + cut(plab(p), 50) + ': ' + (p.e && d > p.e ? 'QUÁ HẠN ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)'));
     const ms = plan.filter(p => p.mile && num(p.pct) < 100 && p.e).sort((a, b) => a.e < b.e ? -1 : 1)[0];
     if (ms) o.push('🏁 Mốc nghiệm thu: ' + cut(ms.t, 50) + ' – ' + fd(ms.e) + (days(d, ms.e) >= 0 ? ' (còn ' + days(d, ms.e) + ' ngày)' : ' (QUÁ ' + days(ms.e, d) + ' ngày)'));
     const T = todayTasks(S, d), nl = L(S, 'tasks').filter(t => taskLate(t, d)).length;
@@ -77,7 +78,7 @@
     const oi = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due < d);
     if (!od.length && !dueToday.length && !slow.length && !oi.length) return '';
     const o = ['🚨 CẢNH BÁO ' + fdFull(d), head(S)];
-    if (slow.length) { o.push('', '📅 CHẬM TIẾN ĐỘ (' + slow.length + '):'); slow.slice(0, 6).forEach(p => o.push('• ' + (lagDays(p, d) >= 3 ? '🔴 ' : '🟡 ') + cut(p.t || p.g, 50) + ': ' + (p.e && d > p.e ? 'quá hạn ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)')); }
+    if (slow.length) { o.push('', '📅 CHẬM TIẾN ĐỘ (' + slow.length + '):'); slow.slice(0, 6).forEach(p => o.push('• ' + (lagDays(p, d) >= 3 ? '🔴 ' : '🟡 ') + cut(plab(p), 50) + ': ' + (p.e && d > p.e ? 'quá hạn ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)')); }
     if (od.length) {
       o.push('', '❗ VIỆC QUÁ HẠN (' + od.length + '):');
       const ord = { cao: 0, tb: 1, thap: 2 };
@@ -210,8 +211,9 @@
     }
     if (k === 'td') {
       const P = L(S, 'plan').filter(p => p.s && p.e), parts = rest.split(/\s+/).filter(Boolean);
-      if (parts.length >= 2) { const p = byNum(P, parts[0]), v = parseInt(parts[1], 10); if (!p || isNaN(v) || v < 0 || v > 100) return '⚠️ Ví dụ: td 3 70 (hạng mục số 3 đạt 70%). Nhắn "td" để xem số.'; p.pct = v; await saveB(B); const lg = lagDays(p, d); return '📈 ' + (p.t || p.g) + ': ' + v + '% (KH ' + planPct(p, d) + '%)' + (lg ? ' – 🔴 chậm ' + lg + ' ngày' : ' – 🟢 đúng tiến độ'); }
-      return ('📅 HẠNG MỤC – ' + hd + '\n' + P.map((p, i) => (i + 1) + '. ' + (p.t || p.g) + ': ' + num(p.pct) + '% / KH ' + planPct(p, d) + '%' + (lagDays(p, d) ? ' 🔴' + lagDays(p, d) + 'n' : '')).join('\n') + '\n\nNhắn: td 3 70').slice(0, 1990);
+      if (parts.length >= 2) { const p = byNum(P, parts[0]), v = parseInt(parts[1], 10); if (!p || isNaN(v) || v < 0 || v > 100) return '⚠️ Ví dụ: td 3 70 (hạng mục số 3 đạt 70%). Nhắn "td" để xem số.'; p.pct = v; await saveB(B); const lg = lagDays(p, d); return '📈 ' + plab(p) + ': ' + v + '% (KH ' + planPct(p, d) + '%)' + (lg ? ' – 🔴 chậm ' + lg + ' ngày' : ' – 🟢 đúng tiến độ'); }
+      const Sh = P.map((p, i) => [p, i]).filter(([p]) => num(p.pct) < 100 && p.s <= addD(d, 7)).slice(0, 25);
+      return ('📅 HẠNG MỤC ĐANG / SẮP LÀM – ' + hd + '\n' + (Sh.length ? '' : 'Không có hạng mục nào đang làm.') + Sh.map(([p, i]) => (i + 1) + '. ' + plab(p) + ': ' + num(p.pct) + '% / KH ' + planPct(p, d) + '%' + (lagDays(p, d) ? ' 🔴' + lagDays(p, d) + 'n' : '')).join('\n') + '\n\nNhắn: td 3 70 (số 3 đạt 70%)').slice(0, 1990);
     }
     if (k === 'nk') {
       if (!rest.trim()) return '⚠️ Ví dụ: nk Đổ bê tông sàn tầng 2, 12 người';
@@ -238,7 +240,7 @@
     const na = addD(b, 1), nb = kind === 'w' ? addD(b, 7) : ymd(new Date(t.getFullYear(), t.getMonth() + 2, 0)), next = L(S, 'tasks').filter(x => x.st !== 'done' && x.due && x.due >= na && x.due <= nb).sort((x, y) => (ord[x.pri] ?? 1) - (ord[y.pri] ?? 1));
     const o = ['📑 BÁO CÁO ' + (kind === 'w' ? 'TUẦN ' + fd(a) + ' – ' + fd(b) : 'THÁNG ' + (+a.slice(5, 7)) + '/' + a.slice(0, 4)), head(S), ''];
     o.push('1. TÌNH HÌNH CHUNG', '• Tiến độ ' + pr.tt + '% / KH ' + pr.kh + '% → ' + (pr.tt + 5 < pr.kh || maxLag >= 3 ? '🔴 CHẬM' + (maxLag ? ' ' + maxLag + ' ngày' : '') : maxLag ? '🟡 chậm nhẹ ' + maxLag + ' ngày' : '🟢 đúng kế hoạch'), '• Thi công ' + logs.length + ' ngày · TB ' + (logs.length ? Math.round(cong / logs.length) : 0) + ' người/ngày', '• Chi trong kỳ ' + short(cK) + ' · luỹ kế ' + short(cAll) + (B ? ' (' + Math.round(cAll / B * 100) + '% dự toán)' : ''));
-    if (slow.length) { o.push('', '2. HẠNG MỤC CHẬM'); slow.slice(0, 5).forEach(p => o.push('• ' + (p.t || p.g) + ': ' + num(p.pct) + '% / KH ' + planPct(p, dE) + '% – chậm ' + lagDays(p, dE) + ' ngày')); }
+    if (slow.length) { o.push('', '2. HẠNG MỤC CHẬM'); slow.slice(0, 5).forEach(p => o.push('• ' + plab(p) + ': ' + num(p.pct) + '% / KH ' + planPct(p, dE) + '% – chậm ' + lagDays(p, dE) + ' ngày')); }
     o.push('', 'KẾT QUẢ CHÍNH (' + done.length + ' việc xong)'); done.slice(0, 6).forEach(x => o.push('• ' + cut(x.t, 70))); if (!done.length) o.push('• Chưa ghi nhận việc hoàn thành');
     if (iss.length || late.length) { o.push('', 'VƯỚNG MẮC CẦN CHỈ ĐẠO'); iss.slice(0, 5).forEach(x => o.push('• ' + (x.st === 'cd' ? '[Chờ duyệt] ' : '') + cut(x.t, 70) + ' – ' + (x.who || 'chưa giao'))); late.slice(0, 4).forEach(x => o.push('• ' + (x.pri === 'cao' ? '🔴 ' : '') + '[' + catOf(x) + '] ' + cut(x.t, 60) + ' – trễ ' + days(x.due, d) + ' ngày')); }
     o.push('', 'KẾ HOẠCH ' + (kind === 'w' ? 'TUẦN' : 'THÁNG') + ' TỚI'); next.slice(0, 6).forEach(x => o.push('• ' + cut(x.t, 70) + ' – ' + fd(x.due))); if (!next.length) o.push('• (chưa có việc hẹn)');

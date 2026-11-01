@@ -109,6 +109,7 @@
   const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); return s; };
 
   // ---------- tính toán ----------
+  const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
   const dur = p => p.s && p.e ? Math.max(1, days(p.s, p.e) + 1) : 1;
   const planPct = (p, d) => !p.s || !p.e ? 0 : d < p.s ? 0 : d >= p.e ? 100 : Math.round((days(p.s, d) + 1) / dur(p) * 100);
   function progress(S, d = today()) {
@@ -132,7 +133,7 @@
     const t = $('div', 'sb-alertt'); t.append($('b', '', '🚨 Cảnh báo'), $('span', '', [sl.length ? sl.length + ' hạng mục chậm tiến độ' : '', od.length ? od.length + ' việc quá hạn' : '', oi.length ? oi.length + ' vấn đề quá hạn' : ''].filter(Boolean).join(' · ')));
     b.append(t);
     const u = $('ul', 'sb-alertl');
-    sl.slice(0, 4).forEach(p => { const li = $('li'); li.append($('span', '', '📅 ' + (p.t || p.g)), $('b', '', pState(p)[1] + ' · ' + num(p.pct) + '% / KH ' + planPct(p, today()) + '%')); u.append(li); });
+    sl.slice(0, 4).forEach(p => { const li = $('li'); li.append($('span', '', '📅 ' + plab(p)), $('b', '', pState(p)[1] + ' · ' + num(p.pct) + '% / KH ' + planPct(p, today()) + '%')); u.append(li); });
     od.slice(0, 5).forEach(x => { const li = $('li'); li.append(catTag(x.cat), $('span', '', (x.pri === 'cao' ? '🔴 ' : '') + x.t + (x.who ? ' – ' + x.who : '')), $('b', '', 'trễ ' + days(x.due, today()) + ' ngày')); u.append(li); });
     oi.slice(0, 3).forEach(x => { const li = $('li'); li.append($('span', '', '⚠️ ' + (x.t || '').split('\n')[0] + ' – ' + (x.who || 'chưa giao')), $('b', '', 'trễ ' + days(x.due, today()) + ' ngày')); u.append(li); });
     b.append(u);
@@ -540,30 +541,89 @@
     sec(W, '📅 Kế hoạch & tiến độ', 'Nhập hạng mục theo giai đoạn – kế hoạch tự tính theo ngày, anh chỉ cần cập nhật % thực tế');
     const k = $('div', 'sb-kpis'); k.append(kpi('Kế hoạch đến hôm nay', pr.kh + '%'), kpi('Thực tế', pr.tt + '%', '', pr.tt + 5 < pr.kh ? 'bad' : 'good'), kpi('Chênh lệch', (pr.tt - pr.kh > 0 ? '+' : '') + (pr.tt - pr.kh) + '%', pr.tt + 5 < pr.kh ? 'đang chậm' : 'ổn', pr.tt + 5 < pr.kh ? 'bad' : ''), kpi('Mốc nghiệm thu', S.plan.filter(p => p.mile && num(p.pct) >= 100).length + '/' + S.plan.filter(p => p.mile).length, 'đã đạt'));
     W.append(k);
-    const P = S.plan.slice().sort((a, b) => (a.s || '9') < (b.s || '9') ? -1 : 1);
-    if (P.some((p, i) => p !== S.plan[i])) { S.plan.splice(0, S.plan.length, ...P); }
-    W.append(table(S.plan, [
-      { k: 'g', lb: 'Giai đoạn', t: 'text', w: '13%', ph: 'Móng…' }, { k: 't', lb: 'Hạng mục', t: 'text', ph: 'Đổ bê tông móng' },
-      { k: 's', lb: 'Bắt đầu', t: 'date', w: '128px' }, { k: 'e', lb: 'Kết thúc', t: 'date', w: '128px' },
-      { k: 'kh', lb: 'KH %', t: 'calc', w: '60px', f: p => planPct(p, today()) + '%' }, { k: 'pct', lb: 'Thực tế %', t: 'num', w: '78px', ph: '0' },
-      { k: 'mile', lb: '🏁 Mốc NT', t: 'chk', w: '62px' }, { k: 'stt', lb: 'Tình trạng', t: 'calc', w: '100px', f: p => { const [c, l] = pState(p); return $('span', 'sb-st ' + c, l); } }
-    ], { list: S.plan, add: () => { const last = S.plan[S.plan.length - 1]; const s0 = last && last.e ? addD(last.e, 1) : today(); return { id: uid(), g: last ? last.g : '', t: '', s: s0, e: addD(s0, 6), pct: 0, mile: false }; }, addLb: '＋ Thêm hạng mục', cls: p => pState(p)[0] === 'late' ? 'late lateBg' : pState(p)[0] === 'warn' ? 'warnBg' : '' }));
+    W.append(planTable(S));
     gantt(W, S);
   }
   function gantt(W, S) {
     const P = S.plan.filter(p => p.s && p.e); if (!P.length) return;
     const a = P.reduce((m, p) => p.s < m ? p.s : m, P[0].s), b = P.reduce((m, p) => p.e > m ? p.e : m, P[0].e), T = Math.max(1, days(a, b) + 1), d = today();
     const c = card('Biểu đồ tiến độ', 'gantt'), g = $('div', 'sb-gantt');
+    const tg = $('button', 'sb-btn ghost sm sb-gtog', gantt.full ? '▴ Thu gọn theo nhóm' : '▾ Hiện chi tiết từng việc'); tg.type = 'button'; tg.addEventListener('click', () => { gantt.full = !gantt.full; render(true); });
+    if (planTree(S).some(x => x.items.length > 1)) c.append(tg);
     const ax = $('div', 'sb-gax'); let m = a.slice(0, 7) + '-01';
     while (m <= b) { const x = Math.max(0, days(a, m)) / T * 100; const s = $('span', '', 'T' + (+m.slice(5, 7)) + (m.slice(5, 7) === '01' ? '/' + m.slice(2, 4) : '')); s.style.left = x + '%'; ax.append(s); const nd = new Date(m + 'T00:00'); nd.setMonth(nd.getMonth() + 1); m = ymd(nd); }
     g.append($('div', 'sb-glb'), ax);
-    P.forEach(p => { const lb = $('div', 'sb-glb', p.t || p.g); lb.title = (p.g ? p.g + ' · ' : '') + p.t + ' · ' + fdFull(p.s) + ' → ' + fdFull(p.e);
-      const tr = $('div', 'sb-gtr'), br = $('div', 'sb-gbar ' + pState(p)[0] + (p.mile ? ' mile' : '')), dn = $('i');
-      br.style.left = days(a, p.s) / T * 100 + '%'; br.style.width = Math.max(.6, dur(p) / T * 100) + '%'; dn.style.width = Math.min(100, num(p.pct)) + '%'; br.append(dn); br.title = lb.title + ' · thực tế ' + num(p.pct) + '%';
-      tr.append(br); g.append(lb, tr); });
+    const row = (p, lbTxt, cls, title) => { if (!p.s || !p.e) return; const lb = $('div', 'sb-glb ' + (cls || ''), lbTxt); lb.title = title || lbTxt;
+      const tr = $('div', 'sb-gtr'), br = $('div', 'sb-gbar ' + pState(p)[0] + (p.mile ? ' mile' : '') + (cls ? ' ' + cls : '')), dn = $('i');
+      br.style.left = days(a, p.s) / T * 100 + '%'; br.style.width = Math.max(.6, dur(p) / T * 100) + '%'; dn.style.width = Math.min(100, num(p.pct)) + '%'; br.append(dn); br.title = lb.title + ' · ' + fdFull(p.s) + ' → ' + fdFull(p.e) + ' · thực tế ' + num(p.pct) + '%';
+      tr.append(br); g.append(lb, tr); };
+    let lastSec = null;
+    planTree(S).forEach(G => {
+      if (G.sec && G.sec !== lastSec) { lastSec = G.sec; const sh = $('div', 'sb-glb sec', G.sec.replace('|', '. ')); sh.style.gridColumn = '1 / -1'; g.append(sh); }
+      const one = G.items.length === 1 && !G.g;
+      if (one) return row(G.items[0], G.items[0].t || '—', '', G.items[0].t);
+      row(G.agg, (G.gn ? G.gn + '. ' : '') + (G.g || 'Khác'), 'grp');
+      if (gantt.full) G.items.forEach(p => row(p, '· ' + (p.t || '—'), 'sub', (G.g ? G.g + ' · ' : '') + p.t));
+    });
     if (d >= a && d <= b) { const nw = $('div', 'sb-gnow'); nw.style.left = 'calc(var(--glw) + (100% - var(--glw)) * ' + (days(a, d) / T) + ')'; nw.title = 'Hôm nay'; g.append(nw); }
     c.append(g, $('div', 'sb-legend', '▮ Xanh = phần đã làm · Cam = đang làm · Đỏ = chậm · 🏁 viền đậm = mốc nghiệm thu · Vạch đỏ dọc = hôm nay')); W.append(c);
   }
+  // V1.4.3: tiến độ dạng cây giống file Excel – Tổng › Phần (A, B, C…) › Nhóm (I, 1, 2…) › Công việc. Giữ đúng thứ tự nhập, không tự sắp xếp.
+  // Mỗi việc: { sec: 'B|THI CÔNG PHẦN NGẦM', gn: '1', g: 'Tầng hầm B3', n: '', t, s, e, pct, mile }
+  function aggOf(L) {
+    const P = L.filter(p => p.s && p.e); if (!P.length) return { s: '', e: '', pct: 0 };
+    const s = P.reduce((m, p) => p.s < m ? p.s : m, P[0].s), e = P.reduce((m, p) => p.e > m ? p.e : m, P[0].e), W = P.reduce((x, p) => x + dur(p), 0);
+    return { s, e, pct: Math.round(P.reduce((x, p) => x + Math.min(100, num(p.pct)) * dur(p), 0) / W), mile: false };
+  }
+  const aggKh = (L, d) => { const P = L.filter(p => p.s && p.e), W = P.reduce((x, p) => x + dur(p), 0); return W ? Math.round(P.reduce((x, p) => x + planPct(p, d) * dur(p), 0) / W) : 0; };
+  function planTree(S) {
+    const out = []; let cur = null;
+    S.plan.forEach(p => { const key = (p.sec || '') + '\u0001' + (p.gn || '') + '\u0001' + (p.g || '');
+      if (!cur || cur.key !== key) { cur = { key, sec: p.sec || '', gn: p.gn || '', g: p.g || '', items: [] }; out.push(cur); }
+      cur.items.push(p); });
+    out.forEach(G => { G.agg = aggOf(G.items); });
+    return out;
+  }
+  function planTable(S) {
+    const d = today(), box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-pt'), th = $('thead'), hr = $('tr');
+    [['TT', 'n'], ['Công việc', ''], ['Bắt đầu', 'dt'], ['Số ngày', 'r dn'], ['Kết thúc', 'dt'], ['KH %', 'r pc'], ['Thực tế %', 'r pc'], ['🏁', 'c mk'], ['Tình trạng', 'st'], ['', 'x']].forEach(([l, c]) => hr.append($('th', c, l)));
+    th.append(hr); t.append(th); const tb = $('tbody'); t.append(tb);
+    const st = p => { const [c, l] = pState(p); return $('span', 'sb-st ' + c, l); };
+    const aggRow = (cls, tt, name, L, extra) => { const A = aggOf(L), tr = $('tr', cls);
+      tr.append($('td', 'n', tt)); const nm = $('td', 'nm'); nm.append($('span', '', name)); if (extra) extra(nm); tr.append(nm);
+      tr.append($('td', 'dt', A.s ? fdFull(A.s) : ''), $('td', 'r dn', A.s ? String(days(A.s, A.e) + 1) : ''), $('td', 'dt', A.e ? fdFull(A.e) : ''), $('td', 'r pc', aggKh(L, d) + '%'), $('td', 'r pc', A.pct + '%'), $('td', 'c mk'));
+      const sc = $('td', 'st'); if (A.s) sc.append(st({ ...A, s: A.s, e: A.e })); tr.append(sc, $('td', 'x')); tb.append(tr); return tr; };
+    const insertAfter = (G) => { const last = G.items[G.items.length - 1], s0 = last && last.e ? addD(last.e, 1) : d;
+      const r = { id: uid(), sec: G.sec, gn: G.gn, g: G.g, n: '', t: '', s: s0, e: addD(s0, 6), pct: 0, mile: false }; S.plan.splice(S.plan.indexOf(last) + 1, 0, r); save(); render(true);
+      setTimeout(() => { const x = root.querySelector('tr[data-id="' + r.id + '"] input.sb-in'); if (x) x.focus(); }, 60); };
+    if (S.plan.length) aggRow('tot', '', 'TỔNG TIẾN ĐỘ THI CÔNG', S.plan);
+    let lastSec = null;
+    planTree(S).forEach(G => {
+      if (G.sec && G.sec !== lastSec) { lastSec = G.sec; const [sn, ...rest] = G.sec.split('|'); const name = rest.length ? rest.join('|') : sn;
+        aggRow('psec', rest.length ? sn : '', name, S.plan.filter(p => (p.sec || '') === G.sec)); }
+      if (G.g || G.gn) aggRow('pgrp', G.gn, G.g, G.items, RO ? null : nm => { const b = $('button', 'sb-gadd', '＋'); b.type = 'button'; b.title = 'Thêm việc vào ' + G.g; b.addEventListener('click', () => insertAfter(G)); nm.append(b); });
+      G.items.forEach(p => {
+        const tr = $('tr', 'pleaf ' + (num(p.pct) >= 100 ? 'done ' : '') + (pState(p)[0] === 'late' ? 'late lateBg' : pState(p)[0] === 'warn' ? 'warnBg' : '')); tr.dataset.id = p.id;
+        const upd = () => render(true);
+        tr.append($('td', 'n', p.n || ''));
+        const nm = $('td', 'nm'); nm.append(field(p, { k: 't', lb: 'Công việc', t: 'text', ph: 'Tên công việc' })); tr.append(nm);
+        const sd = $('td', 'dt'); sd.append(field(p, { k: 's', lb: 'Bắt đầu', t: 'date', on: r => { if (r.s && r.e && r.e < r.s) r.e = r.s; } }, upd));
+        const dn = $('td', 'r dn'), di = $('input', 'sb-in r'); di.inputMode = 'numeric'; di.value = p.s && p.e ? String(dur(p)) : ''; di.setAttribute('aria-label', 'Số ngày'); if (RO) di.readOnly = true;
+        di.addEventListener('change', () => { const n = Math.max(1, Math.round(num(di.value))); if (p.s && n) { p.e = addD(p.s, n - 1); save(); upd(); } }); dn.append(di);
+        const ed = $('td', 'dt'); ed.append(field(p, { k: 'e', lb: 'Kết thúc', t: 'date' }, upd));
+        const pc = $('td', 'r pc'); pc.append(field(p, { k: 'pct', lb: 'Thực tế %', t: 'num', ph: '0' }, upd));
+        const mk = $('td', 'c mk'); mk.append(field(p, { k: 'mile', lb: 'Mốc nghiệm thu', t: 'chk' }));
+        const sc = $('td', 'st'); sc.append(st(p));
+        const x = $('td', 'x'); if (!RO) x.append(delBtn(() => { S.plan.splice(S.plan.indexOf(p), 1); save(); render(true); }));
+        tr.append(sd, dn, ed, $('td', 'r pc kh', planPct(p, d) + '%'), pc, mk, sc, x); tb.append(tr);
+      });
+    });
+    if (!S.plan.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Chưa có hạng mục nào'); td.colSpan = 10; tr.append(td); tb.append(tr); }
+    box.append(t);
+    if (!RO) { const a = $('button', 'sb-add', '＋ Thêm hạng mục'); a.type = 'button'; a.addEventListener('click', () => { const T = planTree(S); if (T.length) return insertAfter(T[T.length - 1]); const r = { id: uid(), sec: '', gn: '', g: '', n: '', t: '', s: d, e: addD(d, 6), pct: 0, mile: false }; S.plan.push(r); save(); render(true); }); box.append(a); }
+    return box;
+  }
+
 
   // ---------- ✅ CÔNG VIỆC ----------
   function task(W, S) {
@@ -906,11 +966,11 @@
     L.push('• Thi công ' + R.logs.length + ' ngày · TB ' + (R.logs.length ? Math.round(R.cong / R.logs.length) : 0) + ' người/ngày' + (R.rain ? ' · ' + R.rain + ' ngày mưa/nghỉ' : ''));
     L.push('• Tài chính: chi trong kỳ ' + short(R.cSum) + ' · luỹ kế ' + short(R.cAll) + (R.B ? ' (' + Math.round(R.cAll / R.B * 100) + '% dự toán)' : '') + ' · đã thu ' + short(R.iAll) + (R.debt ? ' · còn nợ ' + short(R.debt) : ''));
     ad('s1');
-    L.push('', '2. TIẾN ĐỘ HẠNG MỤC'); R.items.forEach(p => { const lg = lagDays(p, dE); L.push('• ' + (p.t || p.g) + ': ' + num(p.pct) + '% / KH ' + planPct(p, dE) + '%' + (num(p.pct) >= 100 ? ' – xong' : lg ? ' – 🔴 chậm ' + lg + ' ngày' : ' – đúng tiến độ')); }); ad('s2');
+    L.push('', '2. TIẾN ĐỘ HẠNG MỤC'); R.items.forEach(p => { const lg = lagDays(p, dE); L.push('• ' + plab(p) + ': ' + num(p.pct) + '% / KH ' + planPct(p, dE) + '%' + (num(p.pct) >= 100 ? ' – xong' : lg ? ' – 🔴 chậm ' + lg + ' ngày' : ' – đúng tiến độ')); }); ad('s2');
     L.push('', '3. KẾT QUẢ CHÍNH (' + R.done.length + ' việc xong)');
     X.done.slice(0, 6).forEach(t => L.push('• ' + t.t)); if (R.done.length > 6) L.push('• … và ' + (R.done.length - 6) + ' việc khác'); ad('s3');
     L.push('', '4. VƯỚNG MẮC CẦN CHỈ ĐẠO');
-    X.slow.filter(p => lagDays(p, dE) >= 3).forEach(p => L.push('• Hạng mục ' + (p.t || p.g) + ' chậm ' + lagDays(p, dE) + ' ngày'));
+    X.slow.filter(p => lagDays(p, dE) >= 3).forEach(p => L.push('• Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày'));
     X.needs.slice(0, 5).forEach(x => L.push('• ' + (x.st === 'cd' ? '[Chờ duyệt] ' : '') + (x.t || '').split('\n')[0] + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '')));
     X.late.slice(0, 4).forEach(t => L.push('• ' + (t.pri === 'cao' ? '🔴 ' : '') + '[' + catName(catOf(t)) + '] ' + t.t + ' – trễ ' + days(t.due, today()) + ' ngày')); ad('s4');
     L.push('', '5. KẾ HOẠCH ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG') + ' TỚI');
@@ -977,12 +1037,12 @@
         (R.startTt != null ? ' (tăng ' + (R.endTt - R.startTt) + '% trong kỳ)' : '') + '. Thi công ' + R.logs.length + ' ngày, bình quân ' + (R.logs.length ? Math.round(R.cong / R.logs.length) : 0) + ' người/ngày' + (R.rain ? ', ' + R.rain + ' ngày mưa/nghỉ' : '') + '. Chi trong kỳ ' + short(R.cSum) + ', luỹ kế ' + short(R.cAll) + (R.B ? ' (' + Math.round(R.cAll / R.B * 100) + '% dự toán)' : '') + '.');
       c.append(p); }
     // 2 tiến độ hạng mục
-    { const c = S2('2. Tiến độ hạng mục'); c.append(ul(R.items, (p, li) => { const lg = lagDays(p, dE); li.append($('span', '', p.t || p.g), $('small', '', num(p.pct) + '% / KH ' + planPct(p, dE) + '%'), $('b', lg >= 3 ? 'bad' : lg ? 'warnt' : 'goodt', num(p.pct) >= 100 ? 'Xong' : lg ? 'Chậm ' + lg + ' ngày' : 'Đúng tiến độ')); }, 'Không có hạng mục nào trong kỳ')); }
+    { const c = S2('2. Tiến độ hạng mục'); c.append(ul(R.items, (p, li) => { const lg = lagDays(p, dE); li.append($('span', '', plab(p)), $('small', '', num(p.pct) + '% / KH ' + planPct(p, dE) + '%'), $('b', lg >= 3 ? 'bad' : lg ? 'warnt' : 'goodt', num(p.pct) >= 100 ? 'Xong' : lg ? 'Chậm ' + lg + ' ngày' : 'Đúng tiến độ')); }, 'Không có hạng mục nào trong kỳ')); }
     // 3 kết quả chính
     { const c = S2('3. Kết quả chính (' + R.done.length + ' việc hoàn thành)'); c.append(ul(X.done.slice(0, 8), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận việc hoàn thành')); if (R.done.length > 8) c.append($('p', 'sb-p', '… và ' + (R.done.length - 8) + ' việc khác')); }
     // 4 vướng mắc cần chỉ đạo
     { const c = S2('4. Vướng mắc cần lãnh đạo chỉ đạo', 'sb-rpwarn');
-      const rows = [...X.slow.filter(p => lagDays(p, dE) >= 3).map(p => ['📅 Hạng mục ' + (p.t || p.g) + ' chậm ' + lagDays(p, dE) + ' ngày', '']), ...X.needs.slice(0, 6).map(x => [(x.st === 'cd' ? '🖊 Chờ duyệt: ' : '⚠️ ') + (x.t || '').split('\n')[0], (x.who || 'chưa giao') + (x.due ? ' · hạn ' + fd(x.due) : '')]), ...X.late.slice(0, 5).map(t => [(t.pri === 'cao' ? '🔴 ' : '❗ ') + t.t, catName(catOf(t)) + ' · trễ ' + days(t.due, today()) + ' ngày'])];
+      const rows = [...X.slow.filter(p => lagDays(p, dE) >= 3).map(p => ['📅 Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày', '']), ...X.needs.slice(0, 6).map(x => [(x.st === 'cd' ? '🖊 Chờ duyệt: ' : '⚠️ ') + (x.t || '').split('\n')[0], (x.who || 'chưa giao') + (x.due ? ' · hạn ' + fd(x.due) : '')]), ...X.late.slice(0, 5).map(t => [(t.pri === 'cao' ? '🔴 ' : '❗ ') + t.t, catName(catOf(t)) + ' · trễ ' + days(t.due, today()) + ' ngày'])];
       c.append(ul(rows, ([a, b], li) => li.append($('span', '', a), $('small', '', b)), 'Không có vướng mắc')); }
     // 5 kế hoạch kỳ tới
     { const c = S2('5. Kế hoạch ' + (rp.kind === 'w' ? 'tuần' : 'tháng') + ' tới (' + fd(P.next.a) + ' – ' + fd(P.next.b) + ')');
