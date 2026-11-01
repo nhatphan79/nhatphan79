@@ -294,3 +294,17 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-quick select.sb-in { flex: 0 0 auto; width: auto; height: 38px; border: 1.5px solid var(--line); background: #fff; }
 @media (max-width: 700px) { .sb-quick { flex-wrap: wrap; } .sb-quick .sb-in:first-child { flex: 1 1 100%; } }
 .sbx b.bad, .sbx span.bad { color: var(--bad); font-weight: 800; }
+
+/* V1.3.3: bộ phận tự thêm */
+.sb-chipadd { color: var(--acc) !important; background: #FFF4E0 !important; }
+.sb-catedit { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.sb-catrow { display: flex; align-items: center; gap: 8px; }
+.sb-catrow input[type=color] { width: 34px; height: 30px; border: 0; padding: 0; background: none; cursor: pointer; }
+.sb-catrow .sb-in { flex: 1; border-color: var(--line); background: #fff; }
+.sb-catrow small { color: var(--soft); width: 54px; text-align: right; }
+
+/* V1.3.4: báo cáo lãnh đạo */
+.sb-rpsum { font-size: 14.5px; line-height: 1.65; margin: 4px 0; }
+.goodt, b.goodt { color: var(--ok); font-weight: 800; }
+.sb-rpwarn h2 { color: var(--bad); }
+.sb-list li > span.sb-cat { flex: none; }
