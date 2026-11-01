@@ -240,3 +240,7 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sbx .sb-in[readonly]:focus { box-shadow: none; border-color: transparent; }
 .sbx select.sb-in:disabled { appearance: none; -webkit-appearance: none; background: transparent; border-color: transparent; }
 @media (max-width: 560px) { .sb-mob { grid-template-columns: 1fr; } }
+
+/* V1.3.0: ☁️ tài khoản Google */
+.sb-login { background: #1A73E8; }
+.sb-acct { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }

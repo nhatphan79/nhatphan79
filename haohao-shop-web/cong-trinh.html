@@ -9,21 +9,25 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Công trình">
-<link rel="apple-touch-icon" href="/shop/icon-192.png">
 <link rel="icon" href="/ct/icon48.png">
+<link rel="apple-touch-icon" href="/ct/icon48.png">
 <title>Công trình – HaoHao</title>
-<!-- 🏗️ 01/11 (HaoHao V1.2.7): trang Công trình xem trên điện thoại. Dữ liệu: /ct?id=<mã sau dấu #>, do tiện ích HaoHao trên máy tính đẩy lên.
-     Dùng chung site.js / site.css với tiện ích (bản chép ở ct/ – sửa tiện ích thì chép lại 2 file này). Chỉ xem (window.SB_RO). -->
+<!-- 🏗️ HaoHao SITE BRAIN trên web / điện thoại.
+     V1.3.0 (01/11): đăng nhập Google → sửa được, đồng bộ với HaoHao trên máy tính (sbsync.js, máy chủ /sb).
+     Link chia sẻ cũ #<mã> (không đăng nhập) → chỉ xem (/ct).  ?ext=<id tiện ích> → sau khi đăng nhập gửi phiên về HaoHao.
+     Dùng chung site.js / site.css / sbsync.js với tiện ích (bản chép ở ct/ – sửa tiện ích thì chép lại). -->
 <link rel="stylesheet" href="/ct/site.css">
 <style>
   html, body { margin: 0; background: #fff; }
   body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; color: #23305E; }
-  .msg { max-width: 460px; margin: 18vh auto 0; padding: 0 20px; text-align: center; }
-  .msg .ic { font-size: 56px; }
-  .msg h1 { font-size: 20px; margin: 10px 0 8px; }
-  .msg p { color: #6B7280; line-height: 1.55; margin: 0 0 16px; }
-  .msg input { font: inherit; width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1.5px solid #E5E7EB; border-radius: 12px; margin-bottom: 10px; }
-  .msg button { font: inherit; font-weight: 700; border: 0; background: #23305E; color: #fff; padding: 12px 20px; border-radius: 12px; cursor: pointer; width: 100%; }
+  .msg { max-width: 440px; margin: 14vh auto 0; padding: 0 22px; text-align: center; }
+  .msg .ic { font-size: 60px; line-height: 1; }
+  .msg h1 { font-size: 22px; margin: 14px 0 8px; font-weight: 850; }
+  .msg p { color: #6B7280; line-height: 1.55; margin: 0 0 18px; font-size: 15px; }
+  .msg .gbtn { display: flex; justify-content: center; min-height: 44px; }
+  .msg .ok { background: #E6F4EC; color: #2E8B57; border-radius: 12px; padding: 12px 14px; font-weight: 700; margin-top: 8px; }
+  .msg .err { background: #FDECE7; color: #C4401F; border-radius: 12px; padding: 10px 14px; margin-top: 12px; font-size: 14px; }
+  .msg small { display: block; color: #9AA1B5; margin-top: 18px; font-size: 12.5px; line-height: 1.5; }
   .sbx { padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: max(40px, env(safe-area-inset-bottom)); }
   @media (max-width: 700px) {
     .sbx { padding-left: 12px; padding-right: 12px; }
@@ -37,52 +41,102 @@
     .sb-sech h2 { font-size: 18px; } .sb-sech span { min-width: 0; }
     .sb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .sb-t { min-width: 640px; font-size: 13px; }
+    .sb-head .sb-btn.sm { padding: 7px 10px; }
+    .sb-in { font-size: 16px; }   /* iPhone không tự phóng to khi gõ */
   }
 </style>
 </head>
 <body>
 <section class="sbx" id="site"></section>
+<script src="/ct/sbsync.js"></script>
 <script>
 (async () => {
-  const root = document.getElementById('site');
-  const ask = (title, text, err) => {
-    root.className = ''; root.innerHTML = '';
-    const d = document.createElement('div'); d.className = 'msg';
-    d.innerHTML = '<div class="ic">🏗️</div><h1></h1><p></p><input placeholder="Dán link hoặc mã từ HaoHao" aria-label="Mã xem công trình"><button type="button">Mở</button>';
-    d.querySelector('h1').textContent = title; d.querySelector('p').textContent = text;
-    const i = d.querySelector('input'), b = d.querySelector('button');
-    if (err) i.value = '';
-    b.onclick = () => { const v = (i.value.match(/[a-z0-9]{20,40}/) || [''])[0]; if (!v) { i.focus(); return; } try { localStorage.setItem('hhCt', v); } catch {} location.hash = v; location.reload(); };
-    i.onkeydown = e => { if (e.key === 'Enter') b.click(); };
-    root.append(d);
-  };
-  let id = (location.hash.match(/[a-z0-9]{20,40}/) || [''])[0];
-  if (!id) { try { id = localStorage.getItem('hhCt') || ''; } catch {} if (id) history.replaceState(null, '', '#' + id); }
-  if (!id) return ask('Công trình – HaoHao', 'Mở link "📱 Điện thoại" trong trang Công trình của HaoHao trên máy tính (quét mã QR) để xem ở đây.');
-  let r;
-  try { r = await fetch('/ct?id=' + id, { cache: 'no-store' }).then(x => x.json()); } catch { r = { ok: false, error: 'Không có mạng' }; }
-  if (!r || !r.ok || !r.v) return ask('Chưa xem được', (r && r.error === 'chưa có dữ liệu') ? 'Link này chưa có dữ liệu hoặc đã bị đổi / tắt. Trên máy tính mở HaoHao → 🏗️ Công trình → 📱 Điện thoại để lấy link mới.' : ('Lỗi: ' + ((r && r.error) || 'không rõ') + '. Kéo xuống để tải lại.'), true);
-  try { localStorage.setItem('hhCt', id); } catch {}
-  const snap = r.v; let cur = snap.cur;
-  try { const c = localStorage.getItem('hhCtCur'); if (c && snap.sites.some(s => s.id === c)) cur = c; } catch {}
-  snap.cur = cur;
-  window.SB_RO = { at: r.at }; window.SB_ICON = '/ct/icon48.png';
-  // giả lập chrome.* cho site.js (bản tiện ích) – chỉ đọc
-  const listeners = [];
-  window.chrome = {
-    storage: { local: {
-      get: async k => { const o = { siteBrain: snap, todos: [] }; if (typeof k === 'string') return { [k]: o[k] }; if (Array.isArray(k)) return Object.fromEntries(k.map(x => [x, o[x]])); return o; },
-      set: async o => { if (o.siteBrain) try { localStorage.setItem('hhCtCur', o.siteBrain.cur || ''); } catch {} } },
-      onChanged: { addListener: f => listeners.push(f) } },
-    runtime: { id: '', sendMessage: async () => ({ ok: false }) },
-    tabs: { create: async o => { window.open(o.url, '_blank', 'noopener'); } },
-    extension: { isAllowedFileSchemeAccess: cb => cb(false) }
-  };
-  window.HT = {};
-  // đổi công trình trong ô chọn: site.js gọi save() (bị chặn ở chế độ xem) – nhớ lựa chọn bằng cách theo dõi ô chọn
-  document.addEventListener('change', e => { if (e.target && e.target.classList.contains('sb-sitesel')) try { localStorage.setItem('hhCtCur', e.target.value); } catch {} }, true);
-  root.className = 'sbx';
-  const s = document.createElement('script'); s.src = '/ct/site.js'; document.body.append(s);
+  const GID = '887723128133-u9anir3ppp3l41ciganrasr7bf43v265.apps.googleusercontent.com';
+  const root = document.getElementById('site'), Q = new URLSearchParams(location.search), EXT = (Q.get('ext') || '').replace(/[^a-p]/g, '');
+  const ls = { get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } } };
+  const el = (h) => { const d = document.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
+  const screen = (ic, title, text) => { root.className = ''; root.innerHTML = ''; const d = el('<div class="msg"><div class="ic"></div><h1></h1><p></p></div>'); d.querySelector('.ic').textContent = ic; d.querySelector('h1').textContent = title; d.querySelector('p').textContent = text; root.append(d); return d; };
+  const loadScript = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.async = true; s.onload = ok; s.onerror = no; document.head.append(s); });
+
+  // ---------- đăng nhập Google ----------
+  async function signIn(note) {
+    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây.');
+    const box = el('<div class="gbtn"></div>'); d.append(box);
+    if (note) d.append(Object.assign(el('<div class="err"></div>'), { textContent: note }));
+    d.append(Object.assign(el('<small></small>'), { textContent: 'Dữ liệu lưu trên máy chủ HaoHao theo tài khoản Google của anh. HaoHao chỉ đọc địa chỉ email để nhận ra anh.' }));
+    try { await loadScript('https://accounts.google.com/gsi/client'); } catch { box.textContent = '⚠ Không tải được nút Google – kiểm tra mạng rồi tải lại trang.'; return; }
+    google.accounts.id.initialize({ client_id: GID, ux_mode: 'popup', auto_select: false, callback: async res => {
+      box.innerHTML = '⏳ Đang đăng nhập…';
+      const r = await fetch('/sb/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id_token: res.credential }) }).then(x => x.json()).catch(() => ({ ok: false, error: 'mất mạng' }));
+      if (!r.ok) return signIn('Đăng nhập lỗi: ' + (r.error || 'không rõ'));
+      ls.set('sbAuth', { token: r.token, email: r.email, name: r.name || '' });
+      if (EXT) return linkExt(r);
+      start();
+    } });
+    google.accounts.id.renderButton(box, { theme: 'filled_blue', size: 'large', shape: 'pill', text: 'signin_with', locale: 'vi', width: 280 });
+  }
+  async function linkExt(r) {
+    const d = screen('🔗', 'Đang kết nối HaoHao…', r.email);
+    let ok = false;
+    try { ok = await new Promise(res => { chrome.runtime.sendMessage(EXT, { type: 'sb-login', token: r.token, email: r.email, name: r.name || '' }, x => res(!chrome.runtime.lastError && x && x.ok)); setTimeout(() => res(false), 20000); }); } catch {}
+    const m = el('<div></div>'); m.className = ok ? 'ok' : 'err';
+    m.textContent = ok ? '✅ HaoHao đã đăng nhập ' + r.email + ' và đồng bộ xong. Đóng tab này, quay lại trang Công trình.' : '⚠ Không gửi được phiên về HaoHao. Bấm F5 ở chrome://extensions → ↻ HaoHao rồi đăng nhập lại.';
+    d.append(m);
+    if (ok) setTimeout(() => { try { window.close(); } catch {} }, 2500);
+  }
+
+  // ---------- chế độ chỉ xem (link chia sẻ cũ #mã) ----------
+  async function share(id) {
+    let r; try { r = await fetch('/ct?id=' + id, { cache: 'no-store' }).then(x => x.json()); } catch { r = { ok: false, error: 'Không có mạng' }; }
+    if (!r || !r.ok || !r.v) return signIn('Link xem này không còn dữ liệu – đăng nhập Google để xem bản đầy đủ.');
+    boot(r.v, { ro: { at: r.at } });
+  }
+
+  // ---------- chế độ đăng nhập: sửa được + đồng bộ ----------
+  let doc = null, listeners = [], eng = null;
+  const keyOf = a => 'sbDoc:' + a.email, baseOf = a => 'sbBase:' + a.email;
+  async function start() {
+    const a = ls.get('sbAuth'); if (!a || !a.token) return signIn();
+    doc = ls.get(keyOf(a)) || null;
+    const st = { email: a.email, token: a.token, at: 0, err: '' };
+    window.SB_AUTH = st;
+    eng = SBSync({ api: location.origin, token: async () => st.token,
+      getLocal: async () => doc, setLocal: async v => { doc = v; ls.set(keyOf(a), v); listeners.forEach(f => f({ siteBrain: { newValue: v } }, 'local')); },
+      getBase: async () => ls.get(baseOf(a)), setBase: async v => { if (!ls.set(baseOf(a), v)) ls.set(baseOf(a), null); } });
+    const sync = async () => { const r = await eng.sync(); if (r.ok) { st.at = Date.now(); st.err = ''; } else { st.err = r.err; if (r.auth === false) { ls.set('sbAuth', null); return signIn('Phiên đăng nhập hết hạn – đăng nhập lại.'); } } return r; };
+    window.SB_SYNC_NOW = sync;
+    let t = 0; window.SB_SYNC_SOON = () => { clearTimeout(t); t = setTimeout(sync, 1200); };
+    window.SB_LOGOUT = () => { fetch('/sb/logout', { method: 'POST', headers: { authorization: 'Bearer ' + st.token } }).catch(() => {}); ls.set('sbAuth', null); location.hash = ''; location.reload(); };
+    if (!doc) { screen('☁️', 'Đang tải dữ liệu…', a.email); const r = await sync(); if (!r || !r.ok) { if (!ls.get('sbAuth')) return; return screen('⚠️', 'Chưa tải được dữ liệu', (r && r.err) || 'Lỗi mạng – kéo xuống để tải lại.'); } if (!doc) doc = { sites: [], cur: null }; }
+    else sync();
+    boot(doc, { web: true });
+    setInterval(() => { if (!document.hidden) sync(); }, 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+  }
+
+  // ---------- nạp site.js (bản tiện ích) với chrome.* giả lập ----------
+  function boot(snap, o) {
+    if (o.ro) window.SB_RO = o.ro; if (o.web) window.SB_WEB = true;
+    window.SB_ICON = '/ct/icon48.png'; window.SB_API = location.origin; window.HT = {};
+    const mem = { todos: [], siteBot: {}, siteMobile: {} };
+    window.chrome = {
+      storage: { local: {
+        get: async k => { const all = { ...mem, siteBrain: o.web ? doc : snap }; if (typeof k === 'string') return { [k]: all[k] }; if (Array.isArray(k)) return Object.fromEntries(k.map(x => [x, all[x]])); return all; },
+        set: async v => { for (const k in v) { if (k === 'siteBrain' && o.web) { doc = v[k]; const a = ls.get('sbAuth'); if (a) ls.set(keyOf(a), doc); } else mem[k] = v[k]; } } },
+        onChanged: { addListener: f => listeners.push(f) } },
+      runtime: { id: '', sendMessage: async () => ({ ok: false }) },
+      tabs: { create: async x => { window.open(x.url, '_blank', 'noopener'); } },
+      extension: { isAllowedFileSchemeAccess: cb => cb(false) }
+    };
+    root.className = 'sbx'; root.innerHTML = '';
+    const s = document.createElement('script'); s.src = '/ct/site.js'; document.body.append(s);
+  }
+
+  const shareId = (location.hash.match(/^#([a-z0-9]{20,40})$/) || [])[1];
+  if (EXT) return signIn();   // đăng nhập cho HaoHao máy tính: luôn hỏi tài khoản
+  if (ls.get('sbAuth')) return start();
+  if (shareId) return share(shareId);
+  signIn();
 })();
 </script>
 </body>

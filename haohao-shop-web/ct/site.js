@@ -26,8 +26,11 @@
   const editing = () => { const a = document.activeElement; return a && root.contains(a) && (a.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(a.tagName)); };
 
   // ---------- lưu ----------
-  const RO = !!window.SB_RO;   // V1.2.7: bản xem trên điện thoại (haohaostore.com/cong-trinh) – chỉ xem
-  const save = () => { if (RO) return Promise.resolve(); lastSaved = JSON.stringify(data); pushSoon(); return chrome.storage.local.set({ [KEY]: data }).catch(e => toast('⚠ Chưa lưu được: ' + (e && e.message || e))); };
+  const RO = !!window.SB_RO, WEB = !!window.SB_WEB;   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
+  const SB_API = window.SB_API || 'https://haohao-gia.nhatphan79.workers.dev';
+  const photoSrc = s => /^p_[a-f0-9]{32}$/.test(s) ? SB_API + '/sbp/' + s : s;
+  let syncT = 0; const syncSoon = () => { if (RO) return; clearTimeout(syncT); syncT = setTimeout(() => { if (WEB) window.SB_SYNC_SOON && window.SB_SYNC_SOON(); else chrome.runtime.sendMessage({ type: 'sb-sync-now' }).catch(() => {}); }, 1500); };   // V1.2.7: bản xem trên điện thoại (haohaostore.com/cong-trinh) – chỉ xem
+  const save = () => { if (RO) return Promise.resolve(); lastSaved = JSON.stringify(data); pushSoon(); syncSoon(); return chrome.storage.local.set({ [KEY]: data }).catch(e => toast('⚠ Chưa lưu được: ' + (e && e.message || e))); };
   let st = 0; const saveSoon = () => { clearTimeout(st); st = setTimeout(save, 400); };
   const saveTodos = () => chrome.storage.local.set({ todos }).catch(() => {});
   const toast = t => { let el = root.querySelector('.sb-toast'); if (!el) { el = $('div', 'sb-toast'); el.setAttribute('role', 'status'); root.append(el); } el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 3200); };
@@ -205,7 +208,7 @@
     if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
     const mb = $('button', 'sb-btn ghost sm', '📱 Điện thoại'); mb.type = 'button'; mb.title = 'Xem trang Công trình trên điện thoại'; mb.addEventListener('click', mobileDlg);
     if (mobCfg.on) mb.append($('i', 'sb-on', '●')); if (mobCfg.on && mobCfg.err) { mb.classList.add('err'); mb.title = '⚠ Đồng bộ lỗi: ' + mobCfg.err; }
-    h.append(mb, bt, add, bk, rs); W.append(h);
+    h.append(acctBtn()); if (!WEB) h.append(mb, bt); h.append(add, bk, rs); W.append(h);
   }
   // 📱 V1.2.7: xem trên điện thoại – đẩy bản chụp (bỏ ảnh) lên máy chủ HaoHao; điện thoại mở haohao-gia.nhatphan79.workers.dev/cong-trinh#<mã>
   const CT_API = 'https://haohao-gia.nhatphan79.workers.dev/ct', CT_PAGE = 'https://haohao-gia.nhatphan79.workers.dev/cong-trinh#';
@@ -251,6 +254,36 @@
       };
       draw(); b.append(box);
     }, () => {}, 'Xong');
+    D.row.querySelector('.ghost').style.display = 'none';
+  }
+  // 🔐 V1.3.0: tài khoản Google – đồng bộ máy tính ⇄ điện thoại
+  const LOGIN_URL = SB_API + '/cong-trinh';
+  let acct = {};
+  if (!WEB && !RO) { chrome.storage.local.get('sbAuth').then(r => { acct = r.sbAuth || {}; if (ready) render(); if (acct.token) syncSoon(); }).catch(() => {});
+    chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.sbAuth) { acct = ch.sbAuth.newValue || {}; render(); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && acct.token) syncSoon(); }); }
+  const A = () => WEB ? (window.SB_AUTH || {}) : acct;
+  const hm = t => t ? new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+  function acctBtn() {
+    const a = A();
+    if (!a.token && !a.email) { const b = $('button', 'sb-btn sm sb-login', '🔐 Đăng nhập Google'); b.type = 'button'; b.title = 'Lưu dữ liệu theo tài khoản Google – máy tính, điện thoại cùng cập nhật, không mất dữ liệu';
+      b.addEventListener('click', () => chrome.tabs.create({ url: LOGIN_URL + '?ext=' + chrome.runtime.id })); return b; }
+    const b = $('button', 'sb-btn ghost sm sb-acct' + (a.err ? ' err' : ''), (a.err ? '⚠ ' : '☁️ ') + String(a.email || '').replace(/@gmail\.com$/, '') + (a.at && !a.err ? ' · ✓' + hm(a.at) : ''));
+    b.type = 'button'; b.title = a.err ? 'Đồng bộ lỗi: ' + a.err : 'Đã đồng bộ theo tài khoản ' + a.email; b.addEventListener('click', acctDlg); return b;
+  }
+  function acctDlg() {
+    const a = A();
+    const D = dialog('☁️ Tài khoản & đồng bộ', b => {
+      b.append($('p', 'sb-p', 'Dữ liệu Công trình lưu theo tài khoản Google. Máy tính (HaoHao) và điện thoại (' + LOGIN_URL.replace('https://', '') + ') cùng đăng nhập là cùng xem, cùng sửa – tự đồng bộ vài giây sau mỗi lần sửa. Hai nơi sửa cùng lúc thì tự gộp từng dòng, không đè mất.'));
+      const k = $('div', 'sb-kpis'); k.append(kpi('Tài khoản', a.email || '—'), kpi('Đồng bộ lần cuối', a.at ? new Date(a.at).toLocaleString('vi-VN') : 'chưa', a.err ? '⚠ ' + a.err : '', a.err ? 'bad' : 'good')); b.append(k);
+      const row = $('div', 'sb-row');
+      const now = $('button', 'sb-btn sm', '🔄 Đồng bộ ngay'); now.type = 'button';
+      now.addEventListener('click', async () => { now.disabled = true; now.textContent = '⏳ Đang đồng bộ…'; const r = WEB ? await window.SB_SYNC_NOW() : await chrome.runtime.sendMessage({ type: 'sb-sync-now' }).catch(e => ({ ok: false, err: String(e) })); now.disabled = false; now.textContent = '🔄 Đồng bộ ngay'; toast(r && r.ok ? '✅ Đã đồng bộ' : '⚠ ' + ((r && r.err) || 'Lỗi')); D.close(); render(true); });
+      const out = $('button', 'sb-btn ghost sm', 'Đăng xuất'); out.type = 'button'; out.title = 'Dữ liệu trên máy này vẫn giữ nguyên';
+      out.addEventListener('click', async () => { if (WEB) window.SB_LOGOUT(); else { await chrome.runtime.sendMessage({ type: 'sb-logout' }).catch(() => {}); toast('Đã đăng xuất – dữ liệu trên máy này vẫn còn'); } D.close(); });
+      row.append(now, out); b.append(row);
+      if (a.err && /đăng nhập/.test(a.err) && !WEB) { const lg = $('button', 'sb-btn sm', '🔐 Đăng nhập lại'); lg.type = 'button'; lg.addEventListener('click', () => chrome.tabs.create({ url: LOGIN_URL + '?ext=' + chrome.runtime.id })); b.append(lg); }
+    }, () => {}, 'Đóng');
     D.row.querySelector('.ghost').style.display = 'none';
   }
   // 🤖 V1.2.6: bot Zalo – gửi Tổng quan mỗi ngày (sitebot.js chạy nền)
@@ -463,7 +496,7 @@
       { k: 't', lb: 'Công việc', t: 'text', rr: false }, { k: 'who', lb: 'Người phụ trách', t: 'text', w: '15%', rr: false },
       { k: 'due', lb: 'Hạn', t: 'date', w: '128px', on: t => todoPush(t, true) }, { k: 'pri', lb: 'Ưu tiên', t: 'sel', o: PRI, w: '96px' },
       { k: 'st', lb: 'Trạng thái', t: 'sel', o: TST, w: '106px', on: t => todoPush(t, true) }
-    ], { list: S.tasks, num: false, empty: flt.task === 'open' ? 'Chưa có việc nào – gõ ở ô trên rồi Enter' : 'Không có việc nào ở bộ lọc này', cls: t => (t.st === 'done' ? 'done' : '') + (taskLate(t) ? ' late' : ''), extra: (t, x) => x.append(bellBtn(t, () => t.t, S)) }));
+    ], { list: S.tasks, num: false, empty: flt.task === 'open' ? 'Chưa có việc nào – gõ ở ô trên rồi Enter' : 'Không có việc nào ở bộ lọc này', cls: t => (t.st === 'done' ? 'done' : '') + (taskLate(t) ? ' late' : ''), extra: (t, x) => { if (!WEB) x.append(bellBtn(t, () => t.t, S)); } }));
   }
 
   // ---------- 📓 NHẬT KÝ ----------
@@ -491,7 +524,7 @@
     }
     if (n) { save(); render(true); toast('📷 Đã thêm ' + n + ' ảnh'); }
   }
-  function lightbox(src) { const bg = $('div', 'sb-dlg sb-lb'), im = document.createElement('img'); im.src = src; im.alt = 'Ảnh hiện trường'; bg.append(im); bg.addEventListener('click', () => bg.remove()); document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { bg.remove(); document.removeEventListener('keydown', k); } }); root.append(bg); }
+  function lightbox(src) { const bg = $('div', 'sb-dlg sb-lb'), im = document.createElement('img'); im.src = photoSrc(src); im.alt = 'Ảnh hiện trường'; bg.append(im); bg.addEventListener('click', () => bg.remove()); document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { bg.remove(); document.removeEventListener('keydown', k); } }); root.append(bg); }
   function log(W, S) {
     const d = today(), h = sec(W, '📓 Nhật ký thi công', 'Mỗi ngày 1 trang – nhân lực tự lấy theo tổ đội, chép báo cáo gửi Zalo 1 chạm');
     const b = $('button', 'sb-btn sm', S.logs.some(l => l.d === d) ? '📓 Mở nhật ký hôm nay' : '＋ Ghi nhật ký hôm nay'); b.type = 'button'; b.addEventListener('click', () => openLog(S, d));
@@ -521,7 +554,7 @@
         bd.append(g2);
         const ph = $('div', 'sb-photos'); ph.append($('div', 'sb-fl', '📷 Hình ảnh hiện trường'));
         const pg = $('div', 'sb-pg');
-        (L.photos || []).forEach((src, i) => { const f = $('figure', 'sb-ph1'), im = document.createElement('img'); im.src = src; im.alt = 'Ảnh ' + (i + 1); im.addEventListener('click', () => lightbox(src));
+        (L.photos || []).forEach((src, i) => { const f = $('figure', 'sb-ph1'), im = document.createElement('img'); im.src = photoSrc(src); im.alt = 'Ảnh ' + (i + 1); im.loading = 'lazy'; im.addEventListener('click', () => lightbox(src));
           const x = $('button', 'sb-phx', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Xoá ảnh'); x.addEventListener('click', () => { L.photos.splice(i, 1); save(); render(true); }); f.append(im, x); pg.append(f); });
         const up = $('label', 'sb-phadd'), fi = $('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.multiple = true; fi.addEventListener('change', () => addPhotos(L, [...fi.files]));
         up.append(fi, $('span', '', '＋ Thêm ảnh'), $('small', '', 'hoặc kéo ảnh / Ctrl+V'));
@@ -621,7 +654,7 @@
       { k: 'd', lb: 'Ngày', t: 'date', w: '124px' }, { k: 'type', lb: 'Loại', t: 'sel', o: ITYPE, w: '112px' }, { k: 't', lb: 'Vấn đề', t: 'area', rr: false, rows: 1 },
       { k: 'prop', lb: 'Đề xuất xử lý', t: 'area', rr: false, rows: 1 }, { k: 'who', lb: 'Người chịu TN', t: 'text', w: '11%', rr: false },
       { k: 'due', lb: 'Hạn', t: 'date', w: '124px', on: x => todoPush(x, false) }, { k: 'st', lb: 'Trạng thái', t: 'sel', o: IST, w: '108px', on: x => { if (x.st === 'dong') x.closed = d; todoPush(x, false); } }, { k: 'res', lb: 'Kết quả', t: 'area', rr: false, rows: 1 }
-    ], { list: S.issues, add: () => ({ id: uid(), d, type: 'ht', t: '', prop: '', who: '', due: addD(d, 2), st: 'mo', res: '' }), addLb: '＋ Thêm vấn đề', empty: 'Không có vấn đề nào ở bộ lọc này', cls: x => (x.st === 'dong' ? 'done' : '') + (x.st !== 'dong' && x.due && x.due < d ? ' late' : ''), extra: (x, td) => td.append(bellBtn(x, () => (lbl(ITYPE, x.type) ? '[' + lbl(ITYPE, x.type) + '] ' : '') + (x.t || '').split('\n')[0], S)) }));
+    ], { list: S.issues, add: () => ({ id: uid(), d, type: 'ht', t: '', prop: '', who: '', due: addD(d, 2), st: 'mo', res: '' }), addLb: '＋ Thêm vấn đề', empty: 'Không có vấn đề nào ở bộ lọc này', cls: x => (x.st === 'dong' ? 'done' : '') + (x.st !== 'dong' && x.due && x.due < d ? ' late' : ''), extra: (x, td) => WEB || td.append(bellBtn(x, () => (lbl(ITYPE, x.type) ? '[' + lbl(ITYPE, x.type) + '] ' : '') + (x.t || '').split('\n')[0], S)) }));
   }
 
   // ---------- 📁 HỒ SƠ ----------

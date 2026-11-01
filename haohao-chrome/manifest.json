@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – Việc cần làm, Nhắc nhở, Ghi chú & Tab mới",
-  "version": "1.10.376",
-  "version_name": "V1.2.8",
+  "version": "1.10.377",
+  "version_name": "V1.3.0",
   "description": "Ghi việc cần làm, nhắc giờ, lịch âm, ghi chú, Pomodoro, dịch nhanh, so giá Shopee – chú hamster giúp bạn bớt quên, bớt rối.",
   "permissions": [
     "storage",
@@ -177,5 +177,10 @@
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://haohao-gia.nhatphan79.workers.dev/*"
+    ]
+  }
 }

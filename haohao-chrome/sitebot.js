@@ -149,7 +149,44 @@
     })();
     return true;
   });
-  chrome.alarms.onAlarm.addListener(a => { if (a.name === 'sb:bot') tick(); });
+  // 🔐 V1.3.0: đồng bộ trang Công trình theo tài khoản Google (sbsync.js) – mỗi phút + ngay sau khi sửa
+  const SB_API = 'https://haohao-gia.nhatphan79.workers.dev';
+  const auth = async () => (await chrome.storage.local.get('sbAuth')).sbAuth || {};
+  const eng = self.SBSync ? self.SBSync({
+    api: SB_API,
+    token: async () => (await auth()).token || '',
+    getLocal: async () => (await chrome.storage.local.get('siteBrain')).siteBrain,
+    setLocal: async v => chrome.storage.local.set({ siteBrain: v }),
+    getBase: async () => (await chrome.storage.local.get('sbBase')).sbBase,
+    setBase: async v => chrome.storage.local.set({ sbBase: v })
+  }) : null;
+  async function cloud() {
+    const a = await auth(); if (!a.token || !eng) return null;
+    const r = await eng.sync();
+    const A = await auth(); if (A.token !== a.token) return r;   // vừa đăng xuất / đổi tài khoản
+    if (r.ok) Object.assign(A, { at: Date.now(), err: '' }); else if (r.auth === false) Object.assign(A, { token: '', err: 'Hết phiên đăng nhập – đăng nhập lại' }); else A.err = r.err;
+    await chrome.storage.local.set({ sbAuth: A }); return r;
+  }
+  chrome.runtime.onMessageExternal.addListener((m, sender, reply) => {   // trang đăng nhập (workers.dev) gửi phiên về
+    if (!m || m.type !== 'sb-login' || !/^https:\/\/haohao-gia\.nhatphan79\.workers\.dev\//.test(sender.url || '')) return;
+    (async () => {
+      if (!/^[a-z0-9]{30}$/.test(String(m.token || ''))) return reply({ ok: false });
+      const old = await auth();
+      if (old.email && old.email !== m.email) await chrome.storage.local.remove('sbBase');   // đổi tài khoản: gộp lại từ đầu, không mất dữ liệu máy này
+      await chrome.storage.local.set({ sbAuth: { token: m.token, email: m.email, name: m.name || '', at: 0, err: '' } });
+      const r = await cloud(); reply({ ok: true, sync: r });
+    })();
+    return true;
+  });
+  chrome.runtime.onMessage.addListener((m, _s, reply) => {
+    if (!m || (m.type !== 'sb-sync-now' && m.type !== 'sb-logout')) return;
+    (async () => {
+      if (m.type === 'sb-logout') { const a = await auth(); if (a.token) fetch(SB_API + '/sb/logout', { method: 'POST', headers: { authorization: 'Bearer ' + a.token } }).catch(() => {}); await chrome.storage.local.set({ sbAuth: {} }); await chrome.storage.local.remove('sbBase'); return reply({ ok: true }); }
+      reply(await cloud() || { ok: false, err: 'chưa đăng nhập' });
+    })();
+    return true;
+  });
+  chrome.alarms.onAlarm.addListener(a => { if (a.name === 'sb:bot') { cloud().catch(() => {}).finally(tick); } });
   const ensure = () => chrome.alarms.get('sb:bot').then(a => { if (!a) chrome.alarms.create('sb:bot', { delayInMinutes: 0.2, periodInMinutes: 1 }); }).catch(() => {});
   ensure(); chrome.runtime.onStartup.addListener(() => { ensure(); setTimeout(tick, 4000); });
   self.HHSiteBot = { overview, tick };

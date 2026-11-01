@@ -1,5 +1,5 @@
 // © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
-importScripts('common.js', 'i18n.js', 'sitebot.js');   // V1.2.6: sitebot.js = 🤖 bot Zalo của trang Công trình
+importScripts('common.js', 'i18n.js', 'sbsync.js', 'sitebot.js');   // V1.2.6: sitebot.js = 🤖 bot Zalo của trang Công trình
 
 // ngôn ngữ giao diện (vi mặc định / en) cho thông báo, menu chuột phải và câu trả lời của Gemini
 const loadLang = async () => { const { settings = {} } = await chrome.storage.local.get('settings'); HT.setLang(settings.lang); return HT.lang; };

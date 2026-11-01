@@ -16,7 +16,7 @@
 
 const KEEP_DAYS = 120, MAX_IN = 60, MAX_OUT = 20;
 const KEY = /^((ap:)?sp:\d{3,12}\.\d{3,16}|tt:\d{8,22})$/;   // V1.81: ap:sp:… = giá "Mua trên app" tiện ích tính
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS' };
 const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json; charset=utf-8', ...cors, ...extra } });
 const today = () => Math.floor((Date.now() + 7 * 3600e3) / 864e5);
 let ready = false;
@@ -278,6 +278,86 @@ async function ctGet(env, id) {
   const r = await env.DB.prepare('SELECT v, at FROM ct WHERE id = ?').bind(id).first();
   if (!r) return { ok: false, error: 'chưa có dữ liệu' };
   let v = null; try { v = JSON.parse(r.v); } catch {} return { ok: true, at: r.at, v };
+}
+/* 🔐 01/11 (HaoHao V1.3.0): SITE BRAIN theo tài khoản Google – đăng nhập 1 lần, máy tính + điện thoại cùng sửa 1 bộ dữ liệu.
+   POST /sb/login { id_token } → { token, email }   (xác minh ID token của Google, cấp phiên 180 ngày)
+   GET  /sb   (Authorization: Bearer <phiên>) → { rev, v, at }
+   PUT  /sb   { base, v } → { rev } | 409 { conflict, rev, v }   (base = số phiên bản máy đang giữ)
+   POST /sbp  { id, d } → lưu 1 ảnh (dataURL jpeg) · GET /sbp/<id> → ảnh (id = băm nội dung, khó đoán) */
+const SB_GID = '887723128133-u9anir3ppp3l41ciganrasr7bf43v265.apps.googleusercontent.com';
+const SB_DAYS = 180;
+async function sbInit(env) {
+  if (sbInit.ok) return;
+  await env.DB.batch([
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sb (email TEXT PRIMARY KEY, rev INTEGER, v TEXT, at INTEGER)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbs (tok TEXT PRIMARY KEY, email TEXT, at INTEGER)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbp (id TEXT PRIMARY KEY, email TEXT, d TEXT, at INTEGER)')
+  ]);
+  sbInit.ok = true;
+}
+const sbTok = () => { const a = new Uint8Array(30); crypto.getRandomValues(a); return [...a].map(x => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join(''); };
+async function sbWho(env, req) {
+  const t = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!/^[a-z0-9]{30}$/.test(t)) return null;
+  const r = await env.DB.prepare('SELECT email, at FROM sbs WHERE tok = ?').bind(t).first();
+  if (!r || Date.now() - r.at > SB_DAYS * 864e5) return null;
+  return r.email;
+}
+async function sbLogin(env, req) {
+  const b = await req.json().catch(() => null), idt = String(b && b.id_token || '');
+  if (!idt || idt.length > 4000) return json({ ok: false, error: 'thiếu mã đăng nhập' }, 400);
+  const g = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idt)).then(r => r.json()).catch(() => null);
+  const gid = env.SB_GID || SB_GID;
+  if (!g || g.aud !== gid || !/^https:\/\/accounts\.google\.com$|^accounts\.google\.com$/.test(g.iss || '') || String(g.email_verified) !== 'true' || !g.email) return json({ ok: false, error: 'Google không xác nhận được tài khoản' }, 401);
+  if (Number(g.exp || 0) * 1000 < Date.now()) return json({ ok: false, error: 'mã đăng nhập hết hạn' }, 401);
+  const email = String(g.email).toLowerCase(), tok = sbTok();
+  await env.DB.prepare('INSERT INTO sbs (tok, email, at) VALUES (?, ?, ?)').bind(tok, email, Date.now()).run();
+  return json({ ok: true, token: tok, email, name: g.name || '', pic: g.picture || '' });
+}
+async function sbRoute(env, req, u) {
+  await sbInit(env);
+  if (u.pathname === '/sb/login' && req.method === 'POST') return sbLogin(env, req);
+  if (u.pathname.startsWith('/sbp/') && req.method === 'GET') {
+    const id = u.pathname.slice(5);
+    if (!/^p_[a-f0-9]{32}$/.test(id)) return new Response('sai mã ảnh', { status: 400, headers: cors });
+    const r = await env.DB.prepare('SELECT d FROM sbp WHERE id = ?').bind(id).first();
+    if (!r) return new Response('không có ảnh', { status: 404, headers: cors });
+    const m = /^data:(image\/[a-z]+);base64,(.*)$/.exec(r.d || '');
+    if (!m) return new Response('ảnh hỏng', { status: 500, headers: cors });
+    const bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+    return new Response(bin, { headers: { 'content-type': m[1], 'cache-control': 'public, max-age=31536000, immutable', ...cors } });
+  }
+  const email = await sbWho(env, req);
+  if (!email) return json({ ok: false, error: 'chưa đăng nhập', auth: false }, 401);
+  if (u.pathname === '/sb/logout' && req.method === 'POST') { const t = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, ''); await env.DB.prepare('DELETE FROM sbs WHERE tok = ?').bind(t).run(); return json({ ok: true }); }
+  if (u.pathname === '/sb/me') return json({ ok: true, email });
+  if (u.pathname === '/sbp' && req.method === 'POST') {
+    if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'ảnh quá lớn' }, 413);
+    const b = await req.json().catch(() => null), id = String(b && b.id || ''), d = String(b && b.d || '');
+    if (!/^p_[a-f0-9]{32}$/.test(id) || !/^data:image\/[a-z]+;base64,/.test(d)) return json({ ok: false, error: 'sai dữ liệu ảnh' }, 400);
+    await env.DB.prepare('INSERT OR IGNORE INTO sbp (id, email, d, at) VALUES (?, ?, ?, ?)').bind(id, email, d, Date.now()).run();
+    return json({ ok: true, id });
+  }
+  if (u.pathname === '/sb' && req.method === 'GET') {
+    const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(email).first();
+    let v = null; try { v = r ? JSON.parse(r.v) : null; } catch {}
+    return json({ ok: true, email, rev: r ? r.rev : 0, v, at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' });
+  }
+  if (u.pathname === '/sb' && req.method === 'PUT') {
+    if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'dữ liệu quá lớn (tối đa ~1,7MB, không tính ảnh)' }, 413);
+    const b = await req.json().catch(() => null);
+    if (!b || typeof b.v !== 'object' || !Array.isArray(b.v && b.v.sites)) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+    const base = Number(b.base) || 0, v = JSON.stringify(b.v), now = Date.now();
+    const cur = await env.DB.prepare('SELECT rev, v FROM sb WHERE email = ?').bind(email).first();
+    const rev = cur ? cur.rev : 0;
+    if (base !== rev) { let cv = null; try { cv = JSON.parse(cur.v); } catch {} return json({ ok: false, conflict: true, rev, v: cv }, 409); }
+    const res = cur
+      ? await env.DB.prepare('UPDATE sb SET rev = ?, v = ?, at = ? WHERE email = ? AND rev = ?').bind(rev + 1, v, now, email, rev).run()
+      : await env.DB.prepare('INSERT OR IGNORE INTO sb (email, rev, v, at) VALUES (?, 1, ?, ?)').bind(email, v, now).run();
+    if (!res.meta || !res.meta.changes) return json({ ok: false, conflict: true, rev: -1 }, 409);
+    return json({ ok: true, rev: rev + 1, at: now });
+  }
+  return json({ ok: false, error: 'không có lệnh này' }, 404);
 }
 async function ipHash(req) {
   const ip = req.headers.get('CF-Connecting-IP') || ''; if (!ip) return '';
@@ -749,11 +829,13 @@ export default {
       if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/dich' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 200000) return json({ ok: false, error: 'too big' }, 413); try { return json(await dichTrang(await req.json().catch(() => null))); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
+      if (u.pathname === '/sb' || u.pathname.startsWith('/sb/') || u.pathname === '/sbp' || u.pathname.startsWith('/sbp/')) return await sbRoute(env, req, u);
       if (u.pathname === '/ct' && req.method === 'POST') return json(await ctPut(env, req));
       if (u.pathname === '/ct') return json(await ctGet(env, u.searchParams.get('id')), 200, { 'cache-control': 'no-store' });
       if (u.pathname === '/cong-trinh' || u.pathname === '/cong-trinh/') { const r = await shopFile('cong-trinh.html', 'html'); const h = new Headers(r.headers); h.set('cache-control', 'no-cache'); h.set('x-robots-tag', 'noindex'); return new Response(r.body, { status: r.status, headers: h }); }
       if (u.pathname === '/ct/site.js') return await shopFile('ct/site.js', 'js');
       if (u.pathname === '/ct/site.css') return await shopFile('ct/site.css', 'css');
+      if (u.pathname === '/ct/sbsync.js') return await shopFile('ct/sbsync.js', 'js');
       if (u.pathname === '/ct/icon48.png') return await shopFile('ct/icon48.png', 'png');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
