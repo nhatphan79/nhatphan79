@@ -546,12 +546,19 @@
   }
   function gantt(W, S) {
     const P = S.plan.filter(p => p.s && p.e); if (!P.length) return;
-    const a = P.reduce((m, p) => p.s < m ? p.s : m, P[0].s), b = P.reduce((m, p) => p.e > m ? p.e : m, P[0].e), T = Math.max(1, days(a, b) + 1), d = today();
-    const c = card('Biểu đồ tiến độ', 'gantt'), g = $('div', 'sb-gantt');
+    // V1.4.5: trục theo TUẦN (thứ 2 → chủ nhật), ghi rõ ngày của từng tuần; kéo ngang khi dài
+    const a1 = P.reduce((m, p) => p.s < m ? p.s : m, P[0].s), b1 = P.reduce((m, p) => p.e > m ? p.e : m, P[0].e), d = today();
+    const dow = x => (new Date(x + 'T00:00').getDay() + 6) % 7, a = addD(a1, -dow(a1)), b = addD(b1, 6 - dow(b1)), T = Math.max(7, days(a, b) + 1), NW = Math.round(T / 7), WK = 76;
+    const c = card('Biểu đồ tiến độ', 'gantt'), wrap = $('div', 'sb-gwrap'), g = $('div', 'sb-gantt sb-gweek'); wrap.append(g);
+    g.style.setProperty('--wk', WK + 'px'); g.style.width = 'calc(var(--glw) + ' + NW * WK + 'px)';
     const tg = $('button', 'sb-btn ghost sm sb-gtog', gantt.full ? '▴ Thu gọn theo nhóm' : '▾ Hiện chi tiết từng việc'); tg.type = 'button'; tg.addEventListener('click', () => { gantt.full = !gantt.full; render(true); });
     if (planTree(S).some(x => x.items.length > 1)) c.append(tg);
-    const ax = $('div', 'sb-gax'); let m = a.slice(0, 7) + '-01';
-    while (m <= b) { const x = Math.max(0, days(a, m)) / T * 100; const s = $('span', '', 'T' + (+m.slice(5, 7)) + (m.slice(5, 7) === '01' ? '/' + m.slice(2, 4) : '')); s.style.left = x + '%'; ax.append(s); const nd = new Date(m + 'T00:00'); nd.setMonth(nd.getMonth() + 1); m = ymd(nd); }
+    const ax = $('div', 'sb-gax'), dm = x => x.slice(8, 10) + '/' + x.slice(5, 7);
+    for (let w = 0; w < NW; w++) { const ws = addD(a, w * 7), we = addD(ws, 6), cell = $('div', 'sb-gwk' + (d >= ws && d <= we ? ' now' : '') + (w && ws.slice(5, 7) !== addD(ws, -7).slice(5, 7) ? ' mon' : ''));
+      cell.style.left = w * WK + 'px'; cell.style.width = WK + 'px'; cell.append($('b', '', 'Tuần ' + (w + 1)), $('span', '', dm(ws) + '–' + dm(we)));
+      cell.title = 'Tuần ' + (w + 1) + ': thứ 2 ' + fdFull(ws) + ' → chủ nhật ' + fdFull(we); ax.append(cell);
+    }
+    { let m = a.slice(0, 7) + '-01'; while (m <= b) { const st = m < a ? a : m, x = days(a, st) / 7 * WK; const ml = $('i', 'sb-gmo', 'Tháng ' + (+m.slice(5, 7)) + '/' + m.slice(0, 4)); ml.style.left = x + 'px'; ax.append(ml); const nd = new Date(m + 'T00:00'); nd.setMonth(nd.getMonth() + 1); m = ymd(nd); } }
     g.append($('div', 'sb-glb'), ax);
     const row = (p, lbTxt, cls, title) => { if (!p.s || !p.e) return; const lb = $('div', 'sb-glb ' + (cls || ''), lbTxt); lb.title = title || lbTxt;
       const tr = $('div', 'sb-gtr'), br = $('div', 'sb-gbar ' + pState(p)[0] + (p.mile ? ' mile' : '') + (cls ? ' ' + cls : '')), dn = $('i');
@@ -566,7 +573,7 @@
       if (gantt.full) G.items.forEach(p => row(p, '· ' + (p.t || '—'), 'sub', (G.g ? G.g + ' · ' : '') + p.t));
     });
     if (d >= a && d <= b) { const nw = $('div', 'sb-gnow'); nw.style.left = 'calc(var(--glw) + (100% - var(--glw)) * ' + (days(a, d) / T) + ')'; nw.title = 'Hôm nay'; g.append(nw); }
-    c.append(g, $('div', 'sb-legend', '▮ Xanh = phần đã làm · Cam = đang làm · Đỏ = chậm · 🏁 viền đậm = mốc nghiệm thu · Vạch đỏ dọc = hôm nay')); W.append(c);
+    c.append(wrap, $('div', 'sb-legend', 'Mỗi cột là 1 tuần (thứ 2 → chủ nhật) · ▮ Xanh = phần đã làm · Cam = đang làm · Đỏ = chậm · 🏁 viền đậm = mốc nghiệm thu · Vạch đỏ dọc = hôm nay')); W.append(c);
   }
   // V1.4.3: tiến độ dạng cây giống file Excel – Tổng › Phần (A, B, C…) › Nhóm (I, 1, 2…) › Công việc. Giữ đúng thứ tự nhập, không tự sắp xếp.
   // Mỗi việc: { sec: 'B|THI CÔNG PHẦN NGẦM', gn: '1', g: 'Tầng hầm B3', n: '', t, s, e, pct, mile }

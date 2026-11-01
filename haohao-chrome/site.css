@@ -355,3 +355,19 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-gbar.sub { top: 6px; bottom: 6px; opacity: .85; }
 .sb-gtog { float: right; margin: -34px 0 8px; }
 .sb-pt tr.psec .sb-st { text-transform: none; }
+/* V1.4.5: biểu đồ theo tuần */
+.sb-gwrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px 6px; }
+.sb-gweek { min-width: 100%; }
+.sb-gweek .sb-gax { height: 44px; border-bottom: 1px solid var(--line); }
+.sb-gwk { position: absolute; bottom: 0; height: 28px; box-sizing: border-box; border-left: 1px solid var(--line); padding: 2px 0 0 4px; display: grid; line-height: 1.15; }
+.sb-gwk b { font-size: 10.5px; color: var(--ink); font-weight: 800; } .sb-gwk span { font-size: 10px; color: var(--soft); font-weight: 600; white-space: nowrap; }
+.sb-gwk.mon { border-left: 2px solid #C9CED8; } .sb-gwk.now { background: #FFF1F0; } .sb-gwk.now b { color: var(--bad); }
+.sb-gmo { position: absolute; top: 0; font-style: normal; font-size: 11px; font-weight: 800; color: var(--ink); padding-left: 4px; white-space: nowrap; border-left: 2px solid #C9CED8; height: 16px; }
+.sb-gweek .sb-gtr { background: repeating-linear-gradient(90deg, transparent 0 calc(var(--wk) - 1px), #ECEEF2 0 var(--wk)); }
+.sb-gweek .sb-glb { position: sticky; left: 0; z-index: 2; background: #fff; }
+.sb-gweek .sb-glb.sec { background: #DCE6F4; position: static; }
+.sb-gweek .sb-gnow { z-index: 1; }
+.sb-gweek .sb-gwk span { position: static; border: 0; height: auto; padding: 0; top: auto; }
+.sb-gweek .sb-glb.sec { position: sticky; left: 0; width: max-content; min-width: calc(var(--glw) - 16px); }
+.sb-gweek > .sb-glb:first-child { align-self: stretch; z-index: 3; }
+.sb-gwk span { letter-spacing: -.01em; }
