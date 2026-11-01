@@ -316,3 +316,11 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-rpsaved { width: auto; height: 32px; border: 1.5px solid var(--line); background: #fff; font-size: 13px; }
 .sb-btn.arm { background: var(--bad) !important; color: #fff !important; box-shadow: none !important; }
 @media print { .sb-noprint { display: none !important; } .sb-rp.editing { outline: 0; background: #fff; } }
+
+/* V1.3.7: ô thêm ý dưới mỗi mục báo cáo */
+.sb-rpadd { margin: 6px 0 2px; padding: 8px 12px 8px 30px; min-height: 34px; background: #FFF8E6; border: 1.5px dashed #F2C46B; border-radius: 10px; outline: none; font-size: 14px; line-height: 1.6; }
+.sb-rpadd:focus { border-style: solid; border-color: var(--acc); background: #FFF4D6; }
+.sb-rpadd li, .sb-rpaddv li { list-style: disc; } .sb-rpadd li.sub, .sb-rpaddv li.sub { margin-left: 22px; list-style: circle; }
+.sb-rpadd:empty::before, .sb-rpadd li:only-child:empty::before { content: 'Gõ thêm ý cho mục này…'; color: #B9A06B; }
+.sb-rpaddv { margin: 6px 0 2px; padding-left: 22px; font-size: 14px; line-height: 1.6; }
+.sb-rpadd li:only-child:has(> br:only-child)::before { content: 'Gõ thêm ý cho mục này… (Enter: xuống dòng · Tab: ý con)'; color: #B9A06B; }
