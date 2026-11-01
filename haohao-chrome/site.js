@@ -905,7 +905,7 @@
       if (R.matNext.length) c.append($('p', 'sb-p', '🧱 Vật tư cần chuẩn bị: ' + R.matNext.slice(0, 5).map(m => m.name + ' ' + (m.qty || '') + ' ' + (m.unit || '') + ' (' + fd(m.need) + ')').join(' · '))); }
     // ghi chú CHT
     { const c = S2('6. Đề xuất của Chỉ huy trưởng'); if (RO) c.append($('p', 'sb-p sb-pre2', N.note || '—')); else c.append(field(N, { k: 'note', lb: 'Đánh giá & đề xuất', t: 'area', rows: 4, rr: false, ph: 'Nhận xét tiến độ, chất lượng, an toàn; kiến nghị chủ đầu tư…' })); }
-    const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Chỉ huy trưởng'), $('span', '', 'Chủ đầu tư / TVGS')); doc.append(ft);
+    const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Người lập'), $('span', '', 'Chỉ huy trưởng')); doc.append(ft);
     W.append(doc);
   }
 
