@@ -563,7 +563,10 @@
     const row = (p, lbTxt, cls, title) => { if (!p.s || !p.e) return; const lb = $('div', 'sb-glb ' + (cls || ''), lbTxt); lb.title = title || lbTxt;
       const tr = $('div', 'sb-gtr'), br = $('div', 'sb-gbar ' + pState(p)[0] + (p.mile ? ' mile' : '') + (cls ? ' ' + cls : '')), dn = $('i');
       br.style.left = days(a, p.s) / T * 100 + '%'; br.style.width = Math.max(.6, dur(p) / T * 100) + '%'; dn.style.width = Math.min(100, num(p.pct)) + '%'; br.append(dn); br.title = lb.title + ' · ' + fdFull(p.s) + ' → ' + fdFull(p.e) + ' · thực tế ' + num(p.pct) + '%';
-      tr.append(br); g.append(lb, tr); };
+      const dm2 = x => x.slice(8, 10) + '/' + x.slice(5, 7), L0 = days(a, p.s) / T * 100, L1 = (days(a, p.s) + dur(p)) / T * 100;
+      const ls = $('span', 'sb-gd s' + (cls ? ' ' + cls : ''), dm2(p.s)), le = $('span', 'sb-gd e' + (cls ? ' ' + cls : ''), dm2(p.e)); ls.style.left = L0 + '%'; le.style.left = L1 + '%';
+      const tight = days(a, p.s) / 7 * WK < 36; if (tight) le.textContent = dm2(p.s) + ' → ' + dm2(p.e);
+      tr.append(...(tight ? [] : [ls]), br, le); g.append(lb, tr); };
     let lastSec = null;
     planTree(S).forEach(G => {
       if (G.sec && G.sec !== lastSec) { lastSec = G.sec; const sh = $('div', 'sb-glb sec', G.sec.replace('|', '. ')); sh.style.gridColumn = '1 / -1'; g.append(sh); }
