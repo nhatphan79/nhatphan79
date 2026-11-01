@@ -6,6 +6,7 @@
 <title>Tab mới</title>
 <link rel="stylesheet" href="newtab.css">
 <link rel="stylesheet" href="proj.css">
+<link rel="stylesheet" href="site.css">
 <link rel="stylesheet" href="doifile.css">
 </head>
 <body>
@@ -52,12 +53,14 @@
     </nav>
   </main>
   <section class="proj" id="proj" hidden aria-label="Kế hoạch dự án"></section>
-  <footer class="copyr">© 2026 HaoHao · Bản quyền thuộc Phan Thanh Nhật · <a href="tel:+84366159790">+84 366.159.790</a><button type="button" class="pgsw" id="pgsw" hidden role="switch" aria-checked="false" aria-label="Chuyển trang Dự án" title="Chuyển trang Dự án"><i class="pgsw-k" aria-hidden="true"></i><span class="pgsw-o">🏠 Trang chủ</span><span class="pgsw-o">📋 Dự án</span></button></footer>
+  <section class="sbx" id="site" hidden aria-label="Điều hành công trình"></section>
+  <footer class="copyr">© 2026 HaoHao · Bản quyền thuộc Phan Thanh Nhật · <a href="tel:+84366159790">+84 366.159.790</a><span class="pgsw" id="pgsw" hidden role="tablist" aria-label="Chọn trang" data-pg="0"><i class="pgsw-k" aria-hidden="true"></i><button type="button" class="pgsw-o" role="tab" data-pg="0" aria-selected="true">🏠 Trang chủ</button><button type="button" class="pgsw-o" role="tab" data-pg="1" aria-selected="false">📋 Dự án</button><button type="button" class="pgsw-o" role="tab" data-pg="2" aria-selected="false" title="Điều hành công trình – SITE BRAIN">🏗️ Công trình</button></span></footer>
   <script src="common.js"></script>
 <script src="i18n.js"></script>
 <script src="i18n-page.js"></script>
   <script src="newtab.js"></script>
   <script src="proj.js"></script>
+  <script src="site.js"></script>
   <script src="qrcode.js"></script>
   <script src="weeklock.js"></script>
   <script src="content.js"></script>

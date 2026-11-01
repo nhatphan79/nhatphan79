@@ -172,19 +172,23 @@
   chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.couponFeed) showDeals(); });
 
 
-  // V1.16: công tắc Trang chủ ⇄ Dự án (V1.55: mọi người dùng); nhớ trang đang chọn (lần sau mở Tab mới vào đúng trang đó)
+  // V1.16: công tắc Trang chủ ⇄ Dự án (V1.55: mọi người dùng). V1.2.5: thêm 🏗️ Công trình (SITE BRAIN, site.js) → công tắc 3 nút
   {
-    const sw = document.getElementById('pgsw'), pj = document.getElementById('proj');
-    const set = on => {
-      document.body.classList.toggle('pg-proj', on); pj.hidden = !on; sw.setAttribute('aria-checked', on ? 'true' : 'false');
-      const t = on ? 'Kế hoạch dự án' : 'Tab mới'; document.title = HT.tr ? HT.tr(t) : t;
-      if (on && document.activeElement && document.activeElement.id === 'q') document.activeElement.blur();
+    const sw = document.getElementById('pgsw'), pj = document.getElementById('proj'), sb = document.getElementById('site');
+    const TT = ['Tab mới', 'Kế hoạch dự án', 'Điều hành công trình'];
+    const set = n => {
+      document.body.classList.toggle('pg-proj', n > 0); document.body.classList.toggle('pg-site', n === 2);
+      pj.hidden = n !== 1; if (sb) sb.hidden = n !== 2; sw.dataset.pg = String(n);
+      sw.querySelectorAll('.pgsw-o').forEach(b => b.setAttribute('aria-selected', b.dataset.pg === String(n) ? 'true' : 'false'));
+      document.title = HT.tr ? HT.tr(TT[n]) : TT[n];
+      if (n && document.activeElement && document.activeElement.id === 'q') document.activeElement.blur();
+      if (n === 2) window.dispatchEvent(new CustomEvent('sb-show'));
+      try { sessionStorage.setItem('hhPg', String(n)); } catch {}
     };
-    let on = false; set(false);
-    // V1.55: trang Dự án mở cho mọi người dùng (trước V1.17–V1.54 chỉ máy chủ app)
     sw.hidden = false;
-    set(false);   // V1.69: mở Tab mới luôn về Trang chủ (không nhớ trang Dự án)
-    sw.addEventListener('click', () => { on = !on; set(on); });
+    let n0 = 0; try { n0 = +sessionStorage.getItem('hhPg') || 0; } catch {}   // tải lại trang (F5) giữ đúng trang; Tab mới luôn về Trang chủ
+    set(n0 > 2 ? 0 : n0);
+    sw.addEventListener('click', e => { const b = e.target.closest('.pgsw-o'); if (b) set(+b.dataset.pg); });
   }
   // nút nhanh: mở đúng mục trong HaoHao (HaoHao chạy ngay trên trang này)
   document.querySelectorAll('.quick button[data-tab]').forEach(b => b.addEventListener('click', () =>
