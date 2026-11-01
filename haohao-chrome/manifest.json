@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – Việc cần làm, Nhắc nhở, Ghi chú & Tab mới",
-  "version": "1.10.373",
-  "version_name": "V1.2.5",
+  "version": "1.10.374",
+  "version_name": "V1.2.6",
   "description": "Ghi việc cần làm, nhắc giờ, lịch âm, ghi chú, Pomodoro, dịch nhanh, so giá Shopee – chú hamster giúp bạn bớt quên, bớt rối.",
   "permissions": [
     "storage",
@@ -22,6 +22,7 @@
   ],
   "host_permissions": [
     "https://api.coingecko.com/*",
+    "https://bot-api.zaloplatforms.com/*",
     "https://api.dexscreener.com/*",
     "http://127.0.0.1:8686/*",
     "https://mail.google.com/*",

@@ -216,3 +216,13 @@ select.sb-in { cursor: pointer; padding-right: 2px; }
   .sb-quick .sb-in.who { flex-basis: 100px; }
 }
 @media (prefers-reduced-motion: reduce) { .sb-toast { transition: none; } }
+
+/* V1.2.6: 🤖 bot Zalo */
+.sb-btn .sb-on { font-style: normal; color: #2E8B57; font-size: 10px; margin-left: 2px; }
+.sb-btn.err { box-shadow: inset 0 0 0 1.5px var(--bad); color: var(--bad); }
+.sb-botsteps { margin: 6px 0 4px; font-size: 13.5px; color: var(--ink); }
+.sb-botsteps a { color: var(--blue); font-weight: 700; }
+.sb-note.bad { background: #FDECE7; color: var(--bad); }
+.sb-pre { white-space: pre-wrap; font: 13px/1.5 "Segoe UI", system-ui, sans-serif; background: #F3F6FA; border-radius: 12px; padding: 12px 14px; max-height: 340px; overflow: auto; margin: 10px 0 0; }
+label.sb-chip { display: inline-flex; align-items: center; }
+label.sb-chip.on { background: #E8EEFB; color: var(--ink); }

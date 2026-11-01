@@ -196,8 +196,77 @@
     const add = $('button', 'sb-btn sm', '＋ Công trình'); add.type = 'button'; add.addEventListener('click', () => infoDlg(newSite(''), true));
     const bk = $('button', 'sb-btn ghost sm', '💾 Sao lưu'); bk.type = 'button'; bk.title = 'Tải file sao lưu toàn bộ dữ liệu công trình (.json)'; bk.addEventListener('click', backup);
     const rs = $('button', 'sb-btn ghost sm', '📂 Khôi phục'); rs.type = 'button'; rs.title = 'Nạp lại từ file sao lưu'; rs.addEventListener('click', restore);
-    h.append(add, bk, rs); W.append(h);
+    const bt = $('button', 'sb-btn ghost sm', '🤖 Bot Zalo'); bt.type = 'button'; bt.title = 'Gửi tổng quan vào Zalo mỗi ngày'; bt.addEventListener('click', botDlg);
+    if (botCfg.on && botCfg.chatId) bt.append($('i', 'sb-on', '●'));
+    if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
+    h.append(bt, add, bk, rs); W.append(h);
   }
+  // 🤖 V1.2.6: bot Zalo – gửi Tổng quan mỗi ngày (sitebot.js chạy nền)
+  let botCfg = {};
+  chrome.storage.local.get('siteBot').then(r => { botCfg = r.siteBot || {}; if (ready) render(); }).catch(() => {});
+  const bgMsg = m => chrome.runtime.sendMessage(m).catch(e => ({ ok: false, err: String(e.message || e) }));
+  function botDlg() {
+    const c = { token: '', chatId: '', chatName: '', time: '07:00', on: true, cmd: true, ...botCfg };
+    const saveBot = async p => { Object.assign(c, p); const { siteBot: o = {} } = await chrome.storage.local.get('siteBot'); botCfg = { ...o, ...c }; await chrome.storage.local.set({ siteBot: botCfg }); };
+    const D = dialog('🤖 Bot Zalo – Tổng quan mỗi ngày', b => {
+      const st = $('ol', 'sb-ol sb-botsteps');
+      const li1 = $('li'); const a = $('a', '', 'bot.zaloplatforms.com'); a.href = 'https://bot.zaloplatforms.com'; a.target = '_blank'; a.rel = 'noopener';
+      li1.append('Mở ', a, ', đăng nhập Zalo → ', $('b', '', 'Tạo bot'), ' → chép ', $('b', '', 'Bot Token'), ' dán vào ô dưới.');
+      const li2 = $('li'); li2.append('Mở Zalo trên điện thoại, tìm bot vừa tạo, nhắn ', $('b', '', 'hi'), ' (muốn gửi vào nhóm thì thêm bot vào nhóm rồi nhắn trong nhóm).');
+      const li3 = $('li'); li3.append('Bấm ', $('b', '', '🔗 Kết nối'), ' – HaoHao tự nhận cuộc trò chuyện.');
+      st.append(li1, li2, li3); b.append(st);
+      const g = $('div', 'sb-fg');
+      const tk = $('input', 'sb-in'); tk.type = 'password'; tk.value = c.token || ''; tk.placeholder = '123456789:AbCdEf…'; tk.autocomplete = 'off'; tk.setAttribute('aria-label', 'Bot Token');
+      const show = $('button', 'sb-btn ghost sm', '👁'); show.type = 'button'; show.title = 'Hiện / ẩn token'; show.addEventListener('click', () => { tk.type = tk.type === 'password' ? 'text' : 'password'; });
+      const tw = $('div', 'sb-row'); tk.style.flex = '1'; tw.append(tk, show);
+      g.append(lab('Bot Token', tw, true));
+      const linkSt = $('div', 'sb-note'), setLink = () => { linkSt.textContent = c.chatId ? '✅ Đã kết nối: ' + (c.chatName || 'Zalo') + ' (mã ' + c.chatId + ')' : 'Chưa kết nối cuộc trò chuyện nào'; };
+      setLink();
+      const lk = $('button', 'sb-btn sm', '🔗 Kết nối'); lk.type = 'button';
+      lk.addEventListener('click', async () => {
+        const token = tk.value.trim(); if (!/^\d+:.+/.test(token)) { toast('Token có dạng 123456789:chuỗi-ký-tự'); return tk.focus(); }
+        lk.disabled = true; lk.textContent = '⏳ Kiểm tra token…';
+        const ck = await bgMsg({ type: 'sb-bot-check', token });
+        if (!ck || !ck.ok) { lk.disabled = false; lk.textContent = '🔗 Kết nối'; linkSt.textContent = '⚠ ' + ((ck && ck.err) || 'Không gọi được Zalo'); return; }
+        lk.textContent = '⏳ Đang chờ tin nhắn "hi" (≤ 50 giây)…'; linkSt.textContent = 'Bot: ' + ck.name + ' – giờ mở Zalo nhắn "hi" cho bot';
+        const r = await bgMsg({ type: 'sb-bot-link', token });
+        lk.disabled = false; lk.textContent = '🔗 Kết nối';
+        if (r && r.ok) { await saveBot({ token, chatId: r.chatId, chatName: (r.group ? 'Nhóm · ' : '') + (r.chatName || ck.name), on: true }); setLink(); toast('✅ Đã kết nối Zalo – bot vừa gửi lời chào'); render(true); }
+        else linkSt.textContent = '⚠ ' + ((r && r.err) || 'Không kết nối được');
+      });
+      const lr = $('div', 'sb-row'); lr.append(lk); g.append(lab('Cuộc trò chuyện nhận tin', linkSt, true), lr);
+      const tm = $('input', 'sb-in'); tm.type = 'time'; tm.value = c.time || '07:00'; tm.setAttribute('aria-label', 'Giờ gửi');
+      const on = $('input', 'sb-chk'); on.type = 'checkbox'; on.checked = c.on !== false; on.style.margin = '6px 0';
+      const cm = $('input', 'sb-chk'); cm.type = 'checkbox'; cm.checked = c.cmd !== false; cm.style.margin = '6px 0';
+      g.append(lab('Giờ gửi mỗi ngày', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd', cm));
+      b.append(g);
+      const sl = $('div', 'sb-fl', 'Công trình được gửi'); const sw = $('div', 'sb-chips');
+      data.sites.forEach(S => { const l = $('label', 'sb-chip on'), x = $('input'); x.type = 'checkbox'; x.checked = !S.botOff; x.style.marginRight = '6px'; l.classList.toggle('on', x.checked);
+        x.addEventListener('change', () => { S.botOff = !x.checked; l.classList.toggle('on', x.checked); save(); }); l.append(x, (S.code ? S.code + ' · ' : '') + S.name); sw.append(l); });
+      if (data.sites.length) b.append(sl, sw);
+      const act = $('div', 'sb-row'); act.style.marginTop = '12px';
+      const pv = $('button', 'sb-btn ghost sm', '👀 Xem trước tin nhắn'); pv.type = 'button';
+      const pre = $('pre', 'sb-pre'); pre.hidden = true;
+      pv.addEventListener('click', async () => { const r = await bgMsg({ type: 'sb-bot-preview' }); pre.textContent = (r && r.text) || (r && r.err) || ''; pre.hidden = false; });
+      const ts = $('button', 'sb-btn ghost sm', '📨 Gửi thử ngay'); ts.type = 'button';
+      ts.addEventListener('click', async () => {
+        if (!c.chatId) return toast('Bấm 🔗 Kết nối trước');
+        await saveBot({ token: tk.value.trim() || c.token, time: tm.value || '07:00', on: on.checked, cmd: cm.checked });
+        ts.disabled = true; ts.textContent = '⏳ Đang gửi…'; const r = await bgMsg({ type: 'sb-bot-test' }); ts.disabled = false; ts.textContent = '📨 Gửi thử ngay';
+        toast(r && r.ok ? '📨 Đã gửi ' + r.n + ' tin vào Zalo' : '⚠ ' + ((r && r.err) || 'Gửi lỗi'));
+      });
+      act.append(pv, ts); b.append(act, pre);
+      if (c.err) b.append($('div', 'sb-note bad', '⚠ Lần gửi gần nhất lỗi: ' + c.err));
+      b.append($('div', 'sb-note', '💡 Bot chạy trong HaoHao nên máy tính và Chrome cần đang mở. Lỡ giờ (máy tắt) thì HaoHao gửi bù ngay khi mở Chrome trong ngày. Token chỉ lưu trên máy này.'));
+      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked });
+    }, async () => {
+      const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = '';
+      if (p.token !== c.token && c.token) toast('Đổi token → cần 🔗 Kết nối lại');
+      await saveBot(p); render(true); if (p.on && c.chatId) toast('🤖 Bot sẽ gửi tổng quan lúc ' + p.time + ' mỗi ngày');
+    });
+    void D;
+  }
+  let D_on = () => ({});
   function backup() {
     const b = new Blob([JSON.stringify({ app: 'HaoHao SITE BRAIN', at: new Date().toISOString(), data }, null, 1)], { type: 'application/json' });
     const a = $('a'); a.href = URL.createObjectURL(b); a.download = 'SITE-BRAIN-' + today() + '.json'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
