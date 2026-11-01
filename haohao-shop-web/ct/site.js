@@ -399,7 +399,9 @@
       const cm = $('input', 'sb-chk'); cm.type = 'checkbox'; cm.checked = c.cmd !== false; cm.style.margin = '6px 0';
       const at = $('input', 'sb-in'); at.type = 'time'; at.value = c.alertTime || '16:00'; at.setAttribute('aria-label', 'Giờ cảnh báo');
       const ao = $('input', 'sb-chk'); ao.type = 'checkbox'; ao.checked = c.alertOn !== false; ao.style.margin = '6px 0';
-      g.append(lab('Giờ gửi tổng quan', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd / cb', cm), lab('🚨 Giờ cảnh báo trễ / chậm', at), lab('Bật cảnh báo trễ hạn', ao));
+      const rz = $('input', 'sb-chk'); rz.type = 'checkbox'; rz.checked = c.remindZalo !== false; rz.style.margin = '6px 0';
+      g.append(lab('⏰ Nhắc Todo & nhắc nhở qua Zalo (cả khi tắt máy)', rz),
+        lab('Giờ gửi tổng quan', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd / cb', cm), lab('🚨 Giờ cảnh báo trễ / chậm', at), lab('Bật cảnh báo trễ hạn', ao));
       b.append(g);
       const sl = $('div', 'sb-fl', 'Công trình được gửi'); const sw = $('div', 'sb-chips');
       data.sites.forEach(S => { const l = $('label', 'sb-chip on'), x = $('input'); x.type = 'checkbox'; x.checked = !S.botOff; x.style.marginRight = '6px'; l.classList.toggle('on', x.checked);
@@ -419,7 +421,7 @@
       act.append(pv, ts); b.append(act, pre);
       if (c.err) b.append($('div', 'sb-note bad', '⚠ Lần gửi gần nhất lỗi: ' + c.err));
       b.append($('div', 'sb-note', '💡 Bot chạy trong HaoHao nên máy tính và Chrome cần đang mở. Lỡ giờ (máy tắt) thì HaoHao gửi bù ngay khi mở Chrome trong ngày. Token chỉ lưu trên máy này.'));
-      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '16:00', alertOn: ao.checked });
+      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '16:00', alertOn: ao.checked, remindZalo: rz.checked });
     }, async () => {
       const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = ''; if (p.alertTime !== c.alertTime) p.lastAlert = '';
       if (p.token !== c.token && c.token) toast('Đổi token → cần 🔗 Kết nối lại');

@@ -165,6 +165,12 @@
   async function zaloEdit(raw, cfg) {
     const k = noDia(raw).split(/\s+/)[0], rest = raw.replace(/^\S+\s*/, ''), d = today();
     cfg = await getCfg();   // đọc mới: danh sách số thứ tự từ lệnh ds vừa gửi
+    if (k === 'xong' && !rest.trim()) {   // trả lời tin ⏰ nhắc Todo
+      const { todos = [] } = await chrome.storage.local.get('todos'), now = Date.now();
+      const c = todos.filter(t => !t.done && t.due && Date.parse(t.due) <= now + 60e3).sort((a, b) => Date.parse(b.due) - Date.parse(a.due))[0];
+      if (!c) return '⚠️ Không thấy việc nào vừa tới giờ. Nhắn "ds" để xem danh sách công trình, hoặc tick trên điện thoại.';
+      c.done = true; c.doneAt = now; await chrome.storage.local.set({ todos }); cloud().catch(() => {}); return '✅ Xong: ' + c.text;
+    }
     const B = await loadB(); if (!B || !B.sites.length) return /^(ds|xong|them|han|giao|td|nk|vande|ct|bct|bcth)$/.test(k) ? '🏗️ Chưa có công trình nào trong HaoHao.' : null;
     const S = curSite(B); ['tasks', 'plan', 'logs', 'issues'].forEach(x => { if (!Array.isArray(S[x])) S[x] = []; });
     const hd = head(S);
@@ -280,9 +286,30 @@
     getBase: async () => (await chrome.storage.local.get('sbBase')).sbBase,
     setBase: async v => chrome.storage.local.set({ sbBase: v })
   }) : null;
+  // ⏰ V1.4.0: Todo + Nhắc nhở cũng đồng bộ theo tài khoản (máy chủ ns=todo) – điện thoại xem / sửa, máy chủ nhắc qua Zalo
+  let ownWrite = 0;
+  const engT = self.SBSync ? self.SBSync({
+    api: SB_API, path: '/sb?ns=todo', empty: () => ({ todos: [], rules: [] }),
+    token: async () => (await auth()).token || '',
+    getLocal: async () => { const { todos = [], rules = [] } = await chrome.storage.local.get(['todos', 'rules']); return { todos: Array.isArray(todos) ? todos : [], rules: (Array.isArray(rules) ? rules : []).filter(r => r && r.type === 'reminder') }; },
+    setLocal: async v => { const { rules = [] } = await chrome.storage.local.get('rules'); ownWrite = Date.now(); await chrome.storage.local.set({ todos: Array.isArray(v.todos) ? v.todos : [], rules: [...(Array.isArray(rules) ? rules : []).filter(r => r && r.type !== 'reminder'), ...(Array.isArray(v.rules) ? v.rules : [])] }); },
+    getBase: async () => (await chrome.storage.local.get('sbBaseTodo')).sbBaseTodo,
+    setBase: async v => chrome.storage.local.set({ sbBaseTodo: v })
+  }) : null;
+  let tT = 0;
+  chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local' || !(ch.todos || ch.rules)) return; if (Date.now() - ownWrite < 1500) return; clearTimeout(tT); tT = setTimeout(() => cloud().catch(() => {}), 2500); });
+  async function zaloToServer(a) {   // gửi token bot lên máy chủ để máy chủ tự nhắc (kể cả khi tắt máy)
+    const c = await getCfg(), want = c.token && c.chatId && c.remindZalo !== false ? c.token + '|' + c.chatId : 'off';
+    if (a.zsent === want) return;
+    const body = want === 'off' ? { off: 1 } : { token: c.token, chat: String(c.chatId) };
+    const r = await fetch(SB_API + '/sb/zalo', { method: 'POST', headers: { authorization: 'Bearer ' + a.token, 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json()).catch(() => null);
+    if (r && r.ok) { const A = await auth(); A.zsent = want; await chrome.storage.local.set({ sbAuth: A }); }
+  }
   async function cloud() {
     const a = await auth(); if (!a.token || !eng) return null;
     const r = await eng.sync();
+    if (engT) { const r2 = await engT.sync(); if (!r2.ok && r.ok) Object.assign(r, { ok: r2.auth === false ? false : r.ok, err: r2.err, auth: r2.auth }); }
+    zaloToServer(a).catch(() => {});
     const A = await auth(); if (A.token !== a.token) return r;   // vừa đăng xuất / đổi tài khoản
     if (r.ok) Object.assign(A, { at: Date.now(), err: '' }); else if (r.auth === false) Object.assign(A, { token: '', err: 'Hết phiên đăng nhập – đăng nhập lại' }); else A.err = r.err;
     await chrome.storage.local.set({ sbAuth: A }); return r;

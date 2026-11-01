@@ -8,10 +8,10 @@
 <meta name="theme-color" content="#23305E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Công trình">
+<meta name="apple-mobile-web-app-title" content="HaoHao">
 <link rel="icon" href="/ct/icon48.png">
 <link rel="apple-touch-icon" href="/ct/icon48.png">
-<title>Công trình – HaoHao</title>
+<title>HaoHao – Việc cần làm & Công trình</title>
 <!-- 🏗️ HaoHao SITE BRAIN trên web / điện thoại.
      V1.3.0 (01/11): đăng nhập Google → sửa được, đồng bộ với HaoHao trên máy tính (sbsync.js, máy chủ /sb).
      Link chia sẻ cũ #<mã> (không đăng nhập) → chỉ xem (/ct).  ?ext=<id tiện ích> → sau khi đăng nhập gửi phiên về HaoHao.
@@ -44,10 +44,53 @@
     .sb-head .sb-btn.sm { padding: 7px 10px; }
     .sb-in { font-size: 16px; }   /* iPhone không tự phóng to khi gõ */
   }
+  /* ☑️ V1.4.0: thanh chuyển trang + Việc cần làm */
+  body.has-nav { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .hh-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: grid; grid-template-columns: 1fr 1fr; background: #fff; border-top: 1px solid #E5E7EB; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(35,48,94,.08); }
+  .hh-nav[hidden] { display: none; }
+  .hh-nav button { all: unset; cursor: pointer; text-align: center; padding: 10px 6px; border-radius: 12px; font-weight: 800; font-size: 14px; color: #6B7280; }
+  .hh-nav button.on { background: #23305E; color: #fff; }
+  #todo { max-width: 720px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px 24px; color: #23305E; }
+  .td-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 4px 0 12px; }
+  .td-head h1 { font-size: 22px; margin: 0; font-weight: 850; }
+  .td-status { font-size: 12px; color: #6B7280; } .td-status.bad { color: #C4401F; }
+  .td-add { background: #F6F7F9; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .td-row { display: flex; gap: 8px; align-items: center; }
+  .td-in { font: inherit; font-size: 16px; color: #23305E; border: 1.5px solid #E5E7EB; border-radius: 12px; padding: 10px 12px; background: #fff; min-width: 0; flex: 1; box-sizing: border-box; }
+  .td-in:focus { outline: 0; border-color: #E08A00; }
+  .td-dt { flex: none; width: 100%; }
+  .td-btn { all: unset; cursor: pointer; background: #23305E; color: #fff; font-weight: 800; padding: 10px 16px; border-radius: 12px; font-size: 15px; text-align: center; }
+  .td-btn.sm { padding: 7px 12px; font-size: 13px; } .td-btn.ghost { background: #fff; color: #23305E; box-shadow: inset 0 0 0 1.5px #E5E7EB; } .td-btn.danger { background: #fff; color: #C4401F; box-shadow: inset 0 0 0 1.5px #F2B8A6; } .td-btn.arm { background: #C4401F; color: #fff; }
+  .td-star { all: unset; cursor: pointer; font-size: 22px; padding: 4px 6px; }
+  .td-quick { display: flex; gap: 6px; flex-wrap: wrap; }
+  .td-chip { all: unset; cursor: pointer; font-size: 13px; font-weight: 700; padding: 6px 11px; border-radius: 99px; background: #fff; color: #23305E; box-shadow: inset 0 0 0 1px #E5E7EB; }
+  .td-grp { margin-bottom: 14px; } .td-grp h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #6B7280; margin: 0 0 6px 4px; }
+  .td-grp.late h3 { color: #C4401F; }
+  .td-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; overflow: hidden; }
+  .td-it { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-top: 1px solid #F0F1F4; }
+  .td-it:first-child { border-top: 0; }
+  .td-ck { width: 22px; height: 22px; accent-color: #2E8B57; margin-top: 1px; flex: none; }
+  .td-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+  .td-tx { font-size: 15.5px; line-height: 1.4; word-break: break-word; }
+  .td-due { font-size: 12.5px; color: #6B7280; font-weight: 600; }
+  .td-it.late .td-due { color: #C4401F; } .td-it.star .td-tx { font-weight: 700; }
+  .td-it.done .td-tx { text-decoration: line-through; color: #9AA1B5; }
+  .td-it.off .td-tx { color: #9AA1B5; }
+  .td-sw { width: 40px; height: 22px; accent-color: #2E8B57; flex: none; }
+  .td-x { all: unset; cursor: pointer; color: #9AA1B5; padding: 2px 6px; border-radius: 6px; font-size: 13px; } .td-x.arm { background: #C4401F; color: #fff; }
+  .td-none, .td-empty { color: #9AA1B5; text-align: center; padding: 18px; font-size: 14px; }
+  .td-more { all: unset; cursor: pointer; color: #6B7280; font-weight: 700; font-size: 13px; padding: 4px 6px; margin-bottom: 12px; display: inline-block; }
+  .td-radd { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; background: #F6F7F9; border-radius: 14px; padding: 10px; }
+  .td-radd .td-row .td-in { flex: 1; }
+  .td-foot { color: #9AA1B5; font-size: 12.5px; text-align: center; line-height: 1.5; margin-top: 18px; }
+  .td-toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translate(-50%, 16px); background: #23305E; color: #fff; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; opacity: 0; transition: .2s; z-index: 60; pointer-events: none; max-width: calc(100vw - 32px); }
+  .td-toast.on { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
 <section class="sbx" id="site"></section>
+<section id="todo" hidden></section>
+<nav class="hh-nav" id="hhnav" hidden aria-label="Chọn trang"><button type="button" data-v="todo">☑️ Việc cần làm</button><button type="button" data-v="ct">🏗️ Công trình</button></nav>
 <script src="/ct/sbsync.js"></script>
 <script>
 (async () => {
@@ -109,7 +152,13 @@
     window.SB_LOGOUT = () => { fetch('/sb/logout', { method: 'POST', headers: { authorization: 'Bearer ' + st.token } }).catch(() => {}); ls.set('sbAuth', null); location.hash = ''; location.reload(); };
     if (!doc) { screen('☁️', 'Đang tải dữ liệu…', a.email); const r = await sync(); if (!r || !r.ok) { if (!ls.get('sbAuth')) return; return screen('⚠️', 'Chưa tải được dữ liệu', (r && r.err) || 'Lỗi mạng – kéo xuống để tải lại.'); } if (!doc) doc = { sites: [], cur: null }; }
     else sync();
-    boot(doc, { web: true });
+    // ☑️ V1.4.0: 2 trang – Việc cần làm · Công trình
+    const nav = document.getElementById('hhnav'), tdEl = document.getElementById('todo'); let booted = false, tdOn = false;
+    const show = v => { try { localStorage.setItem('hhView', v); } catch {} nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); root.hidden = v !== 'ct'; tdEl.hidden = v !== 'todo'; window.scrollTo(0, 0);
+      if (v === 'ct' && !booted) { booted = true; boot(doc, { web: true }); }
+      if (v === 'todo' && !tdOn) { tdOn = true; loadScript('/ct/todo.js').then(() => HHTodo.mount(tdEl, { email: st.email, token: st.token })).catch(() => { tdEl.textContent = '⚠ Không tải được trang Việc cần làm – kiểm tra mạng.'; }); } };
+    nav.hidden = false; document.body.classList.add('has-nav'); nav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.v); });
+    let v0 = 'todo'; try { v0 = localStorage.getItem('hhView') || 'todo'; } catch {} show(v0 === 'ct' ? 'ct' : 'todo');
     setInterval(() => { if (!document.hidden) sync(); }, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
   }

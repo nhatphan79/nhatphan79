@@ -51,6 +51,7 @@
 
   g.SBSync = function (o) {
     const api = o.api.replace(/\/$/, '');
+    const P0 = o.path || '/sb';   // V1.4.0: '/sb?ns=todo' = Todo + Nhắc nhở
     let busy = null, again = false;
     const st = { at: 0, err: '', rev: 0, email: '' };
     const req = async (method, path, body) => {
@@ -75,14 +76,14 @@
     }
     async function run() {
       const raw = await o.getLocal(); let seen = stable(raw);
-      let local = raw || { sites: [], cur: null }; if (!Array.isArray(local.sites)) local.sites = [];
+      let local = raw || (o.empty ? o.empty() : { sites: [], cur: null }); if (!o.path && !Array.isArray(local.sites)) local.sites = [];
       const put = async v => {   // ghi máy này chỉ khi không ai sửa chen vào trong lúc đồng bộ (trang vừa lưu → làm lại vòng sau)
         if (stable(await o.getLocal()) !== seen) { const e = new Error('retry'); e.retry = true; throw e; }
         await o.setLocal(v); seen = stable(v);
       };
       if (await uploadPhotos(local)) await put(local);
       const base = (await o.getBase()) || { rev: 0, doc: undefined };
-      let R = await req('GET', '/sb'); if (!R.ok) throw new Error(R.error || 'lỗi máy chủ');
+      let R = await req('GET', P0); if (!R.ok) throw new Error(R.error || 'lỗi máy chủ');
       st.email = R.email || st.email;
       let rv = R.v, rrev = R.rev || 0;
       for (let k = 0; k < 4; k++) {
@@ -92,10 +93,10 @@
         else merged = m3(base.doc, local, rv);
         if (!eq(merged, local)) { await put(merged); local = merged; }
         if (rv && eq(merged, rv)) { base.rev = rrev; base.doc = merged; await o.setBase({ rev: rrev, doc: merged }); st.rev = rrev; return 'same'; }
-        const P = await req('PUT', '/sb', { base: rrev, v: merged });
+        const P = await req('PUT', P0, { base: rrev, v: merged });
         if (P.ok) { await o.setBase({ rev: P.rev, doc: merged }); st.rev = P.rev; return 'pushed'; }
         if (!P.conflict) throw new Error(P.error || 'lỗi lưu');
-        if (P.rev === -1 || !P.v) { R = await req('GET', '/sb'); rv = R.v; rrev = R.rev || 0; } else { rv = P.v; rrev = P.rev; }
+        if (P.rev === -1 || !P.v) { R = await req('GET', P0); rv = R.v; rrev = R.rev || 0; } else { rv = P.v; rrev = P.rev; }
       }
       throw new Error('đang có máy khác lưu liên tục – thử lại sau');
     }
