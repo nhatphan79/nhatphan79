@@ -88,7 +88,7 @@
     if (oi.length) { o.push('', '⚠️ VẤN ĐỀ QUÁ HẠN (' + oi.length + '):'); oi.slice(0, 5).forEach(x => o.push('• ' + cut(x.t, 60) + ' – ' + (x.who || 'chưa giao') + ' – trễ ' + days(x.due, d) + ' ngày')); }
     let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
   }
-  const HELP = '🤖 Bot Công trình HaoHao\n📊 XEM: tq tổng quan · hn việc hôm nay · vd vấn đề · cb cảnh báo · bct báo cáo tuần · bcth báo cáo tháng\n✏️ SỬA NHANH:\n• ds – danh sách việc (có số)\n• xong 2 – việc số 2 xong (xong 2 5 – nhiều việc)\n• them Đặt bê tông M250 @Nhật #qs ! han 5/11\n   (@ người làm · #bộ phận · ! ưu tiên cao · han ngày)\n• han 2 7/11 – đổi hạn · giao 2 @Minh – giao người\n• td – danh sách hạng mục · td 3 70 – hạng mục 3 đạt 70%\n• nk Đổ bê tông sàn tầng 2 – ghi vào nhật ký hôm nay\n• vande Thiếu thép D16 @Nhật – thêm vấn đề\n• ct – danh sách công trình · ct 2 – chọn công trình\n• id – mã cuộc trò chuyện\nMỗi ngày bot tự gửi tổng quan đúng giờ đã hẹn (khi máy và Chrome đang mở; lỡ giờ thì gửi bù lúc mở Chrome).';
+  const HELP = '🤖 Bot Công trình HaoHao\n📊 XEM: tq tổng quan · hn việc hôm nay · vd vấn đề · cb cảnh báo · bct báo cáo tuần · bcth báo cáo tháng\n✏️ SỬA NHANH:\n• ds – danh sách việc (có số)\n• xong 2 – việc số 2 xong (xong 2 5 – nhiều việc)\n• them Đặt bê tông M250 @Nhật #qs ! han 5/11\n   (@ người làm · #bộ phận · ! ưu tiên cao · han ngày)\n• han 2 7/11 – đổi hạn · giao 2 @Minh – giao người\n• td – danh sách hạng mục · td 3 70 – hạng mục 3 đạt 70%\n• nk Đổ bê tông sàn tầng 2 – ghi vào nhật ký hôm nay\n• vande Thiếu thép D16 @Nhật – thêm vấn đề\n• ct – danh sách công trình · ct 2 – chọn công trình\n• id – mã cuộc trò chuyện\nMỗi ngày máy chủ HaoHao tự gửi tổng quan + cảnh báo đúng giờ, kể cả khi tắt máy. Lệnh trả lời ngay khi có 1 máy đang mở HaoHao.';
 
   // ---------- gọi API ----------
   async function call(token, method, body, ms = 15000) {
@@ -119,11 +119,13 @@
       const cfg = await getCfg();
       if (!cfg.token || !cfg.chatId) return;
       const d = today(), [h, m] = String(cfg.time || '07:00').split(':').map(Number), now = new Date();
-      if (cfg.on && cfg.last !== d && now.getHours() * 60 + now.getMinutes() >= h * 60 + (m || 0)) {
+      // V1.5.0: máy chủ đã nhận gửi tổng quan + cảnh báo (kể cả khi tắt máy) → máy này không gửi nữa, tránh gửi trùng
+      const { sbAuth: SA = {} } = await chrome.storage.local.get('sbAuth'), srv = !!(SA.token && SA.zdaily && SA.zsent && SA.zsent !== 'off');
+      if (!srv && cfg.on && cfg.last !== d && now.getHours() * 60 + now.getMinutes() >= h * 60 + (m || 0)) {
         try { await sendDaily(cfg); await setCfg({ last: d, err: '' }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
       }
       const [ah, am] = String(cfg.alertTime || '16:00').split(':').map(Number);
-      if (cfg.alertOn !== false && cfg.lastAlert !== d && now.getHours() * 60 + now.getMinutes() >= ah * 60 + (am || 0)) {
+      if (!srv && cfg.alertOn !== false && cfg.lastAlert !== d && now.getHours() * 60 + now.getMinutes() >= ah * 60 + (am || 0)) {
         try { const S = await sites(); let n = 0; for (const s of S) { const t = alertText(s, d); if (t) { await send(cfg, t); n++; } } await setCfg({ lastAlert: d, alertN: n }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
       }
       if (cfg.cmd !== false) await poll(cfg, Date.now() + 50000);   // V1.3.4: nghe liên tục ~50 giây mỗi phút → trả lời gần như tức thì
@@ -321,18 +323,28 @@
   let tT = 0;
   chrome.storage.onChanged.addListener((ch, area) => { if (area !== 'local' || !(ch.todos || ch.rules)) return; if (Date.now() - ownWrite < 1500) return; clearTimeout(tT); tT = setTimeout(() => cloud().catch(() => {}), 2500); });
   async function zaloToServer(a) {   // gửi token bot lên máy chủ để máy chủ tự nhắc (kể cả khi tắt máy)
-    const c = await getCfg(), want = c.token && c.chatId && c.remindZalo !== false ? c.token + '|' + c.chatId : 'off';
+    const c = await getCfg();
+    if (!c.token || !c.chatId) return;   // V1.5.0: máy chưa cài bot (vd laptop) thì không đụng tới máy chủ – trước đây máy này gửi "tắt" làm mất nhắc của máy kia
+    const want = c.remindZalo !== false ? 'v2|' + c.token + '|' + c.chatId : 'off';
     if (a.zsent === want) return;
     const body = want === 'off' ? { off: 1 } : { token: c.token, chat: String(c.chatId) };
     const r = await fetch(SB_API + '/sb/zalo', { method: 'POST', headers: { authorization: 'Bearer ' + a.token, 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json()).catch(() => null);
-    if (r && r.ok) { const A = await auth(); A.zsent = want; await chrome.storage.local.set({ sbAuth: A }); }
+    if (r && r.ok) { const A = await auth(); A.zsent = want; if (want === 'off') { A.zdaily = false; A.zcfg = ''; } await chrome.storage.local.set({ sbAuth: A }); }
+  }
+  async function zaloCfgToServer(a) {   // V1.5.0: gửi giờ tổng quan / cảnh báo lên máy chủ – máy chủ tự gửi mỗi ngày, không cần bật máy
+    if (!a.zsent || a.zsent === 'off') return;
+    const c = await getCfg(), want = JSON.stringify({ on: !!c.on, time: c.time || '07:00', alertOn: c.alertOn !== false, alertTime: c.alertTime || '16:00' });
+    if (a.zcfg === want && a.zdaily) return;
+    const body = { ...JSON.parse(want), last: c.last || '', lastAlert: c.lastAlert || '' };
+    const r = await fetch(SB_API + '/sb/zalocfg', { method: 'POST', headers: { authorization: 'Bearer ' + a.token, 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json()).catch(() => null);
+    if (r && r.ok && r.daily) { const A = await auth(); A.zcfg = want; A.zdaily = true; await chrome.storage.local.set({ sbAuth: A }); }
   }
   async function cloud() {
     const a = await auth(); if (!a.token || !eng) return null;
     const r = await eng.sync();
     if (engT) { const r2 = await engT.sync(); if (!r2.ok && r.ok) Object.assign(r, { ok: r2.auth === false ? false : r.ok, err: r2.err, auth: r2.auth }); }
     if (engP) { const r3 = await engP.sync(); if (!r3.ok && r.ok) Object.assign(r, { ok: r3.auth === false ? false : r.ok, err: 'Dự án: ' + r3.err, auth: r3.auth }); }
-    zaloToServer(a).catch(() => {});
+    zaloToServer(a).then(async () => zaloCfgToServer(await auth())).catch(() => {});
     const A = await auth(); if (A.token !== a.token) return r;   // vừa đăng xuất / đổi tài khoản
     if (r.ok) Object.assign(A, { at: Date.now(), err: '' }); else if (r.auth === false) Object.assign(A, { token: '', err: 'Hết phiên đăng nhập – đăng nhập lại' }); else A.err = r.err;
     await chrome.storage.local.set({ sbAuth: A }); return r;

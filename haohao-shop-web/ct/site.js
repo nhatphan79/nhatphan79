@@ -431,7 +431,7 @@
       });
       act.append(pv, ts); b.append(act, pre);
       if (c.err) b.append($('div', 'sb-note bad', '⚠ Lần gửi gần nhất lỗi: ' + c.err));
-      b.append($('div', 'sb-note', '💡 Bot chạy trong HaoHao nên máy tính và Chrome cần đang mở. Lỡ giờ (máy tắt) thì HaoHao gửi bù ngay khi mở Chrome trong ngày. Token chỉ lưu trên máy này.'));
+      b.append($('div', 'sb-note', '💡 Đã đăng nhập Google và tích "⏰ Nhắc Todo & nhắc nhở qua Zalo" thì máy chủ HaoHao tự gửi tổng quan + cảnh báo đúng giờ, kể cả khi tắt máy. Lệnh nhắn bot (tq, xong, them…) được trả lời khi có 1 máy đang mở HaoHao. Token lưu trên máy này và máy chủ HaoHao (để tự gửi).'));
       D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '16:00', alertOn: ao.checked, remindZalo: rz.checked });
     }, async () => {
       const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = ''; if (p.alertTime !== c.alertTime) p.lastAlert = '';

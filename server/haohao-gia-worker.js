@@ -421,11 +421,131 @@ for (const k in sent) if (sent[k] < cut) delete sent[k];
 if (out.length) await env.DB.prepare('UPDATE sbz SET sent = ? WHERE email = ?').bind(JSON.stringify(sent), z.email).run();
 }
 }
+const SBD = (() => {
+const ymd = d => { const z = new Date(d); z.setMinutes(z.getMinutes() - z.getTimezoneOffset()); return z.toISOString().slice(0, 10); };
+const today = () => ymd(new Date());
+const addD = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+const days = (a, b) => Math.round((new Date(b + 'T00:00') - new Date(a + 'T00:00')) / 864e5);
+const fd = s => s ? s.slice(8, 10) + '/' + s.slice(5, 7) : '';
+const fdFull = s => s ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : '';
+const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.-]/g, '')); return isNaN(n) ? 0 : n; };
+const short = n => { const a = Math.abs(n), s = n < 0 ? '−' : ''; return a >= 1e9 ? s + (a / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ' : a >= 1e6 ? s + (a / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tr' : s + Math.round(a).toLocaleString('vi-VN') + 'đ'; };
+const dur = p => p.s && p.e ? Math.max(1, days(p.s, p.e) + 1) : 1;
+const planPct = (p, d) => !p.s || !p.e ? 0 : d < p.s ? 0 : d >= p.e ? 100 : Math.round((days(p.s, d) + 1) / dur(p) * 100);
+const L = (S, k) => Array.isArray(S[k]) ? S[k] : [];
+function progress(S, d) {
+const P = L(S, 'plan').filter(p => p.s && p.e), W = P.reduce((a, p) => a + dur(p), 0);
+if (!W) return { kh: 0, tt: 0 };
+return { kh: Math.round(P.reduce((a, p) => a + planPct(p, d) * dur(p), 0) / W), tt: Math.round(P.reduce((a, p) => a + Math.min(100, num(p.pct)) * dur(p), 0) / W) };
+}
+const MST = { de: 'đề xuất', duyet: 'đã duyệt', dat: 'đã đặt', ve: 'đã về' };
+const ITYPE = { ht: 'Hiện trường', kt: 'Kỹ thuật', td: 'Tiến độ', cp: 'Chi phí', pd: 'Xin duyệt' };
+const IST = { mo: 'mới', xl: 'đang xử lý', cd: 'chờ duyệt', dong: 'xong' };
+const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
+const cut = (t, n) => (t = String(t || '').replace(/\s+/g, ' ').trim()).length > n ? t.slice(0, n - 1) + '…' : t;
+const taskLate = (t, d) => t.st !== 'done' && t.due && t.due < d;
+const CATS0 = { qs: 'QS', qaqc: 'QA/QC', shop: 'Shopdrawing', ht: 'Hiện trường', cdt: 'Chủ đầu tư' };
+let CATS = CATS0;
+const catOf = t => CATS[t.cat] || CATS.ht || Object.values(CATS)[0] || 'Khác';
+const lagDays = (p, d) => { if (!p.s || !p.e || num(p.pct) >= 100 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
+const todayTasks = (S, d) => L(S, 'tasks').filter(t => t.st !== 'done' && (taskLate(t, d) || t.due === d || t.st === 'doing')).sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
+const head = S => '🏗️ ' + (S.code ? S.code + ' · ' : '') + (S.name || 'Công trình');
+const taskLine = (t, d) => '• ' + (taskLate(t, d) ? '❗' : '') + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 70) + (t.who ? ' – ' + t.who : '') + (t.due ? (taskLate(t, d) ? ' (trễ ' + days(t.due, d) + ' ngày)' : t.due === d ? '' : ' (' + fd(t.due) + ')') : '');
+const issueLine = (x, d) => '• ' + (x.due && x.due < d ? '❗' : '') + '[' + (ITYPE[x.type] || 'Vấn đề') + '] ' + cut(x.t, 70) + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '') + (x.st === 'cd' ? ' · chờ duyệt' : '');
+function overview(S, d = today()) {
+const pr = progress(S, d), late = pr.tt - pr.kh, plan = L(S, 'plan');
+const slow = plan.filter(p => lagDays(p, d) >= 1).sort((a, b) => lagDays(b, d) - lagDays(a, d));
+const o = ['📊 TỔNG QUAN ' + fdFull(d), head(S)];
+const ds = S.start ? days(S.start, d) : null, dl = S.end ? days(d, S.end) : null;
+o.push('📍 Giai đoạn: ' + (S.phase || '—') + (ds != null && ds >= 0 ? ' · ngày thứ ' + (ds + 1) : '') + (dl != null ? (dl >= 0 ? ' · còn ' + dl + ' ngày' : ' · QUÁ HẠN ' + (-dl) + ' ngày') : ''));
+o.push('📈 Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '% → ' + (late < -5 ? '🔴 CHẬM ' + (-late) + '%' : late > 5 ? '🟢 vượt ' + late + '%' : slow.length ? '🟡 tổng thể đúng kế hoạch, ' + slow.length + ' hạng mục chậm' : '🟢 đúng kế hoạch'));
+slow.slice(0, 4).forEach(p => o.push('   ' + (lagDays(p, d) >= 3 ? '🔴' : '🟡') + ' ' + cut(plab(p), 50) + ': ' + (p.e && d > p.e ? 'QUÁ HẠN ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)'));
+const ms = plan.filter(p => p.mile && num(p.pct) < 100 && p.e).sort((a, b) => a.e < b.e ? -1 : 1)[0];
+if (ms) o.push('🏁 Mốc nghiệm thu: ' + cut(ms.t, 50) + ' – ' + fd(ms.e) + (days(d, ms.e) >= 0 ? ' (còn ' + days(d, ms.e) + ' ngày)' : ' (QUÁ ' + days(ms.e, d) + ' ngày)'));
+const T = todayTasks(S, d), nl = L(S, 'tasks').filter(t => taskLate(t, d)).length;
+o.push('', '✅ HÔM NAY: ' + T.length + ' việc' + (nl ? ' · ' + nl + ' quá hạn' : ''));
+T.slice(0, 8).forEach(t => o.push(taskLine(t, d))); if (T.length > 8) o.push('  … và ' + (T.length - 8) + ' việc nữa');
+if (!T.length) o.push('• Không có việc tới hạn 👍');
+const logs = L(S, 'logs').slice().sort((a, b) => a.d < b.d ? 1 : -1), lg = logs.find(x => x.d <= d);
+if (lg) { const teams = L(S, 'teams'), parts = teams.map(t => num((lg.crew || {})[t.id]) ? t.name + ' ' + num(lg.crew[t.id]) : '').filter(Boolean);
+const n = Object.values(lg.crew || {}).reduce((a, x) => a + num(x), 0) + num(lg.other);
+o.push('', '👷 Nhân lực ' + (lg.d === d ? 'hôm nay' : fd(lg.d)) + ': ' + n + ' người' + (parts.length ? ' (' + parts.join(', ') + ')' : ''));
+if (lg.next && lg.d === addD(d, -1)) o.push('📅 Kế hoạch hôm nay (ghi hôm qua): ' + cut(lg.next, 160)); }
+const M = L(S, 'mats').filter(m => m.st !== 've' && (!m.need || m.need <= addD(d, 7))).sort((a, b) => (a.need || '9') < (b.need || '9') ? -1 : 1);
+if (M.length) { o.push('', '🧱 VẬT TƯ 7 NGÀY TỚI:'); M.slice(0, 6).forEach(m => o.push('• ' + (m.need && m.need < d ? '❗' : '') + cut(m.name, 40) + ' ' + (m.qty || '') + ' ' + (m.unit || '') + (m.need ? ' – cần ' + fd(m.need) : '') + ' (' + (MST[m.st] || '') + ')')); }
+const B = L(S, 'budget').reduce((a, b) => a + num(b.est), 0) || num(S.value), C = L(S, 'costs').reduce((a, x) => a + num(x.amt), 0),
+I = L(S, 'incomes').reduce((a, x) => a + num(x.amt), 0), debt = L(S, 'costs').filter(x => !x.paid).reduce((a, x) => a + num(x.amt), 0);
+if (B || C || I) o.push('', '💰 Đã chi ' + short(C) + (B ? '/' + short(B) + ' (' + Math.round(C / B * 100) + '%)' : '') + ' · Đã thu ' + short(I) + ' · Dòng tiền ' + short(I - C) + (debt ? ' · Còn nợ ' + short(debt) : ''));
+const X = L(S, 'issues').filter(x => x.st !== 'dong').sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
+o.push('', '⚠️ VẤN ĐỀ: ' + X.length + ' đang mở' + (X.filter(x => x.st === 'cd').length ? ' · ' + X.filter(x => x.st === 'cd').length + ' chờ duyệt' : ''));
+X.slice(0, 5).forEach(x => o.push(issueLine(x, d))); if (!X.length) o.push('• Không có vấn đề tồn đọng 👍');
+if (!L(S, 'logs').some(x => x.d === addD(d, -1)) && L(S, 'logs').length) o.push('', '📓 Nhắc: hôm qua chưa ghi nhật ký.');
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+const todayText = (S, d = today()) => { const T = todayTasks(S, d); return ['✅ VIỆC HÔM NAY ' + fdFull(d), head(S), ...(T.length ? T.slice(0, 20).map(t => taskLine(t, d)) : ['• Không có việc tới hạn 👍'])].join('\n').slice(0, 1990); };
+const issueText = (S, d = today()) => { const X = L(S, 'issues').filter(x => x.st !== 'dong'); return ['⚠️ VẤN ĐỀ ĐANG MỞ', head(S), ...(X.length ? X.slice(0, 15).map(x => issueLine(x, d)) : ['• Không có vấn đề tồn đọng 👍'])].join('\n').slice(0, 1990); };
+function alertText(S, d = today(), afterHour = true) {
+const T = L(S, 'tasks'), od = T.filter(t => taskLate(t, d)), dueToday = afterHour ? T.filter(t => t.st !== 'done' && t.due === d) : [];
+const slow = L(S, 'plan').filter(p => lagDays(p, d) >= 1).sort((a, b) => lagDays(b, d) - lagDays(a, d));
+const oi = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due < d);
+if (!od.length && !dueToday.length && !slow.length && !oi.length) return '';
+const o = ['🚨 CẢNH BÁO ' + fdFull(d), head(S)];
+if (slow.length) { o.push('', '📅 CHẬM TIẾN ĐỘ (' + slow.length + '):'); slow.slice(0, 6).forEach(p => o.push('• ' + (lagDays(p, d) >= 3 ? '🔴 ' : '🟡 ') + cut(plab(p), 50) + ': ' + (p.e && d > p.e ? 'quá hạn ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)')); }
+if (od.length) {
+o.push('', '❗ VIỆC QUÁ HẠN (' + od.length + '):');
+const ord = { cao: 0, tb: 1, thap: 2 };
+Object.values(CATS).forEach(cn => { const G = od.filter(t => catOf(t) === cn).sort((a, b) => (ord[a.pri] ?? 1) - (ord[b.pri] ?? 1) || (a.due < b.due ? -1 : 1)); if (!G.length) return; o.push('▸ ' + cn + ':'); G.slice(0, 6).forEach(t => o.push('   ' + (t.pri === 'cao' ? '🔴 ' : '• ') + cut(t.t, 60) + ' – ' + (t.who || 'chưa giao') + ' – trễ ' + days(t.due, d) + ' ngày')); });
+}
+if (dueToday.length) { o.push('', '⏰ HẠN HÔM NAY CHƯA XONG (' + dueToday.length + '):'); dueToday.slice(0, 8).forEach(t => o.push('• ' + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 60) + ' – ' + (t.who || 'chưa giao'))); }
+if (oi.length) { o.push('', '⚠️ VẤN ĐỀ QUÁ HẠN (' + oi.length + '):'); oi.slice(0, 5).forEach(x => o.push('• ' + cut(x.t, 60) + ' – ' + (x.who || 'chưa giao') + ' – trễ ' + days(x.due, d) + ' ngày')); }
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+const setCats = B => { CATS = B && Array.isArray(B.cats) && B.cats.length ? Object.fromEntries(B.cats.map(c => [c.id, c.name])) : CATS0; };
+return { overview, alertText, setCats };
+})();
+async function sbZaloCfg(env, email, req) {
+await sbzInit(env); await sbzInit2(env);
+const b = await req.json().catch(() => null);
+if (!b) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+const row = await env.DB.prepare('SELECT dsent FROM sbz WHERE email = ?').bind(email).first();
+if (!row) return json({ ok: false, error: 'chưa bật nhắc qua Zalo' }, 404);
+const c = { on: !!b.on, time: /^\d{1,2}:\d{2}$/.test(b.time || '') ? b.time : '07:00', alertOn: b.alertOn !== false, alertTime: /^\d{1,2}:\d{2}$/.test(b.alertTime || '') ? b.alertTime : '16:00' };
+let ds = {}; try { ds = JSON.parse(row.dsent || '{}') || {}; } catch {}
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.last || '')) ds['d@' + b.last] = 1;
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastAlert || '')) ds['a@' + b.lastAlert] = 1;
+await env.DB.prepare('UPDATE sbz SET cfg = ?, dsent = ?, on1 = 1 WHERE email = ?').bind(JSON.stringify(c), JSON.stringify(ds), email).run();
+return json({ ok: true, daily: true });
+}
+async function sbDaily(env) {
+await sbInit(env); await sbzInit(env); await sbzInit2(env);
+const N = vnNow(), { results = [] } = await env.DB.prepare('SELECT email, token, chat, cfg, dsent FROM sbz WHERE on1 = 1 AND cfg IS NOT NULL').all();
+const hm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : 0; };
+for (const z of results) {
+let c = {}, ds = {}; try { c = JSON.parse(z.cfg) || {}; ds = JSON.parse(z.dsent || '{}') || {}; } catch {}
+const wantD = c.on && !ds['d@' + N.ymd] && N.min >= hm(c.time || '07:00'), wantA = c.alertOn !== false && !ds['a@' + N.ymd] && N.min >= hm(c.alertTime || '16:00');
+if (!wantD && !wantA) continue;
+const row = await env.DB.prepare('SELECT v FROM sb WHERE email = ?').bind(z.email).first();
+let v = null; try { v = row ? JSON.parse(row.v) : null; } catch {}
+const S = v && Array.isArray(v.sites) ? v.sites : [];
+SBD.setCats(v);
+const send = async t => { const r = await fetch('https://bot-api.zaloplatforms.com/bot' + z.token + '/sendMessage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: z.chat, text: t }) }).then(x => x.json()).catch(() => null); return !!(r && r.ok); };
+if (wantD) { let ok = true; for (const s of S) ok = (await send(SBD.overview(s, N.ymd))) && ok; if (ok) ds['d@' + N.ymd] = Date.now(); }
+if (wantA) { let ok = true; for (const s of S) { const t = SBD.alertText(s, N.ymd); if (t) ok = (await send(t)) && ok; } if (ok) ds['a@' + N.ymd] = Date.now(); }
+for (const k in ds) if (k.slice(2) < new Date(Date.parse(N.ymd) - 5 * 864e5).toISOString().slice(0, 10)) delete ds[k];
+await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.stringify(ds), z.email).run();
+}
+}
+async function sbzInit2(env) {
+if (sbzInit2.ok) return;
+for (const col of ['cfg', 'dsent']) { try { await env.DB.prepare('ALTER TABLE sbz ADD COLUMN ' + col + ' TEXT').run(); } catch {} }
+sbzInit2.ok = true;
+}
 async function sbRoute2(env, req, u) {
 await sbInit(env);
 const email = await sbWho(env, req);
 if (!email) return json({ ok: false, error: 'chưa đăng nhập', auth: false }, 401);
 if (u.pathname === '/sb/zalo' && req.method === 'POST') return sbZaloSave(env, email, req);
+if (u.pathname === '/sb/zalocfg' && req.method === 'POST') return sbZaloCfg(env, email, req);
 const ns = u.searchParams.get('ns');
 if (!['todo', 'proj'].includes(ns) || u.pathname !== '/sb') return json({ ok: false, error: 'không có lệnh này' }, 404);
 const key = email + '#' + ns;
@@ -863,7 +983,7 @@ async function shopFile(f, ext) {
 const CAI_DAT_HTML = "<!doctype html>\n<html lang=\"vi\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Cài HaoHao – 4 bước, 1 phút</title>\n<meta name=\"description\" content=\"Hướng dẫn cài HaoHao – trợ lý mua sắm, nhắc việc, chặn quảng cáo ngay trên Chrome. Miễn phí.\">\n<style>\n:root{--o:#F2A71B;--o2:#EE4D2D;--n:#23305E;--m:#5B6478;--bg:#FFF8EC;--c:#fff;--b:#EADFCB}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--bg);color:var(--n);font:16px/1.55 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}\na{color:inherit}\n.w{max-width:880px;margin:0 auto;padding:0 16px}\nheader{padding:36px 0 18px;text-align:center}\n.logo{width:76px;height:76px}\nh1{font-size:30px;line-height:1.2;margin:10px 0 6px}\n.lead{color:var(--m);margin:0 auto;max-width:560px}\n.cta{display:inline-flex;align-items:center;gap:10px;margin:20px 0 6px;padding:14px 26px;border-radius:999px;background:var(--o2);color:#fff;font-weight:800;font-size:18px;text-decoration:none;box-shadow:0 8px 22px rgba(238,77,45,.3)}\n.cta:hover{filter:brightness(1.05)}\n.small{font-size:13px;color:var(--m)}\n.steps{display:grid;gap:16px;margin:26px 0}\n.st{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:center;background:var(--c);border:1.5px solid var(--b);border-radius:18px;padding:18px}\n.n{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--o);color:#fff;font-weight:900;margin-right:8px}\n.st h2{font-size:19px;margin:0 0 6px;display:flex;align-items:center}\n.st p{margin:6px 0;color:var(--m)}\n.st svg{width:100%;height:auto;border-radius:12px;border:1px solid #E6E9F2;background:#F7F8FC}\ncode{background:#FFF1D6;border:1px solid #F5D78E;border-radius:6px;padding:1px 6px;font-size:14px}\n.cp{margin-left:6px;border:0;background:var(--n);color:#fff;border-radius:8px;padding:4px 10px;font:700 12.5px system-ui;cursor:pointer}\n.faq{background:var(--c);border:1.5px solid var(--b);border-radius:18px;padding:6px 18px;margin:0 0 26px}\n.faq details{border-bottom:1px solid #F0E7D6;padding:12px 0}.faq details:last-child{border:0}\n.faq summary{font-weight:800;cursor:pointer}\n.faq p{color:var(--m);margin:8px 0 2px}\nfooter{text-align:center;padding:10px 0 34px;font-size:13px;color:var(--m)}\n@media (max-width:680px){.st{grid-template-columns:1fr}h1{font-size:25px}}\n</style>\n</head>\n<body>\n<div class=\"w\">\n<header>\n  <svg class=\"logo\" viewBox=\"0 0 100 100\" aria-hidden=\"true\"><circle cx=\"28\" cy=\"24\" r=\"11\" fill=\"#D98E1F\"/><circle cx=\"72\" cy=\"24\" r=\"11\" fill=\"#D98E1F\"/><ellipse cx=\"50\" cy=\"56\" rx=\"42\" ry=\"38\" fill=\"#F2B544\"/><ellipse cx=\"50\" cy=\"66\" rx=\"26\" ry=\"22\" fill=\"#FFF3DC\"/><circle cx=\"37\" cy=\"50\" r=\"5.5\" fill=\"#23305E\"/><circle cx=\"63\" cy=\"50\" r=\"5.5\" fill=\"#23305E\"/><ellipse cx=\"50\" cy=\"59\" rx=\"3\" ry=\"2.2\" fill=\"#23305E\"/><path d=\"M45 63.5q5 4.5 10 0\" fill=\"none\" stroke=\"#23305E\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>\n  <h1>Cài HaoHao trong 1 phút</h1>\n  <p class=\"lead\">Trợ lý ngay trên Chrome: kiểm tra shop &amp; bắt sale ảo khi mua Shopee, nhắc việc, ghi chú, chặn quảng cáo YouTube. Miễn phí.</p>\n  <a class=\"cta\" id=\"dl\" href=\"https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-V1.zip\">⬇️ Tải HaoHao <span id=\"ver\"></span></a>\n  <div class=\"small\">Dùng được trên Chrome, Cốc Cốc, Edge (máy tính). Gói có chữ ký số, không thu thập mật khẩu.</div>\n</header>\n\n<section class=\"vid\"><video controls playsinline preload=\"metadata\" poster=\"\" style=\"width:100%;border-radius:18px;border:1.5px solid #EADFCB;background:#fff;display:block\"><source src=\"https://cdn.jsdelivr.net/gh/nhatphan79/nhatphan79@1da54ac5b9f8e9a13837f7f3c00a507af234ae5a/downloads/huong-dan-cai-haohao.mp4\" type=\"video/mp4\"></video><div class=\"small\" style=\"text-align:center;margin-top:6px\">▶️ Xem video 1 phút (có lồng tiếng) – làm theo đúng 4 bước bên dưới</div></section>\n<section class=\"steps\">\n  <div class=\"st\">\n    <div><h2><span class=\"n\">1</span>Giải nén file vừa tải</h2>\n      <p>Mở thư mục <b>Tải về (Downloads)</b>, chuột phải vào <b>HaoHao-V1.zip</b> → <b>Giải nén tất cả (Extract All)</b>. Bạn sẽ có thư mục <b>HaoHao-V1</b> chứa các file của HaoHao.</p>\n      <p>Để thư mục giải nén ở chỗ cố định (ví dụ <b>Tài liệu</b>), <b>không xoá</b> sau khi cài.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"16\" y=\"18\" width=\"288\" height=\"26\" rx=\"10\" fill=\"#EEF1F8\"/><text x=\"30\" y=\"36\" font-size=\"12\" fill=\"#5B6478\">Downloads</text><rect x=\"36\" y=\"62\" width=\"34\" height=\"40\" rx=\"4\" fill=\"#F2B544\"/><text x=\"30\" y=\"118\" font-size=\"11\" fill=\"#23305E\">HaoHao-V1.zip</text><rect x=\"120\" y=\"70\" width=\"160\" height=\"78\" rx=\"8\" fill=\"#fff\" stroke=\"#C9D0E0\"/><text x=\"134\" y=\"92\" font-size=\"12\" fill=\"#5B6478\">Mở</text><rect x=\"126\" y=\"102\" width=\"148\" height=\"22\" rx=\"5\" fill=\"#FFE8C2\"/><text x=\"134\" y=\"117\" font-size=\"12\" font-weight=\"700\" fill=\"#23305E\">Giải nén tất cả…</text><text x=\"134\" y=\"140\" font-size=\"12\" fill=\"#5B6478\">Xoá</text><path d=\"M96 98l22 10\" stroke=\"#EE4D2D\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">2</span>Mở trang Tiện ích</h2>\n      <p>Mở tab mới, dán địa chỉ <code>chrome://extensions</code><button class=\"cp\" data-t=\"chrome://extensions\">Chép</button> rồi Enter.</p>\n      <p class=\"small\">Cốc Cốc: <code>coccoc://extensions</code> · Edge: <code>edge://extensions</code></p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"16\" y=\"18\" width=\"288\" height=\"34\" rx=\"10\" fill=\"#EEF1F8\"/><rect x=\"30\" y=\"26\" width=\"220\" height=\"18\" rx=\"9\" fill=\"#fff\" stroke=\"#C9D0E0\"/><text x=\"40\" y=\"39\" font-size=\"12\" font-weight=\"700\" fill=\"#23305E\">chrome://extensions</text><text x=\"30\" y=\"84\" font-size=\"15\" font-weight=\"800\" fill=\"#23305E\">Tiện ích</text><rect x=\"30\" y=\"98\" width=\"120\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/><rect x=\"30\" y=\"116\" width=\"170\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">3</span>Bật \"Chế độ dành cho nhà phát triển\"</h2>\n      <p>Góc <b>trên bên phải</b> trang Tiện ích có công tắc <b>Chế độ dành cho nhà phát triển (Developer mode)</b>. Bật lên.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><text x=\"30\" y=\"46\" font-size=\"15\" font-weight=\"800\" fill=\"#23305E\">Tiện ích</text><text x=\"150\" y=\"47\" font-size=\"11\" fill=\"#5B6478\">Nhà phát triển</text><rect x=\"258\" y=\"34\" width=\"34\" height=\"18\" rx=\"9\" fill=\"#1A73E8\"/><circle cx=\"283\" cy=\"43\" r=\"7\" fill=\"#fff\"/><circle cx=\"275\" cy=\"43\" r=\"22\" fill=\"none\" stroke=\"#EE4D2D\" stroke-width=\"3\"/><rect x=\"30\" y=\"80\" width=\"250\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/><rect x=\"30\" y=\"100\" width=\"200\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">4</span>Bấm \"Tải tiện ích đã giải nén\"</h2>\n      <p>Bấm nút <b>Tải tiện ích đã giải nén (Load unpacked)</b> → chọn thư mục <b>HaoHao-V1</b> (thư mục có file <code>manifest.json</code> bên trong) → <b>Chọn thư mục</b>.</p>\n      <p class=\"small\">Nếu thấy 2 thư mục HaoHao-V1 lồng nhau, chọn thư mục <b>bên trong</b>.</p>\n      <p>Chú hamster HaoHao hiện ở góc màn hình là xong! Bấm biểu tượng 🧩 trên thanh Chrome → <b>ghim 📌 HaoHao</b> cho tiện.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"30\" y=\"34\" width=\"150\" height=\"26\" rx=\"6\" fill=\"#E8F0FE\" stroke=\"#1A73E8\"/><text x=\"40\" y=\"51\" font-size=\"12\" font-weight=\"700\" fill=\"#1A73E8\">Tải tiện ích đã giải nén</text><rect x=\"186\" y=\"34\" width=\"70\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#C9D0E0\"/><rect x=\"30\" y=\"76\" width=\"250\" height=\"70\" rx=\"10\" fill=\"#FFF8EC\" stroke=\"#F5D78E\"/><circle cx=\"58\" cy=\"111\" r=\"18\" fill=\"#F2B544\"/><circle cx=\"52\" cy=\"107\" r=\"2.5\" fill=\"#23305E\"/><circle cx=\"64\" cy=\"107\" r=\"2.5\" fill=\"#23305E\"/><text x=\"86\" y=\"106\" font-size=\"13\" font-weight=\"800\" fill=\"#23305E\">HaoHao V1</text><text x=\"86\" y=\"124\" font-size=\"11\" fill=\"#5B6478\">Đã cài · đang bật</text><rect x=\"246\" y=\"102\" width=\"24\" height=\"14\" rx=\"7\" fill=\"#1A73E8\"/></svg>\n  </div>\n</section>\n\n<section class=\"faq\">\n  <details><summary>Chrome báo \"Tắt tiện ích ở chế độ nhà phát triển\"?</summary><p>Đó là lời nhắc chung của Chrome với tiện ích cài từ file. Bấm <b>✕ / Huỷ</b> để giữ HaoHao. HaoHao sẽ sớm có trên Chrome Web Store để cài 1 bấm.</p></details>\n  <details><summary>Có bản mới thì sao?</summary><p>HaoHao tự báo \"🎉 Có bản mới\". Bấm Tải về, giải nén rồi chép các file trong thư mục HaoHao-V1 mới đè vào thư mục cũ, rồi F5 trang (máy có app HaoHao Transfer thì bấm Cập nhật ngay là tự cài).</p></details>\n  <details><summary>HaoHao có an toàn không?</summary><p>Gói cài có chữ ký số của tác giả. HaoHao không đọc mật khẩu, không thu thập thông tin cá nhân; ghi chú, việc cần làm lưu ngay trên máy bạn. Link mua hàng là link tiếp thị – giá không đổi.</p></details>\n  <details><summary>Chuyển ảnh, video iPhone sang máy tính?</summary><p>Tải thêm app <a href=\"https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-Transfer-Windows.zip\">HaoHao Transfer (Windows)</a>, mở app rồi quét mã QR bằng iPhone.</p></details>\n  <details><summary>Cần hỗ trợ?</summary><p>Trong HaoHao mở <b>Tiện ích → 💬 Góp ý</b>, hoặc nhắn fanpage <a href=\"https://www.facebook.com/trolyHaoHao\">HaoHao</a>.</p></details>\n</section>\n<footer>© 2026 HaoHao – Phan Thanh Nhật</footer>\n</div>\n<script>\ndocument.querySelectorAll('.cp').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.dataset.t).then(()=>{b.textContent='Đã chép ✓';setTimeout(()=>b.textContent='Chép',1500)})});\nfetch('https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/haohao-latest.json').then(r=>r.json()).then(j=>{if(j.name)document.getElementById('ver').textContent=j.name}).catch(()=>{});\n</script>\n</body>\n</html>\n";   // 14/10: trang hướng dẫn cài – nguồn: server/cai-dat.html
 export default {
   async scheduled(evt, env, ctx) {
-    if (evt.cron === '* * * * *') { ctx.waitUntil(sbRemind(env).catch(() => {})); return; } ctx.waitUntil(storeMaybe(env).catch(() => {})); ctx.waitUntil(feedSafe(env)); },
+    if (evt.cron === '* * * * *') { ctx.waitUntil(sbRemind(env).catch(() => {})); ctx.waitUntil(sbDaily(env).catch(() => {})); return; } ctx.waitUntil(storeMaybe(env).catch(() => {})); ctx.waitUntil(feedSafe(env)); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url);
@@ -921,7 +1041,7 @@ export default {
       if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/dich' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 200000) return json({ ok: false, error: 'too big' }, 413); try { return json(await dichTrang(await req.json().catch(() => null))); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
-      if ((u.pathname === '/sb' && u.searchParams.get('ns')) || u.pathname === '/sb/zalo') return await sbRoute2(env, req, u);
+      if ((u.pathname === '/sb' && u.searchParams.get('ns')) || u.pathname === '/sb/zalo' || u.pathname === '/sb/zalocfg') return await sbRoute2(env, req, u);
       if (u.pathname === '/sb' || u.pathname.startsWith('/sb/') || u.pathname === '/sbp' || u.pathname.startsWith('/sbp/')) return await sbRoute(env, req, u);
       if (u.pathname === '/ct' && req.method === 'POST') return json(await ctPut(env, req));
       if (u.pathname === '/ct') return json(await ctGet(env, u.searchParams.get('id')), 200, { 'cache-control': 'no-store' });
