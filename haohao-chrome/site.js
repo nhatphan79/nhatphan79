@@ -1131,6 +1131,6 @@
   });
   root.addEventListener('focusout', () => setTimeout(() => { if (editing()) return; if (pend) { data = pend; pend = null; data.sites.forEach(fix); lastSaved = JSON.stringify(data); dirty = false; render(true); } else if (dirty) { dirty = false; render(true); } }, 0));
   // nhắc nhật ký: sau 17h chưa ghi nhật ký hôm nay → chấm đỏ trên nút 🏗️ Công trình
-  const dot = () => { const b = document.querySelector('.pgsw-o[data-pg="2"]'), S = site(); if (!b) return; b.classList.toggle('sb-dot', !!(S && new Date().getHours() >= 17 && !S.logs.some(l => l.d === today()))); };
-  setInterval(dot, 6e4); setTimeout(dot, 800);
+  // V1.5.2: bỏ chấm đỏ nhắc ghi nhật ký (anh không dùng nhật ký)
+  setTimeout(() => { const b = document.querySelector('.pgsw-o[data-pg="2"]'); if (b) b.classList.remove('sb-dot'); }, 800);
 })();
