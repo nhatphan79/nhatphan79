@@ -649,8 +649,10 @@
     sec(W, '✅ Công việc & giao việc', 'Bấm 🔕 để HaoHao nhắc 7:30 sáng ngày đến hạn');
     const F = [['open', 'Chưa xong', S.tasks.filter(t => t.st !== 'done').length], ['today', 'Hôm nay', S.tasks.filter(t => t.st !== 'done' && t.due === d).length], ['late', 'Quá hạn', S.tasks.filter(taskLate).length],
       ['week', '7 ngày tới', S.tasks.filter(t => t.st !== 'done' && t.due && t.due >= d && t.due <= wk).length], ['done', 'Đã xong', S.tasks.filter(t => t.st === 'done').length], ['all', 'Tất cả', S.tasks.length]];
-    W.append(chips(F, flt.task, v => { flt.task = v; render(true); }));
-    const open = S.tasks.filter(t => t.st !== 'done'), cc = c => open.filter(t => catOf(t) === c);
+    W.append(chips(F, flt.task, v => { flt.task = v; flt.cat = 'all'; render(true); }));   // đổi bộ lọc → xem lại tất cả bộ phận cho khỏi trống
+    // V1.5.1: số việc ở từng bộ phận đếm theo bộ lọc đang chọn (Đã xong → đếm việc đã xong), không còn luôn = 0
+    const pick0 = { open: t => t.st !== 'done', today: t => t.st !== 'done' && t.due === d, late: taskLate, week: t => t.st !== 'done' && t.due && t.due >= d && t.due <= wk, done: t => t.st === 'done', all: () => true }[flt.task] || (() => true);
+    const open = S.tasks.filter(pick0), cc = c => open.filter(t => catOf(t) === c);
     const CF = [['all', 'Tất cả bộ phận', open.length], ...catList().map(([v, l]) => [v, l, cc(v).length])];
     const cw = chips(CF, flt.cat || 'all', v => { flt.cat = v; render(true); }); cw.classList.add('sb-catchips');
     cw.querySelectorAll('.sb-chip').forEach((b, i) => { if (i) { const v = catList()[i - 1][0]; b.style.setProperty('--c', catColor(v)); const lt = cc(v).filter(taskLate).length; if (lt) b.append($('i', 'sb-chipbad', lt + ' trễ')); } });
@@ -670,7 +672,7 @@
       { k: 'due', lb: 'Hạn', t: 'date', w: '128px', on: t => todoPush(t, true) }, { k: 'pri', lb: 'Ưu tiên', t: 'sel', o: PRI, w: '96px' },
       { k: 'lt', lb: 'Trễ', t: 'calc', w: '70px', f: t => taskLate(t) ? $('b', 'bad', days(t.due, d) + ' ngày') : t.st !== 'done' && t.due === d ? $('span', 'warnt', 'hôm nay') : '' },
       { k: 'st', lb: 'Trạng thái', t: 'sel', o: TST, w: '106px', on: t => todoPush(t, true) }
-    ], { list: S.tasks, num: false, empty: flt.task === 'open' ? 'Chưa có việc nào – gõ ở ô trên rồi Enter' : 'Không có việc nào ở bộ lọc này', cls: t => (t.st === 'done' ? 'done' : '') + (taskLate(t) ? ' late lateBg' : '') + (t.pri === 'cao' && t.st !== 'done' ? ' hot' : ''), extra: (t, x) => { if (!WEB) x.append(bellBtn(t, () => t.t, S)); } }));
+    ], { list: S.tasks, num: false, empty: flt.task === 'open' && (!flt.cat || flt.cat === 'all') ? 'Chưa có việc nào – gõ ở ô trên rồi Enter' : 'Không có việc nào ở bộ lọc này' + (flt.cat && flt.cat !== 'all' ? ' – bấm "Tất cả bộ phận" để xem hết' : ''), cls: t => (t.st === 'done' ? 'done' : '') + (taskLate(t) ? ' late lateBg' : '') + (t.pri === 'cao' && t.st !== 'done' ? ' hot' : ''), extra: (t, x) => { if (!WEB) x.append(bellBtn(t, () => t.t, S)); } }));
     }
   }
 
