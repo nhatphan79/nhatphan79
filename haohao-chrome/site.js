@@ -97,7 +97,7 @@
   const WX = ['☀️ Nắng', '⛅ Mây', '🌦 Mưa nhỏ', '🌧 Mưa to', '⛔ Nghỉ'];
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
-  const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['crew', '👷 Nhân lực'],
+  const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['kh', '🗓️ Kế hoạch'], ['crew', '👷 Nhân lực'],
     ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ']];
 
   function newSite(name, code) {
@@ -698,9 +698,9 @@
       { k: 'ok', lb: '✓', t: 'calc', w: '34px', f: t => { const c = $('input', 'sb-chk'); c.type = 'checkbox'; c.checked = t.st === 'done'; c.disabled = RO; c.setAttribute('aria-label', 'Xong'); c.addEventListener('change', () => { t.st = c.checked ? 'done' : 'todo'; if (c.checked) t.doneAt = d; todoPush(t, true); save(); render(true); }); return c; } },
       { k: 't', lb: 'Công việc', t: 'text', rr: false }, { k: 'cat', lb: 'Bộ phận', t: 'sel', o: () => [...catList(), [NEWCAT, '＋ Thêm bộ phận…']], w: '118px', on: t => { if (t.cat !== NEWCAT) return; t.cat = catDef(); addCat(id => { t.cat = id; save(); render(true); }); } }, { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '14%', rr: false },
       { k: 'due', lb: 'Hạn', t: 'date', w: '128px', on: t => todoPush(t, true) }, { k: 'pri', lb: 'Ưu tiên', t: 'sel', o: PRI, w: '96px' },
-      { k: 'lt', lb: 'Trễ', t: 'calc', w: '70px', f: t => taskLate(t) ? $('b', 'bad', days(t.due, d) + ' ngày') : t.st !== 'done' && t.due === d ? $('span', 'warnt', 'hôm nay') : '' },
+      { k: 'lt', lb: 'Trễ', t: 'calc', w: '70px', f: t => taskLate(t) ? $('b', 'sb-due late', 'Trễ ' + days(t.due, d) + ' ngày') : t.st !== 'done' && t.due === d ? $('b', 'sb-due today', 'Hôm nay') : t.st !== 'done' && t.due === addD(d, 1) ? $('b', 'sb-due tmr', 'Mai') : '' },   // V1.5.12
       { k: 'st', lb: 'Trạng thái', t: 'sel', o: TST, w: '106px', on: t => todoPush(t, true) }
-    ], { list: S.tasks, num: false, empty: flt.task === 'open' && (!flt.cat || flt.cat === 'all') ? 'Chưa có việc nào – gõ ở ô trên rồi Enter' : 'Không có việc nào ở bộ lọc này' + (flt.cat && flt.cat !== 'all' ? ' – bấm "Tất cả bộ phận" để xem hết' : ''), cls: t => (t.st === 'done' ? 'done' : '') + (taskLate(t) ? ' late lateBg' : '') + (t.pri === 'cao' && t.st !== 'done' ? ' hot' : ''), extra: (t, x) => { if (!WEB) x.append(bellBtn(t, () => t.t, S)); } }));
+    ], { list: S.tasks, num: false, empty: flt.task === 'open' && (!flt.cat || flt.cat === 'all') ? 'Chưa có việc nào – gõ ở ô trên rồi Enter' : 'Không có việc nào ở bộ lọc này' + (flt.cat && flt.cat !== 'all' ? ' – bấm "Tất cả bộ phận" để xem hết' : ''), cls: t => (t.st === 'done' ? 'done' : '') + (taskLate(t) ? ' late lateBg dueLate' : t.st !== 'done' && t.due === d ? ' dueToday' : '') + (t.pri === 'cao' && t.st !== 'done' ? ' hot' : ''), extra: (t, x) => { if (!WEB) x.append(bellBtn(t, () => t.t, S)); } }));
     }
   }
 
@@ -708,6 +708,37 @@
   let openLogId = null;
   function openLog(S, dd) { rp = { kind: 'd', off: 0 }; rpDay = dd; rpEdit = false; tab = 'rep'; render(true); }   // V1.5.11: nhật ký → Báo cáo ngày
   // V1.5.11: E. Kế hoạch – tự tổng hợp việc ngày mai: hạng mục tiến độ đang / sẽ thi công, công việc tới hạn / quá hạn, vấn đề cần giải quyết
+  // ---------- 🗓️ KẾ HOẠCH (V1.5.12) – xem tổng hợp việc của 1 ngày: Thi công (Tiến độ) · Công việc · Cần giải quyết (Vấn đề) ----------
+  let khDay = '';
+  function kehoach(W, S) {
+    const d = today(); if (!khDay) khDay = addD(d, 1);
+    const h = sec(W, '🗓️ Kế hoạch ngày ' + fdFull(khDay) + (khDay === d ? ' (hôm nay)' : khDay === addD(d, 1) ? ' (ngày mai)' : ''), 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề – bấm dòng để sửa ở mục đó');
+    const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'), di = $('input', 'sb-in'); pv.type = nx.type = 'button'; di.type = 'date'; di.value = khDay;
+    pv.setAttribute('aria-label', 'Ngày trước'); nx.setAttribute('aria-label', 'Ngày sau'); di.setAttribute('aria-label', 'Chọn ngày');
+    pv.addEventListener('click', () => { khDay = addD(khDay, -1); render(true); }); nx.addEventListener('click', () => { khDay = addD(khDay, 1); render(true); }); di.addEventListener('change', () => { if (di.value) { khDay = di.value; render(true); } });
+    nav.append(pv, di, nx); if (khDay !== addD(d, 1)) { const b = $('button', 'sb-btn ghost sm', 'Ngày mai'); b.type = 'button'; b.addEventListener('click', () => { khDay = addD(d, 1); render(true); }); nav.append(b); } h.append(nav);
+    const day = khDay;
+    const grid = (title, heads, rows, go, empty) => {
+      const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', title), $('small', '', rows.length + ' mục')); c.append(hh);
+      const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-kh'), tr0 = $('tr'); heads.forEach(([l, cl]) => tr0.append($('th', cl || '', l))); const th = $('thead'); th.append(tr0); t.append(th);
+      const tb = $('tbody'); rows.forEach((r, i) => { const tr = $('tr', r.cls || ''); tr.tabIndex = 0; tr.title = 'Bấm để mở ở mục ' + go[1]; tr.append($('td', 'n', String(i + 1))); r.cells.forEach(([v, cl]) => { const td = $('td', cl || ''); if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); });
+        const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); tb.append(tr); });
+      if (!rows.length) { const tr = $('tr'), td = $('td', 'sb-none', empty); td.colSpan = heads.length; tr.append(td); tb.append(tr); }
+      t.append(tb); box.append(t); c.append(box); W.append(c); };
+    const P = S.plan.filter(p => p.s && p.e && p.s <= day && day <= p.e && num(p.pct) < 100);
+    grid('🏗️ Thi công', [['STT', 'n'], ['Hạng mục'], ['Thời gian', 'dt'], ['KH %', 'r'], ['Thực tế %', 'r'], ['Tình trạng', 'st']],
+      P.map(p => { const [c, l] = pState(p); return { cls: c === 'late' ? 'late lateBg' : '', cells: [[plab(p)], [fd(p.s) + ' → ' + fd(p.e), 'dt'], [planPct(p, day) + '%', 'r'], [num(p.pct) + '%', 'r'], [$('span', 'sb-st ' + c, p.s === day ? 'Bắt đầu' : l), 'st']] }; }),
+      ['plan', 'Tiến độ'], 'Không có hạng mục nào thi công ngày này');
+    const T = S.tasks.filter(t => t.st !== 'done' && t.due && t.due <= day).sort((a, b) => a.due.localeCompare(b.due));
+    grid('✅ Công việc', [['STT', 'n'], ['Công việc'], ['Bộ phận'], ['Người phụ trách'], ['Hạn', 'dt'], ['', 'st']],
+      T.map(t => ({ cls: t.due < d ? 'late lateBg dueLate' : t.due === d ? 'dueToday' : '', cells: [[(t.pri === 'cao' ? '🔴 ' : '') + (t.t || '')], [catName(catOf(t))], [t.who || '–'], [fd(t.due), 'dt'],
+        [t.due < d ? $('b', 'sb-due late', 'Trễ ' + days(t.due, d) + ' ngày') : t.due === d ? $('b', 'sb-due today', 'Hôm nay') : t.due === addD(d, 1) ? $('b', 'sb-due tmr', 'Mai') : '', 'st']] })),
+      ['task', 'Công việc'], 'Không có việc nào tới hạn');
+    const I = S.issues.filter(x => x.st !== 'dong' && x.due && x.due <= day).sort((a, b) => a.due.localeCompare(b.due));
+    grid('⚠️ Cần giải quyết', [['STT', 'n'], ['Vấn đề'], ['Đề xuất xử lý'], ['Người chịu TN'], ['Hạn', 'dt']],
+      I.map(x => ({ cls: x.due < d ? 'late lateBg' : '', cells: [[String(x.t || '').split('\n')[0]], [String(x.prop || '').split('\n')[0]], [x.who || '–'], [fd(x.due), 'dt']] })),
+      ['issue', 'Vấn đề'], 'Không có vấn đề nào cần giải quyết');
+  }
   function planNext(S, day) {
     const t1 = addD(day, 1), out = [];
     S.plan.filter(p => p.s && p.e && p.s <= t1 && t1 <= p.e && num(p.pct) < 100).forEach(p => out.push('Thi công: ' + plab(p)));
@@ -1220,11 +1251,7 @@
     [['work', 'B. Công việc thi công', 'Mỗi dòng 1 việc – vd: Thi công đắp cát mặt bằng cao độ 1.5m'], ['qa', 'C. Nghiệm thu', 'vd: Lấy mẫu 2 mỏ đất mới, đã gửi request'], ['issue', 'D. Vướng mắc', 'Không có thì để trống'],
       ['mat', 'F. Vật tư nhập về / sử dụng', 'Có thì ghi – báo cáo tự thêm mục']].forEach(([k, lb, ph]) => {
       const c = $('section', 'sb-rps'); c.append($('h2', '', lb)); const ta = field(L, { k, lb, t: 'area', rows: 2, ph, rr: false }); ta.addEventListener('input', ensure); c.append(ta); doc.append(c);
-      if (k === 'issue') {   // E. Kế hoạch – chỉ xem, tự tổng hợp
-        const e = $('section', 'sb-rps'); e.append($('h2', '', 'E. Kế hoạch ngày ' + fdFull(addD(rpDay, 1))));
-        const pl = planNext(S, rpDay).concat(String(L.next || '').split('\n').map(x => x.trim()).filter(Boolean)), u = $('ul', 'sb-list');
-        pl.forEach(x => u.append($('li', '', x))); if (!pl.length) u.append($('li', 'sb-none', 'Chưa có việc nào cho ngày mai'));
-        e.append(u, $('div', 'sb-note sb-noprint', 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề – sửa ở các mục đó.')); doc.append(e); }
+      if (k === 'issue') { const e = $('div', 'sb-note sb-noprint'); e.append('E. Kế hoạch ngày mai tự lấy từ tab ', (() => { const b = $('button', 'sb-lnk', '🗓️ Kế hoạch'); b.type = 'button'; b.addEventListener('click', () => { khDay = addD(rpDay, 1); tab = 'kh'; render(true); }); return b; })(), ' khi chép gửi Zalo.'); doc.append(e); }
     });
     if (L.rep) doc.append($('div', 'sb-note sb-noprint', '✏️ Ngày này có bản báo cáo đã sửa tay – bấm “📋 Xem & chép gửi Zalo” để xem.'));
     W.append(doc);
@@ -1338,7 +1365,7 @@
   }
 
   // ---------- vẽ ----------
-  const VIEWS = { dash, plan, task, log: report, crew, mat, cost, issue, rep: report, file };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
+  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
   let rendering = false;
   function render(force) {
     if (rendering) { setTimeout(() => render(force), 0); return; }

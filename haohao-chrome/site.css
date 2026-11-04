@@ -493,3 +493,19 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-rpday .sb-wx select { width: auto; }
 .sb-rpday .sb-list li.sub { padding-left: 16px; color: var(--soft); }
 @media print { .sb-rpday textarea { border: 0; padding: 0; } }
+/* V1.5.12: việc tới hạn đỏ + tab Kế hoạch */
+.sb-due { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.sb-due.late { background: var(--bad); color: #fff; }
+.sb-due.today { background: #FDE3DD; color: var(--bad); }
+.sb-due.tmr { background: #FFF1DA; color: #A35C00; }
+.sb-t tr.dueToday td input.sb-in, .sb-t tr.dueToday td > span, .sb-t tr.dueToday td { color: var(--bad); }
+.sb-t tr.dueToday td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+.sb-t tr.dueLate td input.sb-in:not([type=date]) { color: var(--bad); font-weight: 700; }
+.sb-khs { margin: 14px 0 18px; }
+.sb-khh { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; font-size: 15px; font-weight: 850; color: var(--ink); }
+.sb-khh small { font-size: 12px; font-weight: 600; color: var(--soft); }
+.sb-kh tbody tr { cursor: pointer; }
+.sb-kh tbody tr:hover td { background: #F6F8FC; }
+.sb-kh th.n, .sb-kh td.n { width: 46px; text-align: center; }
+.sb-kh td.dt { white-space: nowrap; width: 150px; } .sb-kh td.st, .sb-kh th.st { width: 120px; }
+.sb-lnk { border: 0; background: none; color: var(--blue); font: inherit; font-weight: 700; cursor: pointer; padding: 0 2px; text-decoration: underline; }
