@@ -853,7 +853,7 @@
     const mv = k => { const x = new Date(yy, mm - 1 + k, 1); rollM = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); render(true); };
     pv.addEventListener('click', () => mv(-1)); nx.addEventListener('click', () => mv(1)); nav.append(pv, nx); h.append(nav);
     const LD = new Map(S.logs.filter(l => l.d && l.d.startsWith(rollM)).map(l => [l.d, l]));
-    const rows = [['g', 'I. BAN CHỈ HUY'], ...rolesOf(S).map(r => [r.name, L => L.bch ? num(L.bch[r.id]) : 0, 0]),
+    const rows = [['I. Ban chỉ huy', L => bchOf(L), 0],   // V1.5.7: tháng chỉ hiện tổng BCH mỗi ngày
       ['g', 'II. TỔ ĐỘI'], ...S.teams.map(tm => [teamName(tm), L => num((L.crew || {})[tm.id]), num(tm.rate)]),
       ['g', 'III. CÔNG NHẬT'], ['Công nhật', L => num(L.other), num(S.dayRate)]];
     const box = $('div', 'sb-tw sb-msw'), t = $('table', 'sb-t sb-ms'), hr = $('tr');
