@@ -88,6 +88,21 @@
     if (oi.length) { o.push('', '⚠️ VẤN ĐỀ QUÁ HẠN (' + oi.length + '):'); oi.slice(0, 5).forEach(x => o.push('• ' + cut(x.t, 60) + ' – ' + (x.who || 'chưa giao') + ' – trễ ' + days(x.due, d) + ' ngày')); }
     let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
   }
+  // V1.5.15: 🗓️ KẾ HOẠCH NGÀY MAI – gửi Zalo 14h: thi công · công việc · cần giải quyết · vật tư cần về
+  function planText(S, d) {
+  const P = L(S, 'plan').filter(p => p.s && p.e && p.s <= d && d <= p.e && num(p.pct) < 100);
+  const T = L(S, 'tasks').filter(t => t.st !== 'done' && t.due && t.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
+  const X = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
+  const M = L(S, 'mats').filter(m => m.st !== 've' && m.need && m.need <= d).sort((a, b) => a.need < b.need ? -1 : 1);
+  const DW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'], dw = s => DW[new Date(s + 'T00:00').getDay()] + ' ' + fd(s);
+  const o = ['🗓️ KẾ HOẠCH NGÀY ' + fdFull(d) + ' (' + DW[new Date(d + 'T00:00').getDay()] + ')', head(S)];
+  o.push('', '1. Thi công:', ...(P.length ? P.slice(0, 12).map(p => '- ' + cut(plab(p), 70) + (p.s === d ? ' (bắt đầu)' : lagDays(p, d) >= 1 ? ' (chậm ' + lagDays(p, d) + ' ngày)' : '')) : ['- Không']));
+  o.push('', '2. Công việc:', ...(T.length ? T.slice(0, 12).map(t => '- ' + (t.pri === 'cao' ? '🔴 ' : '') + cut(t.t, 70) + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dw(t.due) + (t.due < today() ? ' ❗trễ' : '')) : ['- Không']));
+  o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 8).map(x => '- ' + cut(x.t, 70) + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + fd(x.due)) : ['- Không']));
+  o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 8).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '')) : ['- Không']));
+  let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+  }
+
   const HELP = '🤖 Bot Công trình HaoHao\n📊 XEM: tq tổng quan · hn việc hôm nay · vd vấn đề · cb cảnh báo · bct báo cáo tuần · bcth báo cáo tháng\n✏️ SỬA NHANH:\n• ds – danh sách việc (có số)\n• xong 2 – việc số 2 xong (xong 2 5 – nhiều việc)\n• them Đặt bê tông M250 @Nhật #qs ! han 5/11\n   (@ người làm · #bộ phận · ! ưu tiên cao · han ngày)\n• han 2 7/11 – đổi hạn · giao 2 @Minh – giao người\n• td – danh sách hạng mục · td 3 70 – hạng mục 3 đạt 70%\n• nk Đổ bê tông sàn tầng 2 – ghi vào nhật ký hôm nay\n• vande Thiếu thép D16 @Nhật – thêm vấn đề\n• ct – danh sách công trình · ct 2 – chọn công trình\n• id – mã cuộc trò chuyện\nMỗi ngày máy chủ HaoHao tự gửi tổng quan + cảnh báo đúng giờ, kể cả khi tắt máy. Lệnh trả lời ngay khi có 1 máy đang mở HaoHao.';
 
   // ---------- gọi API ----------
@@ -100,7 +115,9 @@
     } catch (e) { return { ok: false, description: e.name === 'AbortError' ? 'timeout' : String(e.message || e) }; }
     finally { clearTimeout(tm); }
   }
-  const getCfg = async () => (await chrome.storage.local.get('siteBot')).siteBot || {};
+  const getCfg = async () => { const c = (await chrome.storage.local.get('siteBot')).siteBot || {};
+    if (!c.v1515) { if (!c.alertTime || c.alertTime === '16:00') { c.alertTime = '08:00'; c.lastAlert = ''; } c.v1515 = 1; await chrome.storage.local.set({ siteBot: c }); }   // V1.5.15: cảnh báo chậm tiến độ 8h
+    return c; };
   const setCfg = async p => { const c = await getCfg(); Object.assign(c, p); await chrome.storage.local.set({ siteBot: c }); return c; };
   const sites = async () => { const { siteBrain: B } = await chrome.storage.local.get('siteBrain'); CATS = B && Array.isArray(B.cats) && B.cats.length ? Object.fromEntries(B.cats.map(c => [c.id, c.name])) : CATS0; return (B && Array.isArray(B.sites) ? B.sites : []).filter(s => !s.botOff); };
   async function send(cfg, text) { const j = await call(cfg.token, 'sendMessage', { chat_id: String(cfg.chatId), text }); if (!j.ok) throw new Error(j.description || ('Lỗi ' + (j.error_code || ''))); return j; }
@@ -124,9 +141,13 @@
       if (!srv && cfg.on && cfg.last !== d && now.getHours() * 60 + now.getMinutes() >= h * 60 + (m || 0)) {
         try { await sendDaily(cfg); await setCfg({ last: d, err: '' }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
       }
-      const [ah, am] = String(cfg.alertTime || '16:00').split(':').map(Number);
+      const [ah, am] = String(cfg.alertTime || '08:00').split(':').map(Number);
       if (!srv && cfg.alertOn !== false && cfg.lastAlert !== d && now.getHours() * 60 + now.getMinutes() >= ah * 60 + (am || 0)) {
         try { const S = await sites(); let n = 0; for (const s of S) { const t = alertText(s, d); if (t) { await send(cfg, t); n++; } } await setCfg({ lastAlert: d, alertN: n }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
+      }
+      const [ph, pm] = String(cfg.planTime || '14:00').split(':').map(Number);
+      if (!srv && cfg.planOn !== false && cfg.lastPlan !== d && now.getHours() * 60 + now.getMinutes() >= ph * 60 + (pm || 0)) {
+        try { const S = await sites(); for (const s of S) await send(cfg, planText(s, addD(d, 1))); await setCfg({ lastPlan: d }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
       }
       if (cfg.cmd !== false) await poll(cfg, Date.now() + 50000);   // V1.3.4: nghe liên tục ~50 giây mỗi phút → trả lời gần như tức thì
     } finally { busy = false; }
@@ -273,7 +294,7 @@
           return;
         }
         if (msg.type === 'sb-bot-test') { const cfg = await getCfg(); const n = await sendDaily(cfg, true); await setCfg({ err: '' }); return reply({ ok: true, n }); }
-        if (msg.type === 'sb-bot-preview') { const S = await sites(); return reply({ ok: true, text: S.map(s => overview(s)).join('\n\n— — —\n\n') || '(chưa có công trình)' }); }
+        if (msg.type === 'sb-bot-preview') { const S = await sites(); return reply({ ok: true, text: S.map(s => overview(s) + '\n\n— — —\n\n' + planText(s, addD(today(), 1))).join('\n\n— — —\n\n') || '(chưa có công trình)' }); }
         reply({ ok: false, err: 'lệnh lạ' });
       } catch (e) { reply({ ok: false, err: String(e.message || e) }); }
     })();
@@ -333,9 +354,9 @@
   }
   async function zaloCfgToServer(a) {   // V1.5.0: gửi giờ tổng quan / cảnh báo lên máy chủ – máy chủ tự gửi mỗi ngày, không cần bật máy
     if (!a.zsent || a.zsent === 'off') return;
-    const c = await getCfg(), want = JSON.stringify({ on: !!c.on, time: c.time || '07:00', alertOn: c.alertOn !== false, alertTime: c.alertTime || '16:00' });
+    const c = await getCfg(), want = JSON.stringify({ on: !!c.on, time: c.time || '07:00', alertOn: c.alertOn !== false, alertTime: c.alertTime || '08:00', planOn: c.planOn !== false, planTime: c.planTime || '14:00' });
     if (a.zcfg === want && a.zdaily) return;
-    const body = { ...JSON.parse(want), last: c.last || '', lastAlert: c.lastAlert || '' };
+    const body = { ...JSON.parse(want), last: c.last || '', lastAlert: c.lastAlert || '', lastPlan: c.lastPlan || '' };
     const r = await fetch(SB_API + '/sb/zalocfg', { method: 'POST', headers: { authorization: 'Bearer ' + a.token, 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json()).catch(() => null);
     if (r && r.ok && r.daily) { const A = await auth(); A.zcfg = want; A.zdaily = true; await chrome.storage.local.set({ sbAuth: A }); }
   }
@@ -371,5 +392,5 @@
   chrome.alarms.onAlarm.addListener(a => { if (a.name === 'sb:bot') { cloud().catch(() => {}).finally(tick); } });
   const ensure = () => chrome.alarms.get('sb:bot').then(a => { if (!a) chrome.alarms.create('sb:bot', { delayInMinutes: 0.2, periodInMinutes: 1 }); }).catch(() => {});
   ensure(); chrome.runtime.onStartup.addListener(() => { ensure(); setTimeout(tick, 4000); });
-  self.HHSiteBot = { overview, tick };
+  self.HHSiteBot = { overview, planText, tick };
 })();

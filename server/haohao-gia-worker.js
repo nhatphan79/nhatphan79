@@ -501,7 +501,21 @@ if (oi.length) { o.push('', '⚠️ VẤN ĐỀ QUÁ HẠN (' + oi.length + '):'
 let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
 }
 const setCats = B => { CATS = B && Array.isArray(B.cats) && B.cats.length ? Object.fromEntries(B.cats.map(c => [c.id, c.name])) : CATS0; };
-return { overview, alertText, setCats };
+// V1.5.15: 🗓️ KẾ HOẠCH NGÀY MAI – gửi Zalo 14h: thi công · công việc · cần giải quyết · vật tư cần về
+function planText(S, d) {
+const P = L(S, 'plan').filter(p => p.s && p.e && p.s <= d && d <= p.e && num(p.pct) < 100);
+const T = L(S, 'tasks').filter(t => t.st !== 'done' && t.due && t.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
+const X = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
+const M = L(S, 'mats').filter(m => m.st !== 've' && m.need && m.need <= d).sort((a, b) => a.need < b.need ? -1 : 1);
+const DW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'], dw = s => DW[new Date(s + 'T00:00').getDay()] + ' ' + fd(s);
+const o = ['🗓️ KẾ HOẠCH NGÀY ' + fdFull(d) + ' (' + DW[new Date(d + 'T00:00').getDay()] + ')', head(S)];
+o.push('', '1. Thi công:', ...(P.length ? P.slice(0, 12).map(p => '- ' + cut(plab(p), 70) + (p.s === d ? ' (bắt đầu)' : lagDays(p, d) >= 1 ? ' (chậm ' + lagDays(p, d) + ' ngày)' : '')) : ['- Không']));
+o.push('', '2. Công việc:', ...(T.length ? T.slice(0, 12).map(t => '- ' + (t.pri === 'cao' ? '🔴 ' : '') + cut(t.t, 70) + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dw(t.due) + (t.due < today() ? ' ❗trễ' : '')) : ['- Không']));
+o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 8).map(x => '- ' + cut(x.t, 70) + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + fd(x.due)) : ['- Không']));
+o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 8).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '')) : ['- Không']));
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+return { overview, alertText, planText, setCats };
 })();
 async function sbZaloCfg(env, email, req) {
 await sbzInit(env); await sbzInit2(env);
@@ -509,10 +523,11 @@ const b = await req.json().catch(() => null);
 if (!b) return json({ ok: false, error: 'sai dữ liệu' }, 400);
 const row = await env.DB.prepare('SELECT dsent FROM sbz WHERE email = ?').bind(email).first();
 if (!row) return json({ ok: false, error: 'chưa bật nhắc qua Zalo' }, 404);
-const c = { on: !!b.on, time: /^\d{1,2}:\d{2}$/.test(b.time || '') ? b.time : '07:00', alertOn: b.alertOn !== false, alertTime: /^\d{1,2}:\d{2}$/.test(b.alertTime || '') ? b.alertTime : '16:00' };
+const c = { on: !!b.on, time: /^\d{1,2}:\d{2}$/.test(b.time || '') ? b.time : '07:00', alertOn: b.alertOn !== false, alertTime: /^\d{1,2}:\d{2}$/.test(b.alertTime || '') ? b.alertTime : '08:00', planOn: b.planOn !== false, planTime: /^\d{1,2}:\d{2}$/.test(b.planTime || '') ? b.planTime : '14:00' };
 let ds = {}; try { ds = JSON.parse(row.dsent || '{}') || {}; } catch {}
 if (/^\d{4}-\d{2}-\d{2}$/.test(b.last || '')) ds['d@' + b.last] = 1;
 if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastAlert || '')) ds['a@' + b.lastAlert] = 1;
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastPlan || '')) ds['p@' + b.lastPlan] = 1;
 await env.DB.prepare('UPDATE sbz SET cfg = ?, dsent = ?, on1 = 1 WHERE email = ?').bind(JSON.stringify(c), JSON.stringify(ds), email).run();
 return json({ ok: true, daily: true });
 }
@@ -522,8 +537,8 @@ const N = vnNow(), { results = [] } = await env.DB.prepare('SELECT email, token,
 const hm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : 0; };
 for (const z of results) {
 let c = {}, ds = {}; try { c = JSON.parse(z.cfg) || {}; ds = JSON.parse(z.dsent || '{}') || {}; } catch {}
-const wantD = c.on && !ds['d@' + N.ymd] && N.min >= hm(c.time || '07:00'), wantA = c.alertOn !== false && !ds['a@' + N.ymd] && N.min >= hm(c.alertTime || '16:00');
-if (!wantD && !wantA) continue;
+const wantD = c.on && !ds['d@' + N.ymd] && N.min >= hm(c.time || '07:00'), wantA = c.alertOn !== false && !ds['a@' + N.ymd] && N.min >= hm(c.alertTime || '08:00'), wantP = c.planOn !== false && !ds['p@' + N.ymd] && N.min >= hm(c.planTime || '14:00');
+if (!wantD && !wantA && !wantP) continue;
 const row = await env.DB.prepare('SELECT v FROM sb WHERE email = ?').bind(z.email).first();
 let v = null; try { v = row ? JSON.parse(row.v) : null; } catch {}
 const S = v && Array.isArray(v.sites) ? v.sites : [];
@@ -531,6 +546,7 @@ SBD.setCats(v);
 const send = async t => { const r = await fetch('https://bot-api.zaloplatforms.com/bot' + z.token + '/sendMessage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: z.chat, text: t }) }).then(x => x.json()).catch(() => null); return !!(r && r.ok); };
 if (wantD) { let ok = true; for (const s of S) ok = (await send(SBD.overview(s, N.ymd))) && ok; if (ok) ds['d@' + N.ymd] = Date.now(); }
 if (wantA) { let ok = true; for (const s of S) { const t = SBD.alertText(s, N.ymd); if (t) ok = (await send(t)) && ok; } if (ok) ds['a@' + N.ymd] = Date.now(); }
+if (wantP) { let ok = true; const t1 = new Date(Date.parse(N.ymd + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); for (const s of S) ok = (await send(SBD.planText(s, t1))) && ok; if (ok) ds['p@' + N.ymd] = Date.now(); }
 for (const k in ds) if (k.slice(2) < new Date(Date.parse(N.ymd) - 5 * 864e5).toISOString().slice(0, 10)) delete ds[k];
 await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.stringify(ds), z.email).run();
 }

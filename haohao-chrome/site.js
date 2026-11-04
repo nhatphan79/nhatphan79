@@ -396,7 +396,7 @@
   }
   // 🤖 V1.2.6: bot Zalo – gửi Tổng quan mỗi ngày (sitebot.js chạy nền)
   let botCfg = {};
-  chrome.storage.local.get('siteBot').then(r => { botCfg = r.siteBot || {}; if (ready) render(); }).catch(() => {});
+  chrome.storage.local.get('siteBot').then(r => { botCfg = r.siteBot || {}; if (!RO && !botCfg.v1515) { if (!botCfg.alertTime || botCfg.alertTime === '16:00') { botCfg.alertTime = '08:00'; botCfg.lastAlert = ''; } botCfg.v1515 = 1; chrome.storage.local.set({ siteBot: botCfg }).catch(() => {}); } if (ready) render(); }).catch(() => {});   // V1.5.15: cảnh báo 8h
   const bgMsg = m => chrome.runtime.sendMessage(m).catch(e => ({ ok: false, err: String(e.message || e) }));
   function botDlg() {
     const c = { token: '', chatId: '', chatName: '', time: '07:00', on: true, cmd: true, ...botCfg };
@@ -431,11 +431,13 @@
       const tm = $('input', 'sb-in'); tm.type = 'time'; tm.value = c.time || '07:00'; tm.setAttribute('aria-label', 'Giờ gửi');
       const on = $('input', 'sb-chk'); on.type = 'checkbox'; on.checked = c.on !== false; on.style.margin = '6px 0';
       const cm = $('input', 'sb-chk'); cm.type = 'checkbox'; cm.checked = c.cmd !== false; cm.style.margin = '6px 0';
-      const at = $('input', 'sb-in'); at.type = 'time'; at.value = c.alertTime || '16:00'; at.setAttribute('aria-label', 'Giờ cảnh báo');
+      const at = $('input', 'sb-in'); at.type = 'time'; at.value = c.alertTime || '08:00'; at.setAttribute('aria-label', 'Giờ cảnh báo');
+      const pt = $('input', 'sb-in'); pt.type = 'time'; pt.value = c.planTime || '14:00'; pt.setAttribute('aria-label', 'Giờ gửi kế hoạch ngày mai');
+      const po = $('input', 'sb-chk'); po.type = 'checkbox'; po.checked = c.planOn !== false; po.style.margin = '6px 0';
       const ao = $('input', 'sb-chk'); ao.type = 'checkbox'; ao.checked = c.alertOn !== false; ao.style.margin = '6px 0';
       const rz = $('input', 'sb-chk'); rz.type = 'checkbox'; rz.checked = c.remindZalo !== false; rz.style.margin = '6px 0';
       g.append(lab('⏰ Nhắc Todo & nhắc nhở qua Zalo (cả khi tắt máy)', rz),
-        lab('Giờ gửi tổng quan', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd / cb', cm), lab('🚨 Giờ cảnh báo trễ / chậm', at), lab('Bật cảnh báo trễ hạn', ao));
+        lab('Giờ gửi tổng quan', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd / cb', cm), lab('🚨 Giờ cảnh báo chậm tiến độ', at), lab('Bật cảnh báo chậm tiến độ', ao), lab('🗓️ Giờ gửi kế hoạch ngày mai', pt), lab('Bật gửi kế hoạch ngày mai', po));
       b.append(g);
       const sl = $('div', 'sb-fl', 'Công trình được gửi'); const sw = $('div', 'sb-chips');
       data.sites.forEach(S => { const l = $('label', 'sb-chip on'), x = $('input'); x.type = 'checkbox'; x.checked = !S.botOff; x.style.marginRight = '6px'; l.classList.toggle('on', x.checked);
@@ -455,11 +457,11 @@
       act.append(pv, ts); b.append(act, pre);
       if (c.err) b.append($('div', 'sb-note bad', '⚠ Lần gửi gần nhất lỗi: ' + c.err));
       b.append($('div', 'sb-note', '💡 Đã đăng nhập Google và tích "⏰ Nhắc Todo & nhắc nhở qua Zalo" thì máy chủ HaoHao tự gửi tổng quan + cảnh báo đúng giờ, kể cả khi tắt máy. Lệnh nhắn bot (tq, xong, them…) được trả lời khi có 1 máy đang mở HaoHao. Token lưu trên máy này và máy chủ HaoHao (để tự gửi).'));
-      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '16:00', alertOn: ao.checked, remindZalo: rz.checked });
+      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '08:00', alertOn: ao.checked, planTime: pt.value || '14:00', planOn: po.checked, remindZalo: rz.checked });
     }, async () => {
-      const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = ''; if (p.alertTime !== c.alertTime) p.lastAlert = '';
+      const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = ''; if (p.alertTime !== c.alertTime) p.lastAlert = ''; if (p.planTime !== c.planTime) p.lastPlan = '';
       if (p.token !== c.token && c.token) toast('Đổi token → cần 🔗 Kết nối lại');
-      await saveBot(p); render(true); if (p.on && c.chatId) toast('🤖 Bot sẽ gửi tổng quan lúc ' + p.time + ' mỗi ngày');
+      await saveBot(p); render(true); if (p.on && c.chatId) toast('🤖 Bot gửi: tổng quan ' + p.time + (p.alertOn ? ' · cảnh báo ' + p.alertTime : '') + (p.planOn ? ' · kế hoạch ngày mai ' + p.planTime : '') + ' mỗi ngày');
     });
     void D;
   }

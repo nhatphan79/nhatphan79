@@ -9,11 +9,14 @@
 //   POST /ping { id, v }                  → đếm máy đang dùng (id ngẫu nhiên, KHÔNG thông tin cá nhân), mỗi máy 1 lần/ngày
 //   GET  /bye?id=&v=                      → Chrome mở khi khách gỡ HaoHao: ghi 1 lượt gỡ + hỏi lý do (POST /bye { id, why })
 //   GET  /thongke?key=                    → trang thống kê cho chủ app (đặt biến STATS_KEY trên Cloudflare để khoá bằng mật khẩu)
+//   GET  /shop                            → web HaoHao Store (trang lấy từ GitHub haohao-shop-web/)
+//   GET  /tin-tuc/ , /tin-tuc/<bài>, /sitemap.xml, /robots.txt → Tin tức SEO (GitHub haohao-shop-web/tin-tuc/)
+//   GET  /store                           → sản phẩm HaoHao Store (5 ngách) đọc từ collshp.com/haohaostore, tự cập nhật 6 giờ/lần
 // "ngày" = số ngày tính từ 1/1/1970 theo giờ Việt Nam. Mỗi món mỗi ngày 1 mốc (giữ giá thấp nhất trong ngày), giữ 120 ngày.
 
 const KEEP_DAYS = 120, MAX_IN = 60, MAX_OUT = 20;
-const KEY = /^(sp:\d{3,12}\.\d{3,16}|tt:\d{8,22})$/;
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
+const KEY = /^((ap:)?sp:\d{3,12}\.\d{3,16}|tt:\d{8,22})$/;   // V1.81: ap:sp:… = giá "Mua trên app" tiện ích tính
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type, authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS' };
 const json = (o, s = 200, extra = {}) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json; charset=utf-8', ...cors, ...extra } });
 const today = () => Math.floor((Date.now() + 7 * 3600e3) / 864e5);
 let ready = false;
@@ -24,6 +27,7 @@ async function init(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS may (id TEXT PRIMARY KEY, v TEXT, d0 INTEGER, d1 INTEGER, gone INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS go (d INTEGER, id TEXT, v TEXT, why TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS st (k TEXT PRIMARY KEY, v TEXT)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS ct (id TEXT PRIMARY KEY, w TEXT, v TEXT, at INTEGER)'),   // 🏗️ 01/11: bản chụp trang Công trình để xem trên điện thoại
     env.DB.prepare('CREATE TABLE IF NOT EXISTS tu (d INTEGER, q TEXT, src TEXT, n INTEGER, PRIMARY KEY (d, q, src))'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS anh (k TEXT PRIMARY KEY, v TEXT, at INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS cho (id INTEGER PRIMARY KEY AUTOINCREMENT, by TEXT, shop TEXT, code TEXT, label TEXT, url TEXT, until INTEGER, at INTEGER, ok INTEGER DEFAULT 0, bad INTEGER DEFAULT 0, used INTEGER DEFAULT 0)'),
@@ -254,6 +258,334 @@ async function choList(env, by = '') {
   return { ok: true, items: results.map(({ by: b, ...x }) => ({ ...x, mine: !!by && b === by })) };
 }
 // 13/10: địa chỉ IP người gửi (Cloudflare cấp, khó giả) → băm, không lưu IP thật
+// 🏗️ 01/11 (HaoHao V1.2.7): trang Công trình xem trên điện thoại – tiện ích đẩy bản chụp (không kèm ảnh) lên /ct,
+//    điện thoại mở haohaostore.com/cong-trinh#<id> đọc /ct?id=. id = mã xem (khó đoán), w = mã ghi (chỉ lưu băm SHA-256).
+const CT_ID = /^[a-z0-9]{20,40}$/, CT_W = /^[a-z0-9]{24,64}$/;
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('haohao-ct|' + t)))].map(x => x.toString(16).padStart(2, '0')).join('');
+async function ctPut(env, req) {
+  if (Number(req.headers.get('content-length') || 0) > 1500000) return { ok: false, error: 'quá lớn (tối đa 1,5MB)' };
+  const b = await req.json().catch(() => null), id = String(b && b.id || ''), w = String(b && b.w || '');
+  if (!CT_ID.test(id) || !CT_W.test(w)) return { ok: false, error: 'mã sai' };
+  const hw = await sha(w), old = await env.DB.prepare('SELECT w FROM ct WHERE id = ?').bind(id).first();
+  if (old && old.w !== hw) return { ok: false, error: 'không có quyền' };
+  if (b.del) { await env.DB.prepare('DELETE FROM ct WHERE id = ?').bind(id).run(); return { ok: true, del: true }; }
+  const v = JSON.stringify(b.v || null); if (v.length > 1400000) return { ok: false, error: 'quá lớn' };
+  await env.DB.prepare('INSERT INTO ct (id, w, v, at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET v = excluded.v, at = excluded.at').bind(id, hw, v, Date.now()).run();
+  return { ok: true, at: Date.now() };
+}
+async function ctGet(env, id) {
+  id = String(id || ''); if (!CT_ID.test(id)) return { ok: false, error: 'mã sai' };
+  const r = await env.DB.prepare('SELECT v, at FROM ct WHERE id = ?').bind(id).first();
+  if (!r) return { ok: false, error: 'chưa có dữ liệu' };
+  let v = null; try { v = JSON.parse(r.v); } catch {} return { ok: true, at: r.at, v };
+}
+/* 🔐 01/11 (HaoHao V1.3.0): SITE BRAIN theo tài khoản Google – đăng nhập 1 lần, máy tính + điện thoại cùng sửa 1 bộ dữ liệu.
+   POST /sb/login { id_token } → { token, email }   (xác minh ID token của Google, cấp phiên 180 ngày)
+   GET  /sb   (Authorization: Bearer <phiên>) → { rev, v, at }
+   PUT  /sb   { base, v } → { rev } | 409 { conflict, rev, v }   (base = số phiên bản máy đang giữ)
+   POST /sbp  { id, d } → lưu 1 ảnh (dataURL jpeg) · GET /sbp/<id> → ảnh (id = băm nội dung, khó đoán) */
+const SB_GID = '887723128133-u9anir3ppp3l41ciganrasr7bf43v265.apps.googleusercontent.com';
+const SB_DAYS = 180;
+async function sbInit(env) {
+  if (sbInit.ok) return;
+  await env.DB.batch([
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sb (email TEXT PRIMARY KEY, rev INTEGER, v TEXT, at INTEGER)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbs (tok TEXT PRIMARY KEY, email TEXT, at INTEGER)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbp (id TEXT PRIMARY KEY, email TEXT, d TEXT, at INTEGER)')
+  ]);
+  sbInit.ok = true;
+}
+const sbTok = () => { const a = new Uint8Array(30); crypto.getRandomValues(a); return [...a].map(x => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join(''); };
+async function sbWho(env, req) {
+  const t = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!/^[a-z0-9]{30}$/.test(t)) return null;
+  const r = await env.DB.prepare('SELECT email, at FROM sbs WHERE tok = ?').bind(t).first();
+  if (!r || Date.now() - r.at > SB_DAYS * 864e5) return null;
+  return r.email;
+}
+async function sbLogin(env, req) {
+  const b = await req.json().catch(() => null), idt = String(b && b.id_token || '');
+  if (!idt || idt.length > 4000) return json({ ok: false, error: 'thiếu mã đăng nhập' }, 400);
+  const g = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idt)).then(r => r.json()).catch(() => null);
+  const gid = env.SB_GID || SB_GID;
+  if (!g || g.aud !== gid || !/^https:\/\/accounts\.google\.com$|^accounts\.google\.com$/.test(g.iss || '') || String(g.email_verified) !== 'true' || !g.email) return json({ ok: false, error: 'Google không xác nhận được tài khoản' }, 401);
+  if (Number(g.exp || 0) * 1000 < Date.now()) return json({ ok: false, error: 'mã đăng nhập hết hạn' }, 401);
+  const email = String(g.email).toLowerCase(), tok = sbTok();
+  await env.DB.prepare('INSERT INTO sbs (tok, email, at) VALUES (?, ?, ?)').bind(tok, email, Date.now()).run();
+  return json({ ok: true, token: tok, email, name: g.name || '', pic: g.picture || '' });
+}
+async function sbRoute(env, req, u) {
+  await sbInit(env);
+  if (u.pathname === '/sb/login' && req.method === 'POST') return sbLogin(env, req);
+  if (u.pathname.startsWith('/sbp/') && req.method === 'GET') {
+    const id = u.pathname.slice(5);
+    if (!/^p_[a-f0-9]{32}$/.test(id)) return new Response('sai mã ảnh', { status: 400, headers: cors });
+    const r = await env.DB.prepare('SELECT d FROM sbp WHERE id = ?').bind(id).first();
+    if (!r) return new Response('không có ảnh', { status: 404, headers: cors });
+    const m = /^data:(image\/[a-z]+);base64,(.*)$/.exec(r.d || '');
+    if (!m) return new Response('ảnh hỏng', { status: 500, headers: cors });
+    const bin = Uint8Array.from(atob(m[2]), c => c.charCodeAt(0));
+    return new Response(bin, { headers: { 'content-type': m[1], 'cache-control': 'public, max-age=31536000, immutable', ...cors } });
+  }
+  const email = await sbWho(env, req);
+  if (!email) return json({ ok: false, error: 'chưa đăng nhập', auth: false }, 401);
+  if (u.pathname === '/sb/logout' && req.method === 'POST') { const t = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, ''); await env.DB.prepare('DELETE FROM sbs WHERE tok = ?').bind(t).run(); return json({ ok: true }); }
+  if (u.pathname === '/sb/me') return json({ ok: true, email });
+  if (u.pathname === '/sbp' && req.method === 'POST') {
+    if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'ảnh quá lớn' }, 413);
+    const b = await req.json().catch(() => null), id = String(b && b.id || ''), d = String(b && b.d || '');
+    if (!/^p_[a-f0-9]{32}$/.test(id) || !/^data:image\/[a-z]+;base64,/.test(d)) return json({ ok: false, error: 'sai dữ liệu ảnh' }, 400);
+    await env.DB.prepare('INSERT OR IGNORE INTO sbp (id, email, d, at) VALUES (?, ?, ?, ?)').bind(id, email, d, Date.now()).run();
+    return json({ ok: true, id });
+  }
+  if (u.pathname === '/sb' && req.method === 'GET') {
+    const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(email).first();
+    let v = null; try { v = r ? JSON.parse(r.v) : null; } catch {}
+    return json({ ok: true, email, rev: r ? r.rev : 0, v, at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' });
+  }
+  if (u.pathname === '/sb' && req.method === 'PUT') {
+    if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'dữ liệu quá lớn (tối đa ~1,7MB, không tính ảnh)' }, 413);
+    const b = await req.json().catch(() => null);
+    if (!b || typeof b.v !== 'object' || !Array.isArray(b.v && b.v.sites)) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+    const base = Number(b.base) || 0, v = JSON.stringify(b.v), now = Date.now();
+    const cur = await env.DB.prepare('SELECT rev, v FROM sb WHERE email = ?').bind(email).first();
+    const rev = cur ? cur.rev : 0;
+    if (base !== rev) { let cv = null; try { cv = JSON.parse(cur.v); } catch {} return json({ ok: false, conflict: true, rev, v: cv }, 409); }
+    const res = cur
+      ? await env.DB.prepare('UPDATE sb SET rev = ?, v = ?, at = ? WHERE email = ? AND rev = ?').bind(rev + 1, v, now, email, rev).run()
+      : await env.DB.prepare('INSERT OR IGNORE INTO sb (email, rev, v, at) VALUES (?, 1, ?, ?)').bind(email, v, now).run();
+    if (!res.meta || !res.meta.changes) return json({ ok: false, conflict: true, rev: -1 }, 409);
+    return json({ ok: true, rev: rev + 1, at: now });
+  }
+  return json({ ok: false, error: 'không có lệnh này' }, 404);
+}
+/* ⏰ 01/11 HaoHao V1.4.0: Todo + Nhắc nhở theo tài khoản (ns=todo) và máy chủ tự nhắc qua Zalo mỗi phút */
+async function sbzInit(env) {
+if (sbzInit.ok) return;
+await env.DB.prepare('CREATE TABLE IF NOT EXISTS sbz (email TEXT PRIMARY KEY, token TEXT, chat TEXT, on1 INTEGER, sent TEXT, at INTEGER)').run();
+sbzInit.ok = true;
+}
+const vnNow = () => { const d = new Date(Date.now() + 7 * 3600e3); return { ymd: d.toISOString().slice(0, 10), hm: d.toISOString().slice(11, 16), dow: d.getUTCDay(), min: d.getUTCHours() * 60 + d.getUTCMinutes(), iso: d.toISOString().slice(0, 16) }; };
+async function sbZaloSave(env, email, req) {
+await sbzInit(env);
+const b = await req.json().catch(() => null);
+if (!b) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+if (b.off) { await env.DB.prepare('UPDATE sbz SET on1 = 0 WHERE email = ?').bind(email).run(); return json({ ok: true, on: false }); }
+const token = String(b.token || ''), chat = String(b.chat || '');
+if (!/^\d+:[A-Za-z0-9_-]{10,}$/.test(token) || !chat) return json({ ok: false, error: 'thiếu token / mã chat' }, 400);
+await env.DB.prepare('INSERT INTO sbz (email, token, chat, on1, sent, at) VALUES (?, ?, ?, 1, ?, ?) ON CONFLICT(email) DO UPDATE SET token = excluded.token, chat = excluded.chat, on1 = 1, at = excluded.at').bind(email, token, chat, '{}', Date.now()).run();
+return json({ ok: true, on: true });
+}
+const remDue = (r, N) => {
+if (!r || !r.enabled || r.type !== 'reminder') return false;
+const times = Array.isArray(r.times) && r.times.length ? r.times : (r.time ? [r.time] : []);
+if (r.kind === 'daily') return times.includes(N.hm) && (!Array.isArray(r.days) || !r.days.length || r.days.includes(N.dow));
+if (r.kind === 'once') return String(r.datetime || '').slice(0, 16) === N.iso;
+if (r.kind === 'interval') {
+const st = Math.max(1, Number(r.minutes) || 60), hm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const f = hm(r.from) ?? 0, t = hm(r.to) ?? 1439;
+if (N.min < f || N.min > t) return false;
+return (N.min - f) % st === 0;
+}
+return false;
+};
+async function sbRemind(env) {
+await sbInit(env); await sbzInit(env);
+const N = vnNow(), { results = [] } = await env.DB.prepare('SELECT email, token, chat, sent FROM sbz WHERE on1 = 1').all();
+for (const z of results) {
+const row = await env.DB.prepare('SELECT v FROM sb WHERE email = ?').bind(z.email + '#todo').first();
+let v = null; try { v = row ? JSON.parse(row.v) : null; } catch {}
+if (!v) continue;
+let sent = {}; try { sent = JSON.parse(z.sent || '{}') || {}; } catch {}
+const out = [];
+for (const t of Array.isArray(v.todos) ? v.todos : []) {
+if (!t || t.done || t.mute || !t.due) continue;
+const due = String(t.due).slice(0, 16), key = 't:' + t.id + '@' + due;
+if (sent[key]) continue;
+const dt = Date.parse(due + ':00+07:00');
+if (isNaN(dt) || dt > Date.now() + 30e3 || Date.now() - dt > 30 * 60e3) continue;
+out.push({ key, text: '⏰ ' + (t.star ? '⭐ ' : '') + t.text + (due.slice(11) ? ' – ' + due.slice(11) : '') + '\nTrả lời "xong" khi làm xong.' });
+}
+for (const r of Array.isArray(v.rules) ? v.rules : []) {
+if (!remDue(r, N)) continue;
+const key = 'r:' + r.id + '@' + N.iso;
+if (sent[key]) continue;
+out.push({ key, text: (r.icon ? r.icon + ' ' : '🔔 ') + (r.message || r.name || 'Nhắc nhở') });
+}
+for (const m of out) {
+const res = await fetch('https://bot-api.zaloplatforms.com/bot' + z.token + '/sendMessage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: z.chat, text: m.text }) }).then(r => r.json()).catch(() => null);
+if (res && res.ok) sent[m.key] = Date.now();
+}
+const cut = Date.now() - 3 * 864e5;
+for (const k in sent) if (sent[k] < cut) delete sent[k];
+if (out.length) await env.DB.prepare('UPDATE sbz SET sent = ? WHERE email = ?').bind(JSON.stringify(sent), z.email).run();
+}
+}
+const SBD = (() => {
+const ymd = d => { const z = new Date(d); z.setMinutes(z.getMinutes() - z.getTimezoneOffset()); return z.toISOString().slice(0, 10); };
+const today = () => ymd(new Date());
+const addD = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+const days = (a, b) => Math.round((new Date(b + 'T00:00') - new Date(a + 'T00:00')) / 864e5);
+const fd = s => s ? s.slice(8, 10) + '/' + s.slice(5, 7) : '';
+const fdFull = s => s ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : '';
+const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.-]/g, '')); return isNaN(n) ? 0 : n; };
+const short = n => { const a = Math.abs(n), s = n < 0 ? '−' : ''; return a >= 1e9 ? s + (a / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ' : a >= 1e6 ? s + (a / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tr' : s + Math.round(a).toLocaleString('vi-VN') + 'đ'; };
+const dur = p => p.s && p.e ? Math.max(1, days(p.s, p.e) + 1) : 1;
+const planPct = (p, d) => !p.s || !p.e ? 0 : d < p.s ? 0 : d >= p.e ? 100 : Math.round((days(p.s, d) + 1) / dur(p) * 100);
+const L = (S, k) => Array.isArray(S[k]) ? S[k] : [];
+function progress(S, d) {
+const P = L(S, 'plan').filter(p => p.s && p.e), W = P.reduce((a, p) => a + dur(p), 0);
+if (!W) return { kh: 0, tt: 0 };
+return { kh: Math.round(P.reduce((a, p) => a + planPct(p, d) * dur(p), 0) / W), tt: Math.round(P.reduce((a, p) => a + Math.min(100, num(p.pct)) * dur(p), 0) / W) };
+}
+const MST = { de: 'đề xuất', duyet: 'đã duyệt', dat: 'đã đặt', ve: 'đã về' };
+const ITYPE = { ht: 'Hiện trường', kt: 'Kỹ thuật', td: 'Tiến độ', cp: 'Chi phí', pd: 'Xin duyệt' };
+const IST = { mo: 'mới', xl: 'đang xử lý', cd: 'chờ duyệt', dong: 'xong' };
+const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
+const cut = (t, n) => (t = String(t || '').replace(/\s+/g, ' ').trim()).length > n ? t.slice(0, n - 1) + '…' : t;
+const taskLate = (t, d) => t.st !== 'done' && t.due && t.due < d;
+const CATS0 = { qs: 'QS', qaqc: 'QA/QC', shop: 'Shopdrawing', ht: 'Hiện trường', cdt: 'Chủ đầu tư' };
+let CATS = CATS0;
+const catOf = t => CATS[t.cat] || CATS.ht || Object.values(CATS)[0] || 'Khác';
+const lagDays = (p, d) => { if (!p.s || !p.e || num(p.pct) >= 100 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
+const todayTasks = (S, d) => L(S, 'tasks').filter(t => t.st !== 'done' && (taskLate(t, d) || t.due === d || t.st === 'doing')).sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
+const head = S => '🏗️ ' + (S.code ? S.code + ' · ' : '') + (S.name || 'Công trình');
+const taskLine = (t, d) => '• ' + (taskLate(t, d) ? '❗' : '') + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 70) + (t.who ? ' – ' + t.who : '') + (t.due ? (taskLate(t, d) ? ' (trễ ' + days(t.due, d) + ' ngày)' : t.due === d ? '' : ' (' + fd(t.due) + ')') : '');
+const issueLine = (x, d) => '• ' + (x.due && x.due < d ? '❗' : '') + '[' + (ITYPE[x.type] || 'Vấn đề') + '] ' + cut(x.t, 70) + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '') + (x.st === 'cd' ? ' · chờ duyệt' : '');
+function overview(S, d = today()) {
+const pr = progress(S, d), late = pr.tt - pr.kh, plan = L(S, 'plan');
+const slow = plan.filter(p => lagDays(p, d) >= 1).sort((a, b) => lagDays(b, d) - lagDays(a, d));
+const o = ['📊 TỔNG QUAN ' + fdFull(d), head(S)];
+const ds = S.start ? days(S.start, d) : null, dl = S.end ? days(d, S.end) : null;
+o.push('📍 Giai đoạn: ' + (S.phase || '—') + (ds != null && ds >= 0 ? ' · ngày thứ ' + (ds + 1) : '') + (dl != null ? (dl >= 0 ? ' · còn ' + dl + ' ngày' : ' · QUÁ HẠN ' + (-dl) + ' ngày') : ''));
+o.push('📈 Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '% → ' + (late < -5 ? '🔴 CHẬM ' + (-late) + '%' : late > 5 ? '🟢 vượt ' + late + '%' : slow.length ? '🟡 tổng thể đúng kế hoạch, ' + slow.length + ' hạng mục chậm' : '🟢 đúng kế hoạch'));
+slow.slice(0, 4).forEach(p => o.push('   ' + (lagDays(p, d) >= 3 ? '🔴' : '🟡') + ' ' + cut(plab(p), 50) + ': ' + (p.e && d > p.e ? 'QUÁ HẠN ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)'));
+const ms = plan.filter(p => p.mile && num(p.pct) < 100 && p.e).sort((a, b) => a.e < b.e ? -1 : 1)[0];
+if (ms) o.push('🏁 Mốc nghiệm thu: ' + cut(ms.t, 50) + ' – ' + fd(ms.e) + (days(d, ms.e) >= 0 ? ' (còn ' + days(d, ms.e) + ' ngày)' : ' (QUÁ ' + days(ms.e, d) + ' ngày)'));
+const T = todayTasks(S, d), nl = L(S, 'tasks').filter(t => taskLate(t, d)).length;
+o.push('', '✅ HÔM NAY: ' + T.length + ' việc' + (nl ? ' · ' + nl + ' quá hạn' : ''));
+T.slice(0, 8).forEach(t => o.push(taskLine(t, d))); if (T.length > 8) o.push('  … và ' + (T.length - 8) + ' việc nữa');
+if (!T.length) o.push('• Không có việc tới hạn 👍');
+const logs = L(S, 'logs').slice().sort((a, b) => a.d < b.d ? 1 : -1), lg = logs.find(x => x.d <= d);
+if (lg) { const teams = L(S, 'teams'), parts = teams.map(t => num((lg.crew || {})[t.id]) ? t.name + ' ' + num(lg.crew[t.id]) : '').filter(Boolean);
+const n = Object.values(lg.crew || {}).reduce((a, x) => a + num(x), 0) + num(lg.other);
+o.push('', '👷 Nhân lực ' + (lg.d === d ? 'hôm nay' : fd(lg.d)) + ': ' + n + ' người' + (parts.length ? ' (' + parts.join(', ') + ')' : ''));
+if (lg.next && lg.d === addD(d, -1)) o.push('📅 Kế hoạch hôm nay (ghi hôm qua): ' + cut(lg.next, 160)); }
+const M = L(S, 'mats').filter(m => m.st !== 've' && (!m.need || m.need <= addD(d, 7))).sort((a, b) => (a.need || '9') < (b.need || '9') ? -1 : 1);
+if (M.length) { o.push('', '🧱 VẬT TƯ 7 NGÀY TỚI:'); M.slice(0, 6).forEach(m => o.push('• ' + (m.need && m.need < d ? '❗' : '') + cut(m.name, 40) + ' ' + (m.qty || '') + ' ' + (m.unit || '') + (m.need ? ' – cần ' + fd(m.need) : '') + ' (' + (MST[m.st] || '') + ')')); }
+const B = L(S, 'budget').reduce((a, b) => a + num(b.est), 0) || num(S.value), C = L(S, 'costs').reduce((a, x) => a + num(x.amt), 0),
+I = L(S, 'incomes').reduce((a, x) => a + num(x.amt), 0), debt = L(S, 'costs').filter(x => !x.paid).reduce((a, x) => a + num(x.amt), 0);
+if (B || C || I) o.push('', '💰 Đã chi ' + short(C) + (B ? '/' + short(B) + ' (' + Math.round(C / B * 100) + '%)' : '') + ' · Đã thu ' + short(I) + ' · Dòng tiền ' + short(I - C) + (debt ? ' · Còn nợ ' + short(debt) : ''));
+const X = L(S, 'issues').filter(x => x.st !== 'dong').sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
+o.push('', '⚠️ VẤN ĐỀ: ' + X.length + ' đang mở' + (X.filter(x => x.st === 'cd').length ? ' · ' + X.filter(x => x.st === 'cd').length + ' chờ duyệt' : ''));
+X.slice(0, 5).forEach(x => o.push(issueLine(x, d))); if (!X.length) o.push('• Không có vấn đề tồn đọng 👍');
+if (!L(S, 'logs').some(x => x.d === addD(d, -1)) && L(S, 'logs').length) o.push('', '📓 Nhắc: hôm qua chưa ghi nhật ký.');
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+const todayText = (S, d = today()) => { const T = todayTasks(S, d); return ['✅ VIỆC HÔM NAY ' + fdFull(d), head(S), ...(T.length ? T.slice(0, 20).map(t => taskLine(t, d)) : ['• Không có việc tới hạn 👍'])].join('\n').slice(0, 1990); };
+const issueText = (S, d = today()) => { const X = L(S, 'issues').filter(x => x.st !== 'dong'); return ['⚠️ VẤN ĐỀ ĐANG MỞ', head(S), ...(X.length ? X.slice(0, 15).map(x => issueLine(x, d)) : ['• Không có vấn đề tồn đọng 👍'])].join('\n').slice(0, 1990); };
+function alertText(S, d = today(), afterHour = true) {
+const T = L(S, 'tasks'), od = T.filter(t => taskLate(t, d)), dueToday = afterHour ? T.filter(t => t.st !== 'done' && t.due === d) : [];
+const slow = L(S, 'plan').filter(p => lagDays(p, d) >= 1).sort((a, b) => lagDays(b, d) - lagDays(a, d));
+const oi = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due < d);
+if (!od.length && !dueToday.length && !slow.length && !oi.length) return '';
+const o = ['🚨 CẢNH BÁO ' + fdFull(d), head(S)];
+if (slow.length) { o.push('', '📅 CHẬM TIẾN ĐỘ (' + slow.length + '):'); slow.slice(0, 6).forEach(p => o.push('• ' + (lagDays(p, d) >= 3 ? '🔴 ' : '🟡 ') + cut(plab(p), 50) + ': ' + (p.e && d > p.e ? 'quá hạn ' + days(p.e, d) + ' ngày' : 'chậm ' + lagDays(p, d) + ' ngày') + ' (' + num(p.pct) + '% / KH ' + planPct(p, d) + '%)')); }
+if (od.length) {
+o.push('', '❗ VIỆC QUÁ HẠN (' + od.length + '):');
+const ord = { cao: 0, tb: 1, thap: 2 };
+Object.values(CATS).forEach(cn => { const G = od.filter(t => catOf(t) === cn).sort((a, b) => (ord[a.pri] ?? 1) - (ord[b.pri] ?? 1) || (a.due < b.due ? -1 : 1)); if (!G.length) return; o.push('▸ ' + cn + ':'); G.slice(0, 6).forEach(t => o.push('   ' + (t.pri === 'cao' ? '🔴 ' : '• ') + cut(t.t, 60) + ' – ' + (t.who || 'chưa giao') + ' – trễ ' + days(t.due, d) + ' ngày')); });
+}
+if (dueToday.length) { o.push('', '⏰ HẠN HÔM NAY CHƯA XONG (' + dueToday.length + '):'); dueToday.slice(0, 8).forEach(t => o.push('• ' + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 60) + ' – ' + (t.who || 'chưa giao'))); }
+if (oi.length) { o.push('', '⚠️ VẤN ĐỀ QUÁ HẠN (' + oi.length + '):'); oi.slice(0, 5).forEach(x => o.push('• ' + cut(x.t, 60) + ' – ' + (x.who || 'chưa giao') + ' – trễ ' + days(x.due, d) + ' ngày')); }
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+const setCats = B => { CATS = B && Array.isArray(B.cats) && B.cats.length ? Object.fromEntries(B.cats.map(c => [c.id, c.name])) : CATS0; };
+// V1.5.15: 🗓️ KẾ HOẠCH NGÀY MAI – gửi Zalo 14h: thi công · công việc · cần giải quyết · vật tư cần về
+function planText(S, d) {
+const P = L(S, 'plan').filter(p => p.s && p.e && p.s <= d && d <= p.e && num(p.pct) < 100);
+const T = L(S, 'tasks').filter(t => t.st !== 'done' && t.due && t.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
+const X = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
+const M = L(S, 'mats').filter(m => m.st !== 've' && m.need && m.need <= d).sort((a, b) => a.need < b.need ? -1 : 1);
+const DW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'], dw = s => DW[new Date(s + 'T00:00').getDay()] + ' ' + fd(s);
+const o = ['🗓️ KẾ HOẠCH NGÀY ' + fdFull(d) + ' (' + DW[new Date(d + 'T00:00').getDay()] + ')', head(S)];
+o.push('', '1. Thi công:', ...(P.length ? P.slice(0, 12).map(p => '- ' + cut(plab(p), 70) + (p.s === d ? ' (bắt đầu)' : lagDays(p, d) >= 1 ? ' (chậm ' + lagDays(p, d) + ' ngày)' : '')) : ['- Không']));
+o.push('', '2. Công việc:', ...(T.length ? T.slice(0, 12).map(t => '- ' + (t.pri === 'cao' ? '🔴 ' : '') + cut(t.t, 70) + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dw(t.due) + (t.due < today() ? ' ❗trễ' : '')) : ['- Không']));
+o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 8).map(x => '- ' + cut(x.t, 70) + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + fd(x.due)) : ['- Không']));
+o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 8).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '')) : ['- Không']));
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+return { overview, alertText, planText, setCats };
+})();
+async function sbZaloCfg(env, email, req) {
+await sbzInit(env); await sbzInit2(env);
+const b = await req.json().catch(() => null);
+if (!b) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+const row = await env.DB.prepare('SELECT dsent FROM sbz WHERE email = ?').bind(email).first();
+if (!row) return json({ ok: false, error: 'chưa bật nhắc qua Zalo' }, 404);
+const c = { on: !!b.on, time: /^\d{1,2}:\d{2}$/.test(b.time || '') ? b.time : '07:00', alertOn: b.alertOn !== false, alertTime: /^\d{1,2}:\d{2}$/.test(b.alertTime || '') ? b.alertTime : '08:00', planOn: b.planOn !== false, planTime: /^\d{1,2}:\d{2}$/.test(b.planTime || '') ? b.planTime : '14:00' };
+let ds = {}; try { ds = JSON.parse(row.dsent || '{}') || {}; } catch {}
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.last || '')) ds['d@' + b.last] = 1;
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastAlert || '')) ds['a@' + b.lastAlert] = 1;
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastPlan || '')) ds['p@' + b.lastPlan] = 1;
+await env.DB.prepare('UPDATE sbz SET cfg = ?, dsent = ?, on1 = 1 WHERE email = ?').bind(JSON.stringify(c), JSON.stringify(ds), email).run();
+return json({ ok: true, daily: true });
+}
+async function sbDaily(env) {
+await sbInit(env); await sbzInit(env); await sbzInit2(env);
+const N = vnNow(), { results = [] } = await env.DB.prepare('SELECT email, token, chat, cfg, dsent FROM sbz WHERE on1 = 1 AND cfg IS NOT NULL').all();
+const hm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : 0; };
+for (const z of results) {
+let c = {}, ds = {}; try { c = JSON.parse(z.cfg) || {}; ds = JSON.parse(z.dsent || '{}') || {}; } catch {}
+const wantD = c.on && !ds['d@' + N.ymd] && N.min >= hm(c.time || '07:00'), wantA = c.alertOn !== false && !ds['a@' + N.ymd] && N.min >= hm(c.alertTime || '08:00'), wantP = c.planOn !== false && !ds['p@' + N.ymd] && N.min >= hm(c.planTime || '14:00');
+if (!wantD && !wantA && !wantP) continue;
+const row = await env.DB.prepare('SELECT v FROM sb WHERE email = ?').bind(z.email).first();
+let v = null; try { v = row ? JSON.parse(row.v) : null; } catch {}
+const S = v && Array.isArray(v.sites) ? v.sites : [];
+SBD.setCats(v);
+const send = async t => { const r = await fetch('https://bot-api.zaloplatforms.com/bot' + z.token + '/sendMessage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: z.chat, text: t }) }).then(x => x.json()).catch(() => null); return !!(r && r.ok); };
+if (wantD) { let ok = true; for (const s of S) ok = (await send(SBD.overview(s, N.ymd))) && ok; if (ok) ds['d@' + N.ymd] = Date.now(); }
+if (wantA) { let ok = true; for (const s of S) { const t = SBD.alertText(s, N.ymd); if (t) ok = (await send(t)) && ok; } if (ok) ds['a@' + N.ymd] = Date.now(); }
+if (wantP) { let ok = true; const t1 = new Date(Date.parse(N.ymd + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); for (const s of S) ok = (await send(SBD.planText(s, t1))) && ok; if (ok) ds['p@' + N.ymd] = Date.now(); }
+for (const k in ds) if (k.slice(2) < new Date(Date.parse(N.ymd) - 5 * 864e5).toISOString().slice(0, 10)) delete ds[k];
+await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.stringify(ds), z.email).run();
+}
+}
+async function sbzInit2(env) {
+if (sbzInit2.ok) return;
+for (const col of ['cfg', 'dsent']) { try { await env.DB.prepare('ALTER TABLE sbz ADD COLUMN ' + col + ' TEXT').run(); } catch {} }
+sbzInit2.ok = true;
+}
+async function sbRoute2(env, req, u) {
+await sbInit(env);
+const email = await sbWho(env, req);
+if (!email) return json({ ok: false, error: 'chưa đăng nhập', auth: false }, 401);
+if (u.pathname === '/sb/zalo' && req.method === 'POST') return sbZaloSave(env, email, req);
+if (u.pathname === '/sb/zalocfg' && req.method === 'POST') return sbZaloCfg(env, email, req);
+const ns = u.searchParams.get('ns');
+if (!['todo', 'proj'].includes(ns) || u.pathname !== '/sb') return json({ ok: false, error: 'không có lệnh này' }, 404);
+const key = email + '#' + ns;
+if (req.method === 'GET') {
+const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(key).first();
+let v = null; try { v = r ? JSON.parse(r.v) : null; } catch {}
+return json({ ok: true, email, rev: r ? r.rev : 0, v, at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' });
+}
+if (req.method === 'PUT') {
+if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'dữ liệu quá lớn' }, 413);
+const b = await req.json().catch(() => null);
+if (!b || !b.v || !Array.isArray(ns === 'proj' ? b.v.projects : b.v.todos)) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+const base = Number(b.base) || 0, v = JSON.stringify(b.v), now = Date.now();
+const cur = await env.DB.prepare('SELECT rev, v FROM sb WHERE email = ?').bind(key).first();
+const rev = cur ? cur.rev : 0;
+if (base !== rev) { let cv = null; try { cv = JSON.parse(cur.v); } catch {} return json({ ok: false, conflict: true, rev, v: cv }, 409); }
+const res = cur
+? await env.DB.prepare('UPDATE sb SET rev = ?, v = ?, at = ? WHERE email = ? AND rev = ?').bind(rev + 1, v, now, key, rev).run()
+: await env.DB.prepare('INSERT OR IGNORE INTO sb (email, rev, v, at) VALUES (?, 1, ?, ?)').bind(key, v, now).run();
+if (!res.meta || !res.meta.changes) return json({ ok: false, conflict: true, rev: -1 }, 409);
+return json({ ok: true, rev: rev + 1, at: now });
+}
+return json({ ok: false, error: 'không có lệnh này' }, 404);
+}
 async function ipHash(req) {
   const ip = req.headers.get('CF-Connecting-IP') || ''; if (!ip) return '';
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('haohao|' + ip));
@@ -345,10 +677,12 @@ async function hotRun(env, force) {
 }
 
 // chạy an toàn: ghi lại lỗi để trang thống kê hiện ra
-async function feedSafe(env) {
+const FEED_ON = false;   // 20/10: TẠM TẮT nạp kho Shopee/TikTok theo lịch (D1 vượt 5 triệu dòng đọc/ngày). Bật lại: đổi thành true
+async function feedSafe(env, manual) {
   await hotRun(env).catch(e => setSt(env, 'feedErr', { e: 'Mã hot: ' + (e && e.message || e), at: Date.now() }).catch(() => {}));
   await env.DB.prepare('DELETE FROM tu WHERE d < ?').bind(today() - 60).run().catch(() => {});   // giữ 60 ngày
   await env.DB.prepare('DELETE FROM cho WHERE until < ?').bind(Date.now() - 864e5).run().catch(() => {});
+  if (!FEED_ON && !manual) return { ok: true, paused: true };
   const tt = await feedTT(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   if (!tt.ok && tt.error !== 'no RH_KEY') await setSt(env, 'feedErr', { e: 'TikTok: ' + tt.error, at: Date.now() }).catch(() => {});
   try { const r = await feedRun(env); if (!r.ok) await setSt(env, 'feedErr', { e: r.error, at: Date.now() }).catch(() => {}); return { ...r, tiktok: tt }; }
@@ -438,12 +772,250 @@ ${isAdmin(env, u) ? await gopyBox(env) : '<div class="box"><b>💬 Góp ý của
 ${await kwBox(env, [1, 7, 30].includes(+u.searchParams.get('ngay')) ? +u.searchParams.get('ngay') : 7)}`);
 }
 
+// ---------- 🏬 HaoHao Store web (19/10): đọc danh mục CHỦ APP tạo trên cửa hàng Shopee Affiliate (collshp.com/haohaostore) ----------
+// Chỉ lấy món nằm trong danh mục anh Nhật tạo (bỏ "Có thể bạn thích" / quảng cáo Shopee tự chèn).
+// Danh mục → 5 ngách web theo từ khoá tên danh mục; danh mục không khớp ngách nào thì bỏ qua.
+// 20/10: ngách theo SỐ đầu tên danh mục (1–5); món → ô chủ đề = tên danh mục (bỏ số, bỏ "HaoHao"). Web: Bán chạy nhất = Tất cả + các ô chủ đề.
+// Cron 15 phút gọi storeMaybe → chạy thật 6 giờ/lần. GET /store → JSON cho web. GET /store?run=1&key=STATS_KEY → chạy ngay.
+const STORE_V = 5, STORE_SUFFIX = 'haohaostore', STORE_AFF = '17393130606', STORE_EVERY = 6 * 3600e3;
+const STORE_QG = 'query StorefrontGroupListQuery($urlSuffix: String, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupList(urlSuffix: $urlSuffix, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { groupList { groupId groupName totalCount } pagination { hasMore totalCount } } }';
+const STORE_QP = 'query StorefrontGroupProductListQuery($urlSuffix: String, $keyword: String, $groupId: Long, $page: LinktreelandingpagePaginationInput, $affiliateMeta: AffiliateMetaInput, $uuId: String, $deviceId: String, $cid: String, $language: String) { storefrontGroupProductList(urlSuffix: $urlSuffix, keyword: $keyword, groupId: $groupId, page: $page, affiliateMeta: $affiliateMeta, uuId: $uuId, deviceId: $deviceId, cid: $cid, language: $language) { itemList { link linkName image linkType itemId itemCard } pagination { hasMore totalCount } } }';
+// thứ tự quan trọng: gia-dung trước xay-dung ("Nhà cửa & Gia dụng" / "Xây dựng & Dụng cụ")
+const STORE_NICHE = [['thoi-trang', /thoi trang/], ['me-be', /(^|[^a-z])(me|be)([^a-z]|$)|tre em|so sinh/], ['gia-dung', /nha cua|gia dung/], ['xay-dung', /xay dung|dung cu/], ['qua-tang', /qua tang|(^|[^a-z])qua([^a-z]|$)/]];
+// mục nhỏ – PHẢI trùng tên mục trên web (cats của từng ngách)
+const STORE_CATS = {
+  'thoi-trang': [['Áo', ['ao thun', 'ao phong', 'polo', 'ao so mi', 'so mi', 'ao', 'tee', 'croptop', 'ao kieu', 'ao ba lo', 'tank top']], ['Quần', ['quan', 'jean', 'jogger', 'legging']], ['Váy & đầm', ['vay', 'dam', 'chan vay', 'yem']], ['Áo khoác & giữ ấm', ['ao khoac', 'khoac', 'hoodie', 'jacket', 'ao gio', 'cardigan', 'ao len', 'ao ni', 'sweater', 'ao phao', 'ao long vu', 'gile', 'blazer', 'vest', 'khan len', 'gang tay len']], ['Đồ bộ', ['do bo', 'bo do', 'bo ngu', 'do ngu', 'pijama', 'pyjama', 'set do', 'bo quan ao', 'bo the thao', 'bo mac nha', 'set bo']]],
+  'me-be': [['Đồ bé gái', ['be gai']], ['Đồ bé trai', ['be trai']], ['Sơ sinh', ['so sinh', 'newborn', 'body chip', 'bodysuit']], ['Bỉm sữa', ['bim', 'ta dan', 'ta quan', 'sua ', 'sua', 'binh sua', 'bo ve sinh', 'ghe bo']], ['Xe đẩy', ['xe day', 'xe dap', 'xe tap di', 'goi di xe', 'dai dia', 'dai do', 'noi ', 'cui ']], ['Đồ chơi', ['do choi', 'xep hinh', 'bup be', 'lego', 'gau bong', 'thu bong', 'dat nan']]],
+  'gia-dung': [['Nồi chảo', ['noi ', 'chao ', 'xoong']], ['Nồi chiên không dầu', ['noi chien', 'chien khong dau']], ['Ấm siêu tốc', ['am sieu toc', 'am dun', 'binh dun', 'am dien']], ['Quạt', ['quat']], ['Máy hút bụi', ['hut bui', 'lau nha', 'cay lau']], ['Kệ & hộp đựng', ['ke ', 'hop ', 'gia de', 'moc treo', 'moc dan', 'thung dung', 'tu nhua', 'gio ']], ['Túi rác & giấy', ['tui rac', 'giay ve sinh', 'khan giay', 'giay rut', 'giay lau']]],
+  'xay-dung': [['Máy khoan', ['khoan']], ['Máy cắt', ['may cat', 'may cua', 'cua go', 'cua xich', 'may mai', 'luoi cat']], ['Thước laser', ['thuoc', 'laser', 'can bang']], ['Mũ bảo hộ', ['mu bao ho', 'non bao ho', 'mu cong trinh']], ['Găng tay', ['gang tay', 'bao tay']], ['Sơn & keo', ['son ', 'keo ', 'silicon', 'chong tham', 'bot tret']], ['Đèn & phụ kiện', ['den ', 'quat tran', 'o cam', 'cong tac', 'day dien', 'hit cua', 'chan cua', 'giu cua', 'hut chan', 'khan che', 'khau trang']]],
+  'qua-tang': [['Hộp quà', ['hop qua', 'qua tang', 'set qua']], ['Hoa & thiệp', ['hoa ', 'thiep']], ['Ấm chén', ['am chen', 'bo am', 'tach tra', 'chen tra', 'bo tra']], ['Đèn thờ', ['den tho', 'ban tho', 'nhang', 'huong tram', 'lu huong']], ['Khung ảnh', ['khung anh', 'khung hinh']], ['Gấu bông', ['gau bong', 'thu bong', 'gau ']]],
+};
+// 20/10: anh Nhật đánh số đầu tên danh mục theo ngách: 1 Thời trang · 2 Mẹ & bé · 3 Gia dụng · 4 Xây dựng · 5 Quà tặng
+const STORE_NUM = ['thoi-trang', 'me-be', 'gia-dung', 'xay-dung', 'qua-tang'];
+const storeNiche = name => { const m = /^\s*([1-5])\s*[.)\-:]/.exec(String(name || '')); if (m) return STORE_NUM[m[1] - 1]; const f = fold(name); for (const [id, re] of STORE_NICHE) if (re.test(f)) return id; return ''; };
+// tên ô chủ đề trên web = tên danh mục bỏ số thứ tự và chữ "HaoHao" ("1. HaoHao Thu Đông" → "Thu Đông")
+const storeTopic = name => String(name || '').replace(/^\s*\d+\s*[.)\-:]\s*/, '').replace(/^haohao\s+/i, '').replace(/\s+/g, ' ').trim();
+function storeCat(niche, name) {
+  const t = ' ' + fold(name).replace(/[^a-z0-9]+/g, ' ') + ' ';
+  let best = '', at = 1e9, len = 0;
+  for (const [lab, kws] of STORE_CATS[niche] || []) for (const kw of kws) {
+    const i = t.indexOf(' ' + kw.trim() + ' '); if (i < 0) continue;
+    if (i < at || (i === at && kw.length > len)) { best = lab; at = i; len = kw.length; }
+  }
+  return best;
+}
+async function storeGql(op, query, extra) {
+  const id = crypto.randomUUID();
+  const variables = { urlSuffix: STORE_SUFFIX, affiliateMeta: { affiliateId: STORE_AFF }, cid: 'vn', language: 'vi', uuId: id, deviceId: id.replace(/-/g, '').toUpperCase(), ...extra };
+  const r = await fetch('https://collshp.com/api/v3/gql/graphql', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/plain, */*', origin: 'https://collshp.com', referer: 'https://collshp.com/' + STORE_SUFFIX, 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' }, body: JSON.stringify({ operationName: op, query, variables }) });
+  if (!r.ok) throw new Error('collshp ' + r.status);
+  const j = await r.json();
+  if (j.errors && j.errors.length) throw new Error('collshp ' + String(j.errors[0].message || '').slice(0, 80));
+  return j.data || {};
+}
+function storeItem(x, niche, group) {
+  let c = x.itemCard || {}; if (typeof c === 'string') { try { c = JSON.parse(c); } catch { c = {}; } }
+  const d = c.itemData || {}, a = c.itemCardDisplayedAsset || {}, pr = d.itemCardDisplayPrice || {};
+  const price = Math.round(Number(pr.price || 0) / 1e5), oldp = Math.round(Number(pr.strikethroughPrice || pr.originalPrice || 0) / 1e5);
+  const r = d.itemRating && Number(d.itemRating.ratingStar);
+  const img = String(x.image || a.image || '');
+  return {
+    id: String(x.itemId || d.itemid || ''), shop: String(d.shopid || ''), n: String(x.linkName || a.name || '').slice(0, 200),
+    price, old: oldp > price ? oldp : price, sold: Number((d.itemCardDisplaySoldCount || {}).historicalSoldCount || 0) || 0,
+    soldTxt: String((a.soldCount || {}).text || ''), rating: r ? Math.round(r * 10) / 10 : 0,
+    img: /^https:\/\//.test(img) ? img : '', imgs: (a.images || []).slice(0, 10).map(h => 'https://down-vn.img.susercontent.com/file/' + h),
+    tiers: (d.tierVariations || []).slice(0, 2).map(v => ({ name: String(v.name || '').slice(0, 30), options: (v.options || []).slice(0, 24).map(o => String(o).slice(0, 40)), images: (v.images || []).slice(0, 24).map(h => h ? 'https://down-vn.img.susercontent.com/file/' + h : '') })).filter(v => v.options.length),
+    shopName: String((d.shopData || {}).shopName || '').slice(0, 80), liked: Number(d.likedCount) || 0,
+    rc: Array.isArray((d.itemRating || {}).ratingCount) ? d.itemRating.ratingCount.slice(0, 6).map(n => Number(n) || 0) : [],
+    link: /^https:\/\//.test(String(x.link || '')) ? String(x.link) : '', soldOut: !!d.isSoldOut,
+    niche, cat: storeTopic(group) || storeCat(niche, x.linkName || a.name), group,
+  };
+}
+async function storeSync(env) {
+  const gl = await storeGql('StorefrontGroupListQuery', STORE_QG, { page: { offset: '0', limit: '50' } });
+  const groups = ((gl.storefrontGroupList || {}).groupList || []).map(g => ({ id: String(g.groupId), name: String(g.groupName || ''), niche: storeNiche(g.groupName), topic: storeTopic(g.groupName), total: Number(g.totalCount) || 0 }));
+  if (!groups.length) throw new Error('collshp: không thấy danh mục');
+  const items = [], seen = new Set();
+  for (const g of groups) {
+    g.n = 0; if (!g.niche) continue;   // danh mục ngoài 5 ngách → bỏ
+    for (let off = 0; off < 500; off += 50) {
+      const pl = (await storeGql('StorefrontGroupProductListQuery', STORE_QP, { groupId: g.id, keyword: '', page: { offset: String(off), limit: '50' } })).storefrontGroupProductList || {};
+      for (const x of pl.itemList || []) {
+        if (x.linkType && x.linkType !== 'ITEM') continue;
+        const it = storeItem(x, g.niche, g.name);
+        if (!it.id || !it.price || seen.has(g.id + ':' + it.id)) continue;   // 20/10: 1 món nằm ở nhiều danh mục thì hiện ở cả các danh mục đó
+        seen.add(g.id + ':' + it.id); items.push(it); g.n++;
+      }
+      if (!(pl.pagination || {}).hasMore) break;
+    }
+  }
+  const data = { ok: true, v: STORE_V, at: Date.now(), groups, items };
+  await storeCachePut(data);   // 20/10: cất thêm 1 bản ở bộ nhớ đệm Cloudflare (không tính hạn mức D1)
+  await setSt(env, 'store', data).catch(() => {});
+  await save(env, items.filter(x => x.shop).map(x => ({ k: `sp:${x.shop}.${x.id}`, p: x.price, b: x.old > x.price ? x.old : 0 }))).catch(() => {});   // ghi luôn vào kho giá
+  return data;
+}
+async function storeMaybe(env, force) {
+  const st = await getSt(env, 'storeRun').catch(() => null);
+  if (!force && st && Date.now() - (st.at || 0) < STORE_EVERY) return null;
+  if (force && st && Date.now() - (st.at || 0) < 60000) return { ok: false, error: 'đợi 1 phút' };
+  await setSt(env, 'storeRun', { at: Date.now() });
+  try { const d = await storeSync(env); await setSt(env, 'storeRun', { at: Date.now(), n: d.items.length }); return { ok: true, n: d.items.length, groups: d.groups }; }
+  catch (e) { const err = String(e && e.message || e).slice(0, 200); await setSt(env, 'storeRun', { at: Date.now(), err }); return { ok: false, error: err }; }
+}
+// 20/10: bản dự phòng ở bộ nhớ đệm Cloudflare – web Store vẫn chạy khi D1 bị khoá/lỗi
+const STORE_CK = 'https://haohaostore.com/__store-cache-v' + STORE_V;
+async function storeCachePut(d) { try { await caches.default.put(STORE_CK, new Response(JSON.stringify(d), { headers: { 'content-type': 'application/json', 'cache-control': 'max-age=172800' } })); } catch {} }
+async function storeCacheGet() { try { const r = await caches.default.match(STORE_CK); return r ? await r.json() : null; } catch { return null; } }
+async function storeGet(env) {
+  try {
+    let d = await getSt(env, 'store');
+    if (!d || d.v !== STORE_V) { await storeMaybe(env, true); d = await getSt(env, 'store') || d; }   // dữ liệu bản cũ → đọc lại ngay
+    const run = await getSt(env, 'storeRun').catch(() => null);
+    if (d && d.v === STORE_V) await storeCachePut(d);
+    return d ? { ...d, run } : { ok: false, error: (run && run.err) || 'chưa có dữ liệu', items: [], groups: [] };
+  } catch (e) {   // D1 lỗi → bản đệm, chưa có thì lấy thẳng collshp
+    const c = await storeCacheGet(); if (c) return { ...c, from: 'cache' };
+    try { const d = await storeSync(env); return { ...d, from: 'live' }; }
+    catch (e2) { return { ok: false, error: String(e2 && e2.message || e2).slice(0, 200), items: [], groups: [] }; }
+  }
+}
+
+
+// 🛒 20/10: Tiệm nhà Hao – khách bấm "Gửi đơn" trên web → máy chủ gửi đơn vào Zalo của chủ tiệm qua Zalo Bot.
+// Mã bot nằm ở Cloudflare (Settings → Variables → secret ZALO_BOT), KHÔNG để trong code/GitHub.
+const ZALO_CHAT = '61a19044f013194d4002';   // id Zalo của chủ tiệm (Phan Nhật) – lấy ngày 20/10
+const zbot = (env, m, body) => fetch('https://bot-api.zaloplatforms.com/bot' + env.ZALO_BOT + '/' + m, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) }).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
+async function donHang(env, b, req) {
+  if (!env.ZALO_BOT) return { ok: false, error: 'Tiệm chưa bật nhận đơn' };
+  const chat = ZALO_CHAT || env.ZALO_CHAT; if (!chat) return { ok: false, error: 'Tiệm chưa bật nhận đơn' };
+  const t = v => String(v || '').replace(/[\u0000-\u001f]/g, ' ').trim();
+  const ten = t(b && b.ten).slice(0, 60), sdt = t(b && b.sdt).replace(/[^\d+ .]/g, '').slice(0, 15), dc = t(b && b.dc).slice(0, 200), gc = t(b && b.gc).slice(0, 200);
+  const mon = (Array.isArray(b && b.mon) ? b.mon : []).slice(0, 30).map(x => ({ ten: t(x.ten).slice(0, 80), q: Math.max(1, Math.min(99, Math.round(+x.q || 1))), gia: Math.max(0, Math.round(+x.gia || 0)) })).filter(x => x.ten);
+  if (!ten || sdt.replace(/\D/g, '').length < 9 || !dc || !mon.length) return { ok: false, error: 'Thiếu tên, số điện thoại, địa chỉ hoặc món' };
+  // chống spam: mỗi IP tối đa 5 đơn / giờ (đếm bằng bộ nhớ đệm, không dùng D1)
+  const ip = req.headers.get('CF-Connecting-IP') || '', ck = 'https://haohaostore.com/__don/' + encodeURIComponent(ip) + '/' + Math.floor(Date.now() / 3600e3);
+  const c = await caches.default.match(ck).then(r => r ? r.json() : 0).catch(() => 0); if (c >= 5) return { ok: false, error: 'Bạn gửi nhiều đơn quá, vui lòng nhắn Zalo tiệm' };
+  await caches.default.put(ck, new Response(JSON.stringify(c + 1), { headers: { 'cache-control': 'max-age=3600' } })).catch(() => {});
+  const vnd = n => n.toLocaleString('vi-VN') + 'đ', tot = mon.reduce((a, x) => a + x.gia * x.q, 0);
+  const text = '🛒 ĐƠN MỚI – Tiệm nhà Hao\n' + mon.map(x => '• ' + x.ten + ' × ' + x.q + (x.gia ? ' = ' + vnd(x.gia * x.q) : '')).join('\n') + '\nTạm tính: ' + (tot ? vnd(tot) : 'chờ báo giá') + '\n\n👤 ' + ten + '\n📞 ' + sdt + '\n📍 ' + dc + (gc ? '\n📝 ' + gc : '') + '\n🕒 ' + new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+  const r = await zbot(env, 'sendMessage', { chat_id: chat, text: text.slice(0, 1990) });
+  return r && r.ok ? { ok: true } : { ok: false, error: 'Chưa gửi được đơn, vui lòng nhắn Zalo tiệm' };
+}
+
+
+// 🔎 20/10: SEO – dựng sẵn tiêu đề, mô tả, dữ liệu cấu trúc và nội dung HTML cho Google (trang chủ, 5 ngách, /sale, /san-pham/<id>).
+// Khách vẫn thấy web như cũ: JavaScript của index.html vẽ đè lên phần dựng sẵn trong <main id="app">.
+const SEO_NICHE = { 'thoi-trang': ['Thời trang', 'Áo quần nam nữ, công sở, thể thao, thu đông – giá thật từ Shopee & TikTok Shop'], 'me-be': ['Mẹ & Bé', 'Đồ bé gái, bé trai, đồ đi học, đồ chơi và đồ cho mẹ – HaoHao chọn kỹ, giá thật'], 'gia-dung': ['Nhà cửa & Gia dụng', 'Đồ bếp, đồ điện gia dụng, dọn dẹp, trang trí nhà – so giá, xem lịch sử giá'], 'xay-dung': ['Xây dựng', 'Dụng cụ xây dựng, điện nước, hoàn thiện nhà, đồ bảo hộ – giá tốt, shop uy tín'], 'qua-tang': ['Quà tặng & Gia đình', 'Quà sinh nhật, quà cho bố mẹ, cho bé, cho bạn bè – gợi ý quà theo dịp'] };
+const hx = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const vndS = n => Math.round(n).toLocaleString('vi-VN') + 'đ';
+async function seoData(env) { let d = await storeCacheGet(); if (!d) { try { d = await storeGet(env); } catch { d = null; } } return d && d.items ? d : { items: [], groups: [] }; }
+async function seoIndex(env, u) {
+  const r = await fetch(SHOP_SRC + 'index.html', { cf: { cacheTtl: 300, cacheEverything: true } });
+  if (!r.ok) return shopFile('index.html', 'html');
+  let html = await r.text();
+  const d = await seoData(env), B = 'https://haohaostore.com', path = u.pathname.replace(/\/+$/, '') || '/';
+  let title = 'HaoHao Store – Mua sắm không lo hớ, giá thật Shopee & TikTok Shop', desc = 'HaoHao tuyển chọn sản phẩm Shopee & TikTok Shop theo 5 ngách: thời trang, mẹ & bé, gia dụng, xây dựng, quà tặng. Giá thật, lịch sử giá 30 ngày, soi sale ảo.', img = B + '/shop/logo.webp', ld = [], body = '';
+  const card = x => '<li><a href="/san-pham/' + hx(x.id) + '">' + hx(x.n) + '</a> – ' + vndS(x.price) + (x.old > x.price ? ' (giảm ' + Math.round((1 - x.price / x.old) * 100) + '%)' : '') + '</li>';
+  const m = path.match(/^\/san-pham\/(\d+)$/), n = path.match(/^\/(thoi-trang|me-be|gia-dung|xay-dung|qua-tang)$/);
+  if (m) {
+    const x = d.items.find(i => String(i.id) === m[1]);
+    if (x) {
+      const nn = SEO_NICHE[x.niche] || ['HaoHao', ''];
+      title = x.n.slice(0, 70) + ' – giá ' + vndS(x.price) + ' | HaoHao Store';
+      desc = x.n.slice(0, 90) + '. Giá ' + vndS(x.price) + (x.old > x.price ? ' (giảm ' + Math.round((1 - x.price / x.old) * 100) + '% từ ' + vndS(x.old) + ')' : '') + ', ' + (x.rating ? x.rating + '★, ' : '') + (x.soldTxt || '') + ' – shop ' + (x.shopName || '') + '. HaoHao kiểm tra giá thật trước khi mua.';
+      img = (x.imgs && x.imgs[0]) || x.img || img;
+      const prod = { '@context': 'https://schema.org', '@type': 'Product', name: x.n, image: (x.imgs || [x.img]).slice(0, 5), description: desc, sku: String(x.id), brand: { '@type': 'Brand', name: x.shopName || 'Shopee' }, offers: { '@type': 'Offer', url: B + path, priceCurrency: 'VND', price: x.price, availability: x.soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', seller: { '@type': 'Organization', name: x.shopName || 'Shopee' } } };
+      if (x.rating && x.rc && x.rc[0]) prod.aggregateRating = { '@type': 'AggregateRating', ratingValue: x.rating, reviewCount: x.rc[0] };
+      ld.push(prod, { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Trang chủ', item: B + '/' }, { '@type': 'ListItem', position: 2, name: nn[0], item: B + '/' + x.niche }, { '@type': 'ListItem', position: 3, name: x.n.slice(0, 60) }] });
+      const rel = d.items.filter(i => i.niche === x.niche && i.id !== x.id).slice(0, 8);
+      body = '<article class="seo"><nav><a href="/">Trang chủ</a> / <a href="/' + x.niche + '">' + hx(nn[0]) + '</a></nav><h1>' + hx(x.n) + '</h1><img src="' + hx(img) + '" alt="' + hx(x.n) + '" width="400" height="400"><p><b>Giá: ' + vndS(x.price) + '</b>' + (x.old > x.price ? ' <s>' + vndS(x.old) + '</s>' : '') + '</p><p>' + hx(desc) + '</p><p><a href="' + hx(x.link) + '" rel="nofollow sponsored">Xem trên Shopee</a></p>' + (rel.length ? '<h2>Sản phẩm cùng ngách</h2><ul>' + rel.map(card).join('') + '</ul>' : '') + '</article>';
+    }
+  } else if (n) {
+    const nn = SEO_NICHE[n[1]], l = d.items.filter(i => i.niche === n[1]).sort((a, b) => (b.sold || 0) - (a.sold || 0));
+    title = nn[0] + ' giá tốt – ' + l.length + ' món HaoHao chọn kỹ | HaoHao Store'; desc = nn[1] + '. ' + l.length + ' sản phẩm đã kiểm tra giá.';
+    ld.push({ '@context': 'https://schema.org', '@type': 'ItemList', name: nn[0], itemListElement: l.slice(0, 30).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: B + '/san-pham/' + x.id, name: x.n })) });
+    body = '<section class="seo"><h1>' + hx(nn[0]) + ' – HaoHao Store</h1><p>' + hx(nn[1]) + '</p><ul>' + l.slice(0, 60).map(card).join('') + '</ul></section>';
+  } else if (path === '/sale') {
+    const l = d.items.filter(i => i.old > i.price).sort((a, b) => (1 - b.price / b.old) - (1 - a.price / a.old));
+    title = 'Sale hôm nay – ' + l.length + ' món giảm giá thật | HaoHao Store'; desc = 'Sale cả 5 ngách: giảm trên 30%, đồng giá 99k, dưới 50k. HaoHao lọc sale thật, bỏ sale ảo.';
+    body = '<section class="seo"><h1>Sale hôm nay</h1><ul>' + l.slice(0, 60).map(card).join('') + '</ul></section>';
+  } else {
+    ld.push({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'HaoHao Store', url: B + '/' }, { '@context': 'https://schema.org', '@type': 'Organization', name: 'HaoHao', url: B + '/', logo: B + '/shop/logo.webp', sameAs: ['https://www.tiktok.com/@haohaomall', 'https://www.facebook.com/trolyHaoHao'] });
+    body = '<section class="seo"><h1>HaoHao Store – Có HaoHao, không lo chọn nhầm</h1><p>' + hx(desc) + '</p>' + Object.entries(SEO_NICHE).map(([k, v]) => '<h2><a href="/' + k + '">' + hx(v[0]) + '</a></h2><ul>' + d.items.filter(i => i.niche === k).slice(0, 8).map(card).join('') + '</ul>').join('') + '<p><a href="/tin-tuc/">Cẩm nang mua sắm</a> · <a href="/sale">Sale hôm nay</a> · <a href="/tiem-nha-hao">Tiệm nhà HaoHao</a></p></section>';
+  }
+  const head = '<title>' + hx(title) + '</title><meta name="description" content="' + hx(desc) + '"><link rel="canonical" href="' + B + (path === '/' ? '/' : path) + '"><meta property="og:type" content="' + (m ? 'product' : 'website') + '"><meta property="og:title" content="' + hx(title) + '"><meta property="og:description" content="' + hx(desc) + '"><meta property="og:image" content="' + hx(img) + '"><meta property="og:url" content="' + B + path + '"><meta property="og:site_name" content="HaoHao Store"><meta property="og:locale" content="vi_VN"><style>#app:has(>.seo){min-height:70vh}#app>.seo{opacity:0;pointer-events:none}#app:has(>.seo)::before{content:"Đang tải HaoHao Store…";display:block;text-align:center;padding-top:30vh;color:#7A5A44;font:14px sans-serif}.seo{max-width:900px;margin:24px auto;padding:0 16px;font-size:14px;line-height:1.6;color:#3A2414}.seo h1{font-size:22px;line-height:1.3}.seo h2{font-size:17px;margin:18px 0 6px}.seo ul{padding-left:18px;margin:0}.seo img{width:160px;height:auto;border-radius:12px}.seo a{color:#C25E0A}</style>' + ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, '\\u003c') + '</script>').join('');
+  html = html.replace('<html>', '<html lang="vi">').replace('<title>HaoHao Store</title>', head).replace('<main id="app"></main>', '<main id="app">' + body + '</main>');
+  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
+}
+async function seoSitemap(env) {
+  const r = await fetch(SHOP_SRC + 'sitemap.xml', { cf: { cacheTtl: 300, cacheEverything: true } });
+  let x = r.ok ? await r.text() : '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+  const d = await seoData(env), day = new Date().toISOString().slice(0, 10);
+  const add = d.items.map(i => '<url><loc>https://haohaostore.com/san-pham/' + i.id + '</loc><lastmod>' + day + '</lastmod></url>').join('\n');
+  x = x.replace('</urlset>', add + '\n</urlset>');
+  return new Response(x, { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+}
+
+
+// 🌐 20/10: Dịch cả trang cho tiện ích – gửi nhiều đoạn 1 lần lên Google Dịch (nhanh như "Dịch sang tiếng Việt" của Chrome)
+async function dichTrang(b) {
+  const q = (Array.isArray(b && b.q) ? b.q : []).slice(0, 150).map(x => String(x || '').slice(0, 3000));
+  const tl = /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(String(b && b.tl || '')) ? b.tl : 'vi';
+  if (!q.length) return { ok: true, items: [] };
+  let total = 0; const parts = [[]]; for (const x of q) { if (total + x.length > 4500 && parts[parts.length - 1].length) { parts.push([]); total = 0; } parts[parts.length - 1].push(x); total += x.length; }
+  const one = async arr => {
+    const body = new URLSearchParams(); arr.forEach(x => body.append('q', x));
+    const r = await fetch('https://translate.googleapis.com/translate_a/t?client=gtx&sl=auto&tl=' + encodeURIComponent(tl) + '&dt=t', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body });
+    if (!r.ok) throw new Error('Google Dịch ' + r.status);
+    let j = await r.json(); if (arr.length === 1) j = [Array.isArray(j) && Array.isArray(j[0]) ? j[0] : j];   // 21/10: 1 câu Google trả [[chữ, mã]] → không bọc thêm (trước dính ",en")
+    return j.map(v => Array.isArray(v) ? { t: String(v[0] || ''), l: String(v[1] || '') } : { t: String(v || ''), l: '' });
+  };
+  const res = (await Promise.all(parts.map(one))).flat();
+  const cnt = {}; res.forEach(x => { if (x.l) cnt[x.l] = (cnt[x.l] || 0) + 1; });
+  return { ok: true, items: res.map(x => x.t), lang: (Object.entries(cnt).sort((a, c) => c[1] - a[1])[0] || [''])[0] };
+}
+
+// 🏬 19/10: web HaoHao Store phát tại /shop – trang lấy từ GitHub (haohao-shop-web/), sửa web chỉ cần đẩy GitHub, không phải Deploy
+const SHOP_SRC = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/';
+const SHOP_TYPE = { webmanifest: 'application/manifest+json; charset=utf-8', xml: 'application/xml; charset=utf-8', txt: 'text/plain; charset=utf-8', html: 'text/html; charset=utf-8', json: 'application/json; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml', mp4: 'video/mp4', ico: 'image/x-icon' };
+// 20/10: đường dẫn sạch của web Store (/thoi-trang, /thoi-trang/ao, /san-pham/123, /sale…) → trang index.html, web tự đọc đường dẫn
+const SHOP_ROUTE = /^\/(?:(?:sale|quan-ly|thoi-trang|me-be|gia-dung|xay-dung|qua-tang)(?:\/[a-z0-9-]{1,60})?|san-pham\/\d{1,20})\/?$/;
+async function shopPage(u) {
+  let f = u.pathname.replace(/^\/shop\/?/, '') || 'index.html';
+  if (SHOP_ROUTE.test('/' + f)) f = 'index.html';
+  const ext = (f.match(/\.([a-z0-9]+)$/) || [])[1];
+  if (!/^[a-z0-9][a-z0-9._-]{0,80}$/i.test(f) || !SHOP_TYPE[ext]) return new Response('Không có trang này', { status: 404 });
+  const r = await fetch(SHOP_SRC + f, { cf: { cacheTtl: 300, cacheEverything: true } });
+  if (!r.ok) return new Response('Không tải được trang (' + r.status + ')', { status: 502 });
+  return new Response(r.body, { headers: { 'content-type': SHOP_TYPE[ext], 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
+}
+// 📰 20/10: Tin tức (SEO) – trang HTML thật lấy từ GitHub haohao-shop-web/tin-tuc/ (tạo bằng tin-tuc/_tao.py), + sitemap.xml, robots.txt
+async function shopFile(f, ext) {
+  const r = await fetch(SHOP_SRC + f, { cf: { cacheTtl: 300, cacheEverything: true } });
+  if (!r.ok) return new Response('Không có trang này', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  return new Response(r.body, { headers: { 'content-type': SHOP_TYPE[ext], 'cache-control': 'public, max-age=300', 'x-content-type-options': 'nosniff' } });
+}
 const CAI_DAT_HTML = "<!doctype html>\n<html lang=\"vi\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Cài HaoHao – 4 bước, 1 phút</title>\n<meta name=\"description\" content=\"Hướng dẫn cài HaoHao – trợ lý mua sắm, nhắc việc, chặn quảng cáo ngay trên Chrome. Miễn phí.\">\n<style>\n:root{--o:#F2A71B;--o2:#EE4D2D;--n:#23305E;--m:#5B6478;--bg:#FFF8EC;--c:#fff;--b:#EADFCB}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--bg);color:var(--n);font:16px/1.55 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}\na{color:inherit}\n.w{max-width:880px;margin:0 auto;padding:0 16px}\nheader{padding:36px 0 18px;text-align:center}\n.logo{width:76px;height:76px}\nh1{font-size:30px;line-height:1.2;margin:10px 0 6px}\n.lead{color:var(--m);margin:0 auto;max-width:560px}\n.cta{display:inline-flex;align-items:center;gap:10px;margin:20px 0 6px;padding:14px 26px;border-radius:999px;background:var(--o2);color:#fff;font-weight:800;font-size:18px;text-decoration:none;box-shadow:0 8px 22px rgba(238,77,45,.3)}\n.cta:hover{filter:brightness(1.05)}\n.small{font-size:13px;color:var(--m)}\n.steps{display:grid;gap:16px;margin:26px 0}\n.st{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:center;background:var(--c);border:1.5px solid var(--b);border-radius:18px;padding:18px}\n.n{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--o);color:#fff;font-weight:900;margin-right:8px}\n.st h2{font-size:19px;margin:0 0 6px;display:flex;align-items:center}\n.st p{margin:6px 0;color:var(--m)}\n.st svg{width:100%;height:auto;border-radius:12px;border:1px solid #E6E9F2;background:#F7F8FC}\ncode{background:#FFF1D6;border:1px solid #F5D78E;border-radius:6px;padding:1px 6px;font-size:14px}\n.cp{margin-left:6px;border:0;background:var(--n);color:#fff;border-radius:8px;padding:4px 10px;font:700 12.5px system-ui;cursor:pointer}\n.faq{background:var(--c);border:1.5px solid var(--b);border-radius:18px;padding:6px 18px;margin:0 0 26px}\n.faq details{border-bottom:1px solid #F0E7D6;padding:12px 0}.faq details:last-child{border:0}\n.faq summary{font-weight:800;cursor:pointer}\n.faq p{color:var(--m);margin:8px 0 2px}\nfooter{text-align:center;padding:10px 0 34px;font-size:13px;color:var(--m)}\n@media (max-width:680px){.st{grid-template-columns:1fr}h1{font-size:25px}}\n</style>\n</head>\n<body>\n<div class=\"w\">\n<header>\n  <svg class=\"logo\" viewBox=\"0 0 100 100\" aria-hidden=\"true\"><circle cx=\"28\" cy=\"24\" r=\"11\" fill=\"#D98E1F\"/><circle cx=\"72\" cy=\"24\" r=\"11\" fill=\"#D98E1F\"/><ellipse cx=\"50\" cy=\"56\" rx=\"42\" ry=\"38\" fill=\"#F2B544\"/><ellipse cx=\"50\" cy=\"66\" rx=\"26\" ry=\"22\" fill=\"#FFF3DC\"/><circle cx=\"37\" cy=\"50\" r=\"5.5\" fill=\"#23305E\"/><circle cx=\"63\" cy=\"50\" r=\"5.5\" fill=\"#23305E\"/><ellipse cx=\"50\" cy=\"59\" rx=\"3\" ry=\"2.2\" fill=\"#23305E\"/><path d=\"M45 63.5q5 4.5 10 0\" fill=\"none\" stroke=\"#23305E\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>\n  <h1>Cài HaoHao trong 1 phút</h1>\n  <p class=\"lead\">Trợ lý ngay trên Chrome: kiểm tra shop &amp; bắt sale ảo khi mua Shopee, nhắc việc, ghi chú, chặn quảng cáo YouTube. Miễn phí.</p>\n  <a class=\"cta\" id=\"dl\" href=\"https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-V1.zip\">⬇️ Tải HaoHao <span id=\"ver\"></span></a>\n  <div class=\"small\">Dùng được trên Chrome, Cốc Cốc, Edge (máy tính). Gói có chữ ký số, không thu thập mật khẩu.</div>\n</header>\n\n<section class=\"vid\"><video controls playsinline preload=\"metadata\" poster=\"\" style=\"width:100%;border-radius:18px;border:1.5px solid #EADFCB;background:#fff;display:block\"><source src=\"https://cdn.jsdelivr.net/gh/nhatphan79/nhatphan79@1da54ac5b9f8e9a13837f7f3c00a507af234ae5a/downloads/huong-dan-cai-haohao.mp4\" type=\"video/mp4\"></video><div class=\"small\" style=\"text-align:center;margin-top:6px\">▶️ Xem video 1 phút (có lồng tiếng) – làm theo đúng 4 bước bên dưới</div></section>\n<section class=\"steps\">\n  <div class=\"st\">\n    <div><h2><span class=\"n\">1</span>Giải nén file vừa tải</h2>\n      <p>Mở thư mục <b>Tải về (Downloads)</b>, chuột phải vào <b>HaoHao-V1.zip</b> → <b>Giải nén tất cả (Extract All)</b>. Bạn sẽ có thư mục <b>HaoHao-V1</b> chứa các file của HaoHao.</p>\n      <p>Để thư mục giải nén ở chỗ cố định (ví dụ <b>Tài liệu</b>), <b>không xoá</b> sau khi cài.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"16\" y=\"18\" width=\"288\" height=\"26\" rx=\"10\" fill=\"#EEF1F8\"/><text x=\"30\" y=\"36\" font-size=\"12\" fill=\"#5B6478\">Downloads</text><rect x=\"36\" y=\"62\" width=\"34\" height=\"40\" rx=\"4\" fill=\"#F2B544\"/><text x=\"30\" y=\"118\" font-size=\"11\" fill=\"#23305E\">HaoHao-V1.zip</text><rect x=\"120\" y=\"70\" width=\"160\" height=\"78\" rx=\"8\" fill=\"#fff\" stroke=\"#C9D0E0\"/><text x=\"134\" y=\"92\" font-size=\"12\" fill=\"#5B6478\">Mở</text><rect x=\"126\" y=\"102\" width=\"148\" height=\"22\" rx=\"5\" fill=\"#FFE8C2\"/><text x=\"134\" y=\"117\" font-size=\"12\" font-weight=\"700\" fill=\"#23305E\">Giải nén tất cả…</text><text x=\"134\" y=\"140\" font-size=\"12\" fill=\"#5B6478\">Xoá</text><path d=\"M96 98l22 10\" stroke=\"#EE4D2D\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">2</span>Mở trang Tiện ích</h2>\n      <p>Mở tab mới, dán địa chỉ <code>chrome://extensions</code><button class=\"cp\" data-t=\"chrome://extensions\">Chép</button> rồi Enter.</p>\n      <p class=\"small\">Cốc Cốc: <code>coccoc://extensions</code> · Edge: <code>edge://extensions</code></p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"16\" y=\"18\" width=\"288\" height=\"34\" rx=\"10\" fill=\"#EEF1F8\"/><rect x=\"30\" y=\"26\" width=\"220\" height=\"18\" rx=\"9\" fill=\"#fff\" stroke=\"#C9D0E0\"/><text x=\"40\" y=\"39\" font-size=\"12\" font-weight=\"700\" fill=\"#23305E\">chrome://extensions</text><text x=\"30\" y=\"84\" font-size=\"15\" font-weight=\"800\" fill=\"#23305E\">Tiện ích</text><rect x=\"30\" y=\"98\" width=\"120\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/><rect x=\"30\" y=\"116\" width=\"170\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">3</span>Bật \"Chế độ dành cho nhà phát triển\"</h2>\n      <p>Góc <b>trên bên phải</b> trang Tiện ích có công tắc <b>Chế độ dành cho nhà phát triển (Developer mode)</b>. Bật lên.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><text x=\"30\" y=\"46\" font-size=\"15\" font-weight=\"800\" fill=\"#23305E\">Tiện ích</text><text x=\"150\" y=\"47\" font-size=\"11\" fill=\"#5B6478\">Nhà phát triển</text><rect x=\"258\" y=\"34\" width=\"34\" height=\"18\" rx=\"9\" fill=\"#1A73E8\"/><circle cx=\"283\" cy=\"43\" r=\"7\" fill=\"#fff\"/><circle cx=\"275\" cy=\"43\" r=\"22\" fill=\"none\" stroke=\"#EE4D2D\" stroke-width=\"3\"/><rect x=\"30\" y=\"80\" width=\"250\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/><rect x=\"30\" y=\"100\" width=\"200\" height=\"10\" rx=\"5\" fill=\"#E6E9F2\"/></svg>\n  </div>\n  <div class=\"st\">\n    <div><h2><span class=\"n\">4</span>Bấm \"Tải tiện ích đã giải nén\"</h2>\n      <p>Bấm nút <b>Tải tiện ích đã giải nén (Load unpacked)</b> → chọn thư mục <b>HaoHao-V1</b> (thư mục có file <code>manifest.json</code> bên trong) → <b>Chọn thư mục</b>.</p>\n      <p class=\"small\">Nếu thấy 2 thư mục HaoHao-V1 lồng nhau, chọn thư mục <b>bên trong</b>.</p>\n      <p>Chú hamster HaoHao hiện ở góc màn hình là xong! Bấm biểu tượng 🧩 trên thanh Chrome → <b>ghim 📌 HaoHao</b> cho tiện.</p></div>\n    <svg viewBox=\"0 0 320 180\" aria-hidden=\"true\"><rect x=\"16\" y=\"18\" width=\"288\" height=\"146\" rx=\"10\" fill=\"#fff\" stroke=\"#D9DEEA\"/><rect x=\"30\" y=\"34\" width=\"150\" height=\"26\" rx=\"6\" fill=\"#E8F0FE\" stroke=\"#1A73E8\"/><text x=\"40\" y=\"51\" font-size=\"12\" font-weight=\"700\" fill=\"#1A73E8\">Tải tiện ích đã giải nén</text><rect x=\"186\" y=\"34\" width=\"70\" height=\"26\" rx=\"6\" fill=\"#fff\" stroke=\"#C9D0E0\"/><rect x=\"30\" y=\"76\" width=\"250\" height=\"70\" rx=\"10\" fill=\"#FFF8EC\" stroke=\"#F5D78E\"/><circle cx=\"58\" cy=\"111\" r=\"18\" fill=\"#F2B544\"/><circle cx=\"52\" cy=\"107\" r=\"2.5\" fill=\"#23305E\"/><circle cx=\"64\" cy=\"107\" r=\"2.5\" fill=\"#23305E\"/><text x=\"86\" y=\"106\" font-size=\"13\" font-weight=\"800\" fill=\"#23305E\">HaoHao V1</text><text x=\"86\" y=\"124\" font-size=\"11\" fill=\"#5B6478\">Đã cài · đang bật</text><rect x=\"246\" y=\"102\" width=\"24\" height=\"14\" rx=\"7\" fill=\"#1A73E8\"/></svg>\n  </div>\n</section>\n\n<section class=\"faq\">\n  <details><summary>Chrome báo \"Tắt tiện ích ở chế độ nhà phát triển\"?</summary><p>Đó là lời nhắc chung của Chrome với tiện ích cài từ file. Bấm <b>✕ / Huỷ</b> để giữ HaoHao. HaoHao sẽ sớm có trên Chrome Web Store để cài 1 bấm.</p></details>\n  <details><summary>Có bản mới thì sao?</summary><p>HaoHao tự báo \"🎉 Có bản mới\". Bấm Tải về, giải nén rồi chép các file trong thư mục HaoHao-V1 mới đè vào thư mục cũ, rồi F5 trang (máy có app HaoHao Transfer thì bấm Cập nhật ngay là tự cài).</p></details>\n  <details><summary>HaoHao có an toàn không?</summary><p>Gói cài có chữ ký số của tác giả. HaoHao không đọc mật khẩu, không thu thập thông tin cá nhân; ghi chú, việc cần làm lưu ngay trên máy bạn. Link mua hàng là link tiếp thị – giá không đổi.</p></details>\n  <details><summary>Chuyển ảnh, video iPhone sang máy tính?</summary><p>Tải thêm app <a href=\"https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/HaoHao-Transfer-Windows.zip\">HaoHao Transfer (Windows)</a>, mở app rồi quét mã QR bằng iPhone.</p></details>\n  <details><summary>Cần hỗ trợ?</summary><p>Trong HaoHao mở <b>Tiện ích → 💬 Góp ý</b>, hoặc nhắn fanpage <a href=\"https://www.facebook.com/trolyHaoHao\">HaoHao</a>.</p></details>\n</section>\n<footer>© 2026 HaoHao – Phan Thanh Nhật</footer>\n</div>\n<script>\ndocument.querySelectorAll('.cp').forEach(b=>b.onclick=()=>{navigator.clipboard.writeText(b.dataset.t).then(()=>{b.textContent='Đã chép ✓';setTimeout(()=>b.textContent='Chép',1500)})});\nfetch('https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/haohao-latest.json').then(r=>r.json()).then(j=>{if(j.name)document.getElementById('ver').textContent=j.name}).catch(()=>{});\n</script>\n</body>\n</html>\n";   // 14/10: trang hướng dẫn cài – nguồn: server/cai-dat.html
 export default {
-  async scheduled(evt, env, ctx) { ctx.waitUntil(feedSafe(env)); },
+  async scheduled(evt, env, ctx) {
+    if (evt.cron === '* * * * *') { ctx.waitUntil(sbRemind(env).catch(() => {})); ctx.waitUntil(sbDaily(env).catch(() => {})); return; } ctx.waitUntil(storeMaybe(env).catch(() => {})); ctx.waitUntil(feedSafe(env)); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     const u = new URL(req.url);
+    // 🌐 20/10: tên miền riêng haohaostore.com – www chuyển về tên chính, trang chủ = HaoHao Store
+    if (u.hostname === 'www.haohaostore.com') return Response.redirect('https://haohaostore.com' + u.pathname + u.search, 301);
+    if (u.hostname === 'haohaostore.com' && (u.pathname === '/' || SHOP_ROUTE.test(u.pathname))) {
+      // 📱 20/10: điện thoại → giao diện app (/app). ?desktop=1 → giữ bản máy tính 30 ngày. Bỏ qua bot tìm kiếm.
+      const ua = req.headers.get('user-agent') || '', ck = req.headers.get('cookie') || '';
+      if (u.searchParams.get('desktop') === '1') { const r = await seoIndex(env, u); const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=1; Path=/; Max-Age=2592000; SameSite=Lax; Secure'); h.set('cache-control', 'private, no-store'); return new Response(r.body, { headers: h }); }
+      if (/Mobi|Android|iPhone|iPod/i.test(ua) && !/bot|crawl|spider|slurp|Lighthouse|facebookexternalhit|Zalo/i.test(ua) && !/(^|;\s*)hh_desk=1/.test(ck)) {
+        const m = u.pathname.match(/^\/san-pham\/(\d+)/), n = u.pathname.match(/^\/(thoi-trang|me-be|gia-dung|xay-dung|qua-tang)(?:\/|$)/);
+        const hash = m ? '#/sp/' + m[1] : n ? '#/danh-muc/' + n[1] : u.pathname.startsWith('/sale') ? '#/uu-dai' : '';
+        return new Response(null, { status: 302, headers: { location: '/app' + hash, 'cache-control': 'private, no-store', vary: 'User-Agent' } });
+      }
+      return await seoIndex(env, u);
+    }
     try {
       await init(env);
       if (u.pathname === '/p' && req.method === 'POST') {
@@ -475,6 +1047,31 @@ export default {
         return json({ ok: true, q: u.searchParams.get('q'), items: items.map(({ brand, ...x }) => x) });
       }
       if (u.pathname === '/hot') { if (u.searchParams.get('run') && !isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); if (u.searchParams.get('run')) return json(await hotRun(env, u.searchParams.get('run') === 'raw' ? 'raw' : true)); const h = await getSt(env, 'hot'); return json({ ok: true, at: h ? h.at : 0, items: h ? h.items : [] }, 200, { 'cache-control': 'max-age=600' }); }
+      if (u.pathname === '/shop' || u.pathname.startsWith('/shop/')) return await shopPage(u);
+      if (u.pathname === '/tin-tuc') return Response.redirect(u.origin + '/tin-tuc/', 301);
+      if (u.pathname.startsWith('/tin-tuc/')) { const g = u.pathname.slice(9).replace(/\/$/, ''); if (g && !/^[a-z0-9][a-z0-9-]{0,100}$/.test(g)) return new Response('Không có trang này', { status: 404 }); return await shopFile('tin-tuc/' + (g ? g + '.html' : 'index.html'), 'html'); }
+      if (u.pathname === '/tiem-nha-hao' || u.pathname === '/tiem-nha-hao/') return await shopFile('tiem-nha-hao.html', 'html');
+      if (u.pathname === '/app' || u.pathname === '/app/') { const r = await shopFile('app.html', 'html'); if (!/hh_desk=1/.test(req.headers.get('cookie') || '')) return r; const h = new Headers(r.headers); h.append('set-cookie', 'hh_desk=; Path=/; Max-Age=0; SameSite=Lax; Secure'); return new Response(r.body, { headers: h }); }   // 📱 20/10: app điện thoại (vào /app là bỏ chế độ máy tính)   // 📱 20/10: giao diện app điện thoại (8 màn theo canvas)
+      if (u.pathname === '/sw.js') return await shopFile('sw.js', 'js');
+      if (u.pathname === '/manifest.webmanifest') return await shopFile('manifest.webmanifest', 'webmanifest');   // 🏠 20/10: Tiệm nhà Hao
+      if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
+      if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
+      if (u.pathname === '/dich' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 200000) return json({ ok: false, error: 'too big' }, 413); try { return json(await dichTrang(await req.json().catch(() => null))); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
+      if ((u.pathname === '/sb' && u.searchParams.get('ns')) || u.pathname === '/sb/zalo' || u.pathname === '/sb/zalocfg') return await sbRoute2(env, req, u);
+      if (u.pathname === '/sb' || u.pathname.startsWith('/sb/') || u.pathname === '/sbp' || u.pathname.startsWith('/sbp/')) return await sbRoute(env, req, u);
+      if (u.pathname === '/ct' && req.method === 'POST') return json(await ctPut(env, req));
+      if (u.pathname === '/ct') return json(await ctGet(env, u.searchParams.get('id')), 200, { 'cache-control': 'no-store' });
+      if (u.pathname === '/cong-trinh' || u.pathname === '/cong-trinh/') { const r = await shopFile('cong-trinh.html', 'html'); const h = new Headers(r.headers); h.set('cache-control', 'no-cache'); h.set('x-robots-tag', 'noindex'); return new Response(r.body, { status: r.status, headers: h }); }
+      if (u.pathname === '/ct/site.js') return await shopFile('ct/site.js', 'js');
+      if (u.pathname === '/ct/site.css') return await shopFile('ct/site.css', 'css');
+      if (u.pathname === '/ct/sbsync.js') return await shopFile('ct/sbsync.js', 'js');
+      if (u.pathname === '/ct/todo.js' || u.pathname === '/ct/proj.js') return await shopFile(u.pathname.slice(1), 'js');
+      if (u.pathname === '/ct/icon48.png') return await shopFile('ct/icon48.png', 'png');
+      if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
+      if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
+        if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }
+        return json(await storeGet(env), 200, { 'cache-control': 'public, max-age=300' });
+      }
       if (u.pathname === '/tt') return await ttSearch(env, u.searchParams.get('q'), ctx);
       if (u.pathname === '/search') return json(await spySearch(env, u), 200, { 'cache-control': 'public, max-age=300' });
       if (u.pathname === '/k' && req.method === 'POST') return json(await kw(env, await req.json().catch(() => null)));
@@ -484,7 +1081,7 @@ export default {
       if (u.pathname === '/nap') {   // chạy tự nạp ngay (tối đa 1 lần / 2 phút)
         if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403);   // 13/10: chỉ chủ app (?key=STATS_KEY); lịch tự nạp vẫn chạy
         const f = await getSt(env, 'feed2'); if (f && f.at && Date.now() - f.at < 120000) return json({ ok: false, error: 'đợi 2 phút', feed: f });
-        return json(await feedSafe(env));
+        return json(await feedSafe(env, true));
       }
       if (u.pathname === '/h') return json(await get(env, u.searchParams.get('k')), 200, { 'cache-control': 'public, max-age=600' });
       if (u.pathname === '/') {
