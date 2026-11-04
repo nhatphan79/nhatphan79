@@ -477,3 +477,11 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-ms .sb-mi:focus { outline: 2px solid var(--acc); outline-offset: -2px; background: #FFF8E6; }
 .sb-ms td.td { background: #FFFBEA; }
 .sb-ms tr.bch td { background: #EEF3FB; font-weight: 800; }
+/* V1.5.9: bảng tháng thẳng hàng – số La Mã ở cột STT, chữ tên nhóm / tên dòng cùng lề */
+.sb-ms td.n { font-weight: 800; }
+.sb-ms td.nm > b, .sb-ms td.nm > span { display: inline-block; padding-left: 7px; }
+.sb-ms tr.qsg td.nm { font-weight: 850; }
+.sb-ms td.nm input, .sb-ms td.jb input { padding-left: 6px; }
+.sb-qs td.nm > span { display: inline-block; padding-left: 7px; }
+.sb-qs td.nm input { padding-left: 6px; }
+.sb-qs tfoot td.nm { padding-left: 15px; }

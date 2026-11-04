@@ -877,9 +877,9 @@
     const setDw = (L, id, n) => { if (!L.dw) { L.dw = {}; if (num(L.other)) L.dw.cn0 = num(L.other); } if (n) L.dw[id] = n; else delete L.dw[id]; L.other = Object.values(L.dw).reduce((a, v) => a + num(v), 0); };
     // [stt, tên, công việc, lấy số, ghi số, đối tượng tên, khoá tên, khoá việc, kiểu]
     const R = [{ no: 'I', nm: 'BAN CHỈ HUY', get: L => bchOf(L), set: (L, n) => { L.bchT = n; }, cls: 'qsg bch' },
-      { g: 'II. TỔ ĐỘI', add: () => { const tm = { id: uid(), name: '', lead: '', phone: '', scope: '', def: 0, rate: 0 }; S.teams.push(tm); return tm.id; } },
+      { g: 'TỔ ĐỘI', gno: 'II', add: () => { const tm = { id: uid(), name: '', lead: '', phone: '', scope: '', def: 0, rate: 0 }; S.teams.push(tm); return tm.id; } },
       ...S.teams.map((tm, i) => ({ id: tm.id, no: String(i + 1), o: tm, nk: 'name', jk: 'scope', nph: 'Tên tổ (vd: Mr Bình)', jph: 'Đội làm gì (vd: cốp pha)', get: L => num((L.crew || {})[tm.id]), set: (L, n) => { L.crew = L.crew || {}; if (n) L.crew[tm.id] = n; else delete L.crew[tm.id]; } })),
-      { g: 'III. CÔNG NHẬT', add: () => { const x = { id: uid(), name: '', job: '' }; dwOf(S).push(x); return x.id; } },
+      { g: 'CÔNG NHẬT', gno: 'III', add: () => { const x = { id: uid(), name: '', job: '' }; dwOf(S).push(x); return x.id; } },
       ...dwOf(S).map((x, i) => ({ id: x.id, no: String(i + 1), o: x, nk: 'name', jk: 'job', nph: 'Tên / nhóm (vd: Phụ hồ)', jph: 'Làm gì (vd: dọn vệ sinh)', get: L => dwVal(L, x), set: (L, n) => setDw(L, x.id, n) }))];
     const box = $('div', 'sb-tw sb-msw'), t = $('table', 'sb-t sb-ms'), hr = $('tr');
     hr.append($('th', 'n', 'STT'), $('th', 'nm', 'Chức vụ / Tổ đội'), $('th', 'jb', 'Công việc / ghi chú'));
@@ -890,8 +890,8 @@
     const focusNew = id => setTimeout(() => { const x = root.querySelector('.sb-ms tr[data-id="' + id + '"] td.nm input'); if (x) { x.focus(); x.select(); } }, 60);
     R.forEach(r => {
       if (r.g) { const tr = $('tr', 'qsg'), td = $('td', 'nm', ''); td.colSpan = 3; td.append($('span', '', r.g));
-        if (!RO) { const b = $('button', 'sb-gadd', '＋'); b.type = 'button'; b.title = 'Thêm dòng ' + r.g.replace(/^[IV]+\.\s*/, '').toLowerCase(); b.setAttribute('aria-label', b.title); b.addEventListener('click', () => { const id = r.add(); save(); render(true); focusNew(id); }); td.append(b); }
-        const rest = $('td', ''); rest.colSpan = nd + 1; tr.append($('td', 'n', ''), td, rest); tr.firstChild.remove(); tr.prepend($('td', 'n', '')); td.colSpan = 2; tb.append(tr); return; }
+        if (!RO) { const b = $('button', 'sb-gadd', '＋'); b.type = 'button'; b.title = 'Thêm dòng ' + r.g.toLowerCase(); b.setAttribute('aria-label', b.title); b.addEventListener('click', () => { const id = r.add(); save(); render(true); focusNew(id); }); td.append(b); }
+        const rest = $('td', ''); rest.colSpan = nd + 1; td.colSpan = 2; tr.append($('td', 'n', r.gno), td, rest); tb.append(tr); return; }
       const tr = $('tr', r.cls || ''); if (r.id) tr.dataset.id = r.id;
       const nm = $('td', 'nm'), jb = $('td', 'jb');
       if (r.o) { const ni = $('input', 'sb-in'); ni.value = r.o[r.nk] || ''; ni.placeholder = RO ? '' : r.nph; ni.setAttribute('aria-label', 'Tên'); if (RO) ni.readOnly = true; ni.addEventListener('change', () => { r.o[r.nk] = ni.value.trim(); save(); }); nm.append(ni);
@@ -907,7 +907,7 @@
         td.append(inp); tr.append(td); cells.push(inp); });
       const tc = $('td', 'r b'); tr.append(tc); rowTot.push([cells, tc]); tb.append(tr);
     });
-    const fr = $('tr', 'sum'); fr.append($('td', 'n', ''), $('td', 'nm', 'Cộng'), $('td', 'jb', '')); D.forEach(() => { const c = $('td', 'c'); dayCells.push(c); fr.append(c); }); fr.append(gCell); tb.append(fr);
+    const fr = $('tr', 'sum'), fnm = $('td', 'nm'); fnm.append($('span', '', 'Cộng')); fr.append($('td', 'n', ''), fnm, $('td', 'jb', '')); D.forEach(() => { const c = $('td', 'c'); dayCells.push(c); fr.append(c); }); fr.append(gCell); tb.append(fr);
     t.append(tb); box.append(t); W.append(box); recalc();
   }
   function crew(W, S) { rolesOf(S); dwOf(S); rollCall(W, S); monthSum(W, S); }
