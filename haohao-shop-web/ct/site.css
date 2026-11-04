@@ -487,3 +487,9 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-qs tfoot td.nm { padding-left: 15px; }
 /* V1.5.10: báo cáo ngày sửa được */
 .sb-repta { width: min(720px, 86vw); min-height: 420px; font-family: inherit; font-size: 14px; line-height: 1.5; }
+/* V1.5.11: Báo cáo ngày ở tab Báo cáo */
+.sb-rpday .sb-rps textarea { width: 100%; }
+.sb-rpday .sb-wx { align-items: center; gap: 10px; margin: 10px 0 4px; }
+.sb-rpday .sb-wx select { width: auto; }
+.sb-rpday .sb-list li.sub { padding-left: 16px; color: var(--soft); }
+@media print { .sb-rpday textarea { border: 0; padding: 0; } }

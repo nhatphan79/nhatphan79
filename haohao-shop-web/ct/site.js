@@ -97,7 +97,7 @@
   const WX = ['☀️ Nắng', '⛅ Mây', '🌦 Mưa nhỏ', '🌧 Mưa to', '⛔ Nghỉ'];
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
-  const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['log', '📓 Nhật ký'], ['crew', '👷 Nhân lực'],
+  const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['crew', '👷 Nhân lực'],
     ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ']];
 
   function newSite(name, code) {
@@ -529,8 +529,8 @@
     { const L = S.logs.find(l => l.d === d), c = card('4 · Tổ đội nào đang làm, đủ người không?');
       if (L) { c.append($('div', 'sb-big', (bchOf(L) + crewOf(L)) + ' người hôm nay'), $('div', 'sb-note', qsTxt(L)));
         const u = $('ul', 'sb-list'); S.teams.forEach(tm => { const v = num((L.crew || {})[tm.id]); if (v) { const li = $('li'); li.append($('span', '', tm.name + (tm.scope ? ' – ' + tm.scope : '')), $('b', '', v + ' người')); u.append(li); } });
-        if (num(L.other)) { const li = $('li'); li.append($('span', '', 'Khác'), $('b', '', num(L.other) + ' người')); u.append(li); } c.append(u); }
-      else { c.append($('div', 'sb-big muted', 'Chưa ghi nhật ký hôm nay')); if (!RO) { const b = $('button', 'sb-btn sm', '📓 Ghi nhật ký hôm nay'); b.type = 'button'; b.addEventListener('click', () => { openLog(S, d); }); c.append(b); } }
+        if (num(L.other)) { const li = $('li'); li.append($('span', '', 'Công nhật'), $('b', '', num(L.other) + ' người')); u.append(li); } c.append(u); }
+      else { c.append($('div', 'sb-big muted', 'Chưa điểm danh hôm nay')); if (!RO) { const b = $('button', 'sb-btn sm', '📋 Báo cáo ngày hôm nay'); b.type = 'button'; b.addEventListener('click', () => { openLog(S, d); }); c.append(b); } }
       if (!S.teams.length) c.append($('div', 'sb-note', 'Chưa có tổ đội – thêm ở mục 👷 Nhân lực.'));
       c.style.order = 3; g.append(c); }
     // 5. vật tư
@@ -706,11 +706,14 @@
 
   // ---------- 📓 NHẬT KÝ ----------
   let openLogId = null;
-  function openLog(S, dd) {
-    let L = S.logs.find(l => l.d === dd);
-    if (!L) { const prev = S.logs.slice().sort((a, b) => a.d < b.d ? 1 : -1)[0]; L = { id: uid(), d: dd, wx: WX[0], crew: prev ? { ...prev.crew } : {}, other: 0, work: '', mat: '', issue: '', next: '', photos: [] }; S.logs.push(L); save(); }
-    openLogId = L.id; tab = 'log'; render(true);
-    setTimeout(() => { const el = root.querySelector('.sb-log.open textarea'); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
+  function openLog(S, dd) { rp = { kind: 'd', off: 0 }; rpDay = dd; rpEdit = false; tab = 'rep'; render(true); }   // V1.5.11: nhật ký → Báo cáo ngày
+  // V1.5.11: E. Kế hoạch – tự tổng hợp việc ngày mai: hạng mục tiến độ đang / sẽ thi công, công việc tới hạn / quá hạn, vấn đề cần giải quyết
+  function planNext(S, day) {
+    const t1 = addD(day, 1), out = [];
+    S.plan.filter(p => p.s && p.e && p.s <= t1 && t1 <= p.e && num(p.pct) < 100).forEach(p => out.push('Thi công: ' + plab(p)));
+    S.tasks.filter(t => t.st !== 'done' && t.due && t.due <= t1).forEach(t => out.push('Công việc: ' + (t.t || '') + (t.who ? ' (' + t.who + ')' : '')));
+    S.issues.filter(x => x.st !== 'dong' && x.due && x.due <= t1).forEach(x => out.push('Giải quyết: ' + String(x.t || '').split('\n')[0] + (x.who ? ' (' + x.who + ')' : '')));
+    return out;
   }
   // V1.5.10: báo cáo ngày theo mẫu anh Nhật – A. Nhân lực (từ bảng Quân số) · B. Công việc thi công · C. Nghiệm thu · D. Vướng mắc (+ E. Vật tư, F. Kế hoạch ngày mai khi có)
   function dayReport(S, L) {   // V1.5.10: đổi tên – trùng tên với report(W, S) của tab Báo cáo nên trước đây chép báo cáo ngày bị lỗi
@@ -719,8 +722,8 @@
     const Q = dayQS(S, L.d, L), qs = qsZalo(S, L.d, Q).split('\n').slice(1);
     const out = ['Báo cáo công việc ngày ' + fdFull(L.d) + ' - ' + proj, 'Thời tiết: ' + String(L.wx || '').replace(/^[^\p{L}\d]+/u, '').trim(),
       'A. Nhân lực: ' + Q.T + ' người', ...qs, 'B. Công việc thi công:', ...bl(L.work, 'Không'), 'C. Nghiệm thu', ...bl(L.qa, 'Không'), 'D. Vướng mắc', ...bl(L.issue, 'Không')];
-    let ch = 'E'; const more = (lb, v) => { if (String(v || '').trim()) { out.push(ch + '. ' + lb, ...bl(v)); ch = String.fromCharCode(ch.charCodeAt(0) + 1); } };
-    more('Vật tư', L.mat); more('Kế hoạch ngày mai', L.next);
+    out.push('E. Kế hoạch', ...bl(planNext(S, L.d).concat(String(L.next || '').split('\n')).join('\n'), 'Chưa có'));   // V1.5.11: tự tổng hợp việc ngày mai
+    if (String(L.mat || '').trim()) out.push('F. Vật tư', ...bl(L.mat));
     return out.join('\n');
   }
   // V1.5.10: báo cáo ngày SỬA ĐƯỢC trước khi gửi – bản đã sửa lưu theo ngày (L.rep); ↺ tạo lại từ dữ liệu mới nhất
@@ -1114,7 +1117,7 @@
     saveSoon();
   }
   const histAt = (S, d) => { const H = (S.hist || []).filter(h => h.d <= d); return H.length ? H[H.length - 1] : null; };
-  let rp = { kind: 'w', off: 0 }, rpEdit = false;
+  let rp = { kind: 'd', off: 0 }, rpEdit = false, rpDay = '';
   // V1.3.6: báo cáo CHỈNH TAY – sửa thẳng trên bản báo cáo rồi lưu theo kỳ (S.reports[key].html). Lọc bỏ mã lạ trước khi lưu / hiện.
   function cleanHtml(h) {
     const d = new DOMParser().parseFromString('<div>' + String(h || '') + '</div>', 'text/html'), root0 = d.body.firstChild;
@@ -1187,14 +1190,54 @@
     if (((add || {}).s6 || []).some(t => t.trim())) { L.push('', '6. ĐỀ XUẤT CỦA CHỈ HUY TRƯỞNG'); ad('s6'); } else if ((note || '').trim()) L.push('', '6. ĐỀ XUẤT CỦA CHỈ HUY TRƯỞNG', note.trim());
     return L.join('\n').replace(/\n{3,}/g, '\n\n');
   }
+  // V1.5.11: 📋 BÁO CÁO NGÀY (trước nằm ở tab Nhật ký) – thời tiết · A. Nhân lực (từ Quân số) · B–F gõ thẳng · xem & sửa & chép Zalo
+  function dayView(W, S) {
+    const d = today(); if (!rpDay || rpDay > d) rpDay = d;
+    const h = sec(W, '📑 Báo cáo', 'Ngày: thời tiết, nhân lực, công việc, nghiệm thu, vướng mắc · Tuần / Tháng: tự tổng hợp'); h.classList.add('sb-noprint');
+    const bar = $('div', 'sb-rpbar sb-noprint');
+    bar.append(chips([['d', 'Ngày'], ['w', 'Tuần'], ['m', 'Tháng']], 'd', v => { rp = { kind: v, off: 0 }; rpEdit = false; render(true); }));
+    const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'), di = $('input', 'sb-in'); pv.type = nx.type = 'button'; di.type = 'date'; di.value = rpDay; di.max = d;
+    pv.setAttribute('aria-label', 'Ngày trước'); nx.setAttribute('aria-label', 'Ngày sau'); di.setAttribute('aria-label', 'Chọn ngày báo cáo');
+    pv.addEventListener('click', () => { rpDay = addD(rpDay, -1); render(true); }); nx.addEventListener('click', () => { if (rpDay < d) { rpDay = addD(rpDay, 1); render(true); } }); di.addEventListener('change', () => { if (di.value) { rpDay = di.value; render(true); } });
+    nav.append(pv, di, nx); if (rpDay !== d) { const cur = $('button', 'sb-btn ghost sm', 'Hôm nay'); cur.type = 'button'; cur.addEventListener('click', () => { rpDay = d; render(true); }); nav.append(cur); }
+    const act = $('div', 'sb-row'), cp = $('button', 'sb-btn sm', '📋 Xem & chép gửi Zalo'); cp.type = 'button'; act.append(cp);
+    bar.append(nav, act); W.append(bar);
+    const L0 = S.logs.find(l => l.d === rpDay), L = L0 || { id: uid(), d: rpDay, wx: WX[0], crew: {}, other: 0, work: '', qa: '', mat: '', issue: '', next: '', photos: [] };
+    const ensure = () => { if (!S.logs.includes(L)) S.logs.push(L); };
+    cp.addEventListener('click', () => { ensure(); save(); repDlg(S, L); });
+    const doc = $('article', 'sb-rp sb-rpday'), hd = $('header', 'sb-rph');
+    const nm = String(S.name || '').trim();
+    hd.append($('div', 'sb-rpk', 'BÁO CÁO CÔNG VIỆC NGÀY ' + fdFull(rpDay)), $('h1', '', /^dự án/i.test(nm) ? nm : 'Dự án ' + nm));
+    doc.append(hd);
+    const wx = field(L, { k: 'wx', lb: 'Thời tiết', t: 'sel', o: WX.map(w => [w, w]) }); wx.addEventListener('change', ensure);
+    const wr = $('div', 'sb-row sb-wx'); wr.append($('b', '', 'Thời tiết:'), wx); doc.append(wr);
+    // A. Nhân lực từ bảng Quân số
+    const Q = dayQS(S, rpDay, L0), qa = $('section', 'sb-rps'); qa.append($('h2', '', 'A. Nhân lực: ' + Q.T + ' người'));
+    const ul = $('ul', 'sb-list'); qsZalo(S, rpDay, Q).split('\n').slice(1).forEach(t => ul.append($('li', /^–/.test(t) ? 'sub' : '', t))); qa.append(ul);
+    if (!Q.done) qa.append($('div', 'sb-note', 'Chưa điểm danh ngày này – đang hiện số ngày gần nhất.'));
+    if (!RO) { const go = $('button', 'sb-btn ghost sm sb-noprint', '👷 Sửa quân số ngày này'); go.type = 'button'; go.addEventListener('click', () => { rollD = rpDay; tab = 'crew'; render(true); }); qa.append(go); }
+    doc.append(qa);
+    [['work', 'B. Công việc thi công', 'Mỗi dòng 1 việc – vd: Thi công đắp cát mặt bằng cao độ 1.5m'], ['qa', 'C. Nghiệm thu', 'vd: Lấy mẫu 2 mỏ đất mới, đã gửi request'], ['issue', 'D. Vướng mắc', 'Không có thì để trống'],
+      ['mat', 'F. Vật tư nhập về / sử dụng', 'Có thì ghi – báo cáo tự thêm mục']].forEach(([k, lb, ph]) => {
+      const c = $('section', 'sb-rps'); c.append($('h2', '', lb)); const ta = field(L, { k, lb, t: 'area', rows: 2, ph, rr: false }); ta.addEventListener('input', ensure); c.append(ta); doc.append(c);
+      if (k === 'issue') {   // E. Kế hoạch – chỉ xem, tự tổng hợp
+        const e = $('section', 'sb-rps'); e.append($('h2', '', 'E. Kế hoạch ngày ' + fdFull(addD(rpDay, 1))));
+        const pl = planNext(S, rpDay).concat(String(L.next || '').split('\n').map(x => x.trim()).filter(Boolean)), u = $('ul', 'sb-list');
+        pl.forEach(x => u.append($('li', '', x))); if (!pl.length) u.append($('li', 'sb-none', 'Chưa có việc nào cho ngày mai'));
+        e.append(u, $('div', 'sb-note sb-noprint', 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề – sửa ở các mục đó.')); doc.append(e); }
+    });
+    if (L.rep) doc.append($('div', 'sb-note sb-noprint', '✏️ Ngày này có bản báo cáo đã sửa tay – bấm “📋 Xem & chép gửi Zalo” để xem.'));
+    W.append(doc);
+  }
   function report(W, S) {
+    if (rp.kind === 'd') return dayView(W, S);
     const P = period(rp.kind, rp.off), R = repData(S, P);
     S.reports = S.reports && typeof S.reports === 'object' && !Array.isArray(S.reports) ? S.reports : {};
     const N = S.reports[P.key] = S.reports[P.key] || { note: '' };
     const h = sec(W, '📑 Báo cáo ' + (rp.kind === 'w' ? 'tuần' : 'tháng'), 'Tự tổng hợp từ nhật ký, công việc, vật tư, chi phí, vấn đề');
     h.classList.add('sb-noprint');
     const bar = $('div', 'sb-rpbar sb-noprint');
-    bar.append(chips([['w', 'Tuần'], ['m', 'Tháng']], rp.kind, v => { rp = { kind: v, off: 0 }; rpEdit = false; render(true); }));
+    bar.append(chips([['d', 'Ngày'], ['w', 'Tuần'], ['m', 'Tháng']], rp.kind, v => { rp = { kind: v, off: 0 }; rpEdit = false; render(true); }));
     const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'), cur = $('button', 'sb-btn ghost sm', rp.kind === 'w' ? 'Tuần này' : 'Tháng này');
     [pv, nx, cur].forEach(b => b.type = 'button'); pv.setAttribute('aria-label', 'Kỳ trước'); nx.setAttribute('aria-label', 'Kỳ sau');
     pv.addEventListener('click', () => { rp.off--; rpEdit = false; render(true); }); nx.addEventListener('click', () => { rp.off++; rpEdit = false; render(true); }); cur.addEventListener('click', () => { rp.off = 0; rpEdit = false; render(true); });
@@ -1295,7 +1338,7 @@
   }
 
   // ---------- vẽ ----------
-  const VIEWS = { dash, plan, task, log, crew, mat, cost, issue, rep: report, file };
+  const VIEWS = { dash, plan, task, log: report, crew, mat, cost, issue, rep: report, file };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
   let rendering = false;
   function render(force) {
     if (rendering) { setTimeout(() => render(force), 0); return; }
