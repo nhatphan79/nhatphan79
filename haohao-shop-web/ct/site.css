@@ -463,3 +463,17 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-ms tr.sum td { background: #FFF3B0; font-weight: 850; }
 .sb-ms tr.sum td.nm { background: #FFF3B0; }
 @media print { .sb-qsb { display: none; } }
+/* V1.5.8: sửa tên ngay trong bảng quân số */
+.sb-qs td.nm input { width: 100%; font-weight: 600; }
+.sb-qs th.nm { width: 32%; }
+.sb-ms th.n, .sb-ms td.n { width: 34px; min-width: 34px; text-align: center; position: sticky; left: 0; background: #fff; z-index: 1; }
+.sb-ms th.nm, .sb-ms td.nm { left: 34px; }
+.sb-ms tr.qsg td.n { background: #DCE6F4; } .sb-ms tr.sum td.n { background: #FFF3B0; }
+/* V1.5.8: bảng tháng nhập thẳng */
+.sb-ms th.jb, .sb-ms td.jb { min-width: 170px; }
+.sb-ms td.nm input, .sb-ms td.jb input { width: 100%; padding: 4px 6px; font-size: 12.5px; }
+.sb-ms td.c { padding: 0; }
+.sb-ms .sb-mi { width: 100%; min-width: 26px; height: 28px; border: 0; background: transparent; text-align: center; font: inherit; font-weight: 700; color: var(--ink); padding: 0; }
+.sb-ms .sb-mi:focus { outline: 2px solid var(--acc); outline-offset: -2px; background: #FFF8E6; }
+.sb-ms td.td { background: #FFFBEA; }
+.sb-ms tr.bch td { background: #EEF3FB; font-weight: 800; }
