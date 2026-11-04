@@ -434,10 +434,14 @@
       const at = $('input', 'sb-in'); at.type = 'time'; at.value = c.alertTime || '08:00'; at.setAttribute('aria-label', 'Giờ cảnh báo');
       const pt = $('input', 'sb-in'); pt.type = 'time'; pt.value = c.planTime || '14:00'; pt.setAttribute('aria-label', 'Giờ gửi kế hoạch ngày mai');
       const po = $('input', 'sb-chk'); po.type = 'checkbox'; po.checked = c.planOn !== false; po.style.margin = '6px 0';
+      const wd = $('select', 'sb-in'); [['1', 'Thứ 2'], ['2', 'Thứ 3'], ['3', 'Thứ 4'], ['4', 'Thứ 5'], ['5', 'Thứ 6'], ['6', 'Thứ 7'], ['0', 'Chủ nhật']].forEach(([v, l]) => { const o = $('option', '', l); o.value = v; wd.append(o); }); wd.value = String(c.wkDay >= 0 ? c.wkDay : 6); wd.setAttribute('aria-label', 'Ngày gửi kế hoạch tuần');   // V1.5.18
+      const wt = $('input', 'sb-in'); wt.type = 'time'; wt.value = c.wkTime || '08:00'; wt.setAttribute('aria-label', 'Giờ gửi kế hoạch tuần');
+      const wo = $('input', 'sb-chk'); wo.type = 'checkbox'; wo.checked = c.wkOn !== false; wo.style.margin = '6px 0';
+      const wr = $('div', 'sb-row'); wr.append(wd, wt);
       const ao = $('input', 'sb-chk'); ao.type = 'checkbox'; ao.checked = c.alertOn !== false; ao.style.margin = '6px 0';
       const rz = $('input', 'sb-chk'); rz.type = 'checkbox'; rz.checked = c.remindZalo !== false; rz.style.margin = '6px 0';
       g.append(lab('⏰ Nhắc Todo & nhắc nhở qua Zalo (cả khi tắt máy)', rz),
-        lab('Giờ gửi tổng quan', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd / cb', cm), lab('🚨 Giờ cảnh báo chậm tiến độ', at), lab('Bật cảnh báo chậm tiến độ', ao), lab('🗓️ Giờ gửi kế hoạch ngày mai', pt), lab('Bật gửi kế hoạch ngày mai', po));
+        lab('Giờ gửi tổng quan', tm), lab('Bật gửi tự động', on), lab('Trả lời lệnh tq / hn / vd / cb', cm), lab('🚨 Giờ cảnh báo chậm tiến độ', at), lab('Bật cảnh báo chậm tiến độ', ao), lab('🗓️ Giờ gửi kế hoạch ngày mai', pt), lab('Bật gửi kế hoạch ngày mai', po), lab('📅 Gửi kế hoạch tuần tới vào', wr), lab('Bật gửi kế hoạch tuần', wo));
       b.append(g);
       const sl = $('div', 'sb-fl', 'Công trình được gửi'); const sw = $('div', 'sb-chips');
       data.sites.forEach(S => { const l = $('label', 'sb-chip on'), x = $('input'); x.type = 'checkbox'; x.checked = !S.botOff; x.style.marginRight = '6px'; l.classList.toggle('on', x.checked);
@@ -457,11 +461,11 @@
       act.append(pv, ts); b.append(act, pre);
       if (c.err) b.append($('div', 'sb-note bad', '⚠ Lần gửi gần nhất lỗi: ' + c.err));
       b.append($('div', 'sb-note', '💡 Đã đăng nhập Google và tích "⏰ Nhắc Todo & nhắc nhở qua Zalo" thì máy chủ HaoHao tự gửi tổng quan + cảnh báo đúng giờ, kể cả khi tắt máy. Lệnh nhắn bot (tq, xong, them…) được trả lời khi có 1 máy đang mở HaoHao. Token lưu trên máy này và máy chủ HaoHao (để tự gửi).'));
-      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '08:00', alertOn: ao.checked, planTime: pt.value || '14:00', planOn: po.checked, remindZalo: rz.checked });
+      D_on = () => ({ token: tk.value.trim(), time: tm.value || '07:00', on: on.checked, cmd: cm.checked, alertTime: at.value || '08:00', alertOn: ao.checked, planTime: pt.value || '14:00', planOn: po.checked, wkDay: +wd.value, wkTime: wt.value || '08:00', wkOn: wo.checked, remindZalo: rz.checked });
     }, async () => {
-      const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = ''; if (p.alertTime !== c.alertTime) p.lastAlert = ''; if (p.planTime !== c.planTime) p.lastPlan = '';
+      const p = D_on(); if (p.token !== c.token) Object.assign(p, { chatId: '', chatName: '' }); if (p.time !== c.time) p.last = ''; if (p.alertTime !== c.alertTime) p.lastAlert = ''; if (p.planTime !== c.planTime) p.lastPlan = ''; if (p.wkTime !== c.wkTime || p.wkDay !== c.wkDay) p.lastWk = '';
       if (p.token !== c.token && c.token) toast('Đổi token → cần 🔗 Kết nối lại');
-      await saveBot(p); render(true); if (p.on && c.chatId) toast('🤖 Bot gửi: tổng quan ' + p.time + (p.alertOn ? ' · cảnh báo ' + p.alertTime : '') + (p.planOn ? ' · kế hoạch ngày mai ' + p.planTime : '') + ' mỗi ngày');
+      await saveBot(p); render(true); if (p.on && c.chatId) toast('🤖 Bot gửi: tổng quan ' + p.time + (p.alertOn ? ' · cảnh báo ' + p.alertTime : '') + (p.planOn ? ' · kế hoạch ngày mai ' + p.planTime : '') + ' mỗi ngày' + (p.wkOn ? ' · kế hoạch tuần ' + (p.wkDay ? 'T' + (p.wkDay + 1) : 'CN') + ' ' + p.wkTime : ''));
     });
     void D;
   }

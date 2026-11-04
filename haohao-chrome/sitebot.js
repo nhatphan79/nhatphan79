@@ -89,6 +89,21 @@
     let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
   }
   // V1.5.15: 🗓️ KẾ HOẠCH NGÀY MAI – gửi Zalo 14h: thi công · công việc · cần giải quyết · vật tư cần về
+    function weekText(S, a) {   // V1.5.18: 🗓️ KẾ HOẠCH TUẦN (a = thứ 2 tuần tới) – gửi Zalo sáng thứ 7
+    const b = addD(a, 6);
+    const P = L(S, 'plan').filter(p => p.s && p.e && p.s <= b && p.e >= a && num(p.pct) < 100).sort((x, y) => x.s < y.s ? -1 : 1);
+    const T = L(S, 'tasks').filter(t => t.st !== 'done' && t.due && t.due <= b).sort((x, y) => x.due < y.due ? -1 : 1);
+    const X = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due <= b).sort((x, y) => x.due < y.due ? -1 : 1);
+    const M = L(S, 'mats').filter(m => m.st !== 've' && m.need && m.need <= b).sort((x, y) => x.need < y.need ? -1 : 1);
+    const DW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'], dw = s => DW[new Date(s + 'T00:00').getDay()] + ' ' + fd(s), td = today();
+    const o = ['🗓️ KẾ HOẠCH TUẦN ' + fd(a) + ' – ' + fdFull(b), head(S)];
+    o.push('', '1. Thi công:', ...(P.length ? P.slice(0, 15).map(p => '- ' + cut(plab(p), 70) + (p.s >= a ? ' (bắt đầu ' + dw(p.s) + ')' : '') + (p.e <= b ? ' – xong ' + dw(p.e) : '') + (lagDays(p, td) >= 1 ? ' ⚠ đang chậm ' + lagDays(p, td) + ' ngày' : '')) : ['- Không']));
+    o.push('', '2. Công việc:', ...(T.length ? T.slice(0, 15).map(t => '- ' + (t.pri === 'cao' ? '🔴 ' : '') + cut(t.t, 70) + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dw(t.due) + (t.due < td ? ' ❗trễ' : '')) : ['- Không']));
+    o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 10).map(x => '- ' + cut(x.t, 70) + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + dw(x.due) + (x.due < td ? ' ❗trễ' : '')) : ['- Không']));
+    o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 10).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '') + (m.by ? ' · đề xuất: ' + m.by : '')) : ['- Không']));
+    let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+    }
+  const nextMon = d => { const w = new Date(d + 'T00:00').getDay(); return addD(d, (8 - w) % 7 || 7); };
   function planText(S, d) {
   const P = L(S, 'plan').filter(p => p.s && p.e && p.s <= d && d <= p.e && num(p.pct) < 100);
   const T = L(S, 'tasks').filter(t => t.st !== 'done' && t.due && t.due <= d).sort((a, b) => a.due < b.due ? -1 : 1);
@@ -148,6 +163,10 @@
       const [ph, pm] = String(cfg.planTime || '14:00').split(':').map(Number);
       if (!srv && cfg.planOn !== false && cfg.lastPlan !== d && now.getHours() * 60 + now.getMinutes() >= ph * 60 + (pm || 0)) {
         try { const S = await sites(); for (const s of S) await send(cfg, planText(s, addD(d, 1))); await setCfg({ lastPlan: d }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
+      }
+      const [wh, wm] = String(cfg.wkTime || '08:00').split(':').map(Number);   // V1.5.18: kế hoạch tuần
+      if (!srv && cfg.wkOn !== false && now.getDay() === (cfg.wkDay >= 0 ? +cfg.wkDay : 6) && cfg.lastWk !== d && now.getHours() * 60 + now.getMinutes() >= wh * 60 + (wm || 0)) {
+        try { const S = await sites(); for (const s of S) await send(cfg, weekText(s, nextMon(d))); await setCfg({ lastWk: d }); } catch (e) { await setCfg({ err: String(e.message || e), errAt: Date.now() }); }
       }
       if (cfg.cmd !== false) await poll(cfg, Date.now() + 50000);   // V1.3.4: nghe liên tục ~50 giây mỗi phút → trả lời gần như tức thì
     } finally { busy = false; }
@@ -294,7 +313,7 @@
           return;
         }
         if (msg.type === 'sb-bot-test') { const cfg = await getCfg(); const n = await sendDaily(cfg, true); await setCfg({ err: '' }); return reply({ ok: true, n }); }
-        if (msg.type === 'sb-bot-preview') { const S = await sites(); return reply({ ok: true, text: S.map(s => overview(s) + '\n\n— — —\n\n' + planText(s, addD(today(), 1))).join('\n\n— — —\n\n') || '(chưa có công trình)' }); }
+        if (msg.type === 'sb-bot-preview') { const S = await sites(); return reply({ ok: true, text: S.map(s => overview(s) + '\n\n— — —\n\n' + planText(s, addD(today(), 1)) + '\n\n— — —\n\n' + weekText(s, nextMon(today()))).join('\n\n— — —\n\n') || '(chưa có công trình)' }); }
         reply({ ok: false, err: 'lệnh lạ' });
       } catch (e) { reply({ ok: false, err: String(e.message || e) }); }
     })();
@@ -354,9 +373,9 @@
   }
   async function zaloCfgToServer(a) {   // V1.5.0: gửi giờ tổng quan / cảnh báo lên máy chủ – máy chủ tự gửi mỗi ngày, không cần bật máy
     if (!a.zsent || a.zsent === 'off') return;
-    const c = await getCfg(), want = JSON.stringify({ on: !!c.on, time: c.time || '07:00', alertOn: c.alertOn !== false, alertTime: c.alertTime || '08:00', planOn: c.planOn !== false, planTime: c.planTime || '14:00' });
+    const c = await getCfg(), want = JSON.stringify({ on: !!c.on, time: c.time || '07:00', alertOn: c.alertOn !== false, alertTime: c.alertTime || '08:00', planOn: c.planOn !== false, planTime: c.planTime || '14:00', wkOn: c.wkOn !== false, wkDay: c.wkDay >= 0 ? +c.wkDay : 6, wkTime: c.wkTime || '08:00' });
     if (a.zcfg === want && a.zdaily) return;
-    const body = { ...JSON.parse(want), last: c.last || '', lastAlert: c.lastAlert || '', lastPlan: c.lastPlan || '' };
+    const body = { ...JSON.parse(want), last: c.last || '', lastAlert: c.lastAlert || '', lastPlan: c.lastPlan || '', lastWk: c.lastWk || '' };
     const r = await fetch(SB_API + '/sb/zalocfg', { method: 'POST', headers: { authorization: 'Bearer ' + a.token, 'content-type': 'application/json' }, body: JSON.stringify(body) }).then(x => x.json()).catch(() => null);
     if (r && r.ok && r.daily) { const A = await auth(); A.zcfg = want; A.zdaily = true; await chrome.storage.local.set({ sbAuth: A }); }
   }
@@ -392,5 +411,5 @@
   chrome.alarms.onAlarm.addListener(a => { if (a.name === 'sb:bot') { cloud().catch(() => {}).finally(tick); } });
   const ensure = () => chrome.alarms.get('sb:bot').then(a => { if (!a) chrome.alarms.create('sb:bot', { delayInMinutes: 0.2, periodInMinutes: 1 }); }).catch(() => {});
   ensure(); chrome.runtime.onStartup.addListener(() => { ensure(); setTimeout(tick, 4000); });
-  self.HHSiteBot = { overview, planText, tick };
+  self.HHSiteBot = { overview, planText, weekText, tick };
 })();

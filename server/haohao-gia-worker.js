@@ -515,7 +515,21 @@ o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 8).map(x => '- 
 o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 8).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '') + (m.by ? ' · đề xuất: ' + m.by : '')) : ['- Không']));
 let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
 }
-return { overview, alertText, planText, setCats };
+function weekText(S, a) {   // V1.5.18: 🗓️ KẾ HOẠCH TUẦN (a = thứ 2 tuần tới) – gửi Zalo sáng thứ 7
+const b = addD(a, 6);
+const P = L(S, 'plan').filter(p => p.s && p.e && p.s <= b && p.e >= a && num(p.pct) < 100).sort((x, y) => x.s < y.s ? -1 : 1);
+const T = L(S, 'tasks').filter(t => t.st !== 'done' && t.due && t.due <= b).sort((x, y) => x.due < y.due ? -1 : 1);
+const X = L(S, 'issues').filter(x => x.st !== 'dong' && x.due && x.due <= b).sort((x, y) => x.due < y.due ? -1 : 1);
+const M = L(S, 'mats').filter(m => m.st !== 've' && m.need && m.need <= b).sort((x, y) => x.need < y.need ? -1 : 1);
+const DW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'], dw = s => DW[new Date(s + 'T00:00').getDay()] + ' ' + fd(s), td = today();
+const o = ['🗓️ KẾ HOẠCH TUẦN ' + fd(a) + ' – ' + fdFull(b), head(S)];
+o.push('', '1. Thi công:', ...(P.length ? P.slice(0, 15).map(p => '- ' + cut(plab(p), 70) + (p.s >= a ? ' (bắt đầu ' + dw(p.s) + ')' : '') + (p.e <= b ? ' – xong ' + dw(p.e) : '') + (lagDays(p, td) >= 1 ? ' ⚠ đang chậm ' + lagDays(p, td) + ' ngày' : '')) : ['- Không']));
+o.push('', '2. Công việc:', ...(T.length ? T.slice(0, 15).map(t => '- ' + (t.pri === 'cao' ? '🔴 ' : '') + cut(t.t, 70) + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dw(t.due) + (t.due < td ? ' ❗trễ' : '')) : ['- Không']));
+o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 10).map(x => '- ' + cut(x.t, 70) + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + dw(x.due) + (x.due < td ? ' ❗trễ' : '')) : ['- Không']));
+o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 10).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '') + (m.by ? ' · đề xuất: ' + m.by : '')) : ['- Không']));
+let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
+}
+return { overview, alertText, planText, weekText, setCats };
 })();
 async function sbZaloCfg(env, email, req) {
 await sbzInit(env); await sbzInit2(env);
@@ -523,11 +537,12 @@ const b = await req.json().catch(() => null);
 if (!b) return json({ ok: false, error: 'sai dữ liệu' }, 400);
 const row = await env.DB.prepare('SELECT dsent FROM sbz WHERE email = ?').bind(email).first();
 if (!row) return json({ ok: false, error: 'chưa bật nhắc qua Zalo' }, 404);
-const c = { on: !!b.on, time: /^\d{1,2}:\d{2}$/.test(b.time || '') ? b.time : '07:00', alertOn: b.alertOn !== false, alertTime: /^\d{1,2}:\d{2}$/.test(b.alertTime || '') ? b.alertTime : '08:00', planOn: b.planOn !== false, planTime: /^\d{1,2}:\d{2}$/.test(b.planTime || '') ? b.planTime : '14:00' };
+const c = { on: !!b.on, time: /^\d{1,2}:\d{2}$/.test(b.time || '') ? b.time : '07:00', alertOn: b.alertOn !== false, alertTime: /^\d{1,2}:\d{2}$/.test(b.alertTime || '') ? b.alertTime : '08:00', planOn: b.planOn !== false, planTime: /^\d{1,2}:\d{2}$/.test(b.planTime || '') ? b.planTime : '14:00', wkOn: b.wkOn !== false, wkDay: b.wkDay >= 0 && b.wkDay <= 6 ? +b.wkDay : 6, wkTime: /^\d{1,2}:\d{2}$/.test(b.wkTime || '') ? b.wkTime : '08:00' };
 let ds = {}; try { ds = JSON.parse(row.dsent || '{}') || {}; } catch {}
 if (/^\d{4}-\d{2}-\d{2}$/.test(b.last || '')) ds['d@' + b.last] = 1;
 if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastAlert || '')) ds['a@' + b.lastAlert] = 1;
 if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastPlan || '')) ds['p@' + b.lastPlan] = 1;
+if (/^\d{4}-\d{2}-\d{2}$/.test(b.lastWk || '')) ds['w@' + b.lastWk] = 1;
 await env.DB.prepare('UPDATE sbz SET cfg = ?, dsent = ?, on1 = 1 WHERE email = ?').bind(JSON.stringify(c), JSON.stringify(ds), email).run();
 return json({ ok: true, daily: true });
 }
@@ -538,7 +553,8 @@ const hm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1
 for (const z of results) {
 let c = {}, ds = {}; try { c = JSON.parse(z.cfg) || {}; ds = JSON.parse(z.dsent || '{}') || {}; } catch {}
 const wantD = c.on && !ds['d@' + N.ymd] && N.min >= hm(c.time || '07:00'), wantA = c.alertOn !== false && !ds['a@' + N.ymd] && N.min >= hm(c.alertTime || '08:00'), wantP = c.planOn !== false && !ds['p@' + N.ymd] && N.min >= hm(c.planTime || '14:00');
-if (!wantD && !wantA && !wantP) continue;
+const wantW = c.wkOn !== false && N.dow === (c.wkDay >= 0 ? +c.wkDay : 6) && !ds['w@' + N.ymd] && N.min >= hm(c.wkTime || '08:00');   // V1.5.18: kế hoạch tuần (mặc định T7 8h)
+if (!wantD && !wantA && !wantP && !wantW) continue;
 const row = await env.DB.prepare('SELECT v FROM sb WHERE email = ?').bind(z.email).first();
 let v = null; try { v = row ? JSON.parse(row.v) : null; } catch {}
 const S = v && Array.isArray(v.sites) ? v.sites : [];
@@ -547,6 +563,7 @@ const send = async t => { const r = await fetch('https://bot-api.zaloplatforms.c
 if (wantD) { let ok = true; for (const s of S) ok = (await send(SBD.overview(s, N.ymd))) && ok; if (ok) ds['d@' + N.ymd] = Date.now(); }
 if (wantA) { let ok = true; for (const s of S) { const t = SBD.alertText(s, N.ymd); if (t) ok = (await send(t)) && ok; } if (ok) ds['a@' + N.ymd] = Date.now(); }
 if (wantP) { let ok = true; const t1 = new Date(Date.parse(N.ymd + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); for (const s of S) ok = (await send(SBD.planText(s, t1))) && ok; if (ok) ds['p@' + N.ymd] = Date.now(); }
+if (wantW) { let ok = true; const dw0 = new Date(Date.parse(N.ymd + 'T00:00:00Z')).getUTCDay(), mon = new Date(Date.parse(N.ymd + 'T00:00:00Z') + ((8 - dw0) % 7 || 7) * 864e5).toISOString().slice(0, 10); for (const s of S) ok = (await send(SBD.weekText(s, mon))) && ok; if (ok) ds['w@' + N.ymd] = Date.now(); }
 for (const k in ds) if (k.slice(2) < new Date(Date.parse(N.ymd) - 5 * 864e5).toISOString().slice(0, 10)) delete ds[k];
 await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.stringify(ds), z.email).run();
 }
