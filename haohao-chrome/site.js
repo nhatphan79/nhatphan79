@@ -604,13 +604,13 @@
   }
   function planTable(S) {
     const d = today(), box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-pt'), th = $('thead'), hr = $('tr');
-    [['TT', 'n'], ['Công việc', ''], ['Bắt đầu', 'dt'], ['Số ngày', 'r dn'], ['Kết thúc', 'dt'], ['KH %', 'r pc'], ['Thực tế %', 'r pc'], ['🏁', 'c mk'], ['Tình trạng', 'st'], ['Ghi chú / lý do', 'nt'], ['', 'x']].forEach(([l, c]) => hr.append($('th', c, l)));
+    [['TT', 'n'], ['Công việc', ''], ['Bắt đầu', 'dt'], ['Số ngày', 'r dn'], ['Kết thúc', 'dt'], ['KH %', 'r pc'], ['Thực tế %', 'r pc'], ['🏁', 'c mk'], ['Tình trạng', 'st'], ['Ghi chú / lý do', 'pnote'], ['', 'x']].forEach(([l, c]) => hr.append($('th', c, l)));
     th.append(hr); t.append(th); const tb = $('tbody'); t.append(tb);
     const st = p => { const [c, l] = pState(p); return $('span', 'sb-st ' + c, l); };
     const aggRow = (cls, tt, name, L, extra) => { const A = aggOf(L), tr = $('tr', cls);
       tr.append($('td', 'n', tt)); const nm = $('td', 'nm'); nm.append($('span', '', name)); if (extra) extra(nm); tr.append(nm);
       tr.append($('td', 'dt', A.s ? fdFull(A.s) : ''), $('td', 'r dn', A.s ? String(days(A.s, A.e) + 1) : ''), $('td', 'dt', A.e ? fdFull(A.e) : ''), $('td', 'r pc', aggKh(L, d) + '%'), $('td', 'r pc', A.pct + '%'), $('td', 'c mk'));
-      const sc = $('td', 'st'); if (A.s) sc.append(st({ ...A, s: A.s, e: A.e })); tr.append(sc, $('td', 'nt'), $('td', 'x')); tb.append(tr); return tr; };
+      const sc = $('td', 'st'); if (A.s) sc.append(st({ ...A, s: A.s, e: A.e })); tr.append(sc, $('td', 'pnote'), $('td', 'x')); tb.append(tr); return tr; };
     const insertAfter = (G) => { const last = G.items[G.items.length - 1], s0 = last && last.e ? addD(last.e, 1) : d;
       const r = { id: uid(), sec: G.sec, gn: G.gn, g: G.g, n: '', t: '', s: s0, e: addD(s0, 6), pct: 0, mile: false }; S.plan.splice(S.plan.indexOf(last) + 1, 0, r); save(); render(true);
       setTimeout(() => { const x = root.querySelector('tr[data-id="' + r.id + '"] input.sb-in'); if (x) x.focus(); }, 60); };
@@ -633,7 +633,7 @@
         const mk = $('td', 'c mk'); mk.append(field(p, { k: 'mile', lb: 'Mốc nghiệm thu', t: 'chk' }));
         const sc = $('td', 'st'); sc.append(st(p));
         // V1.5.3: ghi chú / lý do chậm – dòng đang chậm mà chưa ghi thì nhắc đỏ
-        const slow = ['late', 'warn'].includes(pState(p)[0]) && num(p.pct) < 100, nt = $('td', 'nt' + (slow && !String(p.why || '').trim() ? ' need' : ''));
+        const slow = ['late', 'warn'].includes(pState(p)[0]) && num(p.pct) < 100, nt = $('td', 'pnote' + (slow && !String(p.why || '').trim() ? ' need' : ''));
         const ni = field(p, { k: 'why', lb: 'Ghi chú / lý do chậm', t: 'text', ph: slow ? 'Ghi lý do chậm…' : 'Ghi chú' });
         ni.addEventListener('input', () => nt.classList.toggle('need', slow && !ni.value.trim())); nt.append(ni);
         const x = $('td', 'x'); if (!RO) x.append(delBtn(() => { S.plan.splice(S.plan.indexOf(p), 1); save(); render(true); }));
