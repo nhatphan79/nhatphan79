@@ -712,12 +712,30 @@
     openLogId = L.id; tab = 'log'; render(true);
     setTimeout(() => { const el = root.querySelector('.sb-log.open textarea'); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); } }, 30);
   }
-  function report(S, L) {
-    const cr = S.teams.map(t => num((L.crew || {})[t.id]) ? '  – ' + t.name + ': ' + num(L.crew[t.id]) + ' người' : '').filter(Boolean);
-    if (num(L.other)) cr.push('  – Công nhật: ' + num(L.other) + ' người');
-    const pr = progress(S, L.d);
-    return ['📋 BÁO CÁO NGÀY ' + fdFull(L.d), '🏗️ ' + (S.code ? S.code + ' · ' : '') + S.name, 'Thời tiết: ' + (L.wx || ''), 'Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '%',
-      '👷 Quân số: ' + qsTxt(L), ...(L.bch ? ['  – Ban chỉ huy: ' + (S.roles || []).filter(r => num(L.bch[r.id])).map(r => num(L.bch[r.id]) + ' ' + String(r.name || '').split(/\s+[–-]\s+/)[0]).join(', ')] : []), ...cr, '', '✅ Công việc đã làm:', (L.work || '–').trim(), '', '🧱 Vật tư nhập về:', (L.mat || '–').trim(), '', '⚠️ Sự cố / vấn đề:', (L.issue || 'Không').trim(), '', '📅 Kế hoạch ngày mai:', (L.next || '–').trim()].join('\n');
+  // V1.5.10: báo cáo ngày theo mẫu anh Nhật – A. Nhân lực (từ bảng Quân số) · B. Công việc thi công · C. Nghiệm thu · D. Vướng mắc (+ E. Vật tư, F. Kế hoạch ngày mai khi có)
+  function dayReport(S, L) {   // V1.5.10: đổi tên – trùng tên với report(W, S) của tab Báo cáo nên trước đây chép báo cáo ngày bị lỗi
+    const bl = (t, none) => { const a = String(t || '').split('\n').map(x => x.trim()).filter(Boolean); return a.length ? a.map(x => /^[-•+–*]/.test(x) ? x.replace(/^[•+–*]\s*/, '- ') : '- ' + x) : (none ? ['- ' + none] : []); };
+    const nm = String(S.name || '').trim(), proj = /^dự án/i.test(nm) ? nm : 'Dự án ' + nm;
+    const Q = dayQS(S, L.d, L), qs = qsZalo(S, L.d, Q).split('\n').slice(1);
+    const out = ['Báo cáo công việc ngày ' + fdFull(L.d) + ' - ' + proj, 'Thời tiết: ' + String(L.wx || '').replace(/^[^\p{L}\d]+/u, '').trim(),
+      'A. Nhân lực: ' + Q.T + ' người', ...qs, 'B. Công việc thi công:', ...bl(L.work, 'Không'), 'C. Nghiệm thu', ...bl(L.qa, 'Không'), 'D. Vướng mắc', ...bl(L.issue, 'Không')];
+    let ch = 'E'; const more = (lb, v) => { if (String(v || '').trim()) { out.push(ch + '. ' + lb, ...bl(v)); ch = String.fromCharCode(ch.charCodeAt(0) + 1); } };
+    more('Vật tư', L.mat); more('Kế hoạch ngày mai', L.next);
+    return out.join('\n');
+  }
+  // V1.5.10: báo cáo ngày SỬA ĐƯỢC trước khi gửi – bản đã sửa lưu theo ngày (L.rep); ↺ tạo lại từ dữ liệu mới nhất
+  function repDlg(S, L) {
+    let ta;
+    const d = dialog('📋 Báo cáo công việc ngày ' + fdFull(L.d), b => {
+      ta = $('textarea', 'sb-in sb-ta sb-repta'); ta.rows = 22; ta.value = L.rep || dayReport(S, L); ta.setAttribute('aria-label', 'Nội dung báo cáo ngày'); if (RO) ta.readOnly = true; b.append(ta);
+      const row = $('div', 'sb-row');
+      if (L.rep) row.append($('span', 'sb-note', '✏️ Bản đã sửa tay – lưu lúc ' + new Date(L.repAt || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })));
+      if (!RO) { const re = $('button', 'sb-btn ghost sm', '↺ Tạo lại từ dữ liệu'); re.type = 'button'; re.title = 'Bỏ bản sửa tay, lấy lại theo Quân số / nhật ký mới nhất'; re.addEventListener('click', () => { ta.value = dayReport(S, L); delete L.rep; delete L.repAt; save(); toast('↺ Đã tạo lại báo cáo'); }); row.append(re); }
+      b.append(row);
+    }, () => { const v = ta.value.trim(); if (!RO) { if (v && v !== dayReport(S, L).trim()) { L.rep = v; L.repAt = Date.now(); } else { delete L.rep; delete L.repAt; } save(); }
+      navigator.clipboard.writeText(v).then(() => toast('📋 Đã lưu & chép – dán vào Zalo / tin nhắn'), () => { ta.select(); toast('Bấm Ctrl+C để chép'); }); return true; }, '💾 Lưu & 📋 Chép gửi Zalo');
+    setTimeout(() => { if (ta) { ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0; } }, 30);
+    return d;
   }
   async function addPhotos(L, files) {
     let n = 0;
@@ -755,7 +773,7 @@
         if (!S.teams.length) cw.append($('div', 'sb-note', 'Thêm tổ đội ở mục 👷 Nhân lực để chấm người theo tổ.'));
         bd.append(cw);
         const g2 = $('div', 'sb-fg');
-        [['work', '✅ Công việc đã thực hiện', 4], ['mat', '🧱 Vật tư nhập về / sử dụng', 2], ['issue', '⚠️ Sự cố, vướng mắc, chỉ đạo', 2], ['next', '📅 Kế hoạch ngày mai', 2]].forEach(([k, lb, rows]) => g2.append(lab(lb, field(L, { k, lb, t: 'area', rows, rr: false }), true)));
+        [['work', 'B. Công việc thi công', 4], ['qa', 'C. Nghiệm thu', 2], ['issue', 'D. Vướng mắc', 2], ['mat', 'E. Vật tư nhập về / sử dụng', 2], ['next', 'F. Kế hoạch ngày mai', 2]].forEach(([k, lb, rows]) => g2.append(lab(lb, field(L, { k, lb, t: 'area', rows, rr: false }), true)));
         bd.append(g2);
         const ph = $('div', 'sb-photos'); ph.append($('div', 'sb-fl', '📷 Hình ảnh hiện trường'));
         const pg = $('div', 'sb-pg');
@@ -767,7 +785,7 @@
         bd.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); }); bd.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); addPhotos(L, [...e.dataTransfer.files]); });
         bd.addEventListener('paste', e => { const f = [...(e.clipboardData && e.clipboardData.files || [])]; if (f.length) { e.preventDefault(); addPhotos(L, f); } });
         const ft = $('div', 'sb-logf');
-        const cp = $('button', 'sb-btn sm', '📋 Chép báo cáo ngày'); cp.type = 'button'; cp.addEventListener('click', async () => { try { await navigator.clipboard.writeText(report(S, L)); toast('📋 Đã chép – dán vào Zalo / tin nhắn'); } catch { dialog('📋 Báo cáo ngày', b => { const t = $('textarea', 'sb-in sb-ta'); t.rows = 16; t.value = report(S, L); b.append(t); setTimeout(() => t.select(), 0); }, () => {}, 'Đóng'); } });
+        const cp = $('button', 'sb-btn sm', '📋 Báo cáo ngày'); cp.type = 'button'; cp.addEventListener('click', () => repDlg(S, L));
         const iss = $('button', 'sb-btn ghost sm', '⚠️ Đưa sự cố vào Vấn đề'); iss.type = 'button'; iss.addEventListener('click', () => { if (!(L.issue || '').trim()) return toast('Chưa ghi sự cố'); S.issues.push({ id: uid(), d: L.d, type: 'ht', t: L.issue.trim(), prop: '', who: '', due: addD(L.d, 2), st: 'mo', res: '' }); save(); toast('⚠️ Đã thêm vào mục Vấn đề'); });
         const sp = $('div'); sp.style.flex = '1';
         ft.append(cp, iss, sp, delBtn(() => { S.logs = S.logs.filter(x => x !== L); save(); render(true); }));

@@ -485,3 +485,5 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-qs td.nm > span { display: inline-block; padding-left: 7px; }
 .sb-qs td.nm input { padding-left: 6px; }
 .sb-qs tfoot td.nm { padding-left: 15px; }
+/* V1.5.10: báo cáo ngày sửa được */
+.sb-repta { width: min(720px, 86vw); min-height: 420px; font-family: inherit; font-size: 14px; line-height: 1.5; }
