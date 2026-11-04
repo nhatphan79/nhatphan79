@@ -522,3 +522,5 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-rpbar > .sb-row > input[type=date] { width: 150px; min-width: 0; flex: none; }
 .sb-rpbar > .sb-row > .sb-btn { flex: none; }
 .sb-rpbar > .sb-row:last-child { margin-left: auto; }
+/* V1.5.17: bộ lọc Công việc nằm cùng dòng tiêu đề */
+.sb-sech.sb-sechf .sb-chips { margin: 0; flex: 1; min-width: 0; }

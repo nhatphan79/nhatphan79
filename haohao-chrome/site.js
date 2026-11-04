@@ -148,7 +148,7 @@
   // V1.5.5: danh sách tên người (phụ trách / chịu TN) tự lưu, dùng chung mọi công trình; tên dùng nhiều xếp đầu
   const rememberWho = v => { v = String(v || '').trim(); if (!v || RO) return; data.people = data.people && typeof data.people === 'object' ? data.people : {}; data.people[v] = (data.people[v] || 0) + 1; data.lastWho = v; if (data.peopleOff) data.peopleOff = data.peopleOff.filter(x => x !== v); };
   const peopleList = S => { const c = { ...(data.people || {}) }, off = new Set(data.peopleOff || []);
-    if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.roles || []).map(x => x.who)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
+    if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.roles || []).map(x => x.who), ...S.mats.map(m => m.by)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
     return Object.keys(c).filter(v => !off.has(v)).sort((a, b) => c[b] - c[a] || a.localeCompare(b, 'vi')); };
   const peopleDl = S => { const dl = $('datalist'); dl.id = 'sb-people'; peopleList(S).forEach(v => { const o = $('option'); o.value = v; dl.append(o); }); return dl; };
   function peopleDlg(S) {
@@ -676,10 +676,10 @@
   // ---------- ✅ CÔNG VIỆC ----------
   function task(W, S) {
     const d = today(), wk = addD(d, 7);
-    sec(W, '✅ Công việc & giao việc', 'Bấm 🔕 để HaoHao nhắc 7:30 sáng ngày đến hạn');
+    const th = sec(W, '✅ Công việc & giao việc'); th.classList.add('sb-sechf');   // V1.5.17: bỏ dòng chữ phụ, đưa bộ lọc lên cùng dòng tiêu đề
     const F = [['open', 'Chưa xong', S.tasks.filter(t => t.st !== 'done').length], ['today', 'Hôm nay', S.tasks.filter(t => t.st !== 'done' && t.due === d).length], ['late', 'Quá hạn', S.tasks.filter(taskLate).length],
       ['week', '7 ngày tới', S.tasks.filter(t => t.st !== 'done' && t.due && t.due >= d && t.due <= wk).length], ['done', 'Đã xong', S.tasks.filter(t => t.st === 'done').length], ['all', 'Tất cả', S.tasks.length]];
-    W.append(chips(F, flt.task, v => { flt.task = v; flt.cat = 'all'; render(true); }));   // đổi bộ lọc → xem lại tất cả bộ phận cho khỏi trống
+    th.append(chips(F, flt.task, v => { flt.task = v; flt.cat = 'all'; render(true); }));   // đổi bộ lọc → xem lại tất cả bộ phận cho khỏi trống
     // V1.5.1: số việc ở từng bộ phận đếm theo bộ lọc đang chọn (Đã xong → đếm việc đã xong), không còn luôn = 0
     const pick0 = { open: t => t.st !== 'done', today: t => t.st !== 'done' && t.due === d, late: taskLate, week: t => t.st !== 'done' && t.due && t.due >= d && t.due <= wk, done: t => t.st === 'done', all: () => true }[flt.task] || (() => true);
     const open = S.tasks.filter(pick0), cc = c => open.filter(t => catOf(t) === c);
@@ -726,7 +726,7 @@
     L.push('1. Thi công:', ...(K.P.length ? K.P.map(p => '- ' + plab(p) + (p.s >= a ? ' (bắt đầu ' + fd(p.s) + ')' : '')) : ['- Không']));
     L.push('2. Công việc:', ...(K.T.length ? K.T.map(t => '- ' + (t.t || '') + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dowLb(t.due) + (t.due < today() ? ' ⚠ trễ' : '')) : ['- Không']));
     L.push('3. Cần giải quyết:', ...(K.I.length ? K.I.map(x => '- ' + String(x.t || '').split('\n')[0] + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + fd(x.due)) : ['- Không']));
-    L.push('4. Vật tư cần về:', ...(K.M.length ? K.M.map(m => '- ' + (m.name || '') + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dowLb(m.need) + (m.sup ? ' (' + m.sup + ')' : '')) : ['- Không']));
+    L.push('4. Vật tư cần về:', ...(K.M.length ? K.M.map(m => '- ' + (m.name || '') + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dowLb(m.need) + (m.sup ? ' (' + m.sup + ')' : '') + (m.by ? ' · đề xuất: ' + m.by : '')) : ['- Không']));
     return L.join('\n');
   }
   function kehoach(W, S) {
@@ -763,8 +763,8 @@
     grid('⚠️ Cần giải quyết', [['STT', 'n'], ['Vấn đề'], ['Đề xuất xử lý'], ['Người chịu TN'], ['Hạn', 'dt'], ['', 'st']],
       K.I.map(x => ({ cls: x.due < d ? 'late lateBg' : '', cells: [[String(x.t || '').split('\n')[0]], [String(x.prop || '').split('\n')[0]], [x.who || '–'], [dowLb(x.due), 'dt'], [dueTag(x.due), 'st']] })),
       ['issue', 'Vấn đề'], 'Không có vấn đề nào cần giải quyết');
-    grid('🧱 Vật tư cần về', [['STT', 'n'], ['Vật tư'], ['Số lượng', 'r'], ['Cho hạng mục'], ['Nhà cung cấp'], ['Cần ngày', 'dt'], ['Trạng thái', 'st']],
-      K.M.map(m => ({ cls: m.need < d ? 'late lateBg' : '', cells: [[m.name || ''], [(m.qty ? m.qty + ' ' : '') + (m.unit || ''), 'r'], [m.for || '–'], [m.sup || '–'], [dowLb(m.need), 'dt'], [m.need < d ? $('b', 'sb-due late', 'Trễ ' + days(m.need, d) + ' ngày') : lbl(MST, m.st), 'st']] })),
+    grid('🧱 Vật tư cần về', [['STT', 'n'], ['Vật tư'], ['Người đề xuất'], ['Số lượng', 'r'], ['Cho hạng mục'], ['Nhà cung cấp'], ['Cần ngày', 'dt'], ['Trạng thái', 'st']],
+      K.M.map(m => ({ cls: m.need < d ? 'late lateBg' : '', cells: [[m.name || ''], [m.by || '–'], [(m.qty ? m.qty + ' ' : '') + (m.unit || ''), 'r'], [m.for || '–'], [m.sup || '–'], [dowLb(m.need), 'dt'], [m.need < d ? $('b', 'sb-due late', 'Trễ ' + days(m.need, d) + ' ngày') : lbl(MST, m.st), 'st']] })),
       ['mat', 'Vật tư'], 'Không có vật tư nào cần về');
   }
   // V1.5.13: B. Công việc thi công – chưa nhập thì tự lấy theo Kế hoạch của chính ngày đó (hạng mục đang thi công + việc tới hạn)
@@ -1053,10 +1053,10 @@
     const d = today();
     sec(W, '🧱 Nhu cầu & đề xuất vật tư', 'Đặt “Cần ngày” – Tổng quan tự báo khi còn 7 ngày');
     W.append(table(S.mats.slice().sort((a, b) => (a.st === 've') - (b.st === 've') || (a.need || '9').localeCompare(b.need || '9')), [
-      { k: 'name', lb: 'Vật tư', t: 'text', ph: 'Thép D16', rr: false }, { k: 'unit', lb: 'ĐVT', t: 'text', w: '64px', rr: false }, { k: 'qty', lb: 'Số lượng', t: 'num', w: '84px', rr: false },
+      { k: 'name', lb: 'Vật tư', t: 'text', ph: 'Thép D16', rr: false }, { k: 'by', lb: 'Người đề xuất', who: true, t: 'text', w: '12%', rr: false, on: m => { if (m.by && m.by.trim()) data.lastBy = m.by.trim(); } }, { k: 'unit', lb: 'ĐVT', t: 'text', w: '64px', rr: false }, { k: 'qty', lb: 'Số lượng', t: 'num', w: '84px', rr: false },
       { k: 'need', lb: 'Cần ngày', t: 'date', w: '128px' }, { k: 'for', lb: 'Cho hạng mục', t: 'text', w: '14%', rr: false }, { k: 'sup', lb: 'Nhà cung cấp', t: 'text', w: '13%', rr: false },
       { k: 'st', lb: 'Trạng thái', t: 'sel', o: MST, w: '100px', on: m => { if (m.st === 've' && m.name && !m.inStock) { S.stock.push({ id: uid(), d, name: m.name, unit: m.unit, io: 'in', qty: num(m.qty), note: 'Từ đề xuất' + (m.sup ? ' · ' + m.sup : '') }); m.inStock = 1; toast('🧱 Đã tự ghi nhập kho ' + m.name); } } }
-    ], { list: S.mats, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), name: '', unit: '', qty: '', need: addD(d, 3), for: '', sup: '', st: 'de' }), addLb: '＋ Thêm vật tư cần', cls: m => (m.st === 've' ? 'done' : '') + (m.st !== 've' && m.need && m.need < d ? ' late' : '') }));
+    ], { list: S.mats, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), name: '', by: data.lastBy || data.lastWho || '', unit: '', qty: '', need: addD(d, 3), for: '', sup: '', st: 'de' }), addLb: '＋ Thêm vật tư cần', cls: m => (m.st === 've' ? 'done' : '') + (m.st !== 've' && m.need && m.need < d ? ' late' : '') }));
     sec(W, '📦 Nhập – xuất vật tư');
     W.append(table(S.stock.slice().sort((a, b) => (b.d || '').localeCompare(a.d || '')), [
       { k: 'd', lb: 'Ngày', t: 'date', w: '128px' }, { k: 'name', lb: 'Vật tư', t: 'text', rr: false }, { k: 'unit', lb: 'ĐVT', t: 'text', w: '64px', rr: false },

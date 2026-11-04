@@ -512,7 +512,7 @@ const o = ['🗓️ KẾ HOẠCH NGÀY ' + fdFull(d) + ' (' + DW[new Date(d + 'T
 o.push('', '1. Thi công:', ...(P.length ? P.slice(0, 12).map(p => '- ' + cut(plab(p), 70) + (p.s === d ? ' (bắt đầu)' : lagDays(p, d) >= 1 ? ' (chậm ' + lagDays(p, d) + ' ngày)' : '')) : ['- Không']));
 o.push('', '2. Công việc:', ...(T.length ? T.slice(0, 12).map(t => '- ' + (t.pri === 'cao' ? '🔴 ' : '') + cut(t.t, 70) + (t.who ? ' (' + t.who + ')' : '') + ' – hạn ' + dw(t.due) + (t.due < today() ? ' ❗trễ' : '')) : ['- Không']));
 o.push('', '3. Cần giải quyết:', ...(X.length ? X.slice(0, 8).map(x => '- ' + cut(x.t, 70) + (x.who ? ' (' + x.who + ')' : '') + ' – hạn ' + fd(x.due)) : ['- Không']));
-o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 8).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '')) : ['- Không']));
+o.push('', '4. Vật tư cần về:', ...(M.length ? M.slice(0, 8).map(m => '- ' + cut(m.name, 40) + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dw(m.need) + (m.sup ? ' (' + m.sup + ')' : '') + (m.by ? ' · đề xuất: ' + m.by : '')) : ['- Không']));
 let t = o.join('\n'); if (t.length > 1990) t = t.slice(0, 1985) + '\n…'; return t;
 }
 return { overview, alertText, planText, setCats };
