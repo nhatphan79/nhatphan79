@@ -26,11 +26,16 @@
   const editing = () => { const a = document.activeElement; return a && root.contains(a) && (a.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(a.tagName)); };
 
   // ---------- lưu ----------
-  const RO = !!window.SB_RO, WEB = !!window.SB_WEB;   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
+  const RO = !!window.SB_RO, WEB = !!window.SB_WEB;
+  const GUEST = window.SB_GUEST || null;   // 👥 V1.6.0: người được chia sẻ (Gmail khác) – chỉ thấy Kế hoạch + Báo cáo của 1 công trình, nhập được
+  const GTABS = ['kh', 'rep', 'crew'];   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
   const SB_API = window.SB_API || 'https://haohao-gia.nhatphan79.workers.dev';
   const photoSrc = s => /^p_[a-f0-9]{32}$/.test(s) ? SB_API + '/sbp/' + s : s;
   let syncT = 0; const syncSoon = () => { if (RO) return; clearTimeout(syncT); syncT = setTimeout(() => { if (WEB) window.SB_SYNC_SOON && window.SB_SYNC_SOON(); else chrome.runtime.sendMessage({ type: 'sb-sync-now' }).catch(() => {}); }, 1500); };   // V1.2.7: bản xem trên điện thoại (haohaostore.com/cong-trinh) – chỉ xem
-  const save = () => { if (RO) return Promise.resolve(); pend = null; lastSaved = JSON.stringify(data);   // V1.5.8: lưu bản đang sửa thì bỏ bản chờ cũ (không để bản cũ đè lên lúc rời ô)
+  let gIds = null; const gTag = () => { if (!GUEST) return; const S = data.sites[0]; if (!S) return;   // 👥 dòng người được chia sẻ thêm mới → ghi tên người nhập (gx)
+    const all = ['tasks', 'issues', 'mats', 'logs'].flatMap(k => Array.isArray(S[k]) ? S[k] : []);
+    if (!gIds) { gIds = new Set(all.map(x => x.id)); return; } all.forEach(x => { if (!gIds.has(x.id) && !x.gx) x.gx = GUEST.email; }); };
+  const save = () => { if (RO) return Promise.resolve(); gTag(); pend = null; lastSaved = JSON.stringify(data);   // V1.5.8: lưu bản đang sửa thì bỏ bản chờ cũ (không để bản cũ đè lên lúc rời ô)
     ; recent.push(lastSaved); if (recent.length > 8) recent.shift(); pushSoon(); syncSoon(); return chrome.storage.local.set({ [KEY]: data }).catch(e => toast('⚠ Chưa lưu được: ' + (e && e.message || e))); };
   let st = 0; const saveSoon = () => { clearTimeout(st); st = setTimeout(save, 400); };
   const saveTodos = () => chrome.storage.local.set({ todos }).catch(() => {});
@@ -229,7 +234,7 @@
       const tr = $('tr', o.cls ? o.cls(r) : ''); if (r.id) tr.dataset.id = r.id;
       if (o.num !== false) tr.append($('td', 'n', String(i + 1)));
       cols.forEach(c => { const td = $('td', c.t === 'calc' ? 'calc' : ''); if (c.t === 'calc') { const v = c.f(r); td.append(v instanceof Node ? v : $('span', '', v)); } else td.append(field(r, c)); tr.append(td); });
-      const x = $('td', 'x'); if (RO) { tr.append(x); tb.append(tr); return; } if (o.extra) o.extra(r, x); x.append(delBtn(() => { o.list.splice(o.list.indexOf(r), 1); if (r.todoId) { todos = todos.filter(z => z.id !== r.todoId); saveTodos(); } save(); render(true); }));
+      const x = $('td', 'x'); if (r.gx) { tr.title = 'Người được chia sẻ nhập: ' + r.gx; x.append($('small', 'sb-gx', '✍ ' + String(r.gx).split('@')[0])); } if (RO) { tr.append(x); tb.append(tr); return; } if (o.extra) o.extra(r, x); x.append(delBtn(() => { o.list.splice(o.list.indexOf(r), 1); if (r.todoId) { todos = todos.filter(z => z.id !== r.todoId); saveTodos(); } save(); render(true); }));
       tr.append(x); tb.append(tr);
     });
     t.append(tb);
@@ -291,6 +296,11 @@
     const h = $('div', 'sb-head');
     const br = $('div', 'sb-brand'), im = document.createElement('img'); im.src = window.SB_ICON || 'icons/icon48.png'; im.alt = '';
     const tx = $('div'); tx.append($('b', '', 'SITE BRAIN'), $('small', '', 'Điều hành công trình')); br.append(im, tx); h.append(br);
+    if (GUEST) {   // 👥 V1.6.0: trang người được chia sẻ – chỉ tên công trình + người chia sẻ
+      if (S) h.append($('b', 'sb-gname', (S.code ? S.code + ' · ' : '') + (S.name || '')));
+      h.append($('small', 'sb-upd', '👥 Được chia sẻ bởi ' + GUEST.o));
+      const sp = $('div'); sp.style.flex = '1'; h.append(sp, acctBtn());
+      const hm0 = $('a', 'sb-btn ghost sm', '🏠 Trang của tôi'); hm0.href = '/cong-trinh'; h.append(hm0); W.append(h); return; }
     if (S) {
       const sel = $('select', 'sb-sitesel'); sel.setAttribute('aria-label', 'Chọn công trình');
       data.sites.forEach(x => { const o = $('option', '', (x.code ? x.code + ' · ' : '') + x.name); o.value = x.id; sel.append(o); });
@@ -311,12 +321,13 @@
     dw.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); dv.focus(); } });
     mi('💾 Sao lưu', 'Tải file chụp toàn bộ dữ liệu (.json)', backup); mi('📂 Khôi phục', 'Nạp lại từ file sao lưu', restore);
     dw.append(dv, mn);
+    const shb = $('button', 'sb-btn ghost sm', '👥 Chia sẻ'); shb.type = 'button'; shb.title = 'Cho Gmail khác xem và nhập Kế hoạch, Báo cáo công trình này'; shb.addEventListener('click', () => shareDlg(S));
     const bt = $('button', 'sb-btn ghost sm', '🤖 Bot Zalo'); bt.type = 'button'; bt.title = 'Gửi tổng quan vào Zalo mỗi ngày'; bt.addEventListener('click', botDlg);
     if (botCfg.on && botCfg.chatId) bt.append($('i', 'sb-on', '●'));
     if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
     const mb = $('button', 'sb-btn ghost sm', '📱 Điện thoại'); mb.type = 'button'; mb.title = 'Xem trang Công trình trên điện thoại'; mb.addEventListener('click', mobileDlg);
     if (mobCfg.on) mb.append($('i', 'sb-on', '●')); if (mobCfg.on && mobCfg.err) { mb.classList.add('err'); mb.title = '⚠ Đồng bộ lỗi: ' + mobCfg.err; }
-    h.append(acctBtn()); if (!WEB) h.append(mb, bt); h.append(add, dw); W.append(h);
+    h.append(acctBtn()); if (S) h.append(shb); if (!WEB) h.append(mb, bt); h.append(add, dw); W.append(h);
   }
   // 📱 V1.2.7: xem trên điện thoại – đẩy bản chụp (bỏ ảnh) lên máy chủ HaoHao; điện thoại mở haohao-gia.nhatphan79.workers.dev/cong-trinh#<mã>
   const CT_API = 'https://haohao-gia.nhatphan79.workers.dev/ct', CT_PAGE = 'https://haohao-gia.nhatphan79.workers.dev/cong-trinh#';
@@ -372,6 +383,24 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden && acct.token) syncSoon(); }); }
   const A = () => WEB ? (window.SB_AUTH || {}) : acct;
   const hm = t => t ? new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+  // 👥 V1.6.0: CHIA SẺ công trình cho Gmail khác (họ đăng nhập trang điện thoại /cong-trinh, xem + nhập Kế hoạch & Báo cáo)
+  function shareDlg(S) {
+    const a = A();
+    if (!a.token) return dialog('👥 Chia sẻ công trình', b => { b.append($('p', 'sb-p', 'Cần đăng nhập Google trước (nút 🔐 Đăng nhập Google ở đầu trang) – dữ liệu phải lưu trên máy chủ thì người khác mới xem được.')); }, () => {}, 'Đóng');
+    const api = (m, body) => fetch(SB_API + '/sb/share' + (m === 'GET' ? '?s=' + encodeURIComponent(S.id) : ''), { method: m, headers: { authorization: 'Bearer ' + a.token, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, error: 'mất mạng' }));
+    dialog('👥 Chia sẻ: ' + (S.code ? S.code + ' · ' : '') + S.name, b => {
+      b.append($('p', 'sb-p', 'Người được chia sẻ mở ' + LOGIN_URL.replace('https://', '') + ', đăng nhập Gmail của họ → chỉ thấy 🗓️ Kế hoạch và 📑 Báo cáo của công trình này; được nhập báo cáo ngày, quân số, thêm / đánh xong công việc, vấn đề, vật tư. Không thấy chi phí, các công trình khác.'));
+      const f = $('form', 'sb-row'), em = $('input', 'sb-in'); em.type = 'email'; em.placeholder = 'gmail người cần chia sẻ'; em.setAttribute('aria-label', 'Gmail người được chia sẻ'); em.autocomplete = 'off'; em.style.flex = '1';
+      const ad = $('button', 'sb-btn sm', '＋ Thêm'); f.append(em, ad); b.append(f);
+      const ul = $('ul', 'sb-list sb-shl'), st = $('div', 'sb-note'); b.append(ul, st);
+      const cp = $('button', 'sb-btn ghost sm', '📋 Chép link gửi người được chia sẻ'); cp.type = 'button'; b.append(cp);
+      cp.addEventListener('click', async () => { const t = 'Mời anh/chị xem & nhập Kế hoạch, Báo cáo công trình ' + S.name + ': ' + LOGIN_URL + ' (đăng nhập bằng Gmail đã được chia sẻ)'; try { await navigator.clipboard.writeText(t); toast('📋 Đã chép link – dán vào Zalo'); } catch { st.textContent = t; } });
+      const show = r => { ul.replaceChildren(); if (!r.ok) { st.textContent = '⚠ ' + (r.error || 'Lỗi'); return; } st.textContent = r.list.length ? '' : 'Chưa chia sẻ cho ai.';
+        r.list.forEach(x => { const li = $('li'); li.append($('span', '', '👤 ' + x.email)); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
+      f.addEventListener('submit', async e => { e.preventDefault(); const v = em.value.trim(); if (!v) return em.focus(); ad.disabled = true; const r = await api('POST', { s: S.id, email: v }); ad.disabled = false; if (r.ok) { em.value = ''; toast('👥 Đã chia sẻ cho ' + v.toLowerCase()); } show(r); });
+      st.textContent = '⏳ Đang tải…'; api('GET').then(show);
+    }, () => {}, 'Đóng').row.querySelector('.ghost').style.display = 'none';
+  }
   function acctBtn() {
     const a = A();
     if (!a.token && !a.email) { const b = $('button', 'sb-btn sm sb-login', '🔐 Đăng nhập Google'); b.type = 'button'; b.title = 'Lưu dữ liệu theo tài khoản Google – máy tính, điện thoại cùng cập nhật, không mất dữ liệu';
@@ -733,12 +762,26 @@
     L.push('4. Vật tư cần về:', ...(K.M.length ? K.M.map(m => '- ' + (m.name || '') + (m.qty ? ' ' + m.qty + ' ' + (m.unit || '') : '') + ' – cần ' + dowLb(m.need) + (m.sup ? ' (' + m.sup + ')' : '') + (m.by ? ' · đề xuất: ' + m.by : '')) : ['- Không']));
     return L.join('\n');
   }
+  function khAdd(k, S, due) {   // 👥 V1.6.0: thêm nhanh từ Kế hoạch (người được chia sẻ)
+    const d = today(), dd = due && due >= d ? due : d;
+    const T = { task: ['✅ Thêm công việc', { id: uid(), t: '', who: data.lastWho || '', due: dd, pri: 'tb', cat: catDef(), st: 'todo', at: d }, [['t', 'Công việc', 'text', 'vd: Gửi hồ sơ nghiệm thu cốt thép'], ['who', 'Người phụ trách', 'who'], ['due', 'Hạn', 'date'], ['cat', 'Bộ phận', 'cat']], 't', 'tasks'],
+      issue: ['⚠️ Thêm vấn đề cần giải quyết', { id: uid(), d, type: 'ht', t: '', prop: '', who: '', due: dd, st: 'mo', res: '' }, [['t', 'Vấn đề', 'area'], ['prop', 'Đề xuất xử lý', 'area'], ['who', 'Người chịu TN', 'who'], ['due', 'Hạn', 'date']], 't', 'issues'],
+      mat: ['🧱 Thêm vật tư cần về', { id: uid(), name: '', by: data.lastBy || data.lastWho || '', unit: '', qty: '', need: dd, for: '', sup: '', st: 'de' }, [['name', 'Vật tư', 'text', 'Thép D16'], ['by', 'Người đề xuất', 'who'], ['qty', 'Số lượng', 'num'], ['unit', 'ĐVT', 'text'], ['need', 'Cần ngày', 'date'], ['for', 'Cho hạng mục', 'text'], ['sup', 'Nhà cung cấp', 'text']], 'name', 'mats'] }[k];
+    const [ttl, r, F, req, list] = T;
+    dialog(ttl, b => { const g = $('div', 'sb-fg');
+      F.forEach(([kk, lb, t, ph]) => { const c = t === 'who' ? { k: kk, lb, t: 'text', who: true, rr: false, ns: true } : t === 'cat' ? { k: kk, lb, t: 'sel', o: catList(), rr: false, ns: true } : { k: kk, lb, t, ph, rr: false, ns: true }; g.append(lab(lb, field(r, c), t === 'area' || kk === 't' || kk === 'name')); });
+      b.append(g); }, b => {
+      b.querySelectorAll('input,textarea,select').forEach(i => i.dispatchEvent(new Event('change')));
+      if (!String(r[req] || '').trim()) { toast('Nhập ' + F[0][1].toLowerCase() + ' trước'); return false; }
+      if (r.who) rememberWho(r.who); if (r.by) { rememberWho(r.by); data.lastBy = r.by.trim(); }
+      S[list].push(r); save(); render(true); toast('＋ Đã thêm'); }, 'Thêm');
+  }
   function kehoach(W, S) {
     const d = today(); if (!khDay) khDay = addD(d, 1);
     const mon = x => addD(x, -((new Date(x + 'T00:00').getDay() + 6) % 7));
     const a = khMode === 'w' ? addD(mon(d), khWk * 7) : khDay, b = khMode === 'w' ? addD(a, 6) : khDay;
     const ttl = khMode === 'w' ? 'tuần ' + fd(a) + ' – ' + fdFull(b) + (khWk === 0 ? ' (tuần này)' : khWk === 1 ? ' (tuần sau)' : '') : 'ngày ' + fdFull(khDay) + (khDay === d ? ' (hôm nay)' : khDay === addD(d, 1) ? ' (ngày mai)' : '');
-    const h = sec(W, '🗓️ Kế hoạch ' + ttl, 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề, 🧱 Vật tư – bấm dòng để sửa ở mục đó');
+    const h = sec(W, '🗓️ Kế hoạch ' + ttl, GUEST ? 'Bấm ＋ Thêm để ghi việc, vấn đề, vật tư · ✓ Xong khi đã làm xong' : 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề, 🧱 Vật tư – bấm dòng để sửa ở mục đó');
     const bar = $('div', 'sb-rpbar sb-noprint');
     bar.append(chips([['d', 'Ngày'], ['w', 'Tuần']], khMode, v => { khMode = v; render(true); }));
     const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'); pv.type = nx.type = 'button';
@@ -750,25 +793,32 @@
     const K = khData(S, a, b), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'); cp.type = 'button';
     cp.addEventListener('click', async () => { const t = khZalo(S, a, b, K); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép kế hoạch – dán vào Zalo'); } catch { dialog('📋 Kế hoạch', bb => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 16; ta.value = t; bb.append(ta); }, () => {}, 'Đóng'); } });
     const act = $('div', 'sb-row'); act.append(cp); bar.append(nav, act); W.append(bar);
+    const ged = GUEST && !RO ? { task: [t => { t.st = 'done'; }, () => khAdd('task', S, b)], issue: [x => { x.st = 'dong'; }, () => khAdd('issue', S, b)], mat: [m => { m.st = 've'; }, () => khAdd('mat', S, b)] } : {};   // 👥 V1.6.0: người được chia sẻ – ✓ xong / ＋ thêm ngay tại Kế hoạch
     const grid = (title, heads, rows, go, empty) => {
-      const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', title), $('small', '', rows.length + ' mục')); c.append(hh);
-      const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-kh'), tr0 = $('tr'); heads.forEach(([l, cl]) => tr0.append($('th', cl || '', l))); const th = $('thead'); th.append(tr0); t.append(th);
-      const tb = $('tbody'); rows.forEach((r, i) => { const tr = $('tr', r.cls || ''); tr.tabIndex = 0; tr.title = 'Bấm để mở ở mục ' + go[1]; tr.append($('td', 'n', String(i + 1))); r.cells.forEach(([v, cl]) => { const td = $('td', cl || ''); if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); });
-        const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); tb.append(tr); });
-      if (!rows.length) { const tr = $('tr'), td = $('td', 'sb-none', empty); td.colSpan = heads.length; tr.append(td); tb.append(tr); }
+      const E = ged[go[0]];
+      const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', title), $('small', '', rows.length + ' mục'));
+      if (E) { const ad = $('button', 'sb-btn ghost sm sb-noprint', '＋ Thêm'); ad.type = 'button'; ad.addEventListener('click', E[1]); hh.append(ad); }
+      c.append(hh);
+      const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-kh'), tr0 = $('tr'); heads.forEach(([l, cl]) => tr0.append($('th', cl || '', l))); if (E) tr0.append($('th', 'x', '')); const th = $('thead'); th.append(tr0); t.append(th);
+      const tb = $('tbody'); rows.forEach((r, i) => { const tr = $('tr', r.cls || ''); tr.append($('td', 'n', String(i + 1))); r.cells.forEach(([v, cl]) => { const td = $('td', cl || ''); if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); });
+        if (r.it && r.it.gx) tr.title = 'Người được chia sẻ nhập: ' + r.it.gx;
+        if (E) { const x = $('td', 'x'), ok = $('button', 'sb-btn ghost sm', '✓ Xong'); ok.type = 'button'; ok.title = 'Đánh dấu đã xong'; ok.addEventListener('click', () => { E[0](r.it); save(); render(true); toast('✓ Đã đánh xong'); }); x.append(ok); tr.append(x); }
+        else if (!GUEST) { tr.tabIndex = 0; tr.title = tr.title || 'Bấm để mở ở mục ' + go[1]; const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); }
+        tb.append(tr); });
+      if (!rows.length) { const tr = $('tr'), td = $('td', 'sb-none', empty); td.colSpan = heads.length + (E ? 1 : 0); tr.append(td); tb.append(tr); }
       t.append(tb); box.append(t); c.append(box); W.append(c); };
     const dueTag = x => x < d ? $('b', 'sb-due late', 'Trễ ' + days(x, d) + ' ngày') : x === d ? $('b', 'sb-due today', 'Hôm nay') : x === addD(d, 1) ? $('b', 'sb-due tmr', 'Mai') : '';
     grid('🏗️ Thi công', [['STT', 'n'], ['Hạng mục'], ['Thời gian', 'dt'], ['KH %', 'r'], ['Thực tế %', 'r'], ['Tình trạng', 'st']],
       K.P.map(p => { const [c, l] = pState(p); return { cls: c === 'late' ? 'late lateBg' : '', cells: [[plab(p)], [fd(p.s) + ' → ' + fd(p.e), 'dt'], [planPct(p, b) + '%', 'r'], [num(p.pct) + '%', 'r'], [$('span', 'sb-st ' + c, p.s >= a && p.s > d ? 'Bắt đầu ' + fd(p.s) : l), 'st']] }; }),
       ['plan', 'Tiến độ'], 'Không có hạng mục nào thi công');
     grid('✅ Công việc', [['STT', 'n'], ['Công việc'], ['Bộ phận'], ['Người phụ trách'], ['Hạn', 'dt'], ['', 'st']],
-      K.T.map(t => ({ cls: t.due < d ? 'late lateBg dueLate' : t.due === d ? 'dueToday' : '', cells: [[(t.pri === 'cao' ? '🔴 ' : '') + (t.t || '')], [catName(catOf(t))], [t.who || '–'], [dowLb(t.due), 'dt'], [dueTag(t.due), 'st']] })),
+      K.T.map(t => ({ it: t, cls: t.due < d ? 'late lateBg dueLate' : t.due === d ? 'dueToday' : '', cells: [[(t.pri === 'cao' ? '🔴 ' : '') + (t.t || '')], [catName(catOf(t))], [t.who || '–'], [dowLb(t.due), 'dt'], [dueTag(t.due), 'st']] })),
       ['task', 'Công việc'], 'Không có việc nào tới hạn');
     grid('⚠️ Cần giải quyết', [['STT', 'n'], ['Vấn đề'], ['Đề xuất xử lý'], ['Người chịu TN'], ['Hạn', 'dt'], ['', 'st']],
-      K.I.map(x => ({ cls: x.due < d ? 'late lateBg' : '', cells: [[String(x.t || '').split('\n')[0]], [String(x.prop || '').split('\n')[0]], [x.who || '–'], [dowLb(x.due), 'dt'], [dueTag(x.due), 'st']] })),
+      K.I.map(x => ({ it: x, cls: x.due < d ? 'late lateBg' : '', cells: [[String(x.t || '').split('\n')[0]], [String(x.prop || '').split('\n')[0]], [x.who || '–'], [dowLb(x.due), 'dt'], [dueTag(x.due), 'st']] })),
       ['issue', 'Vấn đề'], 'Không có vấn đề nào cần giải quyết');
     grid('🧱 Vật tư cần về', [['STT', 'n'], ['Vật tư'], ['Người đề xuất'], ['Số lượng', 'r'], ['Cho hạng mục'], ['Nhà cung cấp'], ['Cần ngày', 'dt'], ['Trạng thái', 'st']],
-      K.M.map(m => ({ cls: m.need < d ? 'late lateBg' : '', cells: [[m.name || ''], [m.by || '–'], [(m.qty ? m.qty + ' ' : '') + (m.unit || ''), 'r'], [m.for || '–'], [m.sup || '–'], [dowLb(m.need), 'dt'], [m.need < d ? $('b', 'sb-due late', 'Trễ ' + days(m.need, d) + ' ngày') : lbl(MST, m.st), 'st']] })),
+      K.M.map(m => ({ it: m, cls: m.need < d ? 'late lateBg' : '', cells: [[m.name || ''], [m.by || '–'], [(m.qty ? m.qty + ' ' : '') + (m.unit || ''), 'r'], [m.for || '–'], [m.sup || '–'], [dowLb(m.need), 'dt'], [m.need < d ? $('b', 'sb-due late', 'Trễ ' + days(m.need, d) + ' ngày') : lbl(MST, m.st), 'st']] })),
       ['mat', 'Vật tư'], 'Không có vật tư nào cần về');
   }
   // V1.5.13: B. Công việc thi công – chưa nhập thì tự lấy theo Kế hoạch của chính ngày đó (hạng mục đang thi công + việc tới hạn)
@@ -1440,7 +1490,8 @@
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
         const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length };
-        TABS.filter(([k]) => !RO || k !== 'file').forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
+        if (GUEST && !GTABS.includes(tab)) tab = 'kh';
+        TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || k === 'kh' || k === 'rep' || (k === 'crew' && tab === 'crew'))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
       }
       const keep = [...root.querySelectorAll('.sb-toast,.sb-dlg')];
@@ -1455,7 +1506,7 @@
     data.sites.forEach(fix); if (!site() && data.sites[0]) data.cur = data.sites[0].id;
     todos = Array.isArray(r.todos) ? r.todos : [];
     if (todoSync()) save();
-    ready = true; render(true);
+    gIds = null; gTag(); ready = true; render(true);
   }).catch(() => { ready = true; render(true); });
   chrome.storage.onChanged.addListener((ch, area) => {
     if (area !== 'local') return;
@@ -1464,9 +1515,9 @@
     const v = ch[KEY].newValue, js = JSON.stringify(v);
     if (js === lastSaved || recent.includes(js) || js === JSON.stringify(data)) return;
     if (editing()) { pend = v; return; }
-    data = v; data.sites.forEach(fix); lastSaved = js; render();
+    data = v; data.sites.forEach(fix); lastSaved = js; gIds = null; gTag(); render();
   });
-  root.addEventListener('focusout', () => setTimeout(() => { if (editing()) return; if (pend) { data = pend; pend = null; data.sites.forEach(fix); lastSaved = JSON.stringify(data); dirty = false; render(true); } else if (dirty) { dirty = false; render(true); } }, 0));
+  root.addEventListener('focusout', () => setTimeout(() => { if (editing()) return; if (pend) { data = pend; pend = null; data.sites.forEach(fix); gIds = null; gTag(); lastSaved = JSON.stringify(data); dirty = false; render(true); } else if (dirty) { dirty = false; render(true); } }, 0));
   // nhắc nhật ký: sau 17h chưa ghi nhật ký hôm nay → chấm đỏ trên nút 🏗️ Công trình
   // V1.5.2: bỏ chấm đỏ nhắc ghi nhật ký (anh không dùng nhật ký)
   setTimeout(() => { const b = document.querySelector('.pgsw-o[data-pg="2"]'); if (b) b.classList.remove('sb-dot'); }, 800);

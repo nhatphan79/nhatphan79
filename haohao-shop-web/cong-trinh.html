@@ -50,8 +50,8 @@
   .hh-nav[hidden] { display: none; }
   .hh-nav button { all: unset; cursor: pointer; text-align: center; padding: 10px 6px; border-radius: 12px; font-weight: 800; font-size: 14px; color: #6B7280; }
   .hh-nav button.on { background: #23305E; color: #fff; }
-  #proj[hidden], #todo[hidden] { display: none; }
-  #todo, #proj { max-width: 720px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px 24px; color: #23305E; }
+  #proj[hidden], #todo[hidden], #shared[hidden] { display: none; }
+  #todo, #proj, #shared { max-width: 720px; margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px 24px; color: #23305E; }
   .td-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 4px 0 12px; }
   .td-head h1 { font-size: 22px; margin: 0; font-weight: 850; }
   .td-status { font-size: 12px; color: #6B7280; } .td-status.bad { color: #C4401F; }
@@ -92,6 +92,7 @@
 <section class="sbx" id="site"></section>
 <section id="todo" hidden></section>
 <section id="proj" hidden></section>
+<section id="shared" hidden></section>
 <nav class="hh-nav" id="hhnav" hidden aria-label="Chọn trang"><button type="button" data-v="todo">☑️ Việc cần làm</button><button type="button" data-v="pj">📋 Dự án</button><button type="button" data-v="ct">🏗️ Công trình</button></nav>
 <script src="/ct/sbsync.js"></script>
 <script>
@@ -105,7 +106,7 @@
 
   // ---------- đăng nhập Google ----------
   async function signIn(note) {
-    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây.');
+    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : (GO ? 'Đăng nhập bằng Gmail đã được chia sẻ để xem và nhập Kế hoạch, Báo cáo công trình.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây. Được người khác chia sẻ công trình thì đăng nhập Gmail đã được chia sẻ.'));
     const box = el('<div class="gbtn"></div>'); d.append(box);
     if (note) d.append(Object.assign(el('<div class="err"></div>'), { textContent: note }));
     d.append(Object.assign(el('<small></small>'), { textContent: 'Dữ liệu lưu trên máy chủ HaoHao theo tài khoản Google của anh. HaoHao chỉ đọc địa chỉ email để nhận ra anh.' }));
@@ -138,11 +139,13 @@
   }
 
   // ---------- chế độ đăng nhập: sửa được + đồng bộ ----------
-  let doc = null, listeners = [], eng = null;
+  let doc = null, listeners = [], eng = null, docKey = '';
   const keyOf = a => 'sbDoc:' + a.email, baseOf = a => 'sbBase:' + a.email;
+  const GO = Q.get('g') ? String(Q.get('g')).toLowerCase() : '', GS = Q.get('s') || '';   // 👥 V1.6.0: ?g=<gmail chủ>&s=<mã công trình> = trang người được chia sẻ
   async function start() {
     const a = ls.get('sbAuth'); if (!a || !a.token) return signIn();
-    doc = ls.get(keyOf(a)) || null;
+    if (GO && GS) return startGuest(a);
+    docKey = keyOf(a); doc = ls.get(docKey) || null;
     const st = { email: a.email, token: a.token, at: 0, err: '' };
     window.SB_AUTH = st;
     eng = SBSync({ api: location.origin, token: async () => st.token,
@@ -155,13 +158,49 @@
     if (!doc) { screen('☁️', 'Đang tải dữ liệu…', a.email); const r = await sync(); if (!r || !r.ok) { if (!ls.get('sbAuth')) return; return screen('⚠️', 'Chưa tải được dữ liệu', (r && r.err) || 'Lỗi mạng – kéo xuống để tải lại.'); } if (!doc) doc = { sites: [], cur: null }; }
     else sync();
     // ☑️ V1.4.0: 2 trang – Việc cần làm · Công trình
-    const nav = document.getElementById('hhnav'), tdEl = document.getElementById('todo'), pjEl = document.getElementById('proj'); let booted = false, tdOn = false, pjOn = false;
-    const show = v => { try { localStorage.setItem('hhView', v); } catch {} nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); root.hidden = v !== 'ct'; tdEl.hidden = v !== 'todo'; pjEl.hidden = v !== 'pj';
+    const nav = document.getElementById('hhnav'), tdEl = document.getElementById('todo'), pjEl = document.getElementById('proj'), shEl = document.getElementById('shared'); let booted = false, tdOn = false, pjOn = false;
+    const show = v => { try { localStorage.setItem('hhView', v); } catch {} nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); root.hidden = v !== 'ct'; tdEl.hidden = v !== 'todo'; pjEl.hidden = v !== 'pj'; shEl.hidden = v !== 'sh';
       if (v === 'pj' && !pjOn) { pjOn = true; loadScript('/ct/proj.js').then(() => HHProj.mount(pjEl, { email: st.email, token: st.token })).catch(() => { pjEl.textContent = '⚠ Không tải được trang Dự án – kiểm tra mạng.'; }); } window.scrollTo(0, 0);
       if (v === 'ct' && !booted) { booted = true; boot(doc, { web: true }); }
       if (v === 'todo' && !tdOn) { tdOn = true; loadScript('/ct/todo.js').then(() => HHTodo.mount(tdEl, { email: st.email, token: st.token })).catch(() => { tdEl.textContent = '⚠ Không tải được trang Việc cần làm – kiểm tra mạng.'; }); } };
     nav.hidden = false; document.body.classList.add('has-nav'); nav.addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.v); });
     let v0 = 'todo'; try { v0 = localStorage.getItem('hhView') || 'todo'; } catch {} show(['ct', 'pj'].includes(v0) ? v0 : 'todo');
+    // 👥 V1.6.0: công trình người khác chia sẻ cho mình → thêm nút "👥 Được chia sẻ"
+    fetch('/sb/shared', { headers: { authorization: 'Bearer ' + st.token }, cache: 'no-store' }).then(r => r.json()).then(r => {
+      if (!r || !r.ok || !r.list || !r.list.length) return;
+      const b = document.createElement('button'); b.type = 'button'; b.dataset.v = 'sh'; b.textContent = '👥 Được chia sẻ'; nav.append(b); nav.style.gridTemplateColumns = 'repeat(4, 1fr)';
+      shEl.innerHTML = '<div class="td-head"><h1>👥 Được chia sẻ</h1></div><p class="td-foot" style="text-align:left;margin:0 0 12px">Công trình người khác chia sẻ cho ' + st.email.replace(/[<>&"]/g, '') + ' – xem và nhập Kế hoạch, Báo cáo.</p>';
+      const ul = document.createElement('ul'); ul.className = 'td-list';
+      r.list.forEach(x => { const li = document.createElement('li'); li.className = 'td-it'; const a2 = document.createElement('a'); a2.className = 'td-body'; a2.style.textDecoration = 'none'; a2.style.color = 'inherit';
+        a2.href = '/cong-trinh?g=' + encodeURIComponent(x.o) + '&s=' + encodeURIComponent(x.s);
+        const t = document.createElement('div'); t.className = 'td-tx'; t.textContent = '🏗️ ' + (x.code ? x.code + ' · ' : '') + x.name; const d = document.createElement('div'); d.className = 'td-due'; d.textContent = 'Chia sẻ bởi ' + x.o; a2.append(t, d); li.append(a2); ul.append(li); });
+      shEl.append(ul);
+      if (!(doc && doc.sites && doc.sites.length) && v0 !== 'pj') show('sh');
+    }).catch(() => {});
+    setInterval(() => { if (!document.hidden) sync(); }, 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+  }
+
+  // ---------- 👥 V1.6.0: trang người được chia sẻ (Gmail khác) – 1 công trình, Kế hoạch + Báo cáo ----------
+  async function startGuest(a) {
+    docKey = 'sbG:' + a.email + ':' + GO + ':' + GS; const bk = 'sbGB:' + a.email + ':' + GO + ':' + GS;
+    doc = ls.get(docKey) || null;
+    const st = { email: a.email, token: a.token, at: 0, err: '' };
+    window.SB_AUTH = st; window.SB_GUEST = { o: GO, s: GS, email: a.email };
+    eng = SBSync({ api: location.origin, path: '/sb?ns=g&o=' + encodeURIComponent(GO) + '&s=' + encodeURIComponent(GS), token: async () => st.token,
+      getLocal: async () => doc, setLocal: async v => { doc = v; ls.set(docKey, v); listeners.forEach(f => f({ siteBrain: { newValue: v } }, 'local')); },
+      getBase: async () => ls.get(bk), setBase: async v => { if (!ls.set(bk, v)) ls.set(bk, null); } });
+    let gone = false, booted = false;
+    const sync = async () => { if (gone) return { ok: false, err: 'hết quyền' }; let r = await eng.sync();
+      if (!r.ok && /chưa chia sẻ|cắt quyền|không còn/.test(r.err || '')) { gone = true; ls.set(docKey, null); ls.set(bk, null); if (booted) { location.reload(); return r; } screen('🔒', 'Không còn quyền xem công trình này', (r.err || '') + ' – nhắn người chia sẻ để được mở lại.'); return r; }
+      if (r.ok) { st.at = Date.now(); st.err = ''; } else { st.err = r.err; if (r.auth === false) { ls.set('sbAuth', null); return signIn('Phiên đăng nhập hết hạn – đăng nhập lại.'); } } return r; };
+    window.SB_SYNC_NOW = sync;
+    let t = 0; window.SB_SYNC_SOON = () => { clearTimeout(t); t = setTimeout(sync, 1200); };
+    window.SB_LOGOUT = () => { fetch('/sb/logout', { method: 'POST', headers: { authorization: 'Bearer ' + st.token } }).catch(() => {}); ls.set('sbAuth', null); location.href = '/cong-trinh'; };
+    if (!doc) { screen('☁️', 'Đang tải công trình được chia sẻ…', a.email); const r = await sync(); if (gone) return; if (!r || !r.ok || !doc) return screen('⚠️', 'Chưa tải được công trình', (r && r.err) || 'Lỗi mạng – tải lại trang.'); }
+    else sync();
+    document.title = 'Công trình được chia sẻ – HaoHao';
+    booted = true; boot(doc, { web: true });
     setInterval(() => { if (!document.hidden) sync(); }, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
   }
@@ -174,7 +213,7 @@
     window.chrome = {
       storage: { local: {
         get: async k => { const all = { ...mem, siteBrain: o.web ? doc : snap }; if (typeof k === 'string') return { [k]: all[k] }; if (Array.isArray(k)) return Object.fromEntries(k.map(x => [x, all[x]])); return all; },
-        set: async v => { for (const k in v) { if (k === 'siteBrain' && o.web) { doc = v[k]; const a = ls.get('sbAuth'); if (a) ls.set(keyOf(a), doc); } else mem[k] = v[k]; } } },
+        set: async v => { for (const k in v) { if (k === 'siteBrain' && o.web) { doc = v[k]; if (docKey) ls.set(docKey, doc); } else mem[k] = v[k]; } } },
         onChanged: { addListener: f => listeners.push(f) } },
       runtime: { id: '', sendMessage: async () => ({ ok: false }) },
       tabs: { create: async x => { window.open(x.url, '_blank', 'noopener'); } },

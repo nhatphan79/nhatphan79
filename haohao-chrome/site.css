@@ -524,3 +524,8 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-rpbar > .sb-row:last-child { margin-left: auto; }
 /* V1.5.17: bộ lọc Công việc nằm cùng dòng tiêu đề */
 .sb-sech.sb-sechf .sb-chips { margin: 0; flex: 1; min-width: 0; }
+/* 👥 V1.6.0: chia sẻ công trình */
+.sb-gx { display: inline-block; font-size: 11px; color: #7A5AF8; background: #F1ECFF; border-radius: 99px; padding: 1px 7px; margin-right: 4px; white-space: nowrap; }
+.sb-gname { font-size: 16px; font-weight: 850; }
+.sb-shl { margin: 10px 0; } .sb-shl li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sb-khh .sb-btn { margin-left: auto; }

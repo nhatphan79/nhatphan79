@@ -568,6 +568,63 @@ for (const k in ds) if (k.slice(2) < new Date(Date.parse(N.ymd) - 5 * 864e5).toI
 await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.stringify(ds), z.email).run();
 }
 }
+/* 👥 04/11 HaoHao V1.6.0: CHIA SẺ 1 công trình cho Gmail khác.
+   Chủ: GET /sb/share?s=<mã công trình> → danh sách · POST /sb/share { s, email, off? } → thêm / cắt quyền.
+   Người được chia sẻ: GET /sb/shared → các công trình được chia sẻ · GET|PUT /sb?ns=g&o=<gmail chủ>&s=<mã> (giống /sb, đồng bộ 3 chiều)
+   – chỉ nhận các mục SB_GV (không có chi phí / dòng tiền / hồ sơ), chỉ ghi được các mục SB_GW vào đúng công trình đó của chủ. */
+const SB_GV = ['id', 'code', 'name', 'owner', 'addr', 'start', 'end', 'phase', 'plan', 'tasks', 'issues', 'mats', 'logs', 'teams', 'roles', 'dayers', 'staff', 'hist', 'reports'];
+const SB_GW = ['tasks', 'issues', 'mats', 'logs', 'teams', 'roles', 'dayers'];
+async function sbshInit(env) {
+if (sbshInit.ok) return;
+await env.DB.prepare('CREATE TABLE IF NOT EXISTS sbsh (owner TEXT, site TEXT, email TEXT, at INTEGER, PRIMARY KEY (owner, site, email))').run();
+sbshInit.ok = true;
+}
+const sbMail = x => { x = String(x || '').trim().toLowerCase(); return x.length < 120 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? x : ''; };
+const sbDoc = async (env, email) => { const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(email).first(); let v = null; try { v = r ? JSON.parse(r.v) : null; } catch {} return { rev: r ? r.rev : 0, at: r ? r.at : 0, v }; };
+async function sbShare(env, email, req, u) {
+await sbshInit(env);
+const list = async s => (await env.DB.prepare('SELECT email, at FROM sbsh WHERE owner = ? AND site = ? ORDER BY at').bind(email, s).all()).results || [];
+if (req.method === 'GET') return json({ ok: true, list: await list(String(u.searchParams.get('s') || '')) }, 200, { 'cache-control': 'no-store' });
+if (req.method !== 'POST') return json({ ok: false, error: 'không có lệnh này' }, 404);
+const b = await req.json().catch(() => null), s = String(b && b.s || ''), m = sbMail(b && b.email);
+if (!s || s.length > 64) return json({ ok: false, error: 'thiếu công trình' }, 400);
+if (!m) return json({ ok: false, error: 'Gmail không hợp lệ' }, 400);
+if (b.off) { await env.DB.prepare('DELETE FROM sbsh WHERE owner = ? AND site = ? AND email = ?').bind(email, s, m).run(); return json({ ok: true, list: await list(s) }); }
+if (m === email) return json({ ok: false, error: 'Đây là Gmail của chính anh', list: await list(s) }, 400);
+const D = await sbDoc(env, email);
+if (!D.v || !Array.isArray(D.v.sites) || !D.v.sites.some(x => x && x.id === s)) return json({ ok: false, error: 'Công trình chưa lên máy chủ – bấm ☁️ đồng bộ rồi thử lại', list: await list(s) }, 400);
+const L0 = await list(s); if (L0.length >= 20) return json({ ok: false, error: 'Tối đa 20 người / công trình', list: L0 }, 400);
+await env.DB.prepare('INSERT OR REPLACE INTO sbsh (owner, site, email, at) VALUES (?, ?, ?, ?)').bind(email, s, m, Date.now()).run();
+return json({ ok: true, list: await list(s) });
+}
+async function sbShared(env, email) {
+await sbshInit(env);
+const { results = [] } = await env.DB.prepare('SELECT owner, site FROM sbsh WHERE email = ? ORDER BY at').bind(email).all();
+const docs = {}, out = [];
+for (const r of results) { if (!(r.owner in docs)) docs[r.owner] = (await sbDoc(env, r.owner)).v; const S = docs[r.owner] && Array.isArray(docs[r.owner].sites) && docs[r.owner].sites.find(x => x && x.id === r.site); if (S) out.push({ o: r.owner, s: r.site, name: S.name || '', code: S.code || '' }); }
+return json({ ok: true, list: out }, 200, { 'cache-control': 'no-store' });
+}
+const sbGView = (v, S) => { const o = {}; SB_GV.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return { sites: [o], cur: o.id, cats: v.cats }; };
+async function sbGuest(env, email, req, u) {
+await sbshInit(env);
+const o = sbMail(u.searchParams.get('o')), s = String(u.searchParams.get('s') || '');
+const ok = o && await env.DB.prepare('SELECT 1 AS x FROM sbsh WHERE owner = ? AND site = ? AND email = ?').bind(o, s, email).first();
+if (!ok) return json({ ok: false, error: 'Công trình này chưa chia sẻ cho ' + email + ' hoặc đã bị cắt quyền', gone: true }, 403);
+const D = await sbDoc(env, o), S = D.v && Array.isArray(D.v.sites) && D.v.sites.find(x => x && x.id === s);
+if (!S) return json({ ok: false, error: 'Công trình không còn', gone: true }, 404);
+if (req.method === 'GET') return json({ ok: true, email, rev: D.rev, v: sbGView(D.v, S), at: D.at }, 200, { 'cache-control': 'no-store' });
+if (req.method !== 'PUT') return json({ ok: false, error: 'không có lệnh này' }, 404);
+if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'dữ liệu quá lớn' }, 413);
+const b = await req.json().catch(() => null), G = b && b.v && Array.isArray(b.v.sites) && b.v.sites[0];
+if (!G || G.id !== s) return json({ ok: false, error: 'sai dữ liệu' }, 400);
+if ((Number(b.base) || 0) !== D.rev) return json({ ok: false, conflict: true, rev: D.rev, v: sbGView(D.v, S) }, 409);
+let ch = false;
+for (const k of SB_GW) { if (!Array.isArray(G[k])) continue; const nv = G[k].filter(x => x && typeof x === 'object'); if (JSON.stringify(nv) !== JSON.stringify(S[k] || [])) { S[k] = nv; ch = true; } }
+if (!ch) return json({ ok: true, rev: D.rev, at: D.at });   // chỉ đổi mục không được ghi → không đụng dữ liệu chủ
+const now = Date.now(), res = await env.DB.prepare('UPDATE sb SET rev = ?, v = ?, at = ? WHERE email = ? AND rev = ?').bind(D.rev + 1, JSON.stringify(D.v), now, o, D.rev).run();
+if (!res.meta || !res.meta.changes) return json({ ok: false, conflict: true, rev: -1 }, 409);
+return json({ ok: true, rev: D.rev + 1, at: now });
+}
 async function sbzInit2(env) {
 if (sbzInit2.ok) return;
 for (const col of ['cfg', 'dsent']) { try { await env.DB.prepare('ALTER TABLE sbz ADD COLUMN ' + col + ' TEXT').run(); } catch {} }
@@ -579,7 +636,10 @@ const email = await sbWho(env, req);
 if (!email) return json({ ok: false, error: 'chưa đăng nhập', auth: false }, 401);
 if (u.pathname === '/sb/zalo' && req.method === 'POST') return sbZaloSave(env, email, req);
 if (u.pathname === '/sb/zalocfg' && req.method === 'POST') return sbZaloCfg(env, email, req);
+if (u.pathname === '/sb/share') return sbShare(env, email, req, u);
+if (u.pathname === '/sb/shared') return sbShared(env, email);
 const ns = u.searchParams.get('ns');
+if (ns === 'g' && u.pathname === '/sb') return sbGuest(env, email, req, u);
 if (!['todo', 'proj'].includes(ns) || u.pathname !== '/sb') return json({ ok: false, error: 'không có lệnh này' }, 404);
 const key = email + '#' + ns;
 if (req.method === 'GET') {
@@ -1074,7 +1134,7 @@ export default {
       if (u.pathname === '/sitemap.xml') return await seoSitemap(env);
       if (u.pathname === '/robots.txt') return await shopFile('robots.txt', 'txt');
       if (u.pathname === '/dich' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 200000) return json({ ok: false, error: 'too big' }, 413); try { return json(await dichTrang(await req.json().catch(() => null))); } catch (e) { return json({ ok: false, error: String(e && e.message || e) }); } }
-      if ((u.pathname === '/sb' && u.searchParams.get('ns')) || u.pathname === '/sb/zalo' || u.pathname === '/sb/zalocfg') return await sbRoute2(env, req, u);
+      if ((u.pathname === '/sb' && u.searchParams.get('ns')) || u.pathname === '/sb/zalo' || u.pathname === '/sb/zalocfg' || u.pathname === '/sb/share' || u.pathname === '/sb/shared') return await sbRoute2(env, req, u);
       if (u.pathname === '/sb' || u.pathname.startsWith('/sb/') || u.pathname === '/sbp' || u.pathname.startsWith('/sbp/')) return await sbRoute(env, req, u);
       if (u.pathname === '/ct' && req.method === 'POST') return json(await ctPut(env, req));
       if (u.pathname === '/ct') return json(await ctGet(env, u.searchParams.get('id')), 200, { 'cache-control': 'no-store' });
