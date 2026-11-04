@@ -769,26 +769,29 @@
   const autoWork = (S, day) => [...S.plan.filter(p => p.s && p.e && p.s <= day && day <= p.e && num(p.pct) < 100).map(p => plab(p)),
     ...S.tasks.filter(t => t.st !== 'done' && t.due === day).map(t => (t.t || '') + (t.who ? ' (' + t.who + ')' : ''))].filter(x => x.trim());
   const workText = (S, L) => L.workSet || String(L.work || '').trim() ? String(L.work || '') : autoWork(S, L.d).join('\n');
-  function workList(S, L, ensure) {
-    const w = $('div', 'sb-wl'), auto = !L.workSet && !String(L.work || '').trim();
-    let lines = workText(S, L).split('\n').map(x => x.replace(/^[-•+–*]\s*/, '').trim()).filter(Boolean);
-    const commit = () => { ensure(); L.work = lines.filter(x => x.trim()).join('\n'); L.workSet = 1; save(); };
+  // V1.5.14: mục nhập kiểu todo dùng chung cho B (tự lấy theo kế hoạch), C, D (tự nhập)
+  const workList = (S, L, ensure) => lineList(S, L, ensure, 'work', () => autoWork(S, L.d));
+  function lineList(S, L, ensure, k, autoFn, ph) {
+    const w = $('div', 'sb-wl'), setK = k + 'Set';
+    const cur = () => autoFn && !L[setK] && !String(L[k] || '').trim() ? autoFn().join('\n') : String(L[k] || '');
+    let lines = cur().split('\n').map(x => x.replace(/^[-•+–*]\s*/, '').trim()).filter(Boolean);
+    const commit = () => { ensure(); L[k] = lines.filter(x => x.trim()).join('\n'); L[setK] = 1; save(); };
     const draw = (focusI) => {
       w.textContent = '';
-      if (!L.workSet && !String(L.work || '').trim()) w.append($('div', 'sb-note sb-noprint', '🗓️ Tự lấy theo Kế hoạch ngày ' + fdFull(L.d) + ' – sửa, xoá ✕ hoặc thêm việc tuỳ ý.'));
+      if (autoFn && !L[setK] && !String(L[k] || '').trim() && lines.length) w.append($('div', 'sb-note sb-noprint', '🗓️ Tự lấy theo Kế hoạch ngày ' + fdFull(L.d) + ' – sửa, xoá ✕ hoặc thêm việc tuỳ ý.'));
       const u = $('ol', 'sb-wli');
       lines.forEach((x, i) => { const li = $('li'), inp = $('input', 'sb-in'); inp.value = x; inp.setAttribute('aria-label', 'Công việc ' + (i + 1)); if (RO) inp.readOnly = true;
         inp.addEventListener('change', () => { lines[i] = inp.value.trim(); if (!lines[i]) lines.splice(i, 1); commit(); draw(); });
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); lines[i] = inp.value.trim(); lines.splice(i + 1, 0, ''); draw(i + 1); } });
         li.append(inp); if (!RO) { const x2 = $('button', 'sb-rpx', '✕'); x2.type = 'button'; x2.title = 'Xoá dòng này'; x2.setAttribute('aria-label', 'Xoá: ' + x); x2.addEventListener('click', () => { lines.splice(i, 1); commit(); draw(); }); li.append(x2); }
         u.append(li); });
-      if (!RO) { const li = $('li', 'sb-wnew'), ni = $('input', 'sb-in'); ni.placeholder = '＋ Gõ thêm việc rồi Enter…'; ni.setAttribute('aria-label', 'Thêm công việc');
+      if (!RO) { const li = $('li', 'sb-wnew'), ni = $('input', 'sb-in'); ni.placeholder = ph || '＋ Gõ thêm việc rồi Enter…'; ni.setAttribute('aria-label', (ph || 'Thêm công việc').replace(/^＋\s*/, ''));
         const addIt = () => { const v = ni.value.trim(); ni.value = ''; if (!v) return; lines.push(v); commit(); draw('new'); };
         ni.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addIt(); } }); ni.addEventListener('change', addIt); li.append(ni); u.append(li); }
       else if (!lines.length) u.append($('li', 'sb-none', 'Chưa có việc nào'));
       w.append(u);
-      if (!RO) { const r = $('div', 'sb-row sb-noprint'), re = $('button', 'sb-btn ghost sm', '↺ Lấy lại theo kế hoạch'); re.type = 'button';
-        re.addEventListener('click', () => { lines = autoWork(S, L.d); ensure(); L.work = ''; delete L.workSet; save(); draw(); toast('↺ Đã lấy lại theo kế hoạch'); });
+      if (!RO && autoFn) { const r = $('div', 'sb-row sb-noprint'), re = $('button', 'sb-btn ghost sm', '↺ Lấy lại theo kế hoạch'); re.type = 'button';
+        re.addEventListener('click', () => { lines = autoFn(); ensure(); L[k] = ''; delete L[setK]; save(); draw(); toast('↺ Đã lấy lại theo kế hoạch'); });
         r.append(re); w.append(r); }
       if (focusI != null) { const x = focusI === 'new' ? w.querySelector('.sb-wnew input') : w.querySelectorAll('.sb-wli input')[focusI]; if (x) x.focus(); }
     };
@@ -1303,8 +1306,8 @@
     if (!RO) { const go = $('button', 'sb-btn ghost sm sb-noprint', '👷 Sửa quân số ngày này'); go.type = 'button'; go.addEventListener('click', () => { rollD = rpDay; tab = 'crew'; render(true); }); qa.append(go); }
     doc.append(qa);
     { const c = $('section', 'sb-rps'); c.append($('h2', '', 'B. Công việc thi công'), workList(S, L, ensure)); doc.append(c); }
-    [['qa', 'C. Nghiệm thu', 'vd: Lấy mẫu 2 mỏ đất mới, đã gửi request'], ['issue', 'D. Vướng mắc & đề xuất', 'Vướng mắc gì, đề xuất xử lý thế nào – không có thì để trống']].forEach(([k, lb, ph]) => {
-      const c = $('section', 'sb-rps'); c.append($('h2', '', lb)); const ta = field(L, { k, lb, t: 'area', rows: 2, ph, rr: false }); ta.addEventListener('input', ensure); c.append(ta); doc.append(c);
+    [['qa', 'C. Nghiệm thu', '＋ Gõ việc nghiệm thu rồi Enter… (vd: Lấy mẫu 2 mỏ đất mới, đã gửi request)'], ['issue', 'D. Vướng mắc & đề xuất', '＋ Gõ vướng mắc / đề xuất rồi Enter…']].forEach(([k, lb, ph]) => {
+      const c = $('section', 'sb-rps'); c.append($('h2', '', lb), lineList(S, L, ensure, k, null, ph)); doc.append(c);
     });
     if (L.rep) doc.append($('div', 'sb-note sb-noprint', '✏️ Ngày này có bản báo cáo đã sửa tay – bấm “📋 Xem & chép gửi Zalo” để xem.'));
     W.append(doc);
