@@ -106,7 +106,7 @@
       plan: PHASES0.map((g, i) => ({ id: uid(), g, t: g, s: addD(s0, i * 30), e: addD(s0, i * 30 + 29), pct: 0, mile: i === 1 || i === 5 })),
       tasks: [], logs: [], teams: [], mats: [], stock: [], budget: [], costs: [], incomes: [], issues: [], docs: [] };
   }
-  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); return s; };
+  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); return s; };
 
   // ---------- tính toán ----------
   const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
@@ -142,6 +142,25 @@
   }
   const taskLate = t => t.st !== 'done' && t.due && t.due < today();
   const crewOf = L => Object.values(L.crew || {}).reduce((a, n) => a + num(n), 0) + num(L.other);
+  const bchOf = L => Object.values((L && L.staff) || {}).filter(Boolean).length;   // V1.5.5: số người Ban chỉ huy có mặt
+  const qsTxt = L => { const b = bchOf(L), c = crewOf(L); return (b ? 'BCH ' + b + ' · CN ' + c + ' · ' : '') + 'Tổng ' + (b + c) + ' người'; };
+  // V1.5.5: danh sách tên người (phụ trách / chịu TN) tự lưu, dùng chung mọi công trình; tên dùng nhiều xếp đầu
+  const rememberWho = v => { v = String(v || '').trim(); if (!v || RO) return; data.people = data.people && typeof data.people === 'object' ? data.people : {}; data.people[v] = (data.people[v] || 0) + 1; data.lastWho = v; if (data.peopleOff) data.peopleOff = data.peopleOff.filter(x => x !== v); };
+  const peopleList = S => { const c = { ...(data.people || {}) }, off = new Set(data.peopleOff || []);
+    if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.staff || []).map(x => x.name)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
+    return Object.keys(c).filter(v => !off.has(v)).sort((a, b) => c[b] - c[a] || a.localeCompare(b, 'vi')); };
+  const peopleDl = S => { const dl = $('datalist'); dl.id = 'sb-people'; peopleList(S).forEach(v => { const o = $('option'); o.value = v; dl.append(o); }); return dl; };
+  function peopleDlg(S) {
+    dialog('👤 Danh sách tên người', b => {
+      b.append($('p', 'sb-p', 'Tên gõ vào ô Người phụ trách / Người chịu TN tự lưu ở đây để chọn lại. Bấm ✕ để bỏ tên gõ nhầm.'));
+      const u = $('ul', 'sb-list'); const L = peopleList(S);
+      if (!L.length) u.append($('li', 'sb-none', 'Chưa có tên nào'));
+      L.forEach(v => { const li = $('li'); const x = $('button', 'sb-rpx', '✕'); x.type = 'button'; x.title = 'Bỏ khỏi danh sách'; x.setAttribute('aria-label', 'Bỏ ' + v);
+        x.addEventListener('click', () => { data.peopleOff = [...new Set([...(data.peopleOff || []), v])]; if (data.people) delete data.people[v]; if (data.lastWho === v) data.lastWho = ''; li.remove(); save(); });
+        li.append($('span', '', v), $('small', '', (data.people || {})[v] ? (data.people[v] + ' lần') : ''), x); u.append(li); });
+      b.append(u);
+    }, () => { render(true); }, 'Xong');
+  }
   const spent = (S, b) => S.costs.filter(c => !b || c.cat === b).reduce((a, c) => a + num(c.amt), 0);
   const stockOf = S => { const m = new Map(); for (const x of S.stock) { const k = (x.name || '').trim().toLowerCase() + '|' + (x.unit || '').trim(); if (!x.name) continue;
     const o = m.get(k) || { name: x.name.trim(), unit: x.unit || '', in: 0, out: 0 }; o[x.io === 'out' ? 'out' : 'in'] += num(x.qty); m.set(k, o); } return [...m.values()]; };
@@ -176,6 +195,7 @@
 
   // ---------- ô nhập & bảng kiểu Excel ----------
   // cols: { k, lb, t: text|area|date|num|money|sel|chk|calc, o: [[v,lb]], w, ph, f: r => node|string (calc), rr: vẽ lại khi đổi, on: (r) => sau khi đổi }
+  const grow = el => { if (!el.isConnected) return; el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; };
   function field(r, c, after) {
     let el;
     if (c.t === 'sel') { el = $('select', 'sb-in'); (typeof c.o === 'function' ? c.o() : c.o).forEach(([v, l]) => { const o = $('option', '', l); o.value = v; el.append(o); }); el.value = r[c.k] == null ? '' : r[c.k]; }
@@ -185,6 +205,8 @@
       if (c.t === 'money' || c.t === 'num') { el.inputMode = 'decimal'; el.classList.add('r'); el.value = r[c.k] ? (c.t === 'money' ? money(r[c.k]) : String(r[c.k])) : ''; }
       else el.value = esc(r[c.k]); }
     if (c.ph && !RO) el.placeholder = c.ph; el.setAttribute('aria-label', c.lb || c.k);
+    if (c.who && !RO) { el.setAttribute('list', 'sb-people'); el.autocomplete = 'off'; el.addEventListener('change', () => rememberWho(el.value)); }   // V1.5.5
+    if (c.t === 'area') { el.classList.add('sb-grow'); el.addEventListener('input', () => grow(el)); }   // V1.5.5: tự xuống dòng, ô tự cao theo chữ
     if (RO) { if (el.tagName === 'SELECT' || c.t === 'chk') el.disabled = true; else el.readOnly = true; }
     const get = () => c.t === 'chk' ? el.checked : (c.t === 'money' || c.t === 'num') ? num(el.value) : el.value;
     el.addEventListener('input', () => { if (c.t !== 'money') { r[c.k] = get(); if (!c.ns) saveSoon(); } });
@@ -504,7 +526,7 @@
       c.append(u); const q = quickAdd(S, 'Thêm việc cho hôm nay… (Enter)', d); c.append(q); c.style.order = 4; g.append(c); }
     // 4. nhân lực
     { const L = S.logs.find(l => l.d === d), c = card('4 · Tổ đội nào đang làm, đủ người không?');
-      if (L) { const n = crewOf(L); c.append($('div', 'sb-big', n + ' người hôm nay'));
+      if (L) { c.append($('div', 'sb-big', (bchOf(L) + crewOf(L)) + ' người hôm nay'), $('div', 'sb-note', qsTxt(L)));
         const u = $('ul', 'sb-list'); S.teams.forEach(tm => { const v = num((L.crew || {})[tm.id]); if (v) { const li = $('li'); li.append($('span', '', tm.name + (tm.scope ? ' – ' + tm.scope : '')), $('b', '', v + ' người')); u.append(li); } });
         if (num(L.other)) { const li = $('li'); li.append($('span', '', 'Khác'), $('b', '', num(L.other) + ' người')); u.append(li); } c.append(u); }
       else { c.append($('div', 'sb-big muted', 'Chưa ghi nhật ký hôm nay')); if (!RO) { const b = $('button', 'sb-btn sm', '📓 Ghi nhật ký hôm nay'); b.type = 'button'; b.addEventListener('click', () => { openLog(S, d); }); c.append(b); } }
@@ -531,14 +553,15 @@
   function quickAdd(S, ph, due) {
     if (RO) return $('div');
     const f = $('form', 'sb-quick'), i = $('input', 'sb-in'); i.placeholder = ph; i.setAttribute('aria-label', ph);
-    const who = $('input', 'sb-in who'); who.placeholder = 'Người làm'; who.setAttribute('aria-label', 'Người phụ trách'); who.setAttribute('list', 'sb-wl');
-    const dl = $('datalist'); dl.id = 'sb-wl'; [...new Set([...S.tasks.map(t => t.who), ...S.teams.map(t => t.name)].filter(Boolean))].forEach(v => { const o = $('option'); o.value = v; dl.append(o); });
+    const who = $('input', 'sb-in who'); who.placeholder = 'Người làm'; who.setAttribute('aria-label', 'Người phụ trách'); who.setAttribute('list', 'sb-people'); who.autocomplete = 'off';
+    who.value = data.lastWho && !(data.peopleOff || []).includes(data.lastWho) ? data.lastWho : '';   // V1.5.5: mặc định người chọn lần gần nhất
+    const dl = $('button', 'sb-btn ghost sm sb-pplbtn', '⚙️'); dl.type = 'button'; dl.title = 'Danh sách tên người (xoá tên gõ nhầm)'; dl.setAttribute('aria-label', 'Danh sách tên người'); dl.addEventListener('click', () => peopleDlg(S));
     const b = $('button', 'sb-btn sm', '＋'); b.type = 'submit'; b.setAttribute('aria-label', 'Thêm việc');
     const ct = $('select', 'sb-in cat'); ct.setAttribute('aria-label', 'Bộ phận'); catList().forEach(([v, l]) => { const o = $('option', '', l); o.value = v; ct.append(o); }); { const o = $('option', '', '＋ Thêm bộ phận…'); o.value = NEWCAT; ct.append(o); } ct.value = flt.cat && flt.cat !== 'all' ? flt.cat : catDef();
     ct.addEventListener('change', () => { if (ct.value !== NEWCAT) return; ct.value = catDef(); addCat(id => { flt.cat = id; render(true); setTimeout(() => { const q = root.querySelector('.sb-quick input'); if (q) q.focus(); }, 0); }); });
     const pr = $('select', 'sb-in pri'); pr.setAttribute('aria-label', 'Ưu tiên'); PRI.forEach(([v, l]) => { const o = $('option', '', l); o.value = v; pr.append(o); }); pr.value = 'tb';
     f.append(i, ct, pr, who, b, dl);
-    f.addEventListener('submit', e => { e.preventDefault(); if (!i.value.trim()) return i.focus(); S.tasks.push({ id: uid(), t: i.value.trim(), who: who.value.trim(), due: due || '', pri: pr.value, cat: ct.value, st: 'todo', at: today() }); save(); i.value = ''; render(true); setTimeout(() => { const q = root.querySelector('.sb-quick input'); if (q) q.focus(); }, 0); toast('＋ Đã thêm việc'); });
+    f.addEventListener('submit', e => { e.preventDefault(); if (!i.value.trim()) return i.focus(); rememberWho(who.value); S.tasks.push({ id: uid(), t: i.value.trim(), who: who.value.trim(), due: due || '', pri: pr.value, cat: ct.value, st: 'todo', at: today() }); save(); i.value = ''; render(true); setTimeout(() => { const q = root.querySelector('.sb-quick input'); if (q) q.focus(); }, 0); toast('＋ Đã thêm việc'); });
     return f;
   }
 
@@ -672,7 +695,7 @@
     if (gl && groups.length > 1) { const gh = $('div', 'sb-grph'); gh.append(catTag(gv), $('span', '', R.length + ' việc' + (R.filter(taskLate).length ? ' · ' + R.filter(taskLate).length + ' quá hạn' : '') + (R.filter(t => t.pri === 'cao' && t.st !== 'done').length ? ' · ' + R.filter(t => t.pri === 'cao' && t.st !== 'done').length + ' ưu tiên cao' : ''))); W.append(gh); }
     W.append(table(R, [
       { k: 'ok', lb: '✓', t: 'calc', w: '34px', f: t => { const c = $('input', 'sb-chk'); c.type = 'checkbox'; c.checked = t.st === 'done'; c.disabled = RO; c.setAttribute('aria-label', 'Xong'); c.addEventListener('change', () => { t.st = c.checked ? 'done' : 'todo'; if (c.checked) t.doneAt = d; todoPush(t, true); save(); render(true); }); return c; } },
-      { k: 't', lb: 'Công việc', t: 'text', rr: false }, { k: 'cat', lb: 'Bộ phận', t: 'sel', o: () => [...catList(), [NEWCAT, '＋ Thêm bộ phận…']], w: '118px', on: t => { if (t.cat !== NEWCAT) return; t.cat = catDef(); addCat(id => { t.cat = id; save(); render(true); }); } }, { k: 'who', lb: 'Người phụ trách', t: 'text', w: '14%', rr: false },
+      { k: 't', lb: 'Công việc', t: 'text', rr: false }, { k: 'cat', lb: 'Bộ phận', t: 'sel', o: () => [...catList(), [NEWCAT, '＋ Thêm bộ phận…']], w: '118px', on: t => { if (t.cat !== NEWCAT) return; t.cat = catDef(); addCat(id => { t.cat = id; save(); render(true); }); } }, { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '14%', rr: false },
       { k: 'due', lb: 'Hạn', t: 'date', w: '128px', on: t => todoPush(t, true) }, { k: 'pri', lb: 'Ưu tiên', t: 'sel', o: PRI, w: '96px' },
       { k: 'lt', lb: 'Trễ', t: 'calc', w: '70px', f: t => taskLate(t) ? $('b', 'bad', days(t.due, d) + ' ngày') : t.st !== 'done' && t.due === d ? $('span', 'warnt', 'hôm nay') : '' },
       { k: 'st', lb: 'Trạng thái', t: 'sel', o: TST, w: '106px', on: t => todoPush(t, true) }
@@ -693,7 +716,7 @@
     if (num(L.other)) cr.push('  – Khác: ' + num(L.other) + ' người');
     const pr = progress(S, L.d);
     return ['📋 BÁO CÁO NGÀY ' + fdFull(L.d), '🏗️ ' + (S.code ? S.code + ' · ' : '') + S.name, 'Thời tiết: ' + (L.wx || ''), 'Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '%',
-      '👷 Nhân lực: ' + crewOf(L) + ' người', ...cr, '', '✅ Công việc đã làm:', (L.work || '–').trim(), '', '🧱 Vật tư nhập về:', (L.mat || '–').trim(), '', '⚠️ Sự cố / vấn đề:', (L.issue || 'Không').trim(), '', '📅 Kế hoạch ngày mai:', (L.next || '–').trim()].join('\n');
+      '👷 Quân số: ' + qsTxt(L), ...(bchOf(L) ? ['  – Ban chỉ huy: ' + (S.staff || []).filter(x => (L.staff || {})[x.id]).map(x => x.name + (x.role ? ' (' + x.role + ')' : '')).join(', ')] : []), ...cr, '', '✅ Công việc đã làm:', (L.work || '–').trim(), '', '🧱 Vật tư nhập về:', (L.mat || '–').trim(), '', '⚠️ Sự cố / vấn đề:', (L.issue || 'Không').trim(), '', '📅 Kế hoạch ngày mai:', (L.next || '–').trim()].join('\n');
   }
   async function addPhotos(L, files) {
     let n = 0;
@@ -717,7 +740,7 @@
     L0.forEach(L => {
       const open = L.id === openLogId, c = $('section', 'sb-log' + (open ? ' open' : ''));
       const hd = $('button', 'sb-logh'); hd.type = 'button'; hd.setAttribute('aria-expanded', String(open));
-      hd.append($('b', '', fdFull(L.d) + (L.d === d ? ' · Hôm nay' : '')), $('span', '', (L.wx || '') + ' · 👷 ' + crewOf(L) + ' người' + (L.photos && L.photos.length ? ' · 📷 ' + L.photos.length : '')), $('small', '', (L.work || '').split('\n')[0].slice(0, 90)));
+      hd.append($('b', '', fdFull(L.d) + (L.d === d ? ' · Hôm nay' : '')), $('span', '', (L.wx || '') + ' · 👷 ' + (bchOf(L) + crewOf(L)) + ' người' + (L.photos && L.photos.length ? ' · 📷 ' + L.photos.length : '')), $('small', '', (L.work || '').split('\n')[0].slice(0, 90)));
       hd.addEventListener('click', () => { openLogId = open ? '' : L.id; render(true); }); c.append(hd);
       if (open) {
         const bd = $('div', 'sb-logb'), g = $('div', 'sb-fg');
@@ -754,8 +777,47 @@
   }
 
   // ---------- 👷 NHÂN LỰC ----------
+  // V1.5.5: 📋 ĐIỂM DANH QUÂN SỐ mỗi ngày – Ban chỉ huy tích từng người, tổ đội nhập số người; ghi thẳng vào Nhật ký ngày đó
+  let rollD = '';
+  function rollCall(W, S) {
+    const d = today(); if (!rollD || rollD > d) rollD = d;
+    const h = sec(W, '📋 Điểm danh quân số', 'Ghi thẳng vào Nhật ký ngày đó – không phải nhập 2 lần');
+    const di = $('input', 'sb-in'); di.type = 'date'; di.value = rollD; di.max = d; di.setAttribute('aria-label', 'Ngày điểm danh'); di.title = 'Điểm danh bù ngày khác';
+    di.addEventListener('change', () => { if (di.value) { rollD = di.value; render(true); } }); if (!RO) h.append(di);
+    let L = S.logs.find(l => l.d === rollD);
+    const getL = () => { if (!L) { const prev = S.logs.slice().sort((a, b) => a.d < b.d ? 1 : -1)[0]; L = { id: uid(), d: rollD, wx: WX[0], crew: prev ? { ...prev.crew } : {}, other: 0, work: '', mat: '', issue: '', next: '', photos: [] }; S.logs.push(L); } L.staff = L.staff || {}; L.crew = L.crew || {}; return L; };
+    const box = $('div', 'sb-roll'), tot = $('div', 'sb-rolltot');
+    const upd = () => { const b = L ? bchOf(L) : 0, c = L ? crewOf(L) : 0; tot.textContent = ''; tot.append($('span', '', 'Ban chỉ huy'), $('b', '', String(b)), $('span', '', 'Công nhân'), $('b', '', String(c)), $('span', '', 'Quân số'), $('b', 'all', String(b + c))); };
+    // Ban chỉ huy
+    const c1 = card('👔 Ban chỉ huy' + (rollD === d ? ' hôm nay' : ' ngày ' + fd(rollD)), 'wide'), u1 = $('div', 'sb-bch');
+    (S.staff || []).forEach(x => {
+      const on = !!(L && L.staff && L.staff[x.id]), b = $('button', 'sb-bchp' + (on ? ' on' : '')); b.type = 'button'; b.disabled = RO;
+      b.setAttribute('aria-pressed', String(on)); b.append($('i', '', on ? '✓' : ''), $('b', '', x.name || '(chưa đặt tên)'), $('small', '', x.role || ''));
+      b.addEventListener('click', () => { const LL = getL(); if (LL.staff[x.id]) delete LL.staff[x.id]; else LL.staff[x.id] = 1; const v = !!LL.staff[x.id]; b.classList.toggle('on', v); b.setAttribute('aria-pressed', String(v)); b.firstChild.textContent = v ? '✓' : ''; save(); upd(); });
+      u1.append(b); });
+    if (!(S.staff || []).length) u1.append($('div', 'sb-note', 'Chưa có người trong Ban chỉ huy – thêm ở bảng “Ban chỉ huy” bên dưới.'));
+    if (!RO && (S.staff || []).length) { const all = $('button', 'sb-btn ghost sm', '✓ Có mặt đủ'); all.type = 'button'; all.addEventListener('click', () => { const LL = getL(); S.staff.forEach(x => { LL.staff[x.id] = 1; }); save(); render(true); }); c1.append(u1, all); } else c1.append(u1);
+    // Công nhân theo tổ đội
+    const c2 = card('👷 Công nhân theo tổ đội', 'wide'), u2 = $('div', 'sb-rollt');
+    const num1 = (get, set, name, sub) => { const r = $('div', 'sb-rollr'); r.append($('span', '', name), $('small', '', sub || ''));
+      const mi = $('button', 'sb-btn ghost sm', '−'), pl = $('button', 'sb-btn ghost sm', '＋'), inp = $('input', 'sb-in r'); mi.type = pl.type = 'button'; inp.inputMode = 'numeric'; inp.value = get() || ''; inp.placeholder = '0'; inp.setAttribute('aria-label', 'Số người ' + name);
+      mi.setAttribute('aria-label', 'Bớt 1 người ' + name); pl.setAttribute('aria-label', 'Thêm 1 người ' + name); if (RO) { inp.readOnly = true; mi.disabled = pl.disabled = true; }
+      const put = v => { v = Math.max(0, Math.round(num(v))); set(v); inp.value = v || ''; save(); upd(); };
+      mi.addEventListener('click', () => put(num(inp.value) - 1)); pl.addEventListener('click', () => put(num(inp.value) + 1)); inp.addEventListener('change', () => put(inp.value));
+      r.append(mi, inp, pl); return r; };
+    S.teams.forEach(tm => u2.append(num1(() => L && num(L.crew[tm.id]), v => { const LL = getL(); if (v) LL.crew[tm.id] = v; else delete LL.crew[tm.id]; }, tm.name || '(chưa đặt tên)', tm.scope)));
+    u2.append(num1(() => L && num(L.other), v => { getL().other = v; }, 'Khác / lẻ', ''));
+    if (!S.teams.length) c2.append($('div', 'sb-note', 'Chưa có tổ đội – thêm ở bảng “Tổ đội” bên dưới.'));
+    c2.append(u2);
+    upd(); box.append(tot, c1, c2); W.append(box);
+    if (!L) W.append($('div', 'sb-note', 'Ngày này chưa có nhật ký – điểm danh xong HaoHao tự tạo trang nhật ký ' + fdFull(rollD) + ' (mặc định số người theo ngày gần nhất).'));
+  }
   function crew(W, S) {
-    sec(W, '👷 Tổ đội & nhân công', 'Số người mỗi ngày lấy từ Nhật ký');
+    rollCall(W, S);
+    sec(W, '👔 Ban chỉ huy', 'Danh sách người để điểm danh mỗi ngày');
+    W.append(table(S.staff, [{ k: 'name', lb: 'Họ tên', t: 'text', ph: 'Nguyễn Văn A', rr: false }, { k: 'role', lb: 'Chức vụ', t: 'text', w: '22%', ph: 'Chỉ huy trưởng / KS hiện trường / QS…', rr: false }, { k: 'phone', lb: 'SĐT', t: 'text', w: '14%', rr: false }],
+      { list: S.staff, add: () => ({ id: uid(), name: '', role: '', phone: '' }), addLb: '＋ Thêm người Ban chỉ huy', empty: 'Chưa có ai – thêm Chỉ huy trưởng, kỹ sư, QS, QA/QC, an toàn…' }));
+    sec(W, '👷 Tổ đội & nhân công', 'Số người mỗi ngày lấy từ Điểm danh / Nhật ký');
     W.append(table(S.teams, [{ k: 'name', lb: 'Tổ đội', t: 'text', ph: 'Tổ nề anh Hùng', rr: false }, { k: 'lead', lb: 'Tổ trưởng', t: 'text', w: '14%', rr: false }, { k: 'phone', lb: 'SĐT', t: 'text', w: '12%', rr: false },
       { k: 'scope', lb: 'Phụ trách hạng mục', t: 'text', rr: false }, { k: 'rate', lb: 'Đơn giá / công', t: 'money', w: '120px' }, { k: 'call', lb: '', t: 'calc', w: '40px', f: t => { if (!t.phone) return ''; const a = $('a', 'sb-call', '📞'); a.href = 'tel:' + String(t.phone).replace(/[^\d+]/g, ''); a.title = 'Gọi ' + t.phone; return a; } }],
     { list: S.teams, add: () => ({ id: uid(), name: '', lead: '', phone: '', scope: '', rate: 0 }), addLb: '＋ Thêm tổ đội', empty: 'Chưa có tổ đội nào' }));
@@ -764,11 +826,11 @@
     const c = card('Bảng công 14 ngày gần nhất', 'wide'), w = $('div', 'sb-tw'), t = $('table', 'sb-t sb-att'), hr = $('tr');
     hr.append($('th', '', 'Tổ đội')); D.forEach(x => { const h = $('th', 'c' + ([0, 6].includes(new Date(x + 'T00:00').getDay()) ? ' we' : ''), x.slice(8) + '/' + x.slice(5, 7)); hr.append(h); }); hr.append($('th', 'r', 'Tổng công'), $('th', 'r', 'Thành tiền'));
     const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
-    const rows = [...S.teams.map(tm => [tm.name || '(chưa đặt tên)', L => num((L.crew || {})[tm.id]), num(tm.rate)]), ['Khác', L => num(L.other), 0]];
+    const rows = [...(S.staff || []).map(x => ['👔 ' + (x.name || '(chưa đặt tên)'), L => (L.staff || {})[x.id] ? 1 : 0, 0]), ...S.teams.map(tm => [tm.name || '(chưa đặt tên)', L => num((L.crew || {})[tm.id]), num(tm.rate)]), ['Khác', L => num(L.other), 0]];
     let gT = 0, gM = 0;
     rows.forEach(([nm, get, rate]) => { const tr = $('tr'); tr.append($('td', '', nm)); D.forEach(x => { const L = S.logs.find(l => l.d === x), v = L ? get(L) : 0; tr.append($('td', 'c' + (v ? ' has' : ''), v ? String(v) : '·')); });
       const tot = S.logs.reduce((a, L) => a + get(L), 0); gT += tot; gM += tot * rate; tr.append($('td', 'r', String(tot)), $('td', 'r', rate ? money(tot * rate) : '')); tb.append(tr); });
-    const tf = $('tr', 'sum'); tf.append($('td', '', 'Cộng')); D.forEach(x => { const L = S.logs.find(l => l.d === x); tf.append($('td', 'c', L ? String(crewOf(L)) : '')); }); tf.append($('td', 'r', String(gT)), $('td', 'r', money(gM))); tb.append(tf);
+    const tf = $('tr', 'sum'); tf.append($('td', '', 'Cộng')); D.forEach(x => { const L = S.logs.find(l => l.d === x); tf.append($('td', 'c', L ? String(crewOf(L) + bchOf(L)) : '')); }); tf.append($('td', 'r', String(gT)), $('td', 'r', money(gM))); tb.append(tf);
     t.append(tb); w.append(t); c.append(w, $('div', 'sb-note', 'Tổng công & thành tiền tính trên toàn bộ nhật ký từ trước tới nay. Thanh toán tổ đội ghi ở mục 💰 Chi phí.')); W.append(c);
   }
 
@@ -858,7 +920,7 @@
     const pick = { open: x => x.st !== 'dong', cd: x => x.st === 'cd', late: x => x.st !== 'dong' && x.due && x.due < d, dong: x => x.st === 'dong', all: () => true }[flt.issue];
     W.append(table(S.issues.filter(pick).sort((a, b) => (a.st === 'dong') - (b.st === 'dong') || (a.due || '9').localeCompare(b.due || '9')), [
       { k: 'd', lb: 'Ngày', t: 'date', w: '124px' }, { k: 'type', lb: 'Loại', t: 'sel', o: ITYPE, w: '112px' }, { k: 't', lb: 'Vấn đề', t: 'area', rr: false, rows: 1 },
-      { k: 'prop', lb: 'Đề xuất xử lý', t: 'area', rr: false, rows: 1 }, { k: 'who', lb: 'Người chịu TN', t: 'text', w: '11%', rr: false },
+      { k: 'prop', lb: 'Đề xuất xử lý', t: 'area', rr: false, rows: 1 }, { k: 'who', lb: 'Người chịu TN', who: true, t: 'text', w: '11%', rr: false },
       { k: 'due', lb: 'Hạn', t: 'date', w: '124px', on: x => todoPush(x, false) }, { k: 'st', lb: 'Trạng thái', t: 'sel', o: IST, w: '108px', on: x => { if (x.st === 'dong') x.closed = d; todoPush(x, false); } }, { k: 'res', lb: 'Kết quả', t: 'area', rr: false, rows: 1 }
     ], { list: S.issues, add: () => ({ id: uid(), d, type: 'ht', t: '', prop: '', who: '', due: addD(d, 2), st: 'mo', res: '' }), addLb: '＋ Thêm vấn đề', empty: 'Không có vấn đề nào ở bộ lọc này', cls: x => (x.st === 'dong' ? 'done' : '') + (x.st !== 'dong' && x.due && x.due < d ? ' late' : ''), extra: (x, td) => WEB || td.append(bellBtn(x, () => (lbl(ITYPE, x.type) ? '[' + lbl(ITYPE, x.type) + '] ' : '') + (x.t || '').split('\n')[0], S)) }));
   }
@@ -1154,7 +1216,9 @@
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
       }
       const keep = [...root.querySelectorAll('.sb-toast,.sb-dlg')];
+      if (S) W.append(peopleDl(S));
       root.replaceChildren(W, ...keep); window.scrollTo(0, y);
+      root.querySelectorAll('textarea.sb-grow').forEach(grow);
     } finally { rendering = false; }
   }
   window.addEventListener('sb-show', () => render(true));
