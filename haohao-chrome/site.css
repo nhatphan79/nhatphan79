@@ -386,3 +386,24 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 .sb-mi { all: unset; cursor: pointer; display: grid; gap: 1px; padding: 8px 10px; border-radius: 8px; }
 .sb-mi:hover, .sb-mi:focus-visible { background: #FFF4E0; } .sb-mi b { font-size: 13.5px; color: var(--ink); } .sb-mi small { font-size: 12px; color: var(--soft); }
 .sb-menu[hidden] { display: none !important; }
+/* V1.5.3: xoá dòng tự điền trong báo cáo (Chỉnh tay) */
+.sb-rpx { flex: none; border: 0; background: transparent; color: var(--soft); width: 26px; height: 26px; border-radius: 7px; font-size: 13px; cursor: pointer; line-height: 1; }
+.sb-rpx:hover { background: #FDE8E8; color: var(--bad); }
+.sb-list li.sb-hid > :not(.sb-rpx) { opacity: .38; text-decoration: line-through; }
+.sb-list li.sb-hid .sb-rpx { color: var(--ok, #2E8B57); }
+.sb-list li.sb-hid .sb-rpx:hover { background: #E3F5EE; }
+@media print { .sb-rpx { display: none !important; } .sb-list li.sb-hid { display: none !important; } }
+/* V1.5.3: thư mục hồ sơ cho từng dòng vật tư */
+.sb-dirb { border: 0; background: transparent; width: 28px; height: 28px; border-radius: 7px; cursor: pointer; font-size: 15px; line-height: 1; }
+.sb-dirb:hover { background: var(--hover, #F3EDE2); }
+.sb-dirb.ed { font-size: 12px; width: 22px; color: var(--soft); }
+.sb-dirl { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px; margin-top: 10px; }
+.sb-dirl button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 5px 8px; border-radius: 7px; cursor: pointer; font: inherit; }
+.sb-dirl button:hover, .sb-dirl button.on { background: #FFF1DA; }
+.sb-dirl button.c { padding-left: 26px; font-size: 13px; color: var(--soft); }
+/* V1.5.3: cột Ghi chú / lý do chậm ở bảng Tiến độ */
+.sb-pt th.nt, .sb-pt td.nt { min-width: 180px; width: 18%; }
+.sb-pt td.nt { padding: 2px 6px; }
+.sb-pt td.nt.need input { border-color: #F2B8A8; background: #FFF5F2; }
+.sb-pt td.nt.need input::placeholder { color: var(--bad); opacity: .75; }
+.sb-list li em.sb-why { flex: 0 1 auto; font-style: normal; font-size: 12.5px; color: var(--warn); max-width: 40%; }
