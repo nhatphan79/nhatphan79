@@ -142,12 +142,12 @@
   }
   const taskLate = t => t.st !== 'done' && t.due && t.due < today();
   const crewOf = L => Object.values(L.crew || {}).reduce((a, n) => a + num(n), 0) + num(L.other);
-  const bchOf = L => Object.values((L && L.staff) || {}).filter(Boolean).length;   // V1.5.5: số người Ban chỉ huy có mặt
+  const bchOf = L => L && L.bch ? Object.values(L.bch).reduce((a, n) => a + num(n), 0) : Object.values((L && L.staff) || {}).filter(Boolean).length;   // V1.5.6: Ban chỉ huy theo chức vụ
   const qsTxt = L => { const b = bchOf(L), c = crewOf(L); return (b ? 'BCH ' + b + ' · CN ' + c + ' · ' : '') + 'Tổng ' + (b + c) + ' người'; };
   // V1.5.5: danh sách tên người (phụ trách / chịu TN) tự lưu, dùng chung mọi công trình; tên dùng nhiều xếp đầu
   const rememberWho = v => { v = String(v || '').trim(); if (!v || RO) return; data.people = data.people && typeof data.people === 'object' ? data.people : {}; data.people[v] = (data.people[v] || 0) + 1; data.lastWho = v; if (data.peopleOff) data.peopleOff = data.peopleOff.filter(x => x !== v); };
   const peopleList = S => { const c = { ...(data.people || {}) }, off = new Set(data.peopleOff || []);
-    if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.staff || []).map(x => x.name)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
+    if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.roles || []).map(x => x.who)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
     return Object.keys(c).filter(v => !off.has(v)).sort((a, b) => c[b] - c[a] || a.localeCompare(b, 'vi')); };
   const peopleDl = S => { const dl = $('datalist'); dl.id = 'sb-people'; peopleList(S).forEach(v => { const o = $('option'); o.value = v; dl.append(o); }); return dl; };
   function peopleDlg(S) {
@@ -716,7 +716,7 @@
     if (num(L.other)) cr.push('  – Khác: ' + num(L.other) + ' người');
     const pr = progress(S, L.d);
     return ['📋 BÁO CÁO NGÀY ' + fdFull(L.d), '🏗️ ' + (S.code ? S.code + ' · ' : '') + S.name, 'Thời tiết: ' + (L.wx || ''), 'Tiến độ: thực tế ' + pr.tt + '% / kế hoạch ' + pr.kh + '%',
-      '👷 Quân số: ' + qsTxt(L), ...(bchOf(L) ? ['  – Ban chỉ huy: ' + (S.staff || []).filter(x => (L.staff || {})[x.id]).map(x => x.name + (x.role ? ' (' + x.role + ')' : '')).join(', ')] : []), ...cr, '', '✅ Công việc đã làm:', (L.work || '–').trim(), '', '🧱 Vật tư nhập về:', (L.mat || '–').trim(), '', '⚠️ Sự cố / vấn đề:', (L.issue || 'Không').trim(), '', '📅 Kế hoạch ngày mai:', (L.next || '–').trim()].join('\n');
+      '👷 Quân số: ' + qsTxt(L), ...(L.bch ? ['  – Ban chỉ huy: ' + (S.roles || []).filter(r => num(L.bch[r.id])).map(r => num(L.bch[r.id]) + ' ' + r.name).join(', ')] : []), ...cr, '', '✅ Công việc đã làm:', (L.work || '–').trim(), '', '🧱 Vật tư nhập về:', (L.mat || '–').trim(), '', '⚠️ Sự cố / vấn đề:', (L.issue || 'Không').trim(), '', '📅 Kế hoạch ngày mai:', (L.next || '–').trim()].join('\n');
   }
   async function addPhotos(L, files) {
     let n = 0;
@@ -777,61 +777,111 @@
   }
 
   // ---------- 👷 NHÂN LỰC ----------
-  // V1.5.5: 📋 ĐIỂM DANH QUÂN SỐ mỗi ngày – Ban chỉ huy tích từng người, tổ đội nhập số người; ghi thẳng vào Nhật ký ngày đó
-  let rollD = '';
+  // V1.5.6: 📋 BẢNG QUÂN SỐ NGÀY – 3 nhóm: I. Ban chỉ huy (theo chức vụ) · II. Tổ đội (việc hôm nay) · III. Công nhật.
+  // Mỗi ngày tự điền số mặc định (khai báo bên dưới), chỉnh chỗ khác thường → ghi thẳng vào Nhật ký ngày đó. Dưới cùng tổng hợp cả tháng.
+  let rollD = '', rollM = '';
+  const ROLES0 = [['CHT', 'Chỉ huy trưởng'], ['QA/QC', 'Kỹ sư QA/QC'], ['Shop', 'Kỹ sư Shopdrawing'], ['QS', 'Kỹ sư QS'], ['Hiện trường', 'Kỹ sư hiện trường']];
+  const rolesOf = S => { if (!Array.isArray(S.roles)) S.roles = ROLES0.map(([n, f]) => ({ id: uid(), name: n, full: f, def: 1 })); return S.roles; };
+  const teamName = tm => { const n = (tm.name || '(chưa đặt tên)').trim(); return /^tổ\b/i.test(n) ? n : 'Tổ ' + n; };
+  // số đang hiện của 1 ngày: đã điểm danh → lấy trong nhật ký; chưa → số mặc định
+  function dayQS(S, L) {
+    const R = rolesOf(S), done = !!(L && L.bch);
+    const bch = R.map(r => ({ r, n: done ? num(L.bch[r.id]) : num(r.def) }));
+    const crew = S.teams.map(tm => ({ tm, n: L && L.crew && (tm.id in L.crew) ? num(L.crew[tm.id]) : (done || !L ? num(tm.def) : 0), job: (L && L.job && L.job[tm.id] != null ? L.job[tm.id] : (tm.scope || '')) }));
+    const cn = { n: L ? num(L.other) : 0, job: (L && L.otherJob) || '' };
+    const B = bch.reduce((a, x) => a + x.n, 0), C = crew.reduce((a, x) => a + x.n, 0);
+    return { done, bch, crew, cn, B, C, K: cn.n, T: B + C + cn.n };
+  }
+  function qsZalo(S, d, Q) {
+    const L = ['📋 Quân số ngày ' + fdFull(d) + ': ' + Q.T + ' người'];
+    L.push('1. Ban chỉ huy: ' + Q.B + ' người' + (Q.B ? ': ' + Q.bch.filter(x => x.n).map(x => x.n + ' ' + x.r.name).join(', ') : ''));
+    L.push('2. Tổ đội: ' + Q.C + ' người'); Q.crew.filter(x => x.n).forEach(x => L.push('– ' + teamName(x.tm) + (String(x.job).trim() ? ' (' + String(x.job).trim() + ')' : '') + ': ' + x.n + ' người'));
+    L.push('3. Công nhật: ' + Q.K + ' người' + (Q.K && Q.cn.job.trim() ? ': ' + Q.cn.job.trim() : ''));
+    return L.join('\n');
+  }
   function rollCall(W, S) {
     const d = today(); if (!rollD || rollD > d) rollD = d;
-    const h = sec(W, '📋 Điểm danh quân số', 'Ghi thẳng vào Nhật ký ngày đó – không phải nhập 2 lần');
-    const di = $('input', 'sb-in'); di.type = 'date'; di.value = rollD; di.max = d; di.setAttribute('aria-label', 'Ngày điểm danh'); di.title = 'Điểm danh bù ngày khác';
-    di.addEventListener('change', () => { if (di.value) { rollD = di.value; render(true); } }); if (!RO) h.append(di);
+    const h = sec(W, '📋 Quân số ngày ' + fdFull(rollD), 'Tự điền số mặc định – chỉ chỉnh chỗ khác thường · ghi thẳng vào Nhật ký ngày đó');
+    const di = $('input', 'sb-in'); di.type = 'date'; di.value = rollD; di.max = d; di.setAttribute('aria-label', 'Ngày điểm danh'); di.title = 'Điểm danh ngày khác';
+    di.addEventListener('change', () => { if (di.value) { rollD = di.value; render(true); } });
     let L = S.logs.find(l => l.d === rollD);
-    const getL = () => { if (!L) { const prev = S.logs.slice().sort((a, b) => a.d < b.d ? 1 : -1)[0]; L = { id: uid(), d: rollD, wx: WX[0], crew: prev ? { ...prev.crew } : {}, other: 0, work: '', mat: '', issue: '', next: '', photos: [] }; S.logs.push(L); } L.staff = L.staff || {}; L.crew = L.crew || {}; return L; };
-    const box = $('div', 'sb-roll'), tot = $('div', 'sb-rolltot');
-    const upd = () => { const b = L ? bchOf(L) : 0, c = L ? crewOf(L) : 0; tot.textContent = ''; tot.append($('span', '', 'Ban chỉ huy'), $('b', '', String(b)), $('span', '', 'Công nhân'), $('b', '', String(c)), $('span', '', 'Quân số'), $('b', 'all', String(b + c))); };
-    // Ban chỉ huy
-    const c1 = card('👔 Ban chỉ huy' + (rollD === d ? ' hôm nay' : ' ngày ' + fd(rollD)), 'wide'), u1 = $('div', 'sb-bch');
-    (S.staff || []).forEach(x => {
-      const on = !!(L && L.staff && L.staff[x.id]), b = $('button', 'sb-bchp' + (on ? ' on' : '')); b.type = 'button'; b.disabled = RO;
-      b.setAttribute('aria-pressed', String(on)); b.append($('i', '', on ? '✓' : ''), $('b', '', x.name || '(chưa đặt tên)'), $('small', '', x.role || ''));
-      b.addEventListener('click', () => { const LL = getL(); if (LL.staff[x.id]) delete LL.staff[x.id]; else LL.staff[x.id] = 1; const v = !!LL.staff[x.id]; b.classList.toggle('on', v); b.setAttribute('aria-pressed', String(v)); b.firstChild.textContent = v ? '✓' : ''; save(); upd(); });
-      u1.append(b); });
-    if (!(S.staff || []).length) u1.append($('div', 'sb-note', 'Chưa có người trong Ban chỉ huy – thêm ở bảng “Ban chỉ huy” bên dưới.'));
-    if (!RO && (S.staff || []).length) { const all = $('button', 'sb-btn ghost sm', '✓ Có mặt đủ'); all.type = 'button'; all.addEventListener('click', () => { const LL = getL(); S.staff.forEach(x => { LL.staff[x.id] = 1; }); save(); render(true); }); c1.append(u1, all); } else c1.append(u1);
-    // Công nhân theo tổ đội
-    const c2 = card('👷 Công nhân theo tổ đội', 'wide'), u2 = $('div', 'sb-rollt');
-    const num1 = (get, set, name, sub) => { const r = $('div', 'sb-rollr'); r.append($('span', '', name), $('small', '', sub || ''));
-      const mi = $('button', 'sb-btn ghost sm', '−'), pl = $('button', 'sb-btn ghost sm', '＋'), inp = $('input', 'sb-in r'); mi.type = pl.type = 'button'; inp.inputMode = 'numeric'; inp.value = get() || ''; inp.placeholder = '0'; inp.setAttribute('aria-label', 'Số người ' + name);
-      mi.setAttribute('aria-label', 'Bớt 1 người ' + name); pl.setAttribute('aria-label', 'Thêm 1 người ' + name); if (RO) { inp.readOnly = true; mi.disabled = pl.disabled = true; }
-      const put = v => { v = Math.max(0, Math.round(num(v))); set(v); inp.value = v || ''; save(); upd(); };
-      mi.addEventListener('click', () => put(num(inp.value) - 1)); pl.addEventListener('click', () => put(num(inp.value) + 1)); inp.addEventListener('change', () => put(inp.value));
-      r.append(mi, inp, pl); return r; };
-    S.teams.forEach(tm => u2.append(num1(() => L && num(L.crew[tm.id]), v => { const LL = getL(); if (v) LL.crew[tm.id] = v; else delete LL.crew[tm.id]; }, tm.name || '(chưa đặt tên)', tm.scope)));
-    u2.append(num1(() => L && num(L.other), v => { getL().other = v; }, 'Khác / lẻ', ''));
-    if (!S.teams.length) c2.append($('div', 'sb-note', 'Chưa có tổ đội – thêm ở bảng “Tổ đội” bên dưới.'));
-    c2.append(u2);
-    upd(); box.append(tot, c1, c2); W.append(box);
-    if (!L) W.append($('div', 'sb-note', 'Ngày này chưa có nhật ký – điểm danh xong HaoHao tự tạo trang nhật ký ' + fdFull(rollD) + ' (mặc định số người theo ngày gần nhất).'));
+    const Q = dayQS(S, L);
+    const commit = () => {   // lưu toàn bộ số đang hiện vào nhật ký ngày đó
+      if (!L) { L = { id: uid(), d: rollD, wx: WX[0], crew: {}, other: 0, work: '', mat: '', issue: '', next: '', photos: [] }; S.logs.push(L); }
+      L.bch = {}; Q.bch.forEach(x => { L.bch[x.r.id] = x.n; }); L.crew = L.crew || {}; L.job = L.job || {};
+      Q.crew.forEach(x => { if (x.n) L.crew[x.tm.id] = x.n; else delete L.crew[x.tm.id]; L.job[x.tm.id] = x.job; });
+      L.other = Q.cn.n; L.otherJob = Q.cn.job; Q.done = true; save();
+    };
+    const cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'); cp.type = 'button';
+    cp.addEventListener('click', async () => { const t = qsZalo(S, rollD, Q); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép quân số – dán vào Zalo'); } catch { dialog('📋 Quân số', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 10; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
+    if (!RO) h.append(di); h.append(cp);
+    const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-qs'), th = $('thead'), hr = $('tr');
+    [['STT', 'n'], ['Chức vụ / Tổ đội', 'nm'], ['Công việc hôm nay', 'job'], ['Số người', 'qty'], ['', 'x']].forEach(([l, c]) => hr.append($('th', c, l))); th.append(hr); t.append(th);
+    const tb = $('tbody'); t.append(tb);
+    const subs = {};
+    const head = (k, roman, name, add) => { const tr = $('tr', 'qsg'); tr.append($('td', 'n', roman)); const nm = $('td', 'nm'); nm.colSpan = 2; nm.append($('span', '', name)); if (add && !RO) { const b = $('button', 'sb-gadd', '＋'); b.type = 'button'; b.title = add[0]; b.setAttribute('aria-label', add[0]); b.addEventListener('click', add[1]); nm.append(b); } tr.append(nm); subs[k] = $('td', 'qty', ''); tr.append(subs[k], $('td', 'x')); tb.append(tr); };
+    const tot = $('td', 'qty');
+    const upd = () => { const B = Q.bch.reduce((a, x) => a + x.n, 0), C = Q.crew.reduce((a, x) => a + x.n, 0); Q.B = B; Q.C = C; Q.K = Q.cn.n; Q.T = B + C + Q.cn.n;
+      subs.b.textContent = B + ' người'; subs.c.textContent = C + ' người'; subs.k.textContent = Q.K + ' người'; tot.textContent = Q.T + ' người'; st.textContent = Q.done ? '✓ Đã điểm danh' : 'Chưa điểm danh – đang hiện số mặc định'; st.className = 'sb-qsst ' + (Q.done ? 'ok' : 'wait'); };
+    const qty = (o, lb) => { const w = $('div', 'sb-qsn'), mi = $('button', 'sb-qsb', '−'), pl = $('button', 'sb-qsb', '+'), inp = $('input', 'sb-in'); mi.type = pl.type = 'button'; inp.inputMode = 'numeric'; inp.value = String(o.n); inp.setAttribute('aria-label', 'Số người ' + lb);
+      mi.setAttribute('aria-label', 'Bớt 1 – ' + lb); pl.setAttribute('aria-label', 'Thêm 1 – ' + lb);
+      if (RO) { inp.readOnly = true; mi.disabled = pl.disabled = true; }
+      const put = v => { o.n = Math.max(0, Math.round(num(v))); inp.value = String(o.n); commit(); upd(); };
+      mi.addEventListener('click', () => put(o.n - 1)); pl.addEventListener('click', () => put(o.n + 1)); inp.addEventListener('change', () => put(inp.value)); inp.addEventListener('focus', () => inp.select());
+      w.append(mi, inp, pl); return w; };
+    const jobIn = (o, k, ph) => { const i = $('input', 'sb-in'); i.value = o[k] || ''; i.placeholder = RO ? '' : ph; i.setAttribute('aria-label', ph); if (RO) i.readOnly = true; i.addEventListener('change', () => { o[k] = i.value.trim(); commit(); }); return i; };
+    // I. Ban chỉ huy
+    head('b', 'I', 'BAN CHỈ HUY', ['Thêm chức vụ', () => { rolesOf(S).push({ id: uid(), name: 'Chức vụ mới', full: '', def: 1 }); save(); render(true); }]);
+    Q.bch.forEach((x, i) => { const tr = $('tr'); tr.append($('td', 'n', String(i + 1)), $('td', 'nm', x.r.name + (x.r.full ? ' – ' + x.r.full : '')), $('td', 'job sb-soft', x.r.who || ''), $('td', 'qty')); tr.lastChild.append(qty(x, x.r.name)); tr.append($('td', 'x')); tb.append(tr); });
+    // II. Tổ đội
+    head('c', 'II', 'TỔ ĐỘI');
+    Q.crew.forEach((x, i) => { const tr = $('tr'); tr.append($('td', 'n', String(i + 1)), $('td', 'nm', teamName(x.tm))); const jt = $('td', 'job'); jt.append(jobIn(x, 'job', 'Việc hôm nay (vd: cốp pha dầm sàn tầng 3)')); tr.append(jt, $('td', 'qty')); tr.lastChild.append(qty(x, teamName(x.tm))); tr.append($('td', 'x')); tb.append(tr); });
+    if (!S.teams.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Chưa khai báo tổ đội – thêm ở bảng “Khai báo tổ đội” bên dưới'); td.colSpan = 5; tr.append(td); tb.append(tr); }
+    // III. Công nhật
+    head('k', 'III', 'CÔNG NHẬT');
+    { const tr = $('tr'); tr.append($('td', 'n', '1'), $('td', 'nm', 'Công nhật')); const jt = $('td', 'job'); jt.append(jobIn(Q.cn, 'job', 'Làm việc gì (vd: dọn vệ sinh, vận chuyển vật tư)')); tr.append(jt, $('td', 'qty')); tr.lastChild.append(qty(Q.cn, 'Công nhật')); tr.append($('td', 'x')); tb.append(tr); }
+    const tf = $('tfoot'), fr = $('tr', 'qstot'), fl = $('td', 'nm', 'TỔNG QUÂN SỐ'); fl.colSpan = 3; const st = $('span', 'sb-qsst'); fl.append(st); fr.append(fl, tot, $('td', 'x')); tf.append(fr); t.append(tf);
+    upd(); box.append(t); W.append(box);
+    if (!Q.done && !RO) { const ok = $('button', 'sb-btn', '✓ Xác nhận quân số ' + fdFull(rollD)); ok.type = 'button'; ok.addEventListener('click', () => { commit(); upd(); toast('✓ Đã điểm danh ' + fdFull(rollD)); render(true); }); const r = $('div', 'sb-row sb-qsok'); r.append(ok, $('span', 'sb-note', 'Bấm nếu số mặc định đã đúng – hoặc chỉnh số ở bảng, HaoHao tự lưu.')); W.append(r); }
+  }
+  // ---- tổng hợp tháng ----
+  function monthSum(W, S) {
+    const d = today(); if (!rollM) rollM = d.slice(0, 7);
+    const [yy, mm] = rollM.split('-').map(Number), nd = new Date(yy, mm, 0).getDate(), D = Array.from({ length: nd }, (_, i) => rollM + '-' + String(i + 1).padStart(2, '0'));
+    const h = sec(W, '📊 Tổng hợp quân số tháng ' + mm + '/' + yy, 'Lấy từ Quân số ngày / Nhật ký · thanh toán ghi ở 💰 Chi phí');
+    const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'); pv.type = nx.type = 'button'; pv.setAttribute('aria-label', 'Tháng trước'); nx.setAttribute('aria-label', 'Tháng sau');
+    const mv = k => { const x = new Date(yy, mm - 1 + k, 1); rollM = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); render(true); };
+    pv.addEventListener('click', () => mv(-1)); nx.addEventListener('click', () => mv(1)); nav.append(pv, nx); h.append(nav);
+    const LD = new Map(S.logs.filter(l => l.d && l.d.startsWith(rollM)).map(l => [l.d, l]));
+    const rows = [['g', 'I. BAN CHỈ HUY'], ...rolesOf(S).map(r => [r.name, L => L.bch ? num(L.bch[r.id]) : 0, 0]),
+      ['g', 'II. TỔ ĐỘI'], ...S.teams.map(tm => [teamName(tm), L => num((L.crew || {})[tm.id]), num(tm.rate)]),
+      ['g', 'III. CÔNG NHẬT'], ['Công nhật', L => num(L.other), num(S.dayRate)]];
+    const box = $('div', 'sb-tw sb-msw'), t = $('table', 'sb-t sb-ms'), hr = $('tr');
+    hr.append($('th', 'nm', 'Chức vụ / Tổ đội')); D.forEach(x => { const dw = new Date(x + 'T00:00').getDay(); hr.append($('th', 'c' + (dw === 0 ? ' we' : '') + (x === d ? ' td' : ''), String(+x.slice(8)))); });
+    hr.append($('th', 'r', 'Tổng công'), $('th', 'r', 'Đơn giá'), $('th', 'r', 'Thành tiền')); const th = $('thead'); th.append(hr); t.append(th);
+    const tb = $('tbody'); let gC = 0, gM = 0; const dayT = D.map(() => 0);
+    rows.forEach(([nm, get, rate]) => {
+      if (nm === 'g') { const tr = $('tr', 'qsg'), td = $('td', 'nm', get); td.colSpan = nd + 4; tr.append(td); tb.append(tr); return; }
+      const tr = $('tr'); tr.append($('td', 'nm', nm)); let s = 0;
+      D.forEach((x, i) => { const L = LD.get(x), v = L ? get(L) : 0; s += v; dayT[i] += v; tr.append($('td', 'c' + (v ? ' has' : ''), v ? String(v) : '')); });
+      gC += s; gM += s * rate; tr.append($('td', 'r b', String(s)), $('td', 'r', rate ? money(rate) : ''), $('td', 'r', rate && s ? money(s * rate) : '')); tb.append(tr);
+    });
+    const fr = $('tr', 'sum'); fr.append($('td', 'nm', 'Cộng')); dayT.forEach(v => fr.append($('td', 'c', v ? String(v) : ''))); fr.append($('td', 'r', String(gC)), $('td', 'r', ''), $('td', 'r', money(gM))); tb.append(fr);
+    t.append(tb); box.append(t); W.append(box);
   }
   function crew(W, S) {
+    rolesOf(S);
     rollCall(W, S);
-    sec(W, '👔 Ban chỉ huy', 'Danh sách người để điểm danh mỗi ngày');
-    W.append(table(S.staff, [{ k: 'name', lb: 'Họ tên', t: 'text', ph: 'Nguyễn Văn A', rr: false }, { k: 'role', lb: 'Chức vụ', t: 'text', w: '22%', ph: 'Chỉ huy trưởng / KS hiện trường / QS…', rr: false }, { k: 'phone', lb: 'SĐT', t: 'text', w: '14%', rr: false }],
-      { list: S.staff, add: () => ({ id: uid(), name: '', role: '', phone: '' }), addLb: '＋ Thêm người Ban chỉ huy', empty: 'Chưa có ai – thêm Chỉ huy trưởng, kỹ sư, QS, QA/QC, an toàn…' }));
-    sec(W, '👷 Tổ đội & nhân công', 'Số người mỗi ngày lấy từ Điểm danh / Nhật ký');
-    W.append(table(S.teams, [{ k: 'name', lb: 'Tổ đội', t: 'text', ph: 'Tổ nề anh Hùng', rr: false }, { k: 'lead', lb: 'Tổ trưởng', t: 'text', w: '14%', rr: false }, { k: 'phone', lb: 'SĐT', t: 'text', w: '12%', rr: false },
-      { k: 'scope', lb: 'Phụ trách hạng mục', t: 'text', rr: false }, { k: 'rate', lb: 'Đơn giá / công', t: 'money', w: '120px' }, { k: 'call', lb: '', t: 'calc', w: '40px', f: t => { if (!t.phone) return ''; const a = $('a', 'sb-call', '📞'); a.href = 'tel:' + String(t.phone).replace(/[^\d+]/g, ''); a.title = 'Gọi ' + t.phone; return a; } }],
-    { list: S.teams, add: () => ({ id: uid(), name: '', lead: '', phone: '', scope: '', rate: 0 }), addLb: '＋ Thêm tổ đội', empty: 'Chưa có tổ đội nào' }));
-    // bảng công 14 ngày
-    const d = today(), D = Array.from({ length: 14 }, (_, i) => addD(d, i - 13));
-    const c = card('Bảng công 14 ngày gần nhất', 'wide'), w = $('div', 'sb-tw'), t = $('table', 'sb-t sb-att'), hr = $('tr');
-    hr.append($('th', '', 'Tổ đội')); D.forEach(x => { const h = $('th', 'c' + ([0, 6].includes(new Date(x + 'T00:00').getDay()) ? ' we' : ''), x.slice(8) + '/' + x.slice(5, 7)); hr.append(h); }); hr.append($('th', 'r', 'Tổng công'), $('th', 'r', 'Thành tiền'));
-    const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
-    const rows = [...(S.staff || []).map(x => ['👔 ' + (x.name || '(chưa đặt tên)'), L => (L.staff || {})[x.id] ? 1 : 0, 0]), ...S.teams.map(tm => [tm.name || '(chưa đặt tên)', L => num((L.crew || {})[tm.id]), num(tm.rate)]), ['Khác', L => num(L.other), 0]];
-    let gT = 0, gM = 0;
-    rows.forEach(([nm, get, rate]) => { const tr = $('tr'); tr.append($('td', '', nm)); D.forEach(x => { const L = S.logs.find(l => l.d === x), v = L ? get(L) : 0; tr.append($('td', 'c' + (v ? ' has' : ''), v ? String(v) : '·')); });
-      const tot = S.logs.reduce((a, L) => a + get(L), 0); gT += tot; gM += tot * rate; tr.append($('td', 'r', String(tot)), $('td', 'r', rate ? money(tot * rate) : '')); tb.append(tr); });
-    const tf = $('tr', 'sum'); tf.append($('td', '', 'Cộng')); D.forEach(x => { const L = S.logs.find(l => l.d === x); tf.append($('td', 'c', L ? String(crewOf(L) + bchOf(L)) : '')); }); tf.append($('td', 'r', String(gT)), $('td', 'r', money(gM))); tb.append(tf);
-    t.append(tb); w.append(t); c.append(w, $('div', 'sb-note', 'Tổng công & thành tiền tính trên toàn bộ nhật ký từ trước tới nay. Thanh toán tổ đội ghi ở mục 💰 Chi phí.')); W.append(c);
+    // khai báo
+    sec(W, '👔 Khai báo Ban chỉ huy', 'Chức vụ và số người mặc định mỗi ngày');
+    W.append(table(S.roles, [{ k: 'name', lb: 'Chức vụ (viết tắt)', t: 'text', w: '18%', ph: 'CHT', rr: false }, { k: 'full', lb: 'Tên đầy đủ', t: 'text', ph: 'Chỉ huy trưởng', rr: false }, { k: 'who', lb: 'Họ tên', who: true, t: 'text', w: '22%', rr: false }, { k: 'def', lb: 'Số người mặc định', t: 'num', w: '130px' }],
+      { list: S.roles, add: () => ({ id: uid(), name: '', full: '', who: '', def: 1 }), addLb: '＋ Thêm chức vụ' }));
+    sec(W, '👷 Khai báo tổ đội', 'Việc phụ trách và số người mặc định – mỗi ngày Quân số tự điền sẵn');
+    W.append(table(S.teams, [{ k: 'name', lb: 'Tổ đội', t: 'text', ph: 'Mr Bình', rr: false }, { k: 'scope', lb: 'Việc phụ trách', t: 'text', ph: 'Thi công cốp pha', rr: false }, { k: 'lead', lb: 'Tổ trưởng', t: 'text', w: '12%', rr: false }, { k: 'phone', lb: 'SĐT', t: 'text', w: '11%', rr: false },
+      { k: 'def', lb: 'Số người mặc định', t: 'num', w: '120px' }, { k: 'rate', lb: 'Đơn giá / công', t: 'money', w: '120px' }, { k: 'call', lb: '', t: 'calc', w: '40px', f: t => { if (!t.phone) return ''; const a = $('a', 'sb-call', '📞'); a.href = 'tel:' + String(t.phone).replace(/[^\d+]/g, ''); a.title = 'Gọi ' + t.phone; return a; } }],
+    { list: S.teams, add: () => ({ id: uid(), name: '', lead: '', phone: '', scope: '', def: 0, rate: 0 }), addLb: '＋ Thêm tổ đội', empty: 'Chưa có tổ đội nào' }));
+    { const c = card('Công nhật', 'wide'), g = $('div', 'sb-fg'); g.append(lab('Đơn giá công nhật (đ / người / ngày)', field(S, { k: 'dayRate', lb: 'Đơn giá công nhật', t: 'money', ph: '350.000' }))); c.append(g); W.append(c); }
+    monthSum(W, S);
   }
 
   // ---------- 🧱 VẬT TƯ ----------

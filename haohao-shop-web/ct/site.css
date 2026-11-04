@@ -432,3 +432,34 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-rollr > span { flex: 1; min-width: 0; font-weight: 650; }
 .sb-rollr > small { color: var(--soft); font-size: 12px; flex: 1; min-width: 0; }
 .sb-rollr input { width: 64px; text-align: center; }
+/* V1.5.6: bảng Quân số ngày + Tổng hợp tháng */
+.sb-qs th.n, .sb-qs td.n { width: 46px; text-align: center; }
+.sb-qs th.nm { width: 30%; } .sb-qs th.job { width: auto; } .sb-qs th.qty, .sb-qs td.qty { width: 150px; text-align: center; }
+.sb-qs td { vertical-align: middle; }
+.sb-qs td.job input { width: 100%; }
+.sb-qs td.sb-soft { color: var(--soft); font-size: 13px; }
+.sb-qs tr.qsg td { background: #DCE6F4; font-weight: 850; color: var(--ink); letter-spacing: .02em; }
+.sb-qs tr.qsg td.nm { display: table-cell; }
+.sb-qs tr.qsg td.nm .sb-gadd { margin-left: 8px; opacity: .8; }
+.sb-qs tr.qsg td.qty { font-weight: 850; }
+.sb-qs tfoot tr.qstot td { background: #FFF3B0; font-weight: 900; font-size: 15px; border-top: 2px solid #E8D77A; }
+.sb-qs tfoot td.nm { text-align: left; }
+.sb-qsst { margin-left: 12px; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.sb-qsst.ok { background: #E3F5EE; color: #1F7A5E; } .sb-qsst.wait { background: #FFF1DA; color: #8A5A00; }
+.sb-qsn { display: inline-flex; align-items: center; gap: 4px; }
+.sb-qsn input { width: 52px; text-align: center; font-weight: 800; }
+.sb-qsb { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-weight: 800; color: var(--ink); }
+.sb-qsb:hover { background: var(--bg2); } .sb-qsb:disabled { opacity: .4; cursor: default; }
+.sb-qsok { margin: 10px 0 20px; align-items: center; gap: 12px; }
+.sb-msw { overflow-x: auto; }
+.sb-ms { font-size: 12.5px; }
+.sb-ms th.nm, .sb-ms td.nm { min-width: 170px; position: sticky; left: 0; background: #fff; z-index: 1; }
+.sb-ms th.c, .sb-ms td.c { width: 26px; min-width: 26px; padding: 4px 2px; text-align: center; }
+.sb-ms th.we { color: var(--bad); } .sb-ms th.td { background: #FFF3B0; }
+.sb-ms td.has { font-weight: 800; color: var(--ink); background: #F3F7FD; }
+.sb-ms td.b { font-weight: 850; }
+.sb-ms tr.qsg td { background: #DCE6F4; font-weight: 850; }
+.sb-ms tr.qsg td.nm { background: #DCE6F4; }
+.sb-ms tr.sum td { background: #FFF3B0; font-weight: 850; }
+.sb-ms tr.sum td.nm { background: #FFF3B0; }
+@media print { .sb-qsb { display: none; } }
