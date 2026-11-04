@@ -509,3 +509,11 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-kh th.n, .sb-kh td.n { width: 46px; text-align: center; }
 .sb-kh td.dt { white-space: nowrap; width: 150px; } .sb-kh td.st, .sb-kh th.st { width: 120px; }
 .sb-lnk { border: 0; background: none; color: var(--blue); font: inherit; font-weight: 700; cursor: pointer; padding: 0 2px; text-decoration: underline; }
+/* V1.5.13: B. Công việc thi công – danh sách sửa / xoá / thêm */
+.sb-wli { margin: 4px 0 8px; padding-left: 26px; }
+.sb-wli li { margin: 3px 0; }
+.sb-wli li:not(.sb-none) { display: list-item; }
+.sb-wli li > input { width: calc(100% - 34px); display: inline-block; vertical-align: middle; }
+.sb-wli li > .sb-rpx { vertical-align: middle; margin-left: 4px; }
+@media print { .sb-wli input { border: 0; padding: 0; } }
+.sb-wli li.sb-wnew { list-style: none; margin-left: -26px; padding-left: 26px; } .sb-wli li.sb-wnew input { border-style: dashed; }
