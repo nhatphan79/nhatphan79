@@ -8,6 +8,7 @@
 import json, os, zipfile, re
 here = os.path.dirname(os.path.abspath(__file__)); src = os.path.join(os.path.dirname(here), 'haohao-chrome')
 out = os.path.join(here, 'HaoHao-Store.zip')
+NO_SITE = {'site.js', 'site.css'}   # 08/11: anh Nhật – tab Công trình KHÔNG gửi lên Store (sitebot.js giữ: còn lo đồng bộ Todo / Dự án)
 SKIP_DIRS = {'server-cloudflare', '.git', 'node_modules', '_metadata'}   # V1.2.2: _metadata do Chrome tự sinh, Store không nhận
 n = 0
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -15,10 +16,20 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for f in sorted(files):
             if '.bak' in f or f.endswith('.md'): continue
+            if r == src and f in NO_SITE: continue   # 08/11: KHÔNG gửi tab 🏗️ Công trình (phần riêng của anh Nhật)
             p = os.path.join(r, f); rel = os.path.relpath(p, src).replace(os.sep, '/')
             data = open(p, 'rb').read()
             if rel == 'common.js':
                 t = data.decode('utf-8'); assert 'HT.STORE = true;' in t or 'HT.STORE = false;' in t; data = t.replace('HT.STORE = false;', 'HT.STORE = true;', 1).encode('utf-8')   # V1.78: mã chính đã là bản Store
+            elif rel == 'newtab.html':   # 08/11: bỏ tab Công trình khỏi Tab mới
+                t = data.decode('utf-8')
+                for x in ['<link rel="stylesheet" href="site.css">\n', '  <script src="site.js"></script>\n',
+                          '<button type="button" class="pgsw-o" role="tab" data-pg="2" aria-selected="false" title="Điều hành công trình – SITE BRAIN">🏗️ Công trình</button>',
+                          '  <section class="sbx" id="site" hidden aria-label="Điều hành công trình"></section>\n']:
+                    assert x in t, 'newtab.html đổi rồi – sửa lại dong-goi-store.py: ' + x[:40]; t = t.replace(x, '', 1)
+                data = t.encode('utf-8')
+            elif rel == 'newtab.js':
+                t = data.decode('utf-8'); x = 'set(n0 > 2 ? 0 : n0);'; assert x in t; data = t.replace(x, 'set(n0 > 1 ? 0 : n0);', 1).encode('utf-8')
             elif rel == 'manifest.json':
                 m = json.loads(data.decode('utf-8'))
                 # V1.2.1: dùng đúng tên trong manifest (tên mới tối ưu tìm kiếm), không ép tên cũ nữa
