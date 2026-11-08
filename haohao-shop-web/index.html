@@ -186,6 +186,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .p-img{position:relative;aspect-ratio:3/4;max-width:100%;border-radius:4px;display:flex;align-items:center;justify-content:center;text-decoration:none}
 .p-img svg{width:54%}
 .off{position:absolute;top:12px;right:12px;width:50px;height:50px;border-radius:25px;background:#C8102E;color:var(--white);font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pd5-chk{margin:14px 0;padding:12px 14px;border-radius:14px;background:#F3FAF5;border:1px solid #D6EEDD;font-size:14px;line-height:1.5}.pd5-chk p{margin:0 0 6px}.pd5-chk p:last-child{margin:0}
 .meta.note{color:#5B4A3A;font-style:italic;line-height:1.4}
 .good{position:absolute;top:12px;left:12px;padding:4px 9px;border-radius:8px;background:var(--good-bg);color:var(--good);font-size:12px;font-weight:700}
 .see{position:absolute;left:10px;right:10px;bottom:10px;height:44px;border-radius:10px;background:var(--dark);color:var(--white);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
@@ -536,7 +537,7 @@ function card(p,deal){
   var im=safeImg(p.img);
   return '<article class="p">'+(ADMIN&&p.id?'<div class="p-tools"><button type="button" data-ped="'+esc(p.id)+'">Sửa</button><button type="button" class="del" data-prm="'+esc(p.id)+'">Xoá</button></div>':'')+
     (det?'<a class="p-img" href="'+det+'" aria-label="'+esc(p.n)+'" style="background:'+(p.tint||'#F2F0EE')+'">':'<div class="p-img" style="background:'+(p.tint||'#F2F0EE')+'">')+(im?'<img src="'+esc(im)+'" alt="" loading="lazy">':svg(p.shape||S.BAG,p.ink||'#C9C2BC'))+
-    (off>0?'<span class="off">−'+off+'%</span>':'')+(p.good?'<span class="good">Giá tốt</span>':'')+(deal||det?'':'<a class="see" href="'+esc(url)+'" target="_blank" rel="noopener sponsored">Xem trên '+pl[1]+'</a>')+(det?'</a>':'</div>')+
+    (off>0?'<span class="off">−'+off+'%</span>':'')+(p.good?'<span class="good"'+(p.avg?' title="Thấp hơn giá trung bình 30 ngày ('+vnd(p.avg)+')"':'')+'>Giá tốt</span>':'')+(deal||det?'':'<a class="see" href="'+esc(url)+'" target="_blank" rel="noopener sponsored">Xem trên '+pl[1]+'</a>')+(det?'</a>':'</div>')+
     (deal?'':'<div class="p-row">'+(p.sw||[]).map(function(c){return '<span class="sw" style="background:'+c+'"></span>';}).join('')+'<span class="plat"><i style="background:'+pl[2]+'">'+pl[0]+'</i>'+pl[1]+'</span></div>')+
     (det?'<a class="p-name" href="'+det+'">'+esc(p.n)+'</a>':'<span class="p-name">'+esc(p.n)+'</span>')+'<div class="price"><b>'+vnd(p.price)+'</b>'+(off>0?'<s>'+vnd(p.old)+'</s>':'')+'</div>'+
     ((p.sold?'<div class="meta">'+(p.rating?'★ '+esc(p.rating)+' · ':'')+'Đã bán '+k(p.sold)+(p.mine?'+':'')+'</div>':''))+(p.note?'<div class="meta note">💬 '+esc(p.note)+'</div>':'')+'</article>';
@@ -660,7 +661,7 @@ function renderSale(){
    '<section class="sl-wrap"><aside class="sl-f" aria-label="Bộ lọc"><div class="sl-fh"><h2>Bộ lọc</h2><button type="button" id="sl-reset">Xoá lọc</button></div>'+
    '<fieldset><legend>Sàn</legend><label><input type="checkbox" id="f-sp" checked>Shopee</label><label><input type="checkbox" id="f-tt" checked>TikTok Shop</label></fieldset>'+
    '<fieldset><legend>Khoảng giá</legend>'+[['all','Tất cả'],['b1','Dưới 100.000đ'],['b2','100.000đ – 200.000đ'],['b3','Trên 200.000đ']].map(function(b,i){return '<label><input type="radio" name="band" value="'+b[0]+'"'+(i?'':' checked')+'>'+b[1]+'</label>';}).join('')+'</fieldset>'+
-   '<label class="sl-good"><input type="checkbox" id="f-good"><span><b>Chỉ hiện món giảm sâu</b><br><small>Giảm từ 20% trở lên</small></span></label></aside>'+
+   '<label class="sl-good"><input type="checkbox" id="f-good"><span><b>Chỉ hiện "Giá tốt"</b><br><small>Thấp hơn giá trung bình 30 ngày (kho giá HaoHao)</small></span></label></aside>'+
    '<div class="sl-r"><div class="sl-top"><p><b id="cnt"></b> sản phẩm · <span id="sub">Tất cả</span></p><label class="sl-sort">Sắp xếp<select id="sort"><option value="ban">Bán chạy</option><option value="re">Giá thấp → cao</option><option value="cao">Giá cao → thấp</option><option value="giam">Giảm nhiều nhất</option></select></label></div>'+
    '<p class="cat-empty" id="sl-empty" hidden>Chưa có món nào khớp bộ lọc. Thử bỏ bớt điều kiện nhé.</p><div class="grid sl-grid" id="sg"></div></div></section><div style="height:1px"></div></div>'+
    FOOT()+'<a class="float-hh" href="#trang-chu" aria-label="Về trang chủ"><img src="'+HH+'" alt=""></a>';
@@ -681,7 +682,7 @@ function renderSale(){
       if(pick!=='all'&&p.niche!==pick) return false;
       if((p.plat===TT?!tt:!sp)) return false;
       if(p.price<B[0]||p.price>B[1]) return false;
-      if(good&&!(p.old>p.price&&1-p.price/p.old>=0.2)) return false;
+      if(good&&!p.good) return false;
       if(kind==='g30'&&off(p)<0.3) return false;
       if(kind==='d99'&&p.price>99000) return false;
       if(kind==='u50'&&p.price>=50000) return false;
@@ -888,6 +889,11 @@ function renderProduct(id){
   /* ô Mua trên app / web + mascot – cách tính giá app giống tiện ích HaoHao: trừ ~15% mã vận chuyển, tối đa 60k */
   var appP=x.app&&x.app<=x.price?x.app:x.price-Math.min(Math.round(x.price*0.15),60000), appOff=x.price-appP;   /* V1.81: giá app = đúng con số tiện ích HaoHao đã tính (kho giá ap:…), chưa có mới tự ước tính */
   function kS(n){ return n>=1000?Math.round(n/1000)+'k':n+'đ'; }
+  function checkHtml(){   /* 08/11: HaoHao kiểm tra giá (kho giá 30 ngày) + độ tin cậy theo đánh giá */
+    var v=!x.avg?'<b>HaoHao đang theo dõi giá</b> · Chưa đủ dữ liệu 30 ngày cho món này. Giá lấy trực tiếp từ Shopee.':x.verd==='good'?'<b>🟢 Giá tốt</b> · Thấp hơn giá trung bình 30 ngày ('+vnd(x.avg)+'). Thấp nhất 30 ngày: '+vnd(x.mn)+'.':x.verd==='high'?'<b>🟠 Đang ở mức cao</b> · Giá trung bình 30 ngày là '+vnd(x.avg)+'. Có thể chờ thêm vài ngày.':'<b>Giá bình thường</b> · Gần mức trung bình 30 ngày ('+vnd(x.avg)+'). Thấp nhất 30 ngày: '+vnd(x.mn)+'.';
+    var r=+x.rating||0, lv=r>=4.7&&total>=100?['🟢','Đáng tin']:r>=4.3&&total>=20?['🟡','Khá']:['⚪','Ít đánh giá – xem kỹ trước khi mua'];
+    return '<div class="pd5-chk"><p>'+v+'</p><p><b>'+lv[0]+' Độ tin cậy: '+lv[1]+'</b> · ★ '+(r?String(r).replace('.',','):'–')+' từ '+total.toLocaleString('vi-VN')+' đánh giá · đã bán '+esc(String(sold))+(x.shopName?' · shop '+esc(x.shopName):'')+'</p></div>';
+  }
   function dealHtml(){
     if(!x.link) return '';
     return '<div class="pd5-deal"><img src="'+HH+'" alt="Mascot HaoHao"><div class="bx"><span class="say">HaoHao chọn kỹ, bạn yên tâm mua nhé!</span><span class="ap">Mua trên app <b>≈ '+vnd(appP)+'</b></span></div><button type="button" id="pd-app">Mở app rẻ hơn '+kS(appOff)+'</button></div>';
@@ -913,10 +919,10 @@ function renderProduct(id){
     '<nav class="pd5-crumb" aria-label="Đường dẫn"><a href="#trang-chu">Trang chủ</a> / '+(ci>=0?'<a href="#'+n.id+'/c'+ci+'">'+esc(x.cat)+'</a>':'<a href="#'+n.id+'">'+esc(n.label)+'</a>')+' / '+esc(x.n)+'</nav>'+
     '<div class="pd5-top"><div class="pd5-th" id="pd-th"></div><div class="pd5-main" id="pd-main"></div>'+dealHtml()+
     '<div class="pd5-info">'+
-      '<h1>'+(off>0?'<span class="pd5-tag">Sale</span>':'')+esc(x.n)+'</h1>'+
+      '<h1>'+(off>0?'<span class="pd5-tag">Sale</span>':'')+esc(shortN(x.n))+'</h1>'+(shortN(x.n)!==x.n?'<div class="pd5-short" style="font-size:12px">Tên trên sàn: '+esc(x.n)+'</div>':'')+
       '<div class="pd5-short">'+esc(x.shopName||n.label)+'</div>'+
       '<div class="pd5-rate">'+stars+'<span>( '+(total?total.toLocaleString('vi-VN'):0)+' )</span><i aria-hidden="true"></i><span>Đã bán: '+esc(sold)+'</span></div>'+
-      '<div class="pd5-price"><b>'+vnd(x.price)+'</b>'+(off>0?'<s>'+vnd(x.old)+'</s>':'')+'</div>'+
+      '<div class="pd5-price"><b>'+vnd(x.price)+'</b>'+(off>0?'<s>'+vnd(x.old)+'</s>':'')+'</div>'+checkHtml()+
       '<div class="pd5-var">'+
       (colT>=0?'<div><div class="pd5-lab" id="pd-cl-lab"></div><div id="pd-cl"></div></div>':'')+
       (szT>=0?'<div><div class="pd5-lab n"><span id="pd-sz-lab"></span></div><div id="pd-sz"></div></div>':'')+
@@ -1022,7 +1028,7 @@ function applyStore(d){
     var ps=d.items.filter(function(x){return x.niche===n.id&&!x.soldOut&&x.price>0;}).map(function(x){
       var c=null; n.cats.forEach(function(cc){if(cc[0]===x.cat) c=cc;});
       STORE_BY[x.id]={x:x,niche:n};
-      return {pid:x.id,n:shortN(x.n),full:x.n,note:NOTE[x.id]||'',price:x.price,old:x.old>x.price?x.old:x.price,good:0,rating:x.rating?String(x.rating).replace('.',','):'',sold:x.sold||0,
+      return {pid:x.id,n:shortN(x.n),full:x.n,note:NOTE[x.id]||'',price:x.price,old:x.old>x.price?x.old:x.price,good:x.verd==='good'?1:0,avg:x.avg||0,rating:x.rating?String(x.rating).replace('.',','):'',sold:x.sold||0,
         shape:c?c[1]:null,tint:c?c[2]:'#F2F0EE',ink:c?c[3]:'#C9C2BC',sw:[],plat:SP,link:x.link,img:x.img,cat:x.cat||'',kc:kwCat(n.id,x.n)};
     }).sort(function(a,b){return b.sold-a.sold;});
     /* 20/10: Bán chạy nhất = Tất cả + ô chủ đề theo danh mục anh Nhật đặt trên collshp (số 1–5 = ngách, giữ đúng thứ tự) */
@@ -1045,8 +1051,12 @@ function withHH(d){
     var M={}, day=0; (rs||[]).forEach(function(r){ if(r&&r.items){ day=r.day||day; for(var k in r.items) M[k]=r.items[k]; } });
     var last=function(k){ var a=M[k]; if(!a||!a.length) return null; var t=a[a.length-1]; return day-t[0]<=2?t:null; };
     d.items.forEach(function(x){ if(!x.shop) return; var k='sp:'+x.shop+'.'+x.id, w=last(k), a=last('ap:'+k);
+      /* 08/11: phán quyết giá thật từ kho giá 30 ngày (giống bản điện thoại /app) */
+      var h=(M[k]||[]).filter(function(t){return day-t[0]<=30&&t[1]>0;}); x.hn=h.length;
+      if(h.length>=3){ x.avg=Math.round(h.reduce(function(s2,t){return s2+t[1];},0)/h.length); x.mx=Math.max.apply(null,h.map(function(t){return t[1];})); x.mn=Math.min.apply(null,h.map(function(t){return t[1];})); }
       if(w&&w[1]>0&&w[1]<=x.old){ x.price=w[1]; if(w[2]>x.old) x.old=w[2]; }
-      if(a&&a[1]>0&&a[1]<=x.price) x.app=a[1]; });
+      if(a&&a[1]>0&&a[1]<=x.price) x.app=a[1];
+      if(x.avg) x.verd=x.price<=x.avg*0.98?'good':(x.price>=x.mx*0.99&&x.hn>5?'high':'norm'); });
     return d;
   });
 }
