@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HaoHao Store – Mua sắm không mua hớ</title>
-<meta name="description" content="HaoHao Store: sản phẩm tuyển chọn trên Shopee & TikTok Shop, giá thật, có lịch sử giá. Cài như app trên điện thoại.">
+<meta name="description" content="HaoHao Store: sản phẩm tự tay tuyển chọn trên Shopee & TikTok Shop, xem lịch sử giá từng món. Cài như app trên điện thoại.">
 <meta name="theme-color" content="#FFEBDA">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/shop/logo.webp">
@@ -152,6 +152,19 @@ var IC={
  ext:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'
 };
 var app=document.getElementById('app'), tabs=document.getElementById('tabs');
+/* 08/11: tên ngắn (bỏ [GIÁ MỞ BÁN], mã hàng, chữ HOA) · Xây dựng chia 4 nhóm kỹ sư · ẩn ngách chưa có hàng */
+function shortN(s){
+  s=String(s||'').replace(/[\[【\{][^\]】\}]*[\]】\}]/g,' ').replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu,' ').replace(/\b(?=[A-Z0-9-]*\d)(?=[A-Z0-9-]*[A-Z])[A-Z0-9-]{5,}\b/g,' ').replace(/\s*[|\/]\s*/g,' - ').replace(/\s+/g,' ').trim();
+  var L=s.replace(/[^A-Za-zÀ-ỹ]/g,''), U=L.replace(/[^A-ZÀ-Ỹ]/g,'').length;
+  if(L.length&&U/L.length>0.6) s=s.split(' ').map(function(w){return /\d/.test(w)?w:w.toLowerCase();}).join(' ');
+  s=s.charAt(0).toUpperCase()+s.slice(1);
+  var cm=s.search(/,| [-–] /); if(cm>=18) s=s.slice(0,cm);
+  if(s.length>52) s=s.slice(0,52).replace(/\s+\S*$/,'')+'…';
+  return s.replace(/[\s,\-–]+$/,'');
+}
+var XD=['Dụng cụ xây dựng','Điện nước','Hoàn thiện nhà','Bảo hộ'];
+function prepIt(x){ if(!x.full) x.full=x.n; x.n=shortN(x.full); if(x.niche==='xay-dung'){ var k=kwCat('xay-dung',x.full); if(k) x.cat=k; } }
+function NV(){ return READY&&D.items.length?NICHES.filter(function(n){return D.items.some(function(x){return x.niche===n.id;});}):NICHES; }
 var NEWS=null, D={items:[],groups:[]}, BY={}, READY=false, HH={}, HDAY=0;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function V(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
@@ -191,7 +204,7 @@ function vHome(){
   var recent=SEEN.map(function(id){return BY[id];}).filter(Boolean).slice(0,6);
   return '<header class="hero"><h1><b>Hao</b>Hao</h1><p>Mua sắm thông minh, không mua hớ cùng HaoHao</p><img src="'+LOGO+'" alt=""></header>'+
    '<form class="sbox" id="sf" role="search"><input id="q" type="search" enterkeyhint="search" placeholder="Bạn muốn tìm gì hôm nay?" aria-label="Tìm sản phẩm"><button class="sbtn" aria-label="Tìm">'+IC.search+'</button></form>'+
-   '<div class="cats">'+NICHES.map(function(n){return '<a class="cat" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></span>'+esc(n.label)+'</a>';}).join('')+'</div>'+
+   '<div class="cats">'+NV().map(function(n){return '<a class="cat" href="#/danh-muc/'+n.id+'"><span style="background:'+n.bg+'"><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></span>'+esc(n.label)+'</a>';}).join('')+'</div>'+
    (recent.length?'<section class="sec"><div class="sh"><h2>Bạn vừa xem</h2></div><div class="chips">'+recent.map(function(x){return '<a href="#/sp/'+x.id+'" style="flex:none;width:84px"><img src="'+esc(img(x))+'" alt="" loading="lazy" style="width:84px;height:84px;border-radius:14px;object-fit:cover;background:#F6EDE5"></a>';}).join('')+'</div></section>':'')+
    '<section class="sec"><div class="sh"><h2>Sản phẩm nổi bật</h2><a href="#/tim">Xem thêm ›</a></div>'+(READY?grid(pick):skel())+'</section>'+
    (NEWS&&NEWS.length?'<section class="sec"><div class="sh"><h2>📰 Cẩm nang mua sắm</h2><a href="/tin-tuc/">Xem tất cả ›</a></div><div class="chips" style="gap:10px">'+NEWS.slice(0,3).map(function(a){return '<a href="/tin-tuc/'+esc(a.slug)+'" style="flex:none;width:230px;background:#fff;border-radius:16px;overflow:hidden"><img src="'+esc(String(a.img||'').replace('w=1200','w=480'))+'" alt="" loading="lazy" style="width:230px;height:120px;object-fit:cover;background:#F6EDE5"><span style="display:block;padding:10px 12px 12px"><span style="font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--acc);text-transform:uppercase">'+esc(a.niche)+'</span><span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;font-size:13.5px;font-weight:700;line-height:1.35">'+esc(a.title)+'</span></span></a>';}).join('')+'</div></section>':'')+
@@ -200,7 +213,7 @@ function vHome(){
 var SORTS=[['lq','Liên quan'],['ban','Bán chạy'],['re','Giá thấp'],['giam','Giảm nhiều']];
 function sortList(l,s){ l=l.slice(); if(s==='ban') l.sort(function(a,b){return (b.sold||0)-(a.sold||0);}); else if(s==='re') l.sort(function(a,b){return a.price-b.price;}); else if(s==='giam') l.sort(function(a,b){return pct(b)-pct(a);}); return l; }
 function vSearch(q,s){
-  var w=fold(q).split(/\s+/).filter(Boolean), l=D.items.filter(function(x){ var t=fold(x.n+' '+x.shopName+' '+x.cat+' '+(NI[x.niche]||{}).label); return w.every(function(k){return t.indexOf(k)>=0;}); });
+  var w=fold(q).split(/\s+/).filter(Boolean), l=D.items.filter(function(x){ var t=fold((x.full||x.n)+' '+x.shopName+' '+x.cat+' '+(NI[x.niche]||{}).label); return w.every(function(k){return t.indexOf(k)>=0;}); });
   return bar('Tìm sản phẩm',true)+'<form class="sbox" id="sf" role="search" style="margin:12px 16px 0"><input id="q" type="search" enterkeyhint="search" value="'+esc(q)+'" placeholder="Bạn muốn tìm gì?" aria-label="Tìm sản phẩm"><button class="sbtn" aria-label="Tìm">'+IC.search+'</button></form>'+
    '<div class="sec" style="padding-top:12px"><div class="chips">'+SORTS.map(function(o){return '<a class="chip'+(o[0]===s?' on':'')+'" href="#/tim?q='+encodeURIComponent(q)+'&s='+o[0]+'">'+o[1]+'</a>';}).join('')+'</div>'+
    '<p style="margin:10px 0 12px;font-size:12.5px;color:var(--mute)">'+(q?'Kết quả cho “'+esc(q)+'” · '+l.length+' sản phẩm · giá thật lấy từ sàn':l.length+' sản phẩm HaoHao tuyển chọn')+'</p>'+
@@ -229,7 +242,7 @@ function applyStore(d){
 }
 var KHU={"thoi-trang": [["Áo", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mpixk3dccljga0"], ["Quần", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mtz3abieeps431"], ["Váy & đầm", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mojis1w0sphn57"], ["Áo khoác & giữ ấm", "https://down-vn.img.susercontent.com/file/vn-11134207-820l4-mgiv77bfzkzzd2"], ["Đồ bộ", "https://down-vn.img.susercontent.com/file/vn-11134207-81ztc-mtz39gacnldx2d"]], "me-be": [["Đồ bé gái", ""], ["Đồ bé trai", ""], ["Giày dép bé", ""], ["Đồ đi học", ""], ["Đồ chơi & sách", ""], ["Cho mẹ", ""]], "gia-dung": [["Bếp tiện nghi", ""], ["Nhà tinh tươm", ""], ["Không gian relax", ""], ["Điểm tô tổ ấm", ""]], "xay-dung": [["Dụng cụ xây dựng", ""], ["Điện nước", ""], ["Hoàn thiện nhà", ""], ["Bảo hộ", ""]], "qua-tang": [["Gửi người thương", ""], ["Tri ân bố mẹ", ""], ["Niềm vui cho bé", ""], ["Gắn kết bạn bè", ""]]};
 function inKhu(x,nid,t){ return x.cat===t; }
-function khuList(nid){ /* 20/10: 4 khu = 4 nhóm collshp của ngách */ return D.groups.filter(function(g){return g.niche===nid;}).map(function(g){return g.topic;}); }
+function khuList(nid){ /* 20/10: 4 khu = 4 nhóm collshp của ngách */ if(nid==='xay-dung') return XD.filter(function(t){return D.items.some(function(x){return x.niche===nid&&x.cat===t;});}); return D.groups.filter(function(g){return g.niche===nid;}).map(function(g){return g.topic;}); }
 var GRAD={'thoi-trang':['#FDE4EA','#F7B9C9','#7A3550'],'me-be':['#E4F4EC','#A8DDC2','#1F5E3E'],'gia-dung':['#FFF1CF','#F7D27A','#6B4A00'],'xay-dung':['#E2EDFB','#A9C8F0','#1E4B80'],'qua-tang':['#FDE3D6','#F6B79A','#7A2E0E']};
 function vCatList(sel){   /* 20/10: mẫu 4A – cột ngách bên trái, lưới ô tròn bên phải */
   var n=NI[sel]||NICHES[0], g=GRAD[n.id], its=D.items.filter(function(x){return x.niche===n.id;}), top=its.slice().sort(function(a,b){return (b.sold||0)-(a.sold||0);});
@@ -239,9 +252,9 @@ function vCatList(sel){   /* 20/10: mẫu 4A – cột ngách bên trái, lướ
   if(top[0]) tiles.push(['Bán chạy nhất','#/danh-muc/'+n.id+'?s=ban',API+'/shop/khu-'+({'thoi-trang':'tt-','me-be':'mb-','gia-dung':'gd-','xay-dung':'xd-','qua-tang':'qt-'}[n.id]||'')+'ban-chay-nhat.webp']);
   if(deal&&pct(deal)>=5) tiles.push(['Giảm giá nhiều nhất','#/danh-muc/'+n.id+'?s=giam',API+'/shop/khu-'+({'thoi-trang':'tt-','me-be':'mb-','gia-dung':'gd-','xay-dung':'xd-','qua-tang':'qt-'}[n.id]||'')+'giam-gia-nhieu-nhat.webp']);
   var best=top[0];
-  return '<div class="bar" style="border-bottom:0"><h1 style="font-size:22px">Danh mục<small style="display:block;font-size:12px;font-weight:500;color:var(--mute)">5 ngách HaoHao tuyển chọn và so giá</small></h1><a class="ib" href="#/tim" aria-label="Tìm kiếm">'+IC.search+'</a></div>'+
-   '<div class="dm"><nav class="dm-l" aria-label="Ngách">'+NICHES.map(function(x){var on=x.id===n.id; return '<a href="#/danh-muc?n='+x.id+'"'+(on?' class="on" aria-current="true"':'')+'><span style="background:'+x.bg+'"><img src="'+API+'/shop/ngach-'+x.id+'.webp" alt=""></span>'+esc(x.label)+'</a>';}).join('')+'</nav>'+
-   '<div class="dm-r"><a class="dm-bn" href="#/danh-muc/'+n.id+'" style="background:linear-gradient(120deg,'+g[0]+','+g[1]+')"><b>'+esc(n.full||n.label)+'</b><span style="color:'+g[2]+'">'+its.length+' món · giá đã kiểm tra</span><em>Xem tất cả ›</em><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></a>'+
+  return '<div class="bar" style="border-bottom:0"><h1 style="font-size:22px">Danh mục<small style="display:block;font-size:12px;font-weight:500;color:var(--mute)">HaoHao tự tay tuyển chọn, xem lịch sử giá từng món</small></h1><a class="ib" href="#/tim" aria-label="Tìm kiếm">'+IC.search+'</a></div>'+
+   '<div class="dm"><nav class="dm-l" aria-label="Ngách">'+NV().map(function(x){var on=x.id===n.id; return '<a href="#/danh-muc?n='+x.id+'"'+(on?' class="on" aria-current="true"':'')+'><span style="background:'+x.bg+'"><img src="'+API+'/shop/ngach-'+x.id+'.webp" alt=""></span>'+esc(x.label)+'</a>';}).join('')+'</nav>'+
+   '<div class="dm-r"><a class="dm-bn" href="#/danh-muc/'+n.id+'" style="background:linear-gradient(120deg,'+g[0]+','+g[1]+')"><b>'+esc(n.full||n.label)+'</b><span style="color:'+g[2]+'">'+its.length+' món HaoHao tuyển chọn</span><em>Xem tất cả ›</em><img src="'+API+'/shop/ngach-'+n.id+'.webp" alt=""></a>'+
    '<b style="font-size:14px">Bộ sưu tập</b><div class="dm-g">'+(READY?tiles.map(function(t){return '<a href="'+t[1]+'">'+(t[2]?'<img src="'+esc(t[2])+'" alt="" loading="lazy">':'<img src="'+API+'/shop/ngach-'+n.id+'.webp" alt="" loading="lazy" style="object-fit:contain;padding:12px;background:'+n.bg+'">')+esc(t[0])+'</a>';}).join(''):'<i class="sk" style="width:76px;height:76px;border-radius:38px"></i>')+'</div>'+
    (best?'<a class="dm-hot" href="#/sp/'+best.id+'"><span style="font-size:20px">🔥</span><span style="flex:1;min-width:0"><b>Bán chạy nhất</b><br><span>'+esc(best.n.slice(0,42))+'… · '+esc((best.soldTxt||'').replace(' đã bán',''))+' đã bán</span></span><span style="color:var(--acc);font-weight:800">›</span></a>':'')+
    '</div></div>';
@@ -249,7 +262,7 @@ function vCatList(sel){   /* 20/10: mẫu 4A – cột ngách bên trái, lướ
 /* 21/10: lọc giới tính – Thời trang: Nam/Nữ · Mẹ & Bé › Bé phong cách: Bé trai/Bé gái (nhận theo tên SP) */
 var GIOI={'thoi-trang':[['nam','Nam'],['nu','Nữ']],'be':[['trai','Bé trai'],['gai','Bé gái']]};
 function gKind(id,topic){ return id==='thoi-trang'?'thoi-trang':(id==='me-be'&&/phong cach/.test(fold(topic))?'be':''); }
-function gOf(x){ if(x._g) return x._g; var t=' '+fold(x.n).replace(/[^a-z0-9]+/g,' ')+' ', g={};
+function gOf(x){ if(x._g) return x._g; var t=' '+fold(x.full||x.n).replace(/[^a-z0-9]+/g,' ')+' ', g={};
   t=t.replace(/ viet nam /g,' ').replace(/ nam cham /g,' ').replace(/ mien nam /g,' ').replace(/ phuong nam /g,' ');
   var both=/ unisex | nam nu | nu nam /.test(t);
   if(both||/ nam | men | mens | cho nam /.test(t)) g.nam=1;
@@ -320,7 +333,7 @@ function vDetail(id){
   var tiers=(x.tiers||[]).filter(function(t){return t.options&&t.options.length;}).slice(0,2);
   return '<div class="gwrap"><div class="gal" id="gal">'+ims.map(function(u,i){return '<img src="'+esc(u)+'" alt="'+(i?'':esc(x.n))+'"'+(i?' loading="lazy"':'')+'>';}).join('')+'</div><span class="gcnt" id="gcn">1/'+ims.length+'</span>'+
    '<div class="gtop"><button class="ib" type="button" data-back aria-label="Quay lại">'+IC.back+'</button><span style="display:flex;gap:8px"><button class="ib" type="button" id="shr" aria-label="Chia sẻ">'+IC.share+'</button><button class="ib hrt" style="position:static;width:40px;height:40px;border-radius:20px" type="button" data-fav="'+x.id+'" aria-pressed="'+isFav(x.id)+'" aria-label="Lưu yêu thích">'+IC.heartS+'</button></span></div></div>'+
-   '<div class="dt"><h1>'+esc(x.n)+'</h1><div class="pr" style="margin-top:8px"><b>'+V(x.price)+'</b>'+(x.old>x.price?'<s style="font-size:14px">'+V(x.old)+'</s>':'')+(o>=1?'<span class="pct">−'+o+'%</span>':'')+'</div>'+
+   '<div class="dt"><h1>'+esc(x.n)+'</h1>'+(x.full&&x.full!==x.n?'<p style="margin:4px 0 0;font-size:12px;color:var(--mute);line-height:1.4">Tên trên sàn: '+esc(x.full)+'</p>':'')+'<div class="pr" style="margin-top:8px"><b>'+V(x.price)+'</b>'+(x.old>x.price?'<s style="font-size:14px">'+V(x.old)+'</s>':'')+(o>=1?'<span class="pct">−'+o+'%</span>':'')+'</div>'+
    (app?'<div style="margin-top:6px;font-size:13px;color:var(--ok);font-weight:700">📱 Mua trên app Shopee còn khoảng '+V(app)+'</div>':'')+
    '<div class="row" style="margin-top:8px">'+(x.rating?'<span style="color:#E8A100">★</span><b style="color:var(--ink)">'+x.rating+'</b>'+(x.rc&&x.rc[0]?' ('+x.rc[0].toLocaleString('vi-VN')+' đánh giá)':''):'')+(x.soldTxt?' · '+esc(x.soldTxt):'')+'</div>'+
    verdict(x)+
@@ -398,10 +411,10 @@ function loadHist(list){
 var STANDALONE=matchMedia('(display-mode: standalone)').matches||navigator.standalone, INST=null;
 window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); INST=e; });
 function start(d){
-  D=d&&d.items?d:D; D.items.forEach(function(x){ x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; route();
+  D=d&&d.items?d:D; D.items.forEach(function(x){ prepIt(x); x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; route();
   try{ localStorage.setItem('hh_store',JSON.stringify({at:Date.now(),items:D.items,groups:D.groups})); }catch(e){}
 }
-try{ var c=JSON.parse(localStorage.getItem('hh_store')||'null'); if(c&&c.items&&c.items.length){ D=c; D.items.forEach(function(x){ x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; } }catch(e){}
+try{ var c=JSON.parse(localStorage.getItem('hh_store')||'null'); if(c&&c.items&&c.items.length){ D=c; D.items.forEach(function(x){ prepIt(x); x.old0=x.old||x.price; BY[x.id]=x; }); READY=true; } }catch(e){}
 route();
 fetch(API+'/shop/tin-moi.json').then(function(r){return r.json();}).then(function(j){ NEWS=j; if(!(location.hash||'#/').slice(2)) route(); }).catch(function(){});
 fetch(API+'/store').then(function(r){return r.json();}).then(function(d){ if(d&&d.items&&d.items.length) start(d); else if(!READY){ READY=true; route(); } }).catch(function(){ if(!READY){ READY=true; route(); } });
