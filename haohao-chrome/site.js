@@ -393,11 +393,12 @@
       const f = $('form', 'sb-row'), em = $('input', 'sb-in'); em.type = 'email'; em.placeholder = 'gmail người cần chia sẻ'; em.setAttribute('aria-label', 'Gmail người được chia sẻ'); em.autocomplete = 'off'; em.style.flex = '1';
       const ad = $('button', 'sb-btn sm', '＋ Thêm'); f.append(em, ad); b.append(f);
       const ul = $('ul', 'sb-list sb-shl'), st = $('div', 'sb-note'); b.append(ul, st);
-      const cp = $('button', 'sb-btn ghost sm', '📋 Chép link gửi người được chia sẻ'); cp.type = 'button'; b.append(cp);
-      cp.addEventListener('click', async () => { const t = 'Mời anh/chị xem & nhập Kế hoạch, Báo cáo công trình ' + S.name + ': ' + LOGIN_URL + ' (đăng nhập bằng Gmail đã được chia sẻ)'; try { await navigator.clipboard.writeText(t); toast('📋 Đã chép link – dán vào Zalo'); } catch { st.textContent = t; } });
+      const link = LOGIN_URL + '?g=' + encodeURIComponent(String(a.email || '').toLowerCase()) + '&s=' + encodeURIComponent(S.id);   // V1.6.1: link đi thẳng vào công trình
+      const msg = em => '🏗️ ' + S.name + ' – Kế hoạch & Báo cáo:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
+      const copy = async em => { const t = msg(em); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép link – dán vào Zalo'); } catch { st.textContent = t; } };
       const show = r => { ul.replaceChildren(); if (!r.ok) { st.textContent = '⚠ ' + (r.error || 'Lỗi'); return; } st.textContent = r.list.length ? '' : 'Chưa chia sẻ cho ai.';
-        r.list.forEach(x => { const li = $('li'); li.append($('span', '', '👤 ' + x.email)); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
-      f.addEventListener('submit', async e => { e.preventDefault(); const v = em.value.trim(); if (!v) return em.focus(); ad.disabled = true; const r = await api('POST', { s: S.id, email: v }); ad.disabled = false; if (r.ok) { em.value = ''; toast('👥 Đã chia sẻ cho ' + v.toLowerCase()); } show(r); });
+        r.list.forEach(x => { const li = $('li'); li.append($('span', '', '👤 ' + x.email)); const cb = $('button', 'sb-btn sm', '📋 Chép link'); cb.type = 'button'; cb.title = 'Chép link + Gmail đăng nhập để gửi Zalo cho ' + x.email; cb.addEventListener('click', () => copy(x.email)); const sp2 = $('div'); sp2.style.flex = '1'; li.insertBefore(sp2, null); li.append(cb); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
+      f.addEventListener('submit', async e => { e.preventDefault(); const v = em.value.trim(); if (!v) return em.focus(); ad.disabled = true; const r = await api('POST', { s: S.id, email: v }); ad.disabled = false; if (r.ok) { em.value = ''; toast('👥 Đã chia sẻ cho ' + v.toLowerCase() + ' – bấm 📋 Chép link để gửi Zalo'); } show(r); });
       st.textContent = '⏳ Đang tải…'; api('GET').then(show);
     }, () => {}, 'Đóng').row.querySelector('.ghost').style.display = 'none';
   }
