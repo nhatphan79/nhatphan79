@@ -1,4 +1,4 @@
-# Trang Chrome Web Store – HaoHao V1 (soạn 21/10/2026, cập nhật V1.2.3)
+# Trang Chrome Web Store – HaoHao V1 (soạn 21/10/2026, cập nhật 08/11 cho gói V1.6.1 – KHÔNG có tab Công trình)
 
 Tên và mô tả ngắn nằm trong `haohao-chrome/manifest.json` (tự lên Store khi nộp bản mới). Phần dưới anh dán tay vào Developer Dashboard → Store listing.
 
@@ -24,20 +24,22 @@ HaoHao là chú hamster trợ lý ngay trong Chrome – giúp bạn nhớ việc
 • Pomodoro 25 / 45 / 60 phút, nhạc nền
 
 🌐 ĐỌC & DỊCH
-• Dịch nhanh, tóm tắt trang, giải thích chữ bôi đen
-• Phụ đề YouTube
+• Bôi đen là dịch, dịch cả trang, dịch song ngữ bằng AI Gemini
+• Tóm tắt trang, giải thích chữ bôi đen, dịch phụ đề video
 
 🔄 HAOHAO CONVERT
-• Kéo file vào Tab mới – đổi ảnh, PDF, Word, Excel trong máy
-• Scan giấy tờ, xoá nền ảnh, nén, đóng logo
+• Kéo file vào Tab mới – đổi qua lại ảnh, PDF, Word, Excel ngay trong máy, không tải file lên mạng
+• PDF sang Word giữ nguyên bố cục, Excel sang PDF giống bản in
+• Gộp / tách PDF, scan giấy tờ bằng ảnh chụp điện thoại
+• Xoá nền ảnh bằng AI, đóng logo, chỉnh ảnh đúng kích thước sàn TMĐT, nén ảnh
 
 🛍️ MUA SẮM THÔNG MINH
-• Chấm điểm shop Shopee / TikTok Shop
-• So giá, lịch sử giá, mã giảm giá
+• Chấm điểm shop Shopee / TikTok Shop, phát hiện sale ảo
+• So giá, lịch sử giá, gợi ý mã giảm giá & mã vận chuyển, Chợ voucher
 
 🧩 TIỆN ÍCH
 • Giá vàng, chứng khoán, crypto
-• Chặn quảng cáo
+• Chặn quảng cáo, kể cả quảng cáo YouTube
 • Chuyển ảnh iPhone ⇄ máy tính (app HaoHao Transfer)
 
 ⭐ MIỄN PHÍ 100% – MỞ KHOÁ MỖI TUẦN
