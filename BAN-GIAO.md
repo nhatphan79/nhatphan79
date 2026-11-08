@@ -1,6 +1,16 @@
 # Bàn giao HaoHao
 
-Cập nhật: 21/10/2026 · 3 sản phẩm, ghi riêng từng phần: **HaoHao V1** (tiện ích Chrome) bản **V1.2.1** (1.10.369) · **Web cửa hàng** haohaostore.com · **HaoHao V2** (app Windows) bản **2.0.0**. ⚠️ V1 từ V1.78 chỉ còn 1 bản = bản Chrome Web Store · ✅ Store đã xuất bản công khai V1.79 (thấy 21/10)
+Cập nhật: 08/11/2026 (anhnhatpro79) · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
+
+## ⭐ Đọc trước – tóm tắt 01/11 → 08/11
+- **🏗️ Công trình (SITE BRAIN, `haohao-chrome/site.js` + `sitebot.js`) là phần RIÊNG của anh Nhật** – không đưa vào bài giới thiệu / quảng bá HaoHao (anh 08/11). Trang điện thoại: `https://haohao-gia.nhatphan79.workers.dev/cong-trinh` (đăng nhập Google, đồng bộ máy tính ⇄ điện thoại qua `/sb`, gộp 3 chiều trong `sbsync.js`). site.js/site.css/sbsync.js chép thêm vào `haohao-shop-web/ct/` mỗi lần sửa.
+- **Bot Zalo (máy chủ tự gửi, kể cả tắt máy):** 7h tổng quan · 8h cảnh báo chậm tiến độ · 14h kế hoạch ngày mai · **thứ 7 8h kế hoạch tuần tới** (đổi được trong 🤖 Bot Zalo).
+- **👥 Chia sẻ công trình (V1.6.0):** nút 👥 Chia sẻ → nhập Gmail; người đó đăng nhập /cong-trinh → mục "👥 Được chia sẻ" → chỉ thấy 🗓️ Kế hoạch + 📑 Báo cáo (+ Quân số), nhập được; không thấy chi phí. Máy chủ: `/sb/share`, `/sb/shared`, `/sb?ns=g&o=&s=` (bảng D1 `sbsh`). Dòng họ thêm có `gx` = Gmail người nhập.
+- **Không nộp Chrome Web Store bản mới** (anh 08/11, mục 6 "không"). Các bản V1.2.5 → V1.6.0 chỉ chạy trên máy anh.
+- **Deploy máy chủ** (`server/haohao-gia-worker.js`): mở trình soạn Cloudflare `dash.cloudflare.com/d384347b632bd975d26fbf4cb5e10bf4/workers/services/edit/haohao-gia/production` bằng Claude in Chrome → JS tạo ô textarea tạm, nạp code từ raw GitHub theo mã commit → chép → dán vào trình soạn → kiểm số dòng cuối → bấm Deploy, thấy "Version saved". Cloudflare hay bắt đăng nhập lại → nhờ anh đăng nhập.
+- **Chép sang máy anh:** cp vào thư mục MỚI `/mnt/user-data/outputs/vXXXX/` → `device_commit_files` (force) → so md5 trên máy (dùng lại thư mục cũ từng làm máy nhận file cũ).
+- **Canvas thiết kế Store** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj) nằm ở tài khoản **nhatphan79** – tài khoản anhnhatpro79 không mở được; khi đó làm trang thử ẩn `haohao-shop-web/ban-thu.html` (xem tại haohaostore.com/shop/ban-thu.html), anh nói "lên" mới chép sang index.html, xong thì xoá trang thử.
+- **Web cửa hàng lấy hàng tự động từ collshp.com/haohaostore** 6 giờ/lần; anh Nhật TỰ CHỌN món trên collshp (đặt số 1–5 đầu tên danh mục = ngách). Không cần danh sách ~100 shop nữa.
 
 ## Sang tài khoản Claude khác thì làm gì
 1. Trong Claude: liên kết GitHub (Settings → Connectors → GitHub), cho phép kho `nhatphan79/nhatphan79`.
@@ -42,6 +52,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Luật làm việc với anh
 **GHI THEO 3 SẢN PHẨM (anh Nhật 21/10):** mọi cập nhật và báo cáo ghi rõ thuộc **HaoHao V1** (tiện ích), **Web cửa hàng** (haohaostore.com + /app) hay **HaoHao V2** (app Windows); mỗi phần có bảng Đã làm riêng bên dưới.
 **LUẬT SỐ 1 (anh Nhật 20/10):** Anh nhắn gì, Claude cũng phải nói lại ý mình hiểu, đưa gợi ý, rồi hỏi anh. Anh đồng ý mới làm. Không tự chạy, không tự làm thêm.
+0a. **V2 (app Windows) DỪNG (08/11)** – không làm, không nhắc. Bài giới thiệu tính năng HaoHao: KHÔNG có Công trình, KHÔNG có V2.
 0. **2 tài khoản Claude thay ca:** nhatphan79 làm thứ 7 → thứ 2; anhnhatpro79 làm thứ 3 → thứ 6. Thứ 6 tài khoản anhnhatpro79 phải cập nhật file này để bàn giao cho nhatphan79.
 0b. **HaoHao Store: sửa trên canvas thiết kế trước** (claude.ai/artifact/AMySxR8QwGV6FvApvRDQhj); chỉ khi anh nói "lên" mới đẩy web thật.
 1. **Trước khi sửa: gợi ý ngắn sẽ làm gì → anh đồng ý mới làm.** Anh nói thẳng "làm X" thì làm đúng X, không bày thêm.
@@ -57,6 +68,12 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.6.0 (1.10.415) | 04/11 | 👥 **Chia sẻ công trình cho Gmail khác** – xem + nhập Kế hoạch & Báo cáo (xem tóm tắt đầu file). Chép máy anh + máy chủ + /cong-trinh. |
+| V1.5.18 (1.10.414) | 04/11 | Bot Zalo gửi **Kế hoạch tuần tới** (mặc định T7 8h; chọn thứ/giờ, bật/tắt trong 🤖 Bot Zalo) – tiện ích + máy chủ (`weekText`). |
+| V1.5.17 (1.10.413) | 04/11 | Công việc: bỏ dòng chữ phụ, bộ lọc lên cùng dòng tiêu đề. Vật tư: cột **Người đề xuất** (gợi ý tên, mặc định người lần trước `data.lastBy`), hiện cả ở Kế hoạch + tin Zalo. |
+| V1.5.10 → V1.5.16 | 04/11 | Báo cáo ngày theo mẫu A–D (A Nhân lực từ Quân số · B Công việc thi công · C Nghiệm thu · D Vướng mắc & đề xuất; B/C/D nhập kiểu todo, tự gợi ý từ Kế hoạch); bỏ tab Nhật ký → Báo cáo (Ngày/Tuần/Tháng); tab 🗓️ **Kế hoạch** (Ngày/Tuần: Thi công · Công việc · Cần giải quyết · Vật tư cần về, chép Zalo); việc tới hạn hiện đỏ; bot Zalo 7h/8h/14h. |
+| V1.5.3 → V1.5.9 | 04/11 | Báo cáo xoá dòng tự điền; Vật tư 📁 thư mục; Tiến độ cột Ghi chú/lý do (lớp `pnote`); ô chữ tự giãn; danh sách tên người tự nhớ; **Nhân lực = bảng Quân số ngày** (I BCH · II Tổ đội · III Công nhật, thêm/sửa/xoá ngay trong bảng) + tổng hợp tháng sửa từng ô. |
+| V1.2.5 → V1.5.2 | 01–03/11 | Tab 🏗️ **Công trình (SITE BRAIN)**: tiến độ dạng cây + biểu đồ tuần, công việc theo bộ phận, báo cáo tuần/tháng (in PDF, Zalo), cây thư mục hồ sơ 00–11/99, bot Zalo + lệnh tq/hn/vd/xong/them; đồng bộ theo tài khoản Google (Công trình, Todo + Nhắc ns=todo, Dự án ns=proj); trang điện thoại /cong-trinh; máy chủ tự gửi Zalo (V1.5.0). |
 | V1.2.4 (1.10.372) | 22/10 | Chặn quảng cáo → Trang không chặn: thêm trang đã có sẵn trong mặc định (world.xyz, haohaostore.com, fomo.family…) nay báo "✓ đã nằm sẵn…" thay vì im lặng (trang mặc định vẫn ẩn khỏi danh sách); trùng trang đã thêm cũng báo. Tab mở ra từ trang không chặn được bỏ canh ngay lúc tạo tab (trước đây đọc URL trang gốc muộn, trang gốc chuyển đi thì có thể bị đóng nhầm). Chưa nộp Store, chưa chép máy anh – **anh dặn 22/10: chờ V1.2.3 duyệt xong mới cập nhật, trong lúc chờ cứ sửa và đẩy GitHub**. |
 | V1.2.3 (1.10.371) | 21/10 | ☕ Mã QR ủng hộ cà phê ở trang Giới thiệu (Cài đặt): VietQR BIDV 8889763829, không ghi số tiền – khách tự nhập, nội dung "Ung ho HaoHao". Link thẳng: options.html#cafe. Ủng hộ không thay cho mở khoá tuần. Gói Store: da-nop/HaoHao-Store-V1.2.3.zip. **Đã gửi Store xem xét 21/10 18:46** (tự xuất bản khi duyệt xong; mô tả, danh mục, hướng dẫn thử nghiệm đã cập nhật theo CWS-MO-TA.md). |
 | V1.2.2 (1.10.370) | 21/10 | Bỏ gói Pro, HaoHao miễn phí. Khoá tuần: từ 0h thứ 6 HaoHao tái nhạt, khoá toàn bộ (bảng hamster, Tab mới, Convert, chặn quảng cáo; lời nhắc giữ lại, mở khoá thì báo bù). Mở khoá = ghé 4 chỗ: haohaostore.com, trưng bày Shopee, trưng bày TikTok Shop, fanpage → mở tới 0h thứ 6 sau. Máy cài mới được dùng tới thứ 6 (ít nhất 3 ngày). Máy chủ app (có khoá AT/RH) không bị khoá, xem thử ở Tiện ích → bảng mở khoá. File mới weeklock.js. Chưa nộp Store. |
@@ -213,6 +230,9 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – Web cửa hàng (haohaostore.com + /app, máy chủ) – mới nhất trước
 | Ngày | Đã sửa |
 | --- | --- |
+| Web 08/11 | **Sửa theo góp ý 4 điểm** (máy tính + /app): bỏ lời hứa chưa làm được ("giá thật", "lịch sử giá 30 ngày", "không đẩy giá trước sale"); bỏ số liệu giả (★4,8 · đã bán 1,2k tự điền) và nhãn "Giá tốt" giả (chỉ là giảm >20%); bộ lọc Sale = "Giảm từ 20%"; ẩn ngách / mục chưa có hàng; khu chủ đề không lấy món khác bù chỗ trống; **tên ngắn** `shortN()` (bỏ [..], mã hàng, chữ HOA; trang chi tiết /app ghi "Tên trên sàn"); **Xây dựng chia 4 nhóm** Dụng cụ · Điện nước · Hoàn thiện nhà · Bảo hộ theo `KWCAT`. Ô nhận xét `NOTE{id:…}` có sẵn (anh: không cần viết). |
+| Máy chủ 04/11 | Deploy: `/sb/share`, `/sb/shared`, `/sb?ns=g` (chia sẻ công trình); bot Zalo kế hoạch ngày mai 14h (`planText`) + kế hoạch tuần (`weekText`, cấu hình `wkOn/wkDay/wkTime`); vật tư ghi người đề xuất. |
+| Máy chủ 01–02/11 | `/sb` (Công trình theo Google, D1 `sb`,`sbs`,`sbp`), `/sb?ns=todo|proj`, `/cong-trinh`, `/ct/*`, Zalo `sbz` + cron mỗi phút (nhắc Todo + gửi tổng quan / cảnh báo). |
 | Web 21/10 sáng | **Điện thoại `/app` – lọc giới tính** (canvas màn 4b, 4c): ngách **Thời trang** có thanh **Tất cả · Nam · Nữ**; **Mẹ & Bé › Bé phong cách** có thanh **Tất cả · Bé trai · Bé gái** (`?g=nam|nu|trai|gai`). Nhận theo tên SP: nam/men, nữ/women, unisex/nam nữ → cả hai; bé trai/boy, bé gái/girl, đồ bé không ghi → cả hai; bỏ qua "Việt Nam", "nam châm". Bản máy tính giữ nguyên. |
 | Web 21/10 | Dịch vụ dịch cho tiện ích: máy chủ `/dich` sửa lỗi gửi 1 câu bị dính ",en" vào bản dịch (Deploy 21/10). |
 | Web 20/10 tối | **Điện thoại `/app`** (PWA, 8 màn theo canvas; máy điện thoại vào haohaostore.com tự chuyển `/app`, `?desktop=1` giữ bản máy tính); Danh mục mẫu 4A (4 khu = 4 nhóm collshp + Bán chạy nhất + Giảm giá nhiều nhất); bộ lọc Ưu đãi; Cá nhân rút gọn; Tin mới ở trang chủ (`tin-moi.json`). **Biểu tượng 3D** các khu cho cả máy tính + điện thoại (ảnh `khu-*.webp`); ô Bán chạy nhất / Giảm giá nhiều nhất nền theo màu ngách. **SEO** bước 1–2: máy chủ dựng sẵn tiêu đề, mô tả, dữ liệu cấu trúc + sitemap sản phẩm; Search Console đã xác minh bằng bản ghi TXT (KHÔNG xoá). Bước 3–4 (bài theo từ khoá, Google Maps cho Tiệm) anh để sau. Ẩn phần dựng sẵn khi mở trang (hiện "Đang tải"), bộ báo lỗi bỏ qua lỗi của tiện ích khác. Nút "Cài HaoHao miễn phí" → `/cai-dat` với gạch đầu dòng theo ngách. Ảnh thẻ ngách thật, Tin tức ảnh bìa người Việt. |
@@ -222,6 +242,8 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 | Máy chủ 19/10 | `/store`: đọc danh mục chủ app trên collshp.com/haohaostore (GraphQL công khai, cần `cid:'vn'`), 6 giờ/lần theo cron, chỉ lấy món trong danh mục (bỏ "Có thể bạn thích"); danh mục → 5 ngách web theo từ khoá tên, món → mục nhỏ theo từ khoá tên món; ghi giá vào kho `gia`. `/store?run=1&key=STATS_KEY` chạy ngay. Dùng cho web HaoHao Store. Cần Deploy |
 
 ## Đã làm – HaoHao V2 (app Windows) – mới nhất trước
+⛔ **08/11: anh Nhật dừng hẳn, không làm app Windows nữa.** Mã nguồn để nguyên trong `haohao-v2/`.
+
 | Bản | Đã sửa |
 | --- | --- |
 | 2.0.0 (21/10) – đợt 1 | App Electron cho Windows, file cài `HaoHao-V2-Setup-2.0.0.exe` (88 MB, chưa ký số → Windows hỏi "Run anyway"). Khay hệ thống + tự chạy khi bật máy (`--hidden`), bấm ✕ thu xuống khay. Mục **Việc cần làm** (gõ kèm giờ tự hẹn), **Nhắc nhở** (hằng ngày / cứ N phút / 1 lần / âm lịch, mặc định Uống nước, Thắp hương, Tan làm), **Note**, **Dự án** (chạy nguyên `proj.js` của tiện ích qua chrome.storage giả lập), **Cài đặt**. Thông báo Windows kể cả khi tắt Chrome. Dữ liệu cùng khuôn tiện ích (`todos`, `rules`, `ideas`, `ideaSeq`, `projBoard`) lưu `AppData\Roaming\HaoHao V2\haohao-data.json`. **Máy chủ đồng bộ** `127.0.0.1:47321` (`/v2/ping`, `/v2/pull?since=`, `/v2/push`), chỉ nhận tiện ích (origin chrome-extension + header `x-haohao: 1`); lần nối đầu gộp theo id; tiện ích nói chuyện trong 3 phút gần nhất thì app không nhắc trùng. Đã thử trên Linux + giả lập Windows; chưa thử trên Windows thật. Dự án trong app chưa khoá Pro. |
@@ -229,6 +251,13 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
+**Đợt 08/11 (anh duyệt):**
+- [ ] V1: link chia sẻ công trình đi thẳng `…/cong-trinh?g=<gmail chủ>&s=<mã>` + câu gửi Zalo gọn.
+- [ ] Web: nút "🔄 Cập nhật hàng từ collshp ngay" ở trang quản lý (không phải chờ 6 giờ).
+- [ ] Web máy tính: nhãn "🟢 Giá tốt – thấp nhất 30 ngày" thật từ kho giá + độ tin cậy shop (bản /app đã có lịch sử giá).
+- [ ] Anh tự chọn thêm hàng trên collshp (Quà tặng đang trống → đang ẩn).
+- ❌ Anh bỏ 08/11: nhận xét từng món · nộp Store bản mới · đăng bài giới thiệu · app Windows V2.
+
 **HaoHao V1**
 - ✅ **HaoHao Convert: MIỄN PHÍ** (anh Nhật 21/10) – không khoá Pro dù nằm trong Tiện ích.
 - [ ] Báo "HaoHao vừa cập nhật, bấm F5" (cần cho cả máy anh – cập nhật nhiều lần/ngày – lẫn khách Store khi Chrome tự cập nhật): đã giải thích 21/10, **chờ anh bảo làm**.
