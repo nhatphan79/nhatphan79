@@ -252,11 +252,13 @@ Bỏ, không làm: gửi ảnh từ máy tính sang iPhone.
 
 ## Việc đang chờ
 **Đợt 08/11 (anh duyệt):**
-- [ ] V1: link chia sẻ công trình đi thẳng `…/cong-trinh?g=<gmail chủ>&s=<mã>` + câu gửi Zalo gọn.
-- [ ] Web: nút "🔄 Cập nhật hàng từ collshp ngay" ở trang quản lý (không phải chờ 6 giờ).
-- [ ] Web máy tính: nhãn "🟢 Giá tốt – thấp nhất 30 ngày" thật từ kho giá + độ tin cậy shop (bản /app đã có lịch sử giá).
+- ✅ V1.6.1: link chia sẻ đi thẳng `…/cong-trinh?g=<gmail chủ>&s=<mã>`, nút 📋 Chép link từng người (kèm Gmail đăng nhập).
+- ✅ Web: trang **haohaostore.com/shop/cap-nhat.html** – nút "🔄 Cập nhật hàng từ collshp ngay" (anh dán STATS_KEY 1 lần, trình duyệt nhớ) + bảng số món từng ngách.
+- ✅ Web máy tính: nhãn "Giá tốt" thật (giá ≤ 98% trung bình 30 ngày trong kho giá, cần ≥3 điểm giá), ô "HaoHao kiểm tra giá" + "Độ tin cậy" (theo sao + số đánh giá) ở trang sản phẩm; bộ lọc Sale "Giá tốt" dùng lại nhãn thật.
+- [ ] **Chrome Web Store V1.6.1**: gói `haohao-store/da-nop/HaoHao-Store-V1.6.1.zip` (máy anh: `_nop-store/HaoHao-Store-V1.6.1.zip`) – **KHÔNG có tab Công trình** (`dong-goi-store.py` bỏ site.js/site.css + nút; sitebot.js giữ vì lo đồng bộ Todo/Dự án). Chờ anh tải lên Dashboard + dán mô tả mới `CWS-MO-TA.md`.
+- [ ] Bài giới thiệu tính năng cho fanpage (không Công trình, không V2): đã viết, chờ anh đăng.
 - [ ] Anh tự chọn thêm hàng trên collshp (Quà tặng đang trống → đang ẩn).
-- ❌ Anh bỏ 08/11: nhận xét từng món · nộp Store bản mới · đăng bài giới thiệu · app Windows V2.
+- ❌ Anh bỏ 08/11: nhận xét từng món · app Windows V2.
 
 **HaoHao V1**
 - ✅ **HaoHao Convert: MIỄN PHÍ** (anh Nhật 21/10) – không khoá Pro dù nằm trong Tiện ích.
