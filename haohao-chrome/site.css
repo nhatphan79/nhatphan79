@@ -553,6 +553,15 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-boqfl td { background: #FBFCFE; color: #4B5563; font-size: 12px; padding: 3px 8px; }
 .sb-boqfn { padding-left: 26px !important; } .sb-boqfn input[type=checkbox] { vertical-align: middle; accent-color: #1F7A4A; }
 /* 🙈 V1.7.2: chế độ ẩn đơn giá / thành tiền */
+.sb-boqnc { min-width: 220px; } .sb-boqn0 { color: var(--soft); user-select: text; }
+.sb-boqmn, .sb-boqwhy { display: block; width: 100%; min-height: 26px; margin-top: 4px; padding: 3px 6px; font: inherit; font-size: 12px; resize: none; overflow: hidden; line-height: 1.4; }
+.sb-boqmn { border-style: dashed; background: #FFFDF7; color: var(--ink, #1E1A17); }
+.sb-boqwhy { border: 1.5px solid #C4401F; background: #FFF5F2; color: #7A2410; }
+.sb-boqovt { margin-top: 4px; color: #C4401F; font-weight: 800; }
+.sb-boq td.bad { color: #C4401F; font-weight: 800; } .sb-boq td.bad .sb-boqin { color: #C4401F; border-color: #C4401F; font-weight: 800; }
+.sb-boq tr.sb-boqov > td { background: #FDECE7 !important; } .sb-boq tr.sb-boqov2 > td { background: #FFF6EC !important; }
+.sb-boq tr.sb-boqov2 .sb-boqwhy { border-color: #E8A15C; background: #fff; color: #7A4A10; }
+.sb-boqwarn { margin: 6px 0; padding: 8px 12px; border-radius: 10px; background: #FDECE7; color: #C4401F; font-weight: 800; font-size: 13px; } .sb-boqwarn.ok { background: #FFF3E4; color: #A65A06; }
 .sb-boq.nop .pz { display: none; } .sb-boq.nop { min-width: 760px; }
 /* ℹ️ V1.7.3: tab Thông tin */
 .sb-dmvt { min-width: 1150px; } .sb-dmvt td { font-size: 12.5px; }
