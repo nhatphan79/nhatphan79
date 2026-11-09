@@ -106,7 +106,7 @@
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
   const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['kh', '🗓️ Kế hoạch'], ['crew', '👷 Nhân lực'],
-    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ']];
+    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['sd', '📐 Shopdrawing'], ['qa', '✅ QA/QC']];
 
   function newSite(name, code) {
     const s0 = today();
@@ -1209,6 +1209,33 @@
     }, () => { chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id }).catch(() => {}); }, '⚙️ Mở cài đặt HaoHao');
   }
   const folderName = S => (S.code || 'DA001') + '_' + (S.name || 'CONG_TRINH').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
+  // V1.6.5: Shopdrawing và QA/QC thành 2 tab riêng
+  function shopdraw(W, S) {
+    // 📐 V1.6.4: hồ sơ Shopdrawing
+    { const L0 = S.shops, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ duyệt', L0.filter(x => x.st === 'tr').length], ['late', 'Quá hạn', L0.filter(sdLate).length], ['sua', 'Đang vẽ / sửa', L0.filter(x => x.st === 've' || x.st === 'tl').length], ['ok', 'Đã duyệt', L0.filter(x => x.st === 'ok' || x.st === 'yk').length]];
+      const h = sec(W, '📐 Hồ sơ Shopdrawing'); h.classList.add('sb-sechf'); const fs = flt.sd || 'all';
+      h.append(chips(F, fs, v => { flt.sd = v; render(true); }));
+      const pk = { all: () => true, cho: x => x.st === 'tr', late: sdLate, sua: x => x.st === 've' || x.st === 'tl', ok: x => x.st === 'ok' || x.st === 'yk' }[fs] || (() => true);
+      W.append(table(L0.filter(pk), [
+        { k: 't', lb: 'Tên bản vẽ / hạng mục', t: 'text', ph: 'Cốt thép dầm sàn tầng 3', rr: false }, { k: 'code', lb: 'Mã bản vẽ', t: 'text', w: '110px', rr: false }, { k: 'rev', lb: 'Lần', t: 'text', w: '52px', ph: 'R0', rr: false },
+        { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px' }, { k: 'due', lb: 'Hạn duyệt', t: 'date', w: '128px' }, { k: 'st', lb: 'Trạng thái', t: 'sel', o: SDST, w: '138px' },
+        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
+      ], { list: S.shops, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), t: '', code: '', rev: 'R0', d: today(), due: addD(today(), 7), st: 've', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm bản vẽ', empty: 'Không có bản vẽ nào ở bộ lọc này',
+        cls: x => (x.st === 'ok' || x.st === 'yk' ? 'done' : '') + (sdLate(x) ? ' late lateBg' : '') })); }
+  }
+  function qaqc(W, S) {
+    // ✅ V1.6.4: hồ sơ QA/QC
+    { const L0 = S.qas, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ', L0.filter(x => x.res === 'cho').length], ['bad', 'Không đạt / NCR', L0.filter(qaBad).length], ...QTYPE.map(([v, l]) => [v, l, L0.filter(x => x.type === v).length])];
+      const h = sec(W, '✅ Hồ sơ QA/QC'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
+      h.append(chips(F, fs, v => { flt.qa = v; render(true); }));
+      const pk = fs === 'all' ? () => true : fs === 'cho' ? x => x.res === 'cho' : fs === 'bad' ? qaBad : x => x.type === fs;
+      W.append(table(L0.slice().sort((a, b) => String(b.d || '').localeCompare(String(a.d || ''))).filter(pk), [
+        { k: 'type', lb: 'Loại', t: 'sel', o: QTYPE, w: '170px' }, { k: 't', lb: 'Nội dung / vị trí', t: 'area', rows: 1, ph: 'Cốt thép cột trục A1–A5 tầng 2', rr: false },
+        { k: 'd', lb: 'Ngày', t: 'date', w: '128px' }, { k: 'res', lb: 'Kết quả', t: 'sel', o: QRES, w: '124px' },
+        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
+      ], { list: S.qas, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), type: fs !== 'all' && fs !== 'cho' && fs !== 'bad' ? fs : 'ntcv', t: '', d: today(), res: 'cho', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm hồ sơ QA/QC', empty: 'Không có hồ sơ nào ở bộ lọc này',
+        cls: x => (x.res === 'dat' || x.res === 'kp' ? 'done' : '') + (qaBad(x) ? ' late lateBg' : '') })); }
+  }
   function file(W, S) {
     sec(W, '📁 Hồ sơ công trình');
     const c = card('Thư mục gốc của công trình', 'wide'), g = $('div', 'sb-fg');
@@ -1252,28 +1279,6 @@
     draw(); scan(false);
     if (!file.hooked) { file.hooked = true; window.addEventListener('focus', () => { const h = document.querySelector('.sb-fhd'); if (h && h.isConnected) h.querySelector('button').dispatchEvent(new CustomEvent('sb-rescan')); }); }
     rs.addEventListener('sb-rescan', () => scan(false));
-    // 📐 V1.6.4: hồ sơ Shopdrawing
-    { const L0 = S.shops, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ duyệt', L0.filter(x => x.st === 'tr').length], ['late', 'Quá hạn', L0.filter(sdLate).length], ['sua', 'Đang vẽ / sửa', L0.filter(x => x.st === 've' || x.st === 'tl').length], ['ok', 'Đã duyệt', L0.filter(x => x.st === 'ok' || x.st === 'yk').length]];
-      const h = sec(W, '📐 Hồ sơ Shopdrawing'); h.classList.add('sb-sechf'); const fs = flt.sd || 'all';
-      h.append(chips(F, fs, v => { flt.sd = v; render(true); }));
-      const pk = { all: () => true, cho: x => x.st === 'tr', late: sdLate, sua: x => x.st === 've' || x.st === 'tl', ok: x => x.st === 'ok' || x.st === 'yk' }[fs] || (() => true);
-      W.append(table(L0.filter(pk), [
-        { k: 't', lb: 'Tên bản vẽ / hạng mục', t: 'text', ph: 'Cốt thép dầm sàn tầng 3', rr: false }, { k: 'code', lb: 'Mã bản vẽ', t: 'text', w: '110px', rr: false }, { k: 'rev', lb: 'Lần', t: 'text', w: '52px', ph: 'R0', rr: false },
-        { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px' }, { k: 'due', lb: 'Hạn duyệt', t: 'date', w: '128px' }, { k: 'st', lb: 'Trạng thái', t: 'sel', o: SDST, w: '138px' },
-        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
-      ], { list: S.shops, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), t: '', code: '', rev: 'R0', d: today(), due: addD(today(), 7), st: 've', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm bản vẽ', empty: 'Không có bản vẽ nào ở bộ lọc này',
-        cls: x => (x.st === 'ok' || x.st === 'yk' ? 'done' : '') + (sdLate(x) ? ' late lateBg' : '') })); }
-    // ✅ V1.6.4: hồ sơ QA/QC
-    { const L0 = S.qas, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ', L0.filter(x => x.res === 'cho').length], ['bad', 'Không đạt / NCR', L0.filter(qaBad).length], ...QTYPE.map(([v, l]) => [v, l, L0.filter(x => x.type === v).length])];
-      const h = sec(W, '✅ Hồ sơ QA/QC'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
-      h.append(chips(F, fs, v => { flt.qa = v; render(true); }));
-      const pk = fs === 'all' ? () => true : fs === 'cho' ? x => x.res === 'cho' : fs === 'bad' ? qaBad : x => x.type === fs;
-      W.append(table(L0.slice().sort((a, b) => String(b.d || '').localeCompare(String(a.d || ''))).filter(pk), [
-        { k: 'type', lb: 'Loại', t: 'sel', o: QTYPE, w: '170px' }, { k: 't', lb: 'Nội dung / vị trí', t: 'area', rows: 1, ph: 'Cốt thép cột trục A1–A5 tầng 2', rr: false },
-        { k: 'd', lb: 'Ngày', t: 'date', w: '128px' }, { k: 'res', lb: 'Kết quả', t: 'sel', o: QRES, w: '124px' },
-        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
-      ], { list: S.qas, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), type: fs !== 'all' && fs !== 'cho' && fs !== 'bad' ? fs : 'ntcv', t: '', d: today(), res: 'cho', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm hồ sơ QA/QC', empty: 'Không có hồ sơ nào ở bộ lọc này',
-        cls: x => (x.res === 'dat' || x.res === 'kp' ? 'done' : '') + (qaBad(x) ? ' late lateBg' : '') })); }
     sec(W, '📌 Tài liệu hay dùng', 'Hợp đồng, bản vẽ, dự toán… – dán đường dẫn file hoặc link');
     W.append(table(S.docs, [{ k: 't', lb: 'Tên tài liệu', t: 'text', ph: 'Bản vẽ kết cấu rev2', rr: false }, { k: 'f', lb: 'Thư mục', t: 'sel', o: [['', '—'], ...mergeTree(S.fscan && S.fscan.t).flatMap(([k, v]) => [[k, k], ...v.map(([c]) => [k + '\\' + c, '   └ ' + c])]), ...[...new Set((S.docs || []).map(d => d.f))].filter(f => f && !mergeTree(S.fscan && S.fscan.t).some(([k, v]) => f === k || v.some(([c]) => f === k + '\\' + c))).map(f => [f, f + ' (cũ)'])], w: '22%' },
       { k: 'p', lb: 'Đường dẫn / link', t: 'text', ph: 'D:\\…\\ban-ve.pdf hoặc https://…', rr: false }, { k: 'op', lb: '', t: 'calc', w: '44px', f: x => { const b = $('button', 'sb-open', '↗'); b.type = 'button'; b.title = 'Mở'; b.addEventListener('click', () => x.p ? openPath(/\.[a-z0-9]{2,5}$/i.test(x.p) && !/^https?:/i.test(x.p) ? x.p.replace(/[\\/][^\\/]*$/, '') : x.p) : toast('Chưa có đường dẫn')); return b; } }],
@@ -1507,7 +1512,7 @@
   }
 
   // ---------- vẽ ----------
-  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
+  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file, sd: shopdraw, qa: qaqc };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
   let rendering = false;
   function render(force) {
     if (rendering) { setTimeout(() => render(force), 0); return; }
@@ -1519,7 +1524,7 @@
       else {
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
-        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, file: (S.shops || []).filter(x => x.st === 'tr' || sdLate(x)).length + (S.qas || []).filter(qaBad).length };   // V1.6.4: Hồ sơ = bản vẽ chờ duyệt / quá hạn + QA/QC không đạt
+        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, sd: (S.shops || []).filter(x => x.st === 'tr' || sdLate(x)).length, qa: (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
         if (GUEST && !GTABS.includes(tab)) tab = 'kh';
         TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || k === 'kh' || k === 'rep' || (k === 'crew' && tab === 'crew'))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
