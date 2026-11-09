@@ -97,6 +97,9 @@
   const S0 = () => data.sites;
   const TST = [['todo', 'Chưa làm'], ['doing', 'Đang làm'], ['wait', 'Chờ'], ['done', 'Xong']];
   const MST = [['de', 'Đề xuất'], ['duyet', 'Đã duyệt'], ['dat', 'Đã đặt'], ['ve', 'Đã về']];
+  const SDST = [['ve', 'Đang vẽ'], ['tr', 'Đã trình'], ['ok', 'Duyệt'], ['yk', 'Duyệt có ý kiến'], ['tl', 'Trả lại sửa']];   // V1.6.4: Shopdrawing
+  const QTYPE = [['ntcv', 'Nghiệm thu công việc'], ['ntgd', 'Nghiệm thu giai đoạn'], ['vl', 'Trình duyệt vật liệu'], ['tn', 'CO/CQ – thí nghiệm'], ['ncr', 'NCR']];   // V1.6.4: QA/QC
+  const QRES = [['cho', 'Chờ'], ['dat', 'Đạt'], ['ko', 'Không đạt'], ['kp', 'Đã khắc phục']];
   const ITYPE = [['ht', 'Hiện trường'], ['kt', 'Kỹ thuật'], ['td', 'Tiến độ'], ['cp', 'Chi phí'], ['pd', 'Xin phê duyệt']];
   const IST = [['mo', 'Mới'], ['xl', 'Đang xử lý'], ['cd', 'Chờ duyệt'], ['dong', 'Đã xong']];
   const WX = ['☀️ Nắng', '⛅ Mây', '🌦 Mưa nhỏ', '🌧 Mưa to', '⛔ Nghỉ'];
@@ -112,7 +115,7 @@
       plan: PHASES0.map((g, i) => ({ id: uid(), g, t: g, s: addD(s0, i * 30), e: addD(s0, i * 30 + 29), pct: 0, mile: i === 1 || i === 5 })),
       tasks: [], logs: [], teams: [], mats: [], stock: [], budget: [], costs: [], incomes: [], issues: [], docs: [] };
   }
-  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); return s; };
+  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); return s; };
 
   // ---------- tính toán ----------
   const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
@@ -823,19 +826,23 @@
       ['mat', 'Vật tư'], 'Không có vật tư nào cần về');
   }
   // V1.5.13: B. Công việc thi công – chưa nhập thì tự lấy theo Kế hoạch của chính ngày đó (hạng mục đang thi công + việc tới hạn)
+  const sdLate = x => (x.st === 'tr' || x.st === 've' || x.st === 'tl') && x.due && x.due < today();
+  const qaBad = x => x.res === 'ko' || (x.type === 'ncr' && x.res !== 'kp' && x.res !== 'dat');
+  const autoQa = (S, day) => (S.qas || []).filter(x => x.d === day && String(x.t || '').trim()).map(x => (lbl(QTYPE, x.type) ? lbl(QTYPE, x.type) + ': ' : '') + String(x.t).trim().split('\n')[0] + (x.res && x.res !== 'cho' ? ' – ' + lbl(QRES, x.res) : ''));   // V1.6.4: C. Nghiệm thu tự gợi ý từ Hồ sơ QA/QC
+  const qaText = (S, L) => L.qaSet || String(L.qa || '').trim() ? String(L.qa || '') : autoQa(S, L.d).join('\n');
   const autoWork = (S, day) => [...S.plan.filter(p => p.s && p.e && p.s <= day && day <= p.e && num(p.pct) < 100).map(p => plab(p)),
     ...S.tasks.filter(t => t.st !== 'done' && t.due === day).map(t => (t.t || '') + (t.who ? ' (' + t.who + ')' : ''))].filter(x => x.trim());
   const workText = (S, L) => L.workSet || String(L.work || '').trim() ? String(L.work || '') : autoWork(S, L.d).join('\n');
   // V1.5.14: mục nhập kiểu todo dùng chung cho B (tự lấy theo kế hoạch), C, D (tự nhập)
   const workList = (S, L, ensure) => lineList(S, L, ensure, 'work', () => autoWork(S, L.d));
-  function lineList(S, L, ensure, k, autoFn, ph) {
+  function lineList(S, L, ensure, k, autoFn, ph, srcLb = 'Kế hoạch') {
     const w = $('div', 'sb-wl'), setK = k + 'Set';
     const cur = () => autoFn && !L[setK] && !String(L[k] || '').trim() ? autoFn().join('\n') : String(L[k] || '');
     let lines = cur().split('\n').map(x => x.replace(/^[-•+–*]\s*/, '').trim()).filter(Boolean);
     const commit = () => { ensure(); L[k] = lines.filter(x => x.trim()).join('\n'); L[setK] = 1; save(); };
     const draw = (focusI) => {
       w.textContent = '';
-      if (autoFn && !L[setK] && !String(L[k] || '').trim() && lines.length) w.append($('div', 'sb-note sb-noprint', '🗓️ Tự lấy theo Kế hoạch ngày ' + fdFull(L.d) + ' – sửa, xoá ✕ hoặc thêm việc tuỳ ý.'));
+      if (autoFn && !L[setK] && !String(L[k] || '').trim() && lines.length) w.append($('div', 'sb-note sb-noprint', '🗓️ Tự lấy theo ' + srcLb + ' ngày ' + fdFull(L.d) + ' – sửa, xoá ✕ hoặc thêm tuỳ ý.'));
       const u = $('ol', 'sb-wli');
       lines.forEach((x, i) => { const li = $('li'), inp = $('input', 'sb-in'); inp.value = x; inp.setAttribute('aria-label', 'Công việc ' + (i + 1)); if (RO) inp.readOnly = true;
         inp.addEventListener('change', () => { lines[i] = inp.value.trim(); if (!lines[i]) lines.splice(i, 1); commit(); draw(); });
@@ -847,8 +854,8 @@
         ni.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addIt(); } }); ni.addEventListener('change', addIt); li.append(ni); u.append(li); }
       else if (!lines.length) u.append($('li', 'sb-none', 'Chưa có việc nào'));
       w.append(u);
-      if (!RO && autoFn) { const r = $('div', 'sb-row sb-noprint'), re = $('button', 'sb-btn ghost sm', '↺ Lấy lại theo kế hoạch'); re.type = 'button';
-        re.addEventListener('click', () => { lines = autoFn(); ensure(); L[k] = ''; delete L[setK]; save(); draw(); toast('↺ Đã lấy lại theo kế hoạch'); });
+      if (!RO && autoFn) { const r = $('div', 'sb-row sb-noprint'), re = $('button', 'sb-btn ghost sm', '↺ Lấy lại theo ' + srcLb); re.type = 'button';
+        re.addEventListener('click', () => { lines = autoFn(); ensure(); L[k] = ''; delete L[setK]; save(); draw(); toast('↺ Đã lấy lại theo ' + srcLb); });
         r.append(re); w.append(r); }
       if (focusI != null) { const x = focusI === 'new' ? w.querySelector('.sb-wnew input') : w.querySelectorAll('.sb-wli input')[focusI]; if (x) x.focus(); }
     };
@@ -867,7 +874,7 @@
     const nm = String(S.name || '').trim(), proj = /^dự án/i.test(nm) ? nm : 'Dự án ' + nm;
     const Q = dayQS(S, L.d, L), qs = qsZalo(S, L.d, Q).split('\n').slice(1);
     const out = ['Báo cáo công việc ngày ' + fdFull(L.d) + ' - ' + proj, 'Thời tiết: ' + String(L.wx || '').replace(/^[^\p{L}\d]+/u, '').trim(),
-      'A. Nhân lực: ' + Q.T + ' người', ...qs, 'B. Công việc thi công:', ...bl(workText(S, L), 'Không'), 'C. Nghiệm thu', ...bl(L.qa, 'Không'), 'D. Vướng mắc & đề xuất', ...bl(L.issue, 'Không')];
+      'A. Nhân lực: ' + Q.T + ' người', ...qs, 'B. Công việc thi công:', ...bl(workText(S, L), 'Không'), 'C. Nghiệm thu', ...bl(qaText(S, L), 'Không'), 'D. Vướng mắc & đề xuất', ...bl(L.issue, 'Không')];
     // V1.5.13: báo cáo ngày chỉ A–D (kế hoạch, vật tư xem ở tab 🗓️ Kế hoạch)
     return out.join('\n');
   }
@@ -1203,7 +1210,7 @@
   }
   const folderName = S => (S.code || 'DA001') + '_' + (S.name || 'CONG_TRINH').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
   function file(W, S) {
-    sec(W, '📁 Hồ sơ công trình', 'Hồ sơ gốc nằm trên máy / ổ đám mây – ở đây chỉ lưu đường dẫn để mở nhanh');
+    sec(W, '📁 Hồ sơ công trình');
     const c = card('Thư mục gốc của công trình', 'wide'), g = $('div', 'sb-fg');
     const dr = field(S, { k: 'dir', lb: 'Thư mục', t: 'text', ph: 'D:\\DU_AN_XAY_DUNG\\01_' + folderName(S) });
     g.append(lab('Thư mục trên máy', dr, true), lab('Link Google Drive / OneDrive (nếu có)', field(S, { k: 'drive', lb: 'Drive', t: 'text', ph: 'https://drive.google.com/…' }), true)); c.append(g);
@@ -1245,6 +1252,28 @@
     draw(); scan(false);
     if (!file.hooked) { file.hooked = true; window.addEventListener('focus', () => { const h = document.querySelector('.sb-fhd'); if (h && h.isConnected) h.querySelector('button').dispatchEvent(new CustomEvent('sb-rescan')); }); }
     rs.addEventListener('sb-rescan', () => scan(false));
+    // 📐 V1.6.4: hồ sơ Shopdrawing
+    { const L0 = S.shops, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ duyệt', L0.filter(x => x.st === 'tr').length], ['late', 'Quá hạn', L0.filter(sdLate).length], ['sua', 'Đang vẽ / sửa', L0.filter(x => x.st === 've' || x.st === 'tl').length], ['ok', 'Đã duyệt', L0.filter(x => x.st === 'ok' || x.st === 'yk').length]];
+      const h = sec(W, '📐 Hồ sơ Shopdrawing'); h.classList.add('sb-sechf'); const fs = flt.sd || 'all';
+      h.append(chips(F, fs, v => { flt.sd = v; render(true); }));
+      const pk = { all: () => true, cho: x => x.st === 'tr', late: sdLate, sua: x => x.st === 've' || x.st === 'tl', ok: x => x.st === 'ok' || x.st === 'yk' }[fs] || (() => true);
+      W.append(table(L0.filter(pk), [
+        { k: 't', lb: 'Tên bản vẽ / hạng mục', t: 'text', ph: 'Cốt thép dầm sàn tầng 3', rr: false }, { k: 'code', lb: 'Mã bản vẽ', t: 'text', w: '110px', rr: false }, { k: 'rev', lb: 'Lần', t: 'text', w: '52px', ph: 'R0', rr: false },
+        { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px' }, { k: 'due', lb: 'Hạn duyệt', t: 'date', w: '128px' }, { k: 'st', lb: 'Trạng thái', t: 'sel', o: SDST, w: '138px' },
+        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
+      ], { list: S.shops, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), t: '', code: '', rev: 'R0', d: today(), due: addD(today(), 7), st: 've', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm bản vẽ', empty: 'Không có bản vẽ nào ở bộ lọc này',
+        cls: x => (x.st === 'ok' || x.st === 'yk' ? 'done' : '') + (sdLate(x) ? ' late lateBg' : '') })); }
+    // ✅ V1.6.4: hồ sơ QA/QC
+    { const L0 = S.qas, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ', L0.filter(x => x.res === 'cho').length], ['bad', 'Không đạt / NCR', L0.filter(qaBad).length], ...QTYPE.map(([v, l]) => [v, l, L0.filter(x => x.type === v).length])];
+      const h = sec(W, '✅ Hồ sơ QA/QC'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
+      h.append(chips(F, fs, v => { flt.qa = v; render(true); }));
+      const pk = fs === 'all' ? () => true : fs === 'cho' ? x => x.res === 'cho' : fs === 'bad' ? qaBad : x => x.type === fs;
+      W.append(table(L0.slice().sort((a, b) => String(b.d || '').localeCompare(String(a.d || ''))).filter(pk), [
+        { k: 'type', lb: 'Loại', t: 'sel', o: QTYPE, w: '170px' }, { k: 't', lb: 'Nội dung / vị trí', t: 'area', rows: 1, ph: 'Cốt thép cột trục A1–A5 tầng 2', rr: false },
+        { k: 'd', lb: 'Ngày', t: 'date', w: '128px' }, { k: 'res', lb: 'Kết quả', t: 'sel', o: QRES, w: '124px' },
+        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
+      ], { list: S.qas, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), type: fs !== 'all' && fs !== 'cho' && fs !== 'bad' ? fs : 'ntcv', t: '', d: today(), res: 'cho', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm hồ sơ QA/QC', empty: 'Không có hồ sơ nào ở bộ lọc này',
+        cls: x => (x.res === 'dat' || x.res === 'kp' ? 'done' : '') + (qaBad(x) ? ' late lateBg' : '') })); }
     sec(W, '📌 Tài liệu hay dùng', 'Hợp đồng, bản vẽ, dự toán… – dán đường dẫn file hoặc link');
     W.append(table(S.docs, [{ k: 't', lb: 'Tên tài liệu', t: 'text', ph: 'Bản vẽ kết cấu rev2', rr: false }, { k: 'f', lb: 'Thư mục', t: 'sel', o: [['', '—'], ...mergeTree(S.fscan && S.fscan.t).flatMap(([k, v]) => [[k, k], ...v.map(([c]) => [k + '\\' + c, '   └ ' + c])]), ...[...new Set((S.docs || []).map(d => d.f))].filter(f => f && !mergeTree(S.fscan && S.fscan.t).some(([k, v]) => f === k || v.some(([c]) => f === k + '\\' + c))).map(f => [f, f + ' (cũ)'])], w: '22%' },
       { k: 'p', lb: 'Đường dẫn / link', t: 'text', ph: 'D:\\…\\ban-ve.pdf hoặc https://…', rr: false }, { k: 'op', lb: '', t: 'calc', w: '44px', f: x => { const b = $('button', 'sb-open', '↗'); b.type = 'button'; b.title = 'Mở'; b.addEventListener('click', () => x.p ? openPath(/\.[a-z0-9]{2,5}$/i.test(x.p) && !/^https?:/i.test(x.p) ? x.p.replace(/[\\/][^\\/]*$/, '') : x.p) : toast('Chưa có đường dẫn')); return b; } }],
@@ -1364,7 +1393,7 @@
     doc.append(qa);
     { const c = $('section', 'sb-rps'); c.append($('h2', '', 'B. Công việc thi công'), workList(S, L, ensure)); doc.append(c); }
     [['qa', 'C. Nghiệm thu', '＋ Gõ việc nghiệm thu rồi Enter… (vd: Lấy mẫu 2 mỏ đất mới, đã gửi request)'], ['issue', 'D. Vướng mắc & đề xuất', '＋ Gõ vướng mắc / đề xuất rồi Enter…']].forEach(([k, lb, ph]) => {
-      const c = $('section', 'sb-rps'); c.append($('h2', '', lb), lineList(S, L, ensure, k, null, ph)); doc.append(c);
+      const c = $('section', 'sb-rps'); c.append($('h2', '', lb), k === 'qa' ? lineList(S, L, ensure, k, () => autoQa(S, L.d), ph, 'Hồ sơ QA/QC') : lineList(S, L, ensure, k, null, ph)); doc.append(c);
     });
     if (L.rep) doc.append($('div', 'sb-note sb-noprint', '✏️ Ngày này có bản báo cáo đã sửa tay – bấm “📋 Xem & chép gửi Zalo” để xem.'));
     W.append(doc);
@@ -1490,7 +1519,7 @@
       else {
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
-        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length };
+        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, file: (S.shops || []).filter(x => x.st === 'tr' || sdLate(x)).length + (S.qas || []).filter(qaBad).length };   // V1.6.4: Hồ sơ = bản vẽ chờ duyệt / quá hạn + QA/QC không đạt
         if (GUEST && !GTABS.includes(tab)) tab = 'kh';
         TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || k === 'kh' || k === 'rep' || (k === 'crew' && tab === 'crew'))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
