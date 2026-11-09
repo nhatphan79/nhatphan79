@@ -21,6 +21,7 @@
   #hh-subs .t { color: #ffe066; font-size: clamp(14px, 2.1vw, 26px); }
   #hh-subs .t.tmp { opacity: .8; }
   #hh-subs .l:empty { display: none; }
+  #hh-subs .w { color: #fff; font-size: clamp(13px, 1.6vw, 20px); background: rgba(35,48,94,.9); }
   .hh-sub-btn { width: auto !important; padding: 0 6px !important; display: inline-flex !important; align-items: center; justify-content: center; vertical-align: top; }
   .hh-sub-btn span { font: 700 12px/1 Roboto, Arial, sans-serif; color: #fff; border: 1.6px solid #fff; border-radius: 5px; padding: 3px 5px; letter-spacing: .3px; }
   .hh-sub-btn.on span { background: #ffe066; color: #222; border-color: #ffe066; }
@@ -136,6 +137,60 @@
     if (ks.length > 20) chrome.storage.local.remove(ks.slice(0, ks.length - 20)).catch(() => {});
   }
 
+  // ---------- 🎙️ V1.6.3: video không có phụ đề – Gemini nghe TRƯỚC từng đoạn 2 phút rồi mới phát, phụ đề khớp đúng câu ----------
+  const CH = 120, vid = () => document.querySelector('#movie_player video');
+  async function listen(st) {
+    const v = vid(); if (!v) return;
+    if (!isFinite(v.duration) || v.duration <= 0) { st.msg = 'Video trực tiếp chưa dịch được'; button(); return; }
+    st.ai = true; st.to = target(); st.cues = []; st.at = -1; st.chunks = {}; st.held = false; st.key = 'hhai:' + st.v + '>' + st.to;
+    const got = await chrome.storage.local.get(st.key).catch(() => ({})), c0 = got[st.key];
+    if (c0 && c0.chunks) { st.chunks = Object.fromEntries(Object.keys(c0.chunks).map(k => [k, 'ok'])); st.cues = Object.values(c0.chunks).flat().sort((a, b) => a.s - b.s).map(c => ({ ...c, ai: true })); st.lang = c0.lang || ''; }
+    st.msg = 'HaoHao nghe & dịch video không phụ đề'; button();
+    aiLoop(st);
+  }
+  function hold(st, v, why, k) { st.wait = why; if (st.heldFor === k || v.paused) return; st.heldFor = k; v.pause(); st.held = true; st.back = Math.max(0, v.currentTime - 2); }   // mỗi đoạn chỉ dừng 1 lần – khách tự bấm phát thì để phát   // mỗi đoạn chỉ dừng 1 lần – khách tự bấm phát thì để phát
+  async function getChunk(st, k) {
+    const v = vid(); if (!v || st.chunks[k] === 'run' || st.chunks[k] === 'ok' || st.chunks[k] === 'none') return;
+    if (st.chunks[k] && st.chunks[k].err > 1 && Date.now() - st.chunks[k].at < 60e3) return;   // lỗi 2 lần → đợi 1 phút mới thử lại
+    const prev = st.chunks[k]; st.chunks[k] = 'run';
+    const from = k * CH, to = Math.min((k + 1) * CH, Math.ceil(v.duration));
+    let r = null; try { r = await chrome.runtime.sendMessage({ type: 'ai-listen', v: st.v, from, to, title: st.title, lang: st.to }); } catch {}
+    if (S !== st) return;
+    if (r && r.ok) {
+      if (r.lang && base(r.lang) === base(st.to) && k === Math.floor((vid() || v).currentTime / CH)) { st.chunks[k] = 'none'; st.msg = 'Video đã là ' + (LANG[base(st.to)] || st.to) + ', không cần dịch'; st.wait = ''; st.stop = true; release(st); button(); return; }
+      st.lang = st.lang || r.lang;
+      st.cues = st.cues.filter(c => c.s < from * 1000 || c.s >= to * 1000).concat(r.cues.map(c => ({ ...c, ai: true }))).sort((a, b) => a.s - b.s); st.at = -1;
+      st.chunks[k] = r.cues.length ? 'ok' : 'none';
+      const all = {}; st.cues.forEach(c => { const kk = Math.floor(c.s / 1000 / CH); (all[kk] = all[kk] || []).push({ s: c.s, e: c.e, o: c.o, t: c.t }); });
+      chrome.storage.local.set({ [st.key]: { lang: st.lang, chunks: all } }).then(pruneAi).catch(() => {});
+      if (!told.has(st.v)) { told.add(st.v); window.dispatchEvent(new CustomEvent('hh-subs-active', { detail: { from: LANG[base(st.lang)] || st.lang || 'tiếng nước ngoài', to: LANG[base(st.to)] || st.to } })); }
+    } else {
+      const err = (r && r.error) || '';
+      st.chunks[k] = { err: ((prev && prev.err) || 0) + 1, at: Date.now() };
+      if (err === 'nokey' || err === 'badkey') { st.stop = true; st.wait = ''; st.msg = 'Cần mã Gemini (Cài đặt → AI) để HaoHao nghe video không phụ đề'; release(st); button(); return; }
+      if (st.chunks[k].err > 1) { st.wait = ''; st.msg = err === 'quota' ? 'Gemini hết lượt hôm nay – thử lại sau' : 'HaoHao chưa nghe được đoạn này, sẽ thử lại'; release(st); }
+    }
+    button();
+  }
+  function release(st) { const v = vid(); st.wait = ''; if (st.held && v) { st.held = false; if (st.back != null) v.currentTime = st.back; v.play().catch(() => {}); } }
+  async function aiLoop(st) {
+    while (S === st && on && !st.stop) {
+      const v = vid();
+      if (v && isFinite(v.duration)) {
+        const t = v.currentTime, k = Math.floor(t / CH), st0 = st.chunks[k], last = Math.floor((v.duration - 0.5) / CH);
+        if (st0 === 'ok' || st0 === 'none') { if (st.held) release(st); else st.wait = ''; }
+        else { const first = !Object.values(st.chunks).some(x => x === 'ok' || x === 'none'); if (!(st0 && st0.err > 1)) hold(st, v, first ? '🎙️ HaoHao đang nghe & dịch đoạn đầu… (khoảng 10–20 giây)' : '🎙️ HaoHao đang nghe & dịch đoạn này…', k); getChunk(st, k); }
+        if ((st0 === 'ok' || st0 === 'none') && k < last && t > k * CH + 20) getChunk(st, k + 1);   // xem tới đâu thì dịch trước đoạn kế tiếp
+      }
+      await new Promise(z => setTimeout(z, 700));
+    }
+  }
+  async function pruneAi() {
+    const all = await chrome.storage.local.get(null).catch(() => ({}));
+    const ks = Object.keys(all).filter(k => k.startsWith('hhai:'));
+    if (ks.length > 30) chrome.storage.local.remove(ks.slice(0, ks.length - 30)).catch(() => {});
+  }
+
   // ---------- chạy theo video ----------
   function render() {
     if (!on || !S || !S.cues) return;
@@ -145,7 +200,9 @@
     if (!c) { const i = S.cues.findIndex(x => x.s <= t && t < x.e); S.at = i; c = i >= 0 ? S.cues[i] : null; }
     const d = box(); if (!d) return;
     const o = d.querySelector('.o'), tt = d.querySelector('.t');
-    const ot = c ? c.o : '', trt = c ? (c.t || '') : '';
+    let ot = c ? c.o : '', trt = c ? (c.t || '') : '';
+    if (!c && S.ai && S.wait) { ot = S.wait; trt = ''; }
+    o.classList.toggle('w', !c && !!(S.ai && S.wait));
     if (o.textContent !== ot) o.textContent = ot;
     if (tt.textContent !== trt) tt.textContent = trt;
     tt.classList.toggle('tmp', !!(c && !c.ai));
@@ -158,18 +215,15 @@
     if (d[TAG] === 'tracks' && P && P.v === d.v && !P.done) offer(d);
     if (d[TAG] === 'data' && S && S.v === d.v && S.lang && !S.cues && new RegExp('[?&]lang=' + S.lang + '(&|$)').test(d.url)) {
       const cues = parse(d.body, /[?&]kind=asr/.test(d.url));
-      if (!cues.length) { S.msg = 'Video này không có phụ đề để dịch'; button(); return; }
+      if (!cues.length) { listen(S); return; }
       S.cues = cues; S.at = -1; S.msg = 'Đang dịch…'; button(); translateAll(S);
       // 💬 nhắc nhẹ cho khách biết HaoHao đang dịch (mỗi video 1 lần)
       if (!told.has(S.v)) { told.add(S.v); window.dispatchEvent(new CustomEvent('hh-subs-active', { detail: { from: LANG[S.src] || S.src, to: LANG[base(S.to)] || S.to } })); }
     }
   });
   function pick(d) {
-    if (!d.tracks.length) {
-      S.msg = 'Video này không có phụ đề, HaoHao chưa dịch được (sắp có ở bản Pro)'; button();
-      if (Date.now() - noSubAt > 10 * 60e3) { noSubAt = Date.now(); window.dispatchEvent(new CustomEvent('hh-subs-nosub')); }
-      return;
-    }
+    if (S.ai) return;
+    if (!d.tracks.length) { S.title = d.title; listen(S); return; }   // V1.6.3: không có phụ đề → HaoHao nghe trước & dịch
     // ngôn ngữ gốc của video = ngôn ngữ của phụ đề tự động; ưu tiên phụ đề người làm cùng ngôn ngữ đó (có dấu câu, chuẩn hơn)
     const a = d.tracks.find(t => t.asr), lang = a ? a.lang : d.tracks[0].lang;
     const human = d.tracks.find(t => !t.asr && base(t.lang) === base(lang));
@@ -191,6 +245,7 @@
     ask();
   }
   function stop() {
+    if (S && S.held) release(S);
     S = null; clearBox(); document.documentElement.classList.remove('hh-subs-on');
     window.postMessage({ [TAG]: 'cmd', act: 'off' }, '*');
   }

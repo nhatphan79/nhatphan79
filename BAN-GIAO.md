@@ -68,6 +68,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.6.3 (1.10.418) | 09/11 | 🎙️ **Song ngữ cho video YouTube KHÔNG có phụ đề** (bấm nút "Song ngữ" như cũ): HaoHao dừng video, gửi link cho Gemini (mã Gemini của máy, `aiListen` trong background.js – `fileData` + `videoMetadata` start/end) nghe trước đoạn 2 phút → câu gốc + câu dịch kèm giờ → lùi 2 giây rồi phát, phụ đề khớp câu; xem tới đâu dịch trước đoạn kế; tua tới đoạn chưa dịch thì dừng chờ (mỗi đoạn dừng 1 lần, khách bấm phát thì để phát). Lưu `hhai:<video>>vi` (30 video). Video tiếng Việt / trực tiếp thì không dịch. Chưa thử trên YouTube thật (máy Claude không vào được). Chưa nộp Store. |
 | V1.6.2 (1.10.417) | 09/11 | Chặn quảng cáo: mọi trang đuôi **.xyz** và **.fun** nằm sẵn trong "Trang không chặn" mặc định (`HT.AD_SKIP_DEF` + `adhide.js`, luật DNR allowAllRequests nhận cả đuôi). Chép máy anh. **Store: chờ V1.6.1 duyệt xong mới nộp V1.6.2** (anh chọn A). |
 | V1.6.1 (1.10.416) | 08/11 | Link chia sẻ công trình đi thẳng; **08/11 đã gửi Store gói V1.6.1** (không có tab Công trình, tự xuất bản khi duyệt). |
 | V1.6.0 (1.10.415) | 04/11 | 👥 **Chia sẻ công trình cho Gmail khác** – xem + nhập Kế hoạch & Báo cáo (xem tóm tắt đầu file). Chép máy anh + máy chủ + /cong-trinh. |

@@ -560,6 +560,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (msg.type === 'g-translate') { fetch(HT.PRICE_API + '/dich', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: msg.q || [], tl: msg.tl || 'vi' }) }).then(r => r.json()).then(r => send(r && r.ok ? r : { ok: false, error: (r && r.error) || 'Google Dịch lỗi' })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-translate') { aiTranslate(msg).then(r => send({ ok: true, ...r })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'subs-relay' && sender.tab && /^hh-subs-(offer|active|status|hint|nosub)$/.test(msg.ev)) { chrome.tabs.sendMessage(sender.tab.id, { type: 'subs-ev', ev: msg.ev, detail: msg.detail }, { frameId: 0 }).catch(() => {}); return; }
+  if (msg.type === 'ai-listen') { aiListen(msg).then(r => send({ ok: true, ...r })).catch(e => send({ ok: false, error: e.message })); return true; }   // V1.6.3
   if (msg.type === 'ai-subs') { aiSubs(msg).then(lines => send({ ok: true, lines })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-read') { aiRead(msg, chunkTo(msg, sender)).then(text => send({ ok: true, text })).catch(e => send({ ok: false, error: e.message })); return true; }
   if (msg.type === 'ai-check') { aiCheck(msg.key).then(r => send({ ok: true, ...r })).catch(e => send({ ok: false, error: e.message })); return true; }   // V1.86: kiểm tra mã nhanh
@@ -1575,6 +1576,28 @@ ${t.slice(0, 12000)}`;
 }
 // 🈯 Phụ đề song ngữ: dịch một gói câu phụ đề theo ngữ cảnh cả video, giữ đúng số dòng
 const SUB_LANG = { vi: 'tiếng Việt', en: 'tiếng Anh', zh: 'tiếng Trung giản thể', ja: 'tiếng Nhật', ko: 'tiếng Hàn', fr: 'tiếng Pháp', de: 'tiếng Đức', es: 'tiếng Tây Ban Nha', th: 'tiếng Thái', ru: 'tiếng Nga' };
+// 🎙️ V1.6.3: video YouTube KHÔNG có phụ đề → Gemini nghe trước từng đoạn (mặc định 2 phút) qua link video, chép lời + dịch, kèm mốc giờ từng câu
+async function aiListen({ v, from, to, title, lang }) {
+  if (!/^[\w-]{6,15}$/.test(String(v || ''))) throw new Error('bad');
+  from = Math.max(0, Math.floor(+from || 0)); to = Math.max(from + 5, Math.ceil(+to || from + 120));
+  const L = SUB_LANG[lang] || lang || 'tiếng Việt';
+  const ask = `Nghe phần LỜI NÓI trong đoạn video "${String(title || '').slice(0, 150)}" từ giây ${from} đến giây ${to}.
+Việc cần làm:
+1. Chép lại lời nói bằng đúng ngôn ngữ người nói, chia thành câu ngắn kiểu phụ đề (mỗi câu tối đa khoảng 14 chữ, 1–6 giây).
+2. Dịch từng câu sang ${L}, tự nhiên như người bản xứ, ngắn gọn kiểu phụ đề, giữ tên riêng và thuật ngữ.
+3. Ghi thời điểm bắt đầu "s" và kết thúc "e" của câu, tính bằng GIÂY KỂ TỪ ĐẦU VIDEO (số thập phân, vd ${from + 3.5}), khớp đúng lúc người nói nói câu đó.
+Bỏ qua nhạc nền, tiếng động. Đoạn không có lời nói thì "cues" là mảng rỗng.
+Trả về JSON: {"lang": "mã ngôn ngữ người nói (vd en, zh, ja, ko, vi)", "cues": [{"s": số, "e": số, "o": "câu gốc", "t": "câu dịch"}]}`;
+  const part = { fileData: { fileUri: 'https://www.youtube.com/watch?v=' + v }, videoMetadata: { startOffset: from + 's', endOffset: to + 's' } };
+  const out = await gemini([{ role: 'user', parts: [part, { text: ask }] }], 'Bạn là người làm phụ đề phim chuyên nghiệp. Chỉ trả về JSON đúng mẫu, không thêm gì khác.', { temperature: 0.2, maxTokens: 8192, json: true, video: true });
+  let j; try { j = JSON.parse(String(out || '').replace(/^```(json)?\s*|```\s*$/g, '')); } catch { throw new Error('bad'); }
+  let cues = (Array.isArray(j) ? j : (j && j.cues) || []).map(c => ({ s: +c.s, e: +c.e, o: String(c.o || '').trim(), t: String(c.t || '').trim() })).filter(c => isFinite(c.s) && c.o);
+  // Gemini đôi khi tính giờ từ đầu ĐOẠN thay vì đầu video → dời lại cho đúng
+  if (from > 0 && cues.length && cues.every(c => c.s < from - 1) && Math.max(...cues.map(c => c.s)) <= to - from + 5) cues.forEach(c => { c.s += from; c.e += from; });
+  cues.forEach(c => { if (!(c.e > c.s)) c.e = c.s + 3; c.e = Math.min(c.e, c.s + 8); });
+  cues.sort((a, b) => a.s - b.s); cues.forEach((c, i) => { const n = cues[i + 1]; if (n && c.e > n.s) c.e = Math.max(c.s + 0.5, n.s); });
+  return { lang: String((j && j.lang) || '').toLowerCase().slice(0, 5), cues: cues.map(c => ({ s: Math.round(c.s * 1000), e: Math.round(c.e * 1000), o: c.o, t: c.t })) };
+}
 async function aiSubs({ lines, ctx = [], title, to }) {
   if (!Array.isArray(lines) || !lines.length) return [];
   const L = SUB_LANG[to] || to;
