@@ -1237,20 +1237,23 @@
     } catch (e) { dialog('⚠ Chưa nạp được file', b => b.append($('p', 'sb-p', String(e && e.message || e))), () => {}, 'Đóng'); }
   }
   const boqOpen = new Set(), boqFl = new Set();
+  let boqHide = false; try { boqHide = localStorage.getItem('hhBoqHide') === '1'; } catch {}   // V1.7.2: chế độ ẩn đơn giá / thành tiền (nhớ theo máy)
   const itDone = it => it.fd && Object.keys(it.fd).length ? Object.values(it.fd).reduce((a, v) => a + (+v || 0), 0) : (+it.done || 0);
   const itVal = it => Math.min(itDone(it), it.qty || itDone(it)) * (it.pT || (it.qty ? it.amt / it.qty : 0));
   const boqDoneVal = B => B ? B.items.reduce((a, it) => a + itVal(it), 0) : 0;
   function boqView(W, S) {
     const B = S.boq, h = sec(W, '📋 Khối lượng – giá trị hợp đồng'); h.classList.add('sb-sechf');
+    if (B) { const hb = $('button', 'sb-btn ghost sm' + (boqHide ? ' on' : ''), boqHide ? '👁 Hiện đơn giá, thành tiền' : '🙈 Ẩn đơn giá, thành tiền'); hb.type = 'button'; hb.setAttribute('aria-pressed', String(boqHide));
+      hb.addEventListener('click', () => { boqHide = !boqHide; try { localStorage.setItem('hhBoqHide', boqHide ? '1' : '0'); } catch {} render(true); }); h.append(hb); }
     if (!RO) { const im = $('button', 'sb-btn sm', B ? '📥 Nạp lại file Excel' : '📥 Nạp file Excel hợp đồng'); im.type = 'button'; im.title = 'Chọn file phụ lục hợp đồng (.xlsx) có bảng khối lượng – giá trị'; im.addEventListener('click', () => boqImport(S)); h.append(im); }
     if (!B) { W.append($('div', 'sb-note', 'Chưa có bảng khối lượng. Bấm "📥 Nạp file Excel hợp đồng" và chọn file phụ lục (vd PLHD … .xlsx) – HaoHao tự đọc bảng tổng hợp giá trị và bảng khối lượng chi tiết.')); return; }
     W.append($('div', 'sb-note', 'Nạp từ ' + (B.src || 'file Excel') + ' lúc ' + new Date(B.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · bấm dòng nhóm để mở / thu gọn · ▸ cạnh STT: khối lượng theo tầng – tích ✓ tầng xong · rê chuột vào nội dung xem yêu cầu kỹ thuật'));
     const q = v => v ? (+v).toLocaleString('vi-VN', { maximumFractionDigits: 3 }) : '', m = v => v ? money(v) : '';
-    const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-boq'), th = $('thead'), r0 = $('tr'), r1 = $('tr');
+    const hp = boqHide, box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-boq' + (hp ? ' nop' : '')), th = $('thead'), r0 = $('tr'), r1 = $('tr');
     [['STT', 2], ['Nội dung công việc', 2], ['Vị trí', 2], ['ĐVT', 2], ['Khối lượng', 2]].forEach(([l, rs]) => { const c = $('th', '', l); c.rowSpan = rs; r0.append(c); });
-    const dg = $('th', 'c', 'Đơn giá (VNĐ)'); dg.colSpan = 4; r0.append(dg); [['Thành tiền (VNĐ)', 2]].forEach(([l, rs]) => { const c = $('th', '', l); c.rowSpan = rs; r0.append(c); });
-    const th2 = $('th', 'c sb-boqd', 'Thực hiện'); th2.colSpan = 3; r0.append(th2); { const c = $('th', '', 'Ghi chú'); c.rowSpan = 2; r0.append(c); }
-    ['Vật tư', 'NC + MTC', 'QL + LN', 'Tổng'].forEach(l => r1.append($('th', 'r', l))); ['Khối lượng', 'Giá trị (VNĐ)', '%'].forEach(l => r1.append($('th', 'r sb-boqd', l))); th.append(r0, r1); t.append(th);
+    const dg = $('th', 'c pz', 'Đơn giá (VNĐ)'); dg.colSpan = 4; r0.append(dg); [['Thành tiền (VNĐ)', 2]].forEach(([l, rs]) => { const c = $('th', 'pz', l); c.rowSpan = rs; r0.append(c); });
+    const th2 = $('th', 'c sb-boqd', 'Thực hiện'); th2.colSpan = hp ? 2 : 3; r0.append(th2); { const c = $('th', '', 'Ghi chú'); c.rowSpan = 2; r0.append(c); }
+    ['Vật tư', 'NC + MTC', 'QL + LN', 'Tổng'].forEach(l => r1.append($('th', 'r pz', l))); [['Khối lượng', ''], ['Giá trị (VNĐ)', ' pz'], ['%', '']].forEach(([l, z]) => r1.append($('th', 'r sb-boqd' + z, l))); th.append(r0, r1); t.append(th);
     const pc = (a, b) => b ? Math.round(a / b * 1000) / 10 : 0, pcs = v => (v ? v.toLocaleString('vi-VN', { maximumFractionDigits: 1 }) : '0') + '%';
     const qin = (val, set, lb) => { const el = $('input', 'sb-in sb-boqin'); el.inputMode = 'decimal'; el.value = val ? (+val).toLocaleString('vi-VN', { maximumFractionDigits: 3 }) : ''; el.placeholder = '–'; el.setAttribute('aria-label', lb); if (RO) el.readOnly = true; else el.addEventListener('change', () => { set(el.value.trim() === '' ? null : num(el.value)); save(); render(true); }); return el; };
     const tb = $('tbody');
@@ -1258,23 +1261,23 @@
       const gr = $('tr', 'sb-boqg'); gr.tabIndex = 0; gr.title = open ? 'Bấm để thu gọn' : 'Bấm để mở';
       const tg = () => { if (open) boqOpen.add(G.k); else boqOpen.delete(G.k); render(true); }; gr.addEventListener('click', tg); gr.addEventListener('keydown', e => { if (e.key === 'Enter') tg(); });
       const gv = L.reduce((a, i) => a + itVal(i), 0);
-      const c1 = $('td', 'n', G.k), c2 = $('td', '', (open ? '▾ ' : '▸ ') + G.name + ' (' + L.length + ')'); c2.colSpan = 8; gr.append(c1, c2, $('td', 'r', money(G.amt)), $('td', 'sb-boqd'), $('td', 'r sb-boqd', gv ? money(gv) : ''), $('td', 'r sb-boqd', pcs(pc(gv, G.amt))), $('td')); tb.append(gr);
+      const c1 = $('td', 'n', G.k), c2 = $('td', '', (open ? '▾ ' : '▸ ') + G.name + ' (' + L.length + ')'); c2.colSpan = hp ? 4 : 8; gr.append(c1, c2, $('td', 'r pz', money(G.amt)), $('td', 'sb-boqd'), $('td', 'r sb-boqd pz', gv ? money(gv) : ''), $('td', 'r sb-boqd', pcs(pc(gv, G.amt))), $('td')); tb.append(gr);
       if (open) L.forEach(i => { const r = $('tr'), tc = $('td', 'sb-boqt', i.t); if (i.req) tc.title = i.req;
         const st = $('td', 'n'); st.append(i.stt);
         if (i.fl && i.fl.length) { const fk = G.k + ':' + i.stt + ':' + i.t.slice(0, 20), fo = boqFl.has(fk), fb = $('button', 'sb-boqfb', fo ? '▾' : '▸'); fb.type = 'button'; fb.title = (fo ? 'Thu gọn' : 'Xem') + ' khối lượng theo tầng (' + i.fl.length + ')'; fb.setAttribute('aria-label', fb.title);
           fb.addEventListener('click', e => { e.stopPropagation(); if (fo) boqFl.delete(fk); else boqFl.add(fk); render(true); }); st.prepend(fb); i._fo = fo; }
         const dv = itVal(i), dc = $('td', 'r sb-boqd'); dc.append(qin(itDone(i), v => { i.done = v; delete i.fd; }, 'Khối lượng thực hiện: ' + i.t.slice(0, 40)));
-        r.append(st, tc, $('td', 'sb-boqp', i.pos), $('td', 'c', i.unit), $('td', 'r', q(i.qty)), $('td', 'r', m(i.pVT)), $('td', 'r', m(i.pNC)), $('td', 'r', m(i.pQL)), $('td', 'r', m(i.pT)), $('td', 'r b', money(i.amt)),
-          dc, $('td', 'r sb-boqd', dv ? money(dv) : ''), $('td', 'r sb-boqd' + (pc(itDone(i), i.qty) >= 100 ? ' ok' : ''), i.qty ? pcs(pc(itDone(i), i.qty)) : ''), $('td', 'sb-boqp', i.note)); tb.append(r);
+        r.append(st, tc, $('td', 'sb-boqp', i.pos), $('td', 'c', i.unit), $('td', 'r', q(i.qty)), $('td', 'r pz', m(i.pVT)), $('td', 'r pz', m(i.pNC)), $('td', 'r pz', m(i.pQL)), $('td', 'r pz', m(i.pT)), $('td', 'r b pz', money(i.amt)),
+          dc, $('td', 'r sb-boqd pz', dv ? money(dv) : ''), $('td', 'r sb-boqd' + (pc(itDone(i), i.qty) >= 100 ? ' ok' : ''), i.qty ? pcs(pc(itDone(i), i.qty)) : ''), $('td', 'sb-boqp', i.note)); tb.append(r);
         if (i._fo) i.fl.forEach((f, k) => { const fr = $('tr', 'sb-boqfl'), fd = i.fd || {}, cur = fd[k], ok = cur != null && Math.abs(cur - f.q) < 1e-6;
           const ck = $('input'); ck.type = 'checkbox'; ck.checked = ok; ck.title = 'Tích = tầng này làm xong (tính đủ khối lượng tầng)'; ck.setAttribute('aria-label', 'Xong ' + f.n); if (RO) ck.disabled = true;
           ck.addEventListener('change', () => { i.fd = { ...(i.fd || {}) }; if (!i.fd || (!Object.keys(i.fd).length && i.done)) i.fd = {}; if (ck.checked) i.fd[k] = f.q; else delete i.fd[k]; delete i.done; save(); render(true); });
           const nmc = $('td', 'sb-boqfn'); nmc.append(ck, ' ' + f.n); nmc.colSpan = 3;
           const dcell = $('td', 'r sb-boqd'); dcell.append(qin(cur, v => { i.fd = { ...(i.fd || {}) }; if (v == null) delete i.fd[k]; else i.fd[k] = v; delete i.done; }, 'Khối lượng thực hiện ' + f.n));
-          const e1 = $('td'); e1.colSpan = 5; fr.append($('td'), nmc, $('td', 'r', q(f.q)), e1, dcell, $('td', 'r sb-boqd', cur ? money(Math.min(cur, f.q) * (i.pT || 0)) : ''), $('td', 'r sb-boqd', pcs(pc(cur || 0, f.q))), $('td')); tb.append(fr); }); }); });
+          const e1 = $('td', 'pz'); e1.colSpan = 5; fr.append($('td'), nmc, $('td', 'r', q(f.q)), e1, dcell, $('td', 'r sb-boqd pz', cur ? money(Math.min(cur, f.q) * (i.pT || 0)) : ''), $('td', 'r sb-boqd', pcs(pc(cur || 0, f.q))), $('td')); tb.append(fr); }); }); });
     const dvAll = boqDoneVal(B);
-    const foot = (l, v, cls, dvv) => { const r = $('tr', 'sb-boqf ' + (cls || '')), a = $('td', '', l); a.colSpan = 9; r.append(a, $('td', 'r', money(v)), $('td', 'sb-boqd'), $('td', 'r sb-boqd', dvv != null ? money(dvv) : ''), $('td', 'r sb-boqd', dvv != null ? pcs(pc(dvv, v)) : ''), $('td')); tb.append(r); };
-    foot('CỘNG TRƯỚC THUẾ', B.pre, '', dvAll); if (B.vat) foot('THUẾ VAT' + (B.vatPct ? ' ' + B.vatPct + '%' : ''), B.vat, '', B.vatPct ? dvAll * B.vatPct / 100 : null); foot('TỔNG GIÁ TRỊ SAU THUẾ', B.total, 'tot', B.vatPct ? dvAll * (1 + B.vatPct / 100) : null);
+    const foot = (l, v, cls, dvv) => { const r = $('tr', 'sb-boqf ' + (cls || '')), a = $('td', '', l); a.colSpan = hp ? 5 : 9; r.append(a, $('td', 'r pz', money(v)), $('td', 'sb-boqd'), $('td', 'r sb-boqd pz', dvv != null ? money(dvv) : ''), $('td', 'r sb-boqd', dvv != null ? pcs(pc(dvv, v)) : ''), $('td')); tb.append(r); };
+    foot(hp ? 'TỔNG HỢP ĐỒNG (theo giá trị)' : 'CỘNG TRƯỚC THUẾ', B.pre, '', dvAll); if (B.vat && !hp) foot('THUẾ VAT' + (B.vatPct ? ' ' + B.vatPct + '%' : ''), B.vat, '', B.vatPct ? dvAll * B.vatPct / 100 : null); if (!hp) foot('TỔNG GIÁ TRỊ SAU THUẾ', B.total, 'tot', B.vatPct ? dvAll * (1 + B.vatPct / 100) : null);
     t.append(tb); box.append(t); W.append(box);
   }
   // ---------- 💰 CHI PHÍ ----------
