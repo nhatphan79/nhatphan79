@@ -1300,13 +1300,14 @@
     return [];
   }
   const PAY0 = {   // mặc định theo HĐ 0711/PLR-TT-ACON (Điều 9) – sửa được ở ⚙️
-    cond: 'Tạm ứng tối đa 20% giá trị HĐ trước thuế, chia 02 đợt × 10% (3.586.760.000đ/đợt): đợt 1 sau khi HĐ có hiệu lực, đợt 2 sau 45 ngày kể từ đợt 1 – thu hồi dần, hết khi thanh toán đạt 80% giá HĐ.\nThanh toán: ngày 17–24 hàng tháng lập hồ sơ thanh toán khối lượng hoàn thành được nghiệm thu trong kỳ → Bên A thanh toán đến 90% giá trị nghiệm thu trong kỳ (trừ tạm ứng, các khoản đã thanh toán, khấu trừ khác) trong 07 ngày làm việc sau khi nhận đủ 04 bộ hồ sơ hợp lệ.\nBê tông, vữa xây trát chưa có kết quả nén R28: kỳ đó chỉ đề xuất thanh toán đến 70% giá trị khối lượng hạng mục.\nQuyết toán: nộp hồ sơ chậm nhất 60 ngày sau nghiệm thu hoàn thành; Bên A trả lời trong 20 ngày làm việc; thanh toán đến 97,5% giá trị quyết toán trong 15 ngày làm việc sau thanh lý + hoá đơn (2,5% bảo hành theo chứng thư bảo lãnh).',
+    cond: 'Tạm ứng: tối đa 20% giá trị HĐ trước thuế, chia 02 đợt × 10% (3.586.760.000đ/đợt)\n– Đợt 1: sau khi HĐ có hiệu lực\n– Đợt 2: sau 45 ngày kể từ khi nhận tạm ứng đợt 1\n– Thu hồi: trừ dần qua các lần thanh toán, hết khi thanh toán đạt 80% giá HĐ\nThanh toán hàng tháng:\n– Lập hồ sơ: ngày 17–24 hàng tháng\n– Giá trị: đến 90% giá trị khối lượng nghiệm thu trong kỳ (trừ tạm ứng, các khoản đã thanh toán, khấu trừ khác)\n– Thời hạn: 07 ngày làm việc sau khi Bên A nhận đủ 04 bộ hồ sơ hợp lệ\n– Chưa có kết quả nén R28 (bê tông, vữa xây trát): kỳ đó chỉ đề xuất đến 70% giá trị hạng mục\nQuyết toán:\n– Nộp hồ sơ: chậm nhất 60 ngày sau nghiệm thu hoàn thành\n– Bên A trả lời: trong 20 ngày làm việc\n– Thanh toán: đến 97,5% giá trị quyết toán trong 15 ngày làm việc sau thanh lý + hoá đơn VAT\n– Bảo hành: 2,5% theo chứng thư bảo lãnh bảo hành',
     tpl: {
       tu: ['Giấy đề nghị tạm ứng có xác nhận của Bên B (03 bản gốc)', 'Bản gốc thư bảo lãnh hoàn trả tạm ứng (điều 5.2 HĐ)'],
       tt: ['Công văn đề nghị thanh toán có xác nhận của Bên B', 'Biên bản nghiệm thu khối lượng, công việc + hồ sơ chất lượng vật tư, vật liệu, pháp lý của kỳ (chưa có R28 → 70%)', 'Sơ họa hoàn công có xác nhận của TVGS', 'Nhật ký thi công có xác nhận của TVGS (bản sao đóng dấu giáp lai)', 'Biên bản rà soát tiến độ có xác nhận các bên', 'Hồ sơ khối lượng, giá trị kỳ thanh toán được Bên A phê duyệt', 'Hóa đơn GTGT tương ứng giá trị hoàn thành kỳ thanh toán', 'File scan toàn bộ hồ sơ thanh toán'],
       qt: ['Công văn đề nghị quyết toán có xác nhận của Bên B', 'Biên bản nghiệm thu hoàn thành hạng mục / công trình đưa vào sử dụng', 'Chứng nhận hoàn thành toàn bộ công việc thuộc hợp đồng', 'Biên bản nghiệm thu hoàn thành gói thầu', 'Hồ sơ phê duyệt khối lượng, đơn giá công việc phát sinh (nếu có)', 'Hồ sơ nghiệm thu khối lượng hoàn thành được TVGS, TVQLDA xác nhận', 'Bảng tính giá trị quyết toán hợp đồng', 'Hồ sơ hoàn công, nhật ký thi công được các bên xác nhận', 'Hóa đơn GTGT giá trị hoàn thành còn lại kỳ quyết toán', 'Bản gốc chứng thư bảo lãnh bảo hành (điều 10.3 HĐ)', 'Biên bản thanh lý hợp đồng', 'File scan toàn bộ hồ sơ quyết toán']
     }, copies: { tu: '03 bản gốc', tt: '04 bộ', qt: '04 bộ' }
   };
+  const PAYC_OLD = 'Tạm ứng tối đa 20% giá trị HĐ trước thuế, chia 02 đợt × 10% (3.586.760.000đ/đợt): đợt 1 sau khi HĐ có hiệu lực, đợt 2 sau 45 ngày kể từ đợt 1 – thu hồi dần, hết khi thanh toán đạt 80% giá HĐ.\nThanh toán: ngày 17–24 hàng tháng lập hồ sơ thanh toán khối lượng hoàn thành được nghiệm thu trong kỳ → Bên A thanh toán đến 90% giá trị nghiệm thu trong kỳ (trừ tạm ứng, các khoản đã thanh toán, khấu trừ khác) trong 07 ngày làm việc sau khi nhận đủ 04 bộ hồ sơ hợp lệ.\nBê tông, vữa xây trát chưa có kết quả nén R28: kỳ đó chỉ đề xuất thanh toán đến 70% giá trị khối lượng hạng mục.\nQuyết toán: nộp hồ sơ chậm nhất 60 ngày sau nghiệm thu hoàn thành; Bên A trả lời trong 20 ngày làm việc; thanh toán đến 97,5% giá trị quyết toán trong 15 ngày làm việc sau thanh lý + hoá đơn (2,5% bảo hành theo chứng thư bảo lãnh).';   // V1.7.4: chữ điều kiện cũ (1 đoạn) → tự đổi sang bản liệt kê từng dòng
   const PAYK = [['tu', '💵 Tạm ứng', 'Tạm ứng đợt '], ['tt', '💳 Thanh toán hàng tháng', 'Thanh toán đợt '], ['qt', '📦 Quyết toán', 'Quyết toán']];
   const payOf = S => { if (!S.pay) S.pay = JSON.parse(JSON.stringify({ ...PAY0, runs: [] })); return S.pay; };
   function info(W, S) {
@@ -1335,8 +1336,14 @@
     const P = S.pay || { ...PAY0, runs: [] }, h2 = sec(W, '💳 Hồ sơ tạm ứng – thanh toán – quyết toán theo hợp đồng'); h2.classList.add('sb-sechf');
     if (!RO) { const ed = $('button', 'sb-btn ghost sm', '⚙️ Sửa danh mục hồ sơ'); ed.type = 'button'; ed.addEventListener('click', () => payTplDlg(S)); h2.append(ed); }
     const cd = $('div', 'sb-card wide sb-paycond'); cd.append($('h3', '', '📌 Điều kiện thanh toán (Điều 9 HĐ)'));
-    const ta = $('textarea', 'sb-in sb-ta sb-grow'); ta.value = P.cond || ''; ta.rows = 4; ta.setAttribute('aria-label', 'Điều kiện thanh toán'); if (RO) ta.readOnly = true; else ta.addEventListener('change', () => { payOf(S).cond = ta.value; save(); });
-    ta.addEventListener('input', () => grow(ta)); cd.append(ta); W.append(cd);
+    if (S.pay && S.pay.cond === PAYC_OLD) S.pay.cond = PAY0.cond;
+    // V1.7.4: chỉ xem (sửa ở ⚙️) – liệt kê từng dòng, nhãn trước dấu ":" in đậm; dòng bắt đầu bằng "–" là ý con
+    const bold = (el, t) => { const m = /^([^:]{2,60}):\s*(.*)$/.exec(t); if (m) { el.append($('b', '', m[1] + ':')); if (m[2]) el.append(' ' + m[2]); } else el.append(t); return el; };
+    const ul = $('ul', 'sb-paycl'); let sub = null;
+    String(P.cond || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(line => {
+      if (/^[–\-•+]\s*/.test(line)) { if (!sub) { sub = $('ul'); (ul.lastElementChild || ul).append(sub); } sub.append(bold($('li'), line.replace(/^[–\-•+]\s*/, ''))); }
+      else { sub = null; ul.append(bold($('li', 'h'), line)); } });
+    cd.append(ul.childElementCount ? ul : $('div', 'sb-note', 'Chưa có – bấm ⚙️ Sửa danh mục hồ sơ để nhập điều kiện thanh toán.')); W.append(cd);
     PAYK.forEach(([k, lb, nm]) => {
       const runs = (P.runs || []).filter(r => r.kind === k), hh = $('h3', 'sb-khh'); hh.append($('span', '', lb), $('small', '', (P.tpl[k] || []).length + ' hồ sơ · ' + ((P.copies || {})[k] || '')));
       if (!RO && !(k === 'qt' && runs.length)) { const ad = $('button', 'sb-btn ghost sm', '＋ ' + (k === 'qt' ? 'Lập hồ sơ quyết toán' : nm + (runs.length + 1))); ad.type = 'button';
@@ -1362,10 +1369,12 @@
   function payTplDlg(S) {
     const P = payOf(S), T = {};
     dialog('⚙️ Danh mục hồ sơ theo hợp đồng', b => {
-      b.append($('p', 'sb-p', 'Mỗi dòng là 1 hồ sơ. Sửa theo hợp đồng của công trình này – các đợt đã lập dùng danh mục mới (dấu tích theo thứ tự dòng).'));
+      const cta = $('textarea', 'sb-in sb-ta'); cta.rows = 10; cta.value = P.cond || ''; T.cond = cta;
+      b.append(lab('📌 Điều kiện thanh toán – mỗi ý 1 dòng; dòng bắt đầu bằng "–" là ý con; chữ trước dấu ":" tự in đậm', cta, true));
+      b.append($('p', 'sb-p', 'Danh mục hồ sơ: mỗi dòng là 1 hồ sơ. Các đợt đã lập dùng danh mục mới (dấu tích theo thứ tự dòng).'));
       PAYK.forEach(([k, lb]) => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = Math.max(3, (P.tpl[k] || []).length + 1); ta.value = (P.tpl[k] || []).join('\n'); const cp = $('input', 'sb-in'); cp.value = (P.copies || {})[k] || ''; cp.placeholder = 'Số bộ (vd 04 bộ)';
         T[k] = [ta, cp]; b.append(lab(lb, ta, true), lab('Số bộ – ' + lb, cp, true)); });
-    }, () => { PAYK.forEach(([k]) => { P.tpl[k] = T[k][0].value.split('\n').map(x => x.trim()).filter(Boolean); (P.copies = P.copies || {})[k] = T[k][1].value.trim(); }); save(); render(true); toast('⚙️ Đã lưu danh mục hồ sơ'); });
+    }, () => { P.cond = T.cond.value.trim(); PAYK.forEach(([k]) => { P.tpl[k] = T[k][0].value.split('\n').map(x => x.trim()).filter(Boolean); (P.copies = P.copies || {})[k] = T[k][1].value.trim(); }); save(); render(true); toast('⚙️ Đã lưu danh mục hồ sơ'); });
   }
   // ---------- 💰 CHI PHÍ ----------
   function cost(W, S) {

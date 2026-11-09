@@ -566,3 +566,8 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-paylist li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
 .sb-paylist li input { margin-top: 2px; accent-color: #1F7A4A; flex: none; } .sb-paylist li.ok span { color: #6B7280; text-decoration: line-through; }
 .sb-paylist li small { margin-left: auto; color: #1F7A4A; font-weight: 700; white-space: nowrap; }
+/* V1.7.4: điều kiện thanh toán liệt kê từng dòng */
+.sb-paycl { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
+.sb-paycl > li.h { margin-top: 8px; list-style: disc; } .sb-paycl > li.h:first-child { margin-top: 0; }
+.sb-paycl ul { margin: 4px 0 0; padding-left: 18px; } .sb-paycl ul li { list-style: circle; margin: 2px 0; }
+.sb-paycl b { color: #23305E; }
