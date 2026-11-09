@@ -100,6 +100,27 @@
   const SDST = [['ve', 'Đang vẽ'], ['tr', 'Đã trình'], ['ok', 'Duyệt'], ['yk', 'Duyệt có ý kiến'], ['tl', 'Trả lại sửa']];   // V1.6.4: Shopdrawing
   const QTYPE = [['ntcv', 'Nghiệm thu công việc'], ['ntgd', 'Nghiệm thu giai đoạn'], ['vl', 'Trình duyệt vật liệu'], ['tn', 'CO/CQ – thí nghiệm'], ['ncr', 'NCR']];   // V1.6.4: QA/QC
   const QRES = [['cho', 'Chờ'], ['dat', 'Đạt'], ['ko', 'Không đạt'], ['kp', 'Đã khắc phục']];
+  // 📋 V1.6.7: DANH MỤC HỒ SƠ TRÌNH DUYỆT theo mẫu anh Nhật (file TLC_THL_HTL_TRINH_DUYET_HO_SO.xlsx) – nhóm, mã số kiểm soát, Rev, tình trạng A/B/C, bản cứng, deadline, lịch sử trình lại
+  const SGRP = [['MTS', 'Biện pháp thi công', 'TRÌNH DUYỆT BIỆN PHÁP THI CÔNG / METHOD STATEMENT SUBMISSION'], ['SCH', 'Tiến độ', 'TRÌNH DUYỆT KẾ HOẠCH THI CÔNG / MASTER CONSTRUCTION SCHEDULE SUBMISSION'],
+    ['MAA', 'Vật liệu', 'TRÌNH DUYỆT VẬT LIỆU / MATERIAL SUBMISSION'], ['OTS', 'Hồ sơ pháp lý / khác', 'TRÌNH DUYỆT HỒ SƠ / OTHER DOCUMENTS SUBMISSION'], ['HSE', 'An toàn – HSE', 'TRÌNH DUYỆT HỒ SƠ HSE / HSE DOCUMENTS SUBMISSION'],
+    ['RFA', 'Yêu cầu phê duyệt', 'YÊU CẦU PHÊ DUYỆT / REQUEST FOR APPROVAL'], ['RFI', 'Yêu cầu cung cấp thông tin', 'YÊU CẦU CUNG CẤP THÔNG TIN / REQUEST FOR INFORMATION']];
+  const SHDG = ['SHD', 'Bản vẽ thi công – Shopdrawing', 'TRÌNH DUYỆT BẢN VẼ THI CÔNG / SHOP DRAWING SUBMISSION'];
+  const SST = [['tk', 'Đang triển khai'], ['tr', 'Đã trình'], ['A', 'A – Chấp thuận'], ['B', 'B – Chấp thuận có ý kiến'], ['BC', 'B/C – Thi công được, trình lại'], ['C', 'C – Không chấp thuận, đệ trình lại'], ['huy', 'Hủy']];
+  const SHC = [['', '—'], ['gui', 'Đã gửi bản cứng'], ['nhan', 'Đã nhận lại bản cứng'], ['scan', 'Đã scan']];
+  const subPre = S => String(S.subPre || '').trim() || String(S.code || 'DA').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  const rv = x => 'R' + String(+x.rev || 0).padStart(2, '0');
+  const subCode = (S, x) => [x.d ? x.d.slice(2, 4) + x.d.slice(5, 7) + x.d.slice(8, 10) : '', subPre(S), x.grp, String(x.no || '').padStart(3, '0'), rv(x)].filter(Boolean).join('_');
+  const subLate = x => !['A', 'B', 'huy'].includes(x.st) && x.dl && x.dl < today();
+  const subBad = x => x.st === 'C' || subLate(x);
+  const subNext = (S, g) => String(Math.max(0, ...S.subs.filter(x => x.grp === g).map(x => parseInt(x.no, 10) || 0)) + 1).padStart(3, '0');
+  const subHist = x => (x.hist || []).map(h => 'R' + String(h.r).padStart(2, '0') + ': trình ' + (fdFull(h.d) || '–') + (h.p ? ' · phản hồi ' + fdFull(h.p) : '')).join('\n');
+  function subMig(s) {   // V1.6.7: bảng Shopdrawing cũ (V1.6.4) → danh mục trình duyệt nhóm SHD
+    if (s.subMig || !Array.isArray(s.shops)) return; s.subMig = 1;
+    const M = { ve: 'tk', tr: 'tr', ok: 'A', yk: 'B', tl: 'C' };
+    s.shops.forEach((x, i) => { const r = parseInt(String(x.rev || '').replace(/\D/g, ''), 10) || 0;
+      s.subs.push({ id: x.id || uid(), grp: 'SHD', no: String(i + 1).padStart(3, '0'), rev: r, t: x.t || '', d: x.d || '', st: M[x.st] || 'tk', hc: '', who: x.who || '', dl: x.due || '', note: [x.code, x.note].filter(Boolean).join(' · '), dir: x.dir || '', hist: [{ r, d: x.d || '' }] }); });
+    s.shops = [];
+  }
   const ITYPE = [['ht', 'Hiện trường'], ['kt', 'Kỹ thuật'], ['td', 'Tiến độ'], ['cp', 'Chi phí'], ['pd', 'Xin phê duyệt']];
   const IST = [['mo', 'Mới'], ['xl', 'Đang xử lý'], ['cd', 'Chờ duyệt'], ['dong', 'Đã xong']];
   const WX = ['☀️ Nắng', '⛅ Mây', '🌦 Mưa nhỏ', '🌧 Mưa to', '⛔ Nghỉ'];
@@ -115,7 +136,7 @@
       plan: PHASES0.map((g, i) => ({ id: uid(), g, t: g, s: addD(s0, i * 30), e: addD(s0, i * 30 + 29), pct: 0, mile: i === 1 || i === 5 })),
       tasks: [], logs: [], teams: [], mats: [], stock: [], budget: [], costs: [], incomes: [], issues: [], docs: [] };
   }
-  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); return s; };
+  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas', 'subs'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); subMig(s); return s; };
 
   // ---------- tính toán ----------
   const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
@@ -1209,24 +1230,65 @@
     }, () => { chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id }).catch(() => {}); }, '⚙️ Mở cài đặt HaoHao');
   }
   const folderName = S => (S.code || 'DA001') + '_' + (S.name || 'CONG_TRINH').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
-  // V1.6.5: Shopdrawing và QA/QC thành 2 tab riêng
-  function shopdraw(W, S) {
-    // 📐 V1.6.4: hồ sơ Shopdrawing
-    { const L0 = S.shops, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ duyệt', L0.filter(x => x.st === 'tr').length], ['late', 'Quá hạn', L0.filter(sdLate).length], ['sua', 'Đang vẽ / sửa', L0.filter(x => x.st === 've' || x.st === 'tl').length], ['ok', 'Đã duyệt', L0.filter(x => x.st === 'ok' || x.st === 'yk').length]];
-      const h = sec(W, '📐 Hồ sơ Shopdrawing'); h.classList.add('sb-sechf'); const fs = flt.sd || 'all';
-      h.append(chips(F, fs, v => { flt.sd = v; render(true); }));
-      const pk = { all: () => true, cho: x => x.st === 'tr', late: sdLate, sua: x => x.st === 've' || x.st === 'tl', ok: x => x.st === 'ok' || x.st === 'yk' }[fs] || (() => true);
-      W.append(table(L0.filter(pk), [
-        { k: 't', lb: 'Tên bản vẽ / hạng mục', t: 'text', ph: 'Cốt thép dầm sàn tầng 3', rr: false }, { k: 'code', lb: 'Mã bản vẽ', t: 'text', w: '110px', rr: false }, { k: 'rev', lb: 'Lần', t: 'text', w: '52px', ph: 'R0', rr: false },
-        { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px' }, { k: 'due', lb: 'Hạn duyệt', t: 'date', w: '128px' }, { k: 'st', lb: 'Trạng thái', t: 'sel', o: SDST, w: '138px' },
-        { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
-      ], { list: S.shops, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), t: '', code: '', rev: 'R0', d: today(), due: addD(today(), 7), st: 've', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm bản vẽ', empty: 'Không có bản vẽ nào ở bộ lọc này',
-        cls: x => (x.st === 'ok' || x.st === 'yk' ? 'done' : '') + (sdLate(x) ? ' late lateBg' : '') })); }
+  // V1.6.7: Shopdrawing + QA/QC = DANH MỤC HỒ SƠ TRÌNH DUYỆT theo mẫu file của anh Nhật
+  function subTable(W, S, G, idx, pk) {
+    const [g, nm, full] = G, all = S.subs.filter(x => x.grp === g), list = all.filter(pk);
+    const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', idx + '. ' + g + ' – ' + nm), $('small', '', all.length + ' hồ sơ' + (all.filter(subBad).length ? ' · ' + all.filter(subBad).length + ' cần xử lý' : ''))); hh.title = full; c.append(hh);
+    c.append(table(list, [
+      { k: 'stt', lb: 'STT', t: 'calc', w: '46px', f: x => idx + '.' + (all.indexOf(x) + 1) },
+      { k: 'code', lb: 'Mã số kiểm soát', t: 'calc', w: '250px', f: x => { const sp = $('span', 'sb-scode', subCode(S, x)); sp.title = 'Bấm để chép mã'; sp.addEventListener('click', () => navigator.clipboard.writeText(subCode(S, x)).then(() => toast('📋 Đã chép mã ' + subCode(S, x))).catch(() => {})); return sp; } },
+      { k: 'r', lb: 'R', t: 'calc', w: '44px', f: x => { const sp = $('b', '', rv(x)); sp.title = subHist(x) || 'Chưa có lịch sử'; return sp; } },
+      { k: 't', lb: 'Mô tả trình duyệt', t: 'area', rows: 1, ph: g === 'SHD' ? 'Bản vẽ xây tường tầng 2 khối H2' : 'Nội dung hồ sơ', rr: false },
+      { k: 'no', lb: 'Số', t: 'text', w: '58px', rr: false },
+      { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px', on: x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)); if (h) h.d = x.d; else (x.hist = x.hist || []).push({ r: +x.rev || 0, d: x.d }); } },
+      { k: 'st', lb: 'Tình trạng phê duyệt', t: 'sel', o: SST, w: '200px', on: x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)); if (h && ['A', 'B', 'BC', 'C'].includes(x.st) && !h.p) h.p = today(); } },
+      { k: 'hc', lb: 'Bản cứng', t: 'sel', o: SHC, w: '160px' },
+      { k: 'who', lb: 'Người thực hiện', who: true, t: 'text', w: '10%', rr: false },
+      { k: 'dl', lb: 'Deadline', t: 'date', w: '128px' },
+      { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
+    ], { list: S.subs, num: false, empty: all.length ? 'Không có hồ sơ nào ở bộ lọc này' : 'Chưa có hồ sơ ' + g,
+      extra: (r, x) => { if (!RO) { const b = $('button', 'sb-btn ghost sm', '↻'); b.type = 'button'; b.title = 'Trình lại: tăng Rev (' + rv(r) + ' → R' + String((+r.rev || 0) + 1).padStart(2, '0') + '), ngày trình = hôm nay';
+          b.addEventListener('click', () => { r.rev = (+r.rev || 0) + 1; r.d = today(); r.st = 'tr'; r.hc = ''; (r.hist = r.hist || []).push({ r: r.rev, d: r.d }); save(); render(true); toast('↻ Đã tạo lần trình ' + rv(r)); }); x.append(b); }
+        dirCell(r, S, x); },
+      add: () => ({ id: uid(), grp: g, no: subNext(S, g), rev: 0, t: '', d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: '', hist: [{ r: 0, d: today() }] }), addLb: '＋ Thêm hồ sơ ' + g,
+      cls: x => (x.st === 'A' || x.st === 'B' || x.st === 'huy' ? 'done' : '') + (subBad(x) ? ' late lateBg' : '') }));
+    W.append(c);
   }
+  function subHead(W, S, title, groups, key) {
+    const L0 = S.subs.filter(x => groups.some(G => G[0] === x.grp));
+    const F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ phản hồi', L0.filter(x => x.st === 'tr').length], ['lai', 'Cần trình lại', L0.filter(x => x.st === 'C' || x.st === 'BC').length], ['late', 'Quá deadline', L0.filter(subLate).length], ['ok', 'Đã duyệt A/B', L0.filter(x => x.st === 'A' || x.st === 'B').length]];
+    const h = sec(W, title); h.classList.add('sb-sechf'); const fs = flt[key] || 'all'; h.append(chips(F, fs, v => { flt[key] = v; render(true); }));
+    const bar = $('div', 'sb-row sb-subbar sb-noprint'), pre = $('input', 'sb-in'); pre.value = S.subPre || ''; pre.placeholder = subPre(S); pre.setAttribute('aria-label', 'Tiền tố mã số kiểm soát'); pre.style.maxWidth = '220px';
+    if (RO) pre.readOnly = true; pre.addEventListener('change', () => { S.subPre = pre.value.trim().toUpperCase().replace(/\s+/g, '_'); save(); render(true); });
+    const ex = $('button', 'sb-btn ghost sm', '📤 Xuất Excel'); ex.type = 'button'; ex.addEventListener('click', () => subExport(S, groups, title));
+    bar.append($('span', 'sb-fl', 'Tiền tố mã'), pre, $('small', '', 'vd mã: ' + subCode(S, { d: today(), grp: groups[0][0], no: '001', rev: 0 })), ex); W.append(bar);
+    return { all: () => true, cho: x => x.st === 'tr', lai: x => x.st === 'C' || x.st === 'BC', late: subLate, ok: x => x.st === 'A' || x.st === 'B' }[fs] || (() => true);
+  }
+  async function subExport(S, groups, title) {
+    const head = ['STT', 'NỘI DUNG TRÌNH DUYỆT', 'MÃ SỐ KIỂM SOÁT', 'R', 'MÔ TẢ TRÌNH DUYỆT', 'SỐ', 'NGÀY TRÌNH', 'TÌNH TRẠNG PHÊ DUYỆT', 'TÌNH TRẠNG BẢN CỨNG', 'NGƯỜI THỰC HIỆN', 'GHI CHÚ', 'DEADLINE'];
+    for (let i = 0; i <= 4; i++) head.push('Ngày trình R0' + i, 'Ngày phản hồi R0' + i);
+    const rows = [['DANH MỤC HỒ SƠ TRÌNH DUYỆT VÀ TÌNH TRẠNG'], ['DỰ ÁN / PROJECT : ' + S.name], ['CHỦ ĐẦU TƯ / OWNER : ' + (S.owner || '')], ['ĐỊA ĐIỂM XÂY DỰNG / ADDRESS : ' + (S.addr || '')], [], head];
+    groups.forEach((G, gi) => { const L = S.subs.filter(x => x.grp === G[0]); if (!L.length) return; rows.push([String(gi + 1), G[0] + ' – ' + G[1]]);
+      L.forEach((x, i) => { const r = [(gi + 1) + '.' + (i + 1), G[2], subCode(S, x), rv(x), x.t || '', x.no || '', fdFull(x.d), lbl(SST, x.st), lbl(SHC, x.hc).replace('—', ''), x.who || '', x.note || '', fdFull(x.dl)];
+        for (let k = 0; k <= 4; k++) { const h = (x.hist || []).find(z => z.r === k) || {}; r.push(fdFull(h.d), fdFull(h.p)); } rows.push(r); }); });
+    const name = 'DANH_MUC_TRINH_DUYET_' + subPre(S) + '_' + today().replace(/-/g, '');
+    try {
+      if (!window.XLSX && !WEB && !RO) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'lib/xlsx/xlsx.full.min.js'; sc.onload = ok; sc.onerror = no; document.head.append(sc); });
+      if (!window.XLSX) throw 0;
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws['!cols'] = [6, 34, 34, 5, 50, 6, 12, 26, 20, 16, 30, 12].map(w => ({ wch: w })).concat(Array(10).fill({ wch: 12 }));
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'DM trình duyệt hồ sơ'); XLSX.writeFile(wb, name + '.xlsx'); toast('📤 Đã xuất ' + name + '.xlsx');
+    } catch {
+      const csv = '﻿' + rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = name + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('📤 Đã xuất ' + name + '.csv (mở bằng Excel)');
+    }
+  }
+  function shopdraw(W, S) { const pk = subHead(W, S, '📐 Danh mục Shopdrawing trình duyệt', [SHDG], 'sd'); subTable(W, S, SHDG, 1, pk); }
   function qaqc(W, S) {
+    const pk = subHead(W, S, '✅ Danh mục hồ sơ trình duyệt QA/QC', SGRP, 'qs');
+    SGRP.forEach((G, i) => subTable(W, S, G, i + 1, pk));
     // ✅ V1.6.4: hồ sơ QA/QC
     { const L0 = S.qas, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ', L0.filter(x => x.res === 'cho').length], ['bad', 'Không đạt / NCR', L0.filter(qaBad).length], ...QTYPE.map(([v, l]) => [v, l, L0.filter(x => x.type === v).length])];
-      const h = sec(W, '✅ Hồ sơ QA/QC'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
+      const h = sec(W, '8. NT – Nghiệm thu / NCR'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
       h.append(chips(F, fs, v => { flt.qa = v; render(true); }));
       const pk = fs === 'all' ? () => true : fs === 'cho' ? x => x.res === 'cho' : fs === 'bad' ? qaBad : x => x.type === fs;
       W.append(table(L0.slice().sort((a, b) => String(b.d || '').localeCompare(String(a.d || ''))).filter(pk), [
@@ -1235,7 +1297,7 @@
         { k: 'who', lb: 'Người phụ trách', who: true, t: 'text', w: '12%', rr: false }, { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
       ], { list: S.qas, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), type: fs !== 'all' && fs !== 'cho' && fs !== 'bad' ? fs : 'ntcv', t: '', d: today(), res: 'cho', who: data.lastWho || '', note: '' }), addLb: '＋ Thêm hồ sơ QA/QC', empty: 'Không có hồ sơ nào ở bộ lọc này',
         cls: x => (x.res === 'dat' || x.res === 'kp' ? 'done' : '') + (qaBad(x) ? ' late lateBg' : '') })); }
-  }
+    }
   function file(W, S) {
     sec(W, '📁 Hồ sơ công trình');
     const c = card('Thư mục gốc của công trình', 'wide'), g = $('div', 'sb-fg');
@@ -1524,7 +1586,7 @@
       else {
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
-        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, sd: (S.shops || []).filter(x => x.st === 'tr' || sdLate(x)).length, qa: (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
+        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, sd: S.subs.filter(x => x.grp === 'SHD' && (x.st === 'tr' || subBad(x))).length, qa: S.subs.filter(x => x.grp !== 'SHD' && subBad(x)).length + (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
         if (GUEST && !GTABS.includes(tab)) tab = 'kh';
         TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || k === 'kh' || k === 'rep' || (k === 'crew' && tab === 'crew'))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);

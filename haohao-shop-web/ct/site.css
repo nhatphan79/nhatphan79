@@ -529,3 +529,9 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-gname { font-size: 16px; font-weight: 850; }
 .sb-shl { margin: 10px 0; } .sb-shl li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sb-khh .sb-btn { margin-left: auto; }
+/* 📋 V1.6.7: danh mục hồ sơ trình duyệt */
+.sb-scode { font: 600 12px/1.3 ui-monospace, Consolas, monospace; color: #23305E; cursor: pointer; word-break: break-all; }
+.sb-scode:hover { color: var(--acc); }
+.sb-subbar { align-items: center; gap: 8px; margin: -4px 0 14px; flex-wrap: wrap; }
+.sb-subbar .sb-fl { margin: 0; font-weight: 700; font-size: 13px; }
+.sb-subbar small { color: var(--soft); font-size: 12px; }
