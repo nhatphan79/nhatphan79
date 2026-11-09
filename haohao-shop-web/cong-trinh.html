@@ -106,7 +106,7 @@
 
   // ---------- đăng nhập Google ----------
   async function signIn(note) {
-    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : (GO ? 'Đăng nhập bằng Gmail đã được chia sẻ để xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC của công trình.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây. Được người khác chia sẻ công trình thì đăng nhập Gmail đã được chia sẻ.'));
+    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : (GO ? 'Đăng nhập bằng Gmail đã được chia sẻ để xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC, Thông tin của công trình.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây. Được người khác chia sẻ công trình thì đăng nhập Gmail đã được chia sẻ.'));
     const box = el('<div class="gbtn"></div>'); d.append(box);
     if (note) d.append(Object.assign(el('<div class="err"></div>'), { textContent: note }));
     d.append(Object.assign(el('<small></small>'), { textContent: 'Dữ liệu lưu trên máy chủ HaoHao theo tài khoản Google của anh. HaoHao chỉ đọc địa chỉ email để nhận ra anh.' }));
@@ -169,7 +169,7 @@
     fetch('/sb/shared', { headers: { authorization: 'Bearer ' + st.token }, cache: 'no-store' }).then(r => r.json()).then(r => {
       if (!r || !r.ok || !r.list || !r.list.length) return;
       const b = document.createElement('button'); b.type = 'button'; b.dataset.v = 'sh'; b.textContent = '👥 Được chia sẻ'; nav.append(b); nav.style.gridTemplateColumns = 'repeat(4, 1fr)';
-      shEl.innerHTML = '<div class="td-head"><h1>👥 Được chia sẻ</h1></div><p class="td-foot" style="text-align:left;margin:0 0 12px">Công trình người khác chia sẻ cho ' + st.email.replace(/[<>&"]/g, '') + ' – xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC.</p>';
+      shEl.innerHTML = '<div class="td-head"><h1>👥 Được chia sẻ</h1></div><p class="td-foot" style="text-align:left;margin:0 0 12px">Công trình người khác chia sẻ cho ' + st.email.replace(/[<>&"]/g, '') + ' – xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC, Thông tin.</p>';
       const ul = document.createElement('ul'); ul.className = 'td-list';
       r.list.forEach(x => { const li = document.createElement('li'); li.className = 'td-it'; const a2 = document.createElement('a'); a2.className = 'td-body'; a2.style.textDecoration = 'none'; a2.style.color = 'inherit';
         a2.href = '/cong-trinh?g=' + encodeURIComponent(x.o) + '&s=' + encodeURIComponent(x.s);

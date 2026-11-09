@@ -573,8 +573,8 @@ await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.strin
    Người được chia sẻ: GET /sb/shared → các công trình được chia sẻ · GET|PUT /sb?ns=g&o=<gmail chủ>&s=<mã> (giống /sb, đồng bộ 3 chiều)
    – chỉ nhận các mục SB_GV (không có chi phí / dòng tiền / hồ sơ), chỉ ghi được các mục SB_GW vào đúng công trình đó của chủ. */
 // V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (anh Nhật 09/11) – vẫn không có chi phí, hợp đồng, thanh toán, thư mục máy
-const SB_GV = ['id', 'code', 'name', 'owner', 'addr', 'start', 'end', 'phase', 'plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'staff', 'hist', 'reports', 'subs', 'qas', 'subPre', 'subMig'];
-const SB_GW = ['plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'subs', 'qas'];
+const SB_GV = ['id', 'code', 'name', 'owner', 'addr', 'start', 'end', 'phase', 'plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'staff', 'hist', 'reports', 'subs', 'qas', 'subPre', 'subMig', 'dmvt'];   // Thông tin: chỉ danh mục vật tư duyệt (không chia sẻ hồ sơ thanh toán)
+const SB_GW = ['plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'subs', 'qas', 'dmvt'];
 async function sbshInit(env) {
 if (sbshInit.ok) return;
 await env.DB.prepare('CREATE TABLE IF NOT EXISTS sbsh (owner TEXT, site TEXT, email TEXT, at INTEGER, PRIMARY KEY (owner, site, email))').run();
@@ -620,7 +620,10 @@ const b = await req.json().catch(() => null), G = b && b.v && Array.isArray(b.v.
 if (!G || G.id !== s) return json({ ok: false, error: 'sai dữ liệu' }, 400);
 if ((Number(b.base) || 0) !== D.rev) return json({ ok: false, conflict: true, rev: D.rev, v: sbGView(D.v, S) }, 409);
 let ch = false;
-for (const k of SB_GW) { if (!Array.isArray(G[k])) continue; const nv = G[k].filter(x => x && typeof x === 'object'); if (JSON.stringify(nv) !== JSON.stringify(S[k] || [])) { S[k] = nv; ch = true; } }
+for (const k of SB_GW) {
+if (Array.isArray(G[k])) { const nv = G[k].filter(x => x && typeof x === 'object'); if (JSON.stringify(nv) !== JSON.stringify(S[k] || [])) { S[k] = nv; ch = true; } }
+else if (G[k] && typeof G[k] === 'object' && JSON.stringify(G[k]) !== JSON.stringify(S[k] || null)) { S[k] = G[k]; ch = true; }
+}
 if (!ch) return json({ ok: true, rev: D.rev, at: D.at });   // chỉ đổi mục không được ghi → không đụng dữ liệu chủ
 const now = Date.now(), res = await env.DB.prepare('UPDATE sb SET rev = ?, v = ?, at = ? WHERE email = ? AND rev = ?').bind(D.rev + 1, JSON.stringify(D.v), now, o, D.rev).run();
 if (!res.meta || !res.meta.changes) return json({ ok: false, conflict: true, rev: -1 }, 409);

@@ -28,7 +28,7 @@
   // ---------- lưu ----------
   const RO = !!window.SB_RO, WEB = !!window.SB_WEB;
   const GUEST = window.SB_GUEST || null;   // 👥 V1.6.0: người được chia sẻ (Gmail khác) – chỉ thấy Kế hoạch + Báo cáo của 1 công trình, nhập được
-  const GTABS = ['plan', 'crew', 'mat', 'rep', 'qa'];   // V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (không Kế hoạch)   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
+  const GTABS = ['plan', 'crew', 'mat', 'rep', 'qa', 'info'];   // V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (không Kế hoạch)   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
   const SB_API = window.SB_API || 'https://haohao-gia.nhatphan79.workers.dev';
   const photoSrc = s => /^p_[a-f0-9]{32}$/.test(s) ? SB_API + '/sbp/' + s : s;
   let syncT = 0; const syncSoon = () => { if (RO) return; clearTimeout(syncT); syncT = setTimeout(() => { if (WEB) window.SB_SYNC_SOON && window.SB_SYNC_SOON(); else chrome.runtime.sendMessage({ type: 'sb-sync-now' }).catch(() => {}); }, 1500); };   // V1.2.7: bản xem trên điện thoại (haohaostore.com/cong-trinh) – chỉ xem
@@ -346,7 +346,7 @@
     dw.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); dv.focus(); } });
     mi('💾 Sao lưu', 'Tải file chụp toàn bộ dữ liệu (.json)', backup); mi('📂 Khôi phục', 'Nạp lại từ file sao lưu', restore);
     dw.append(dv, mn);
-    const shb = $('button', 'sb-btn ghost sm', '👥 Chia sẻ'); shb.type = 'button'; shb.title = 'Cho Gmail khác xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC công trình này'; shb.addEventListener('click', () => shareDlg(S));
+    const shb = $('button', 'sb-btn ghost sm', '👥 Chia sẻ'); shb.type = 'button'; shb.title = 'Cho Gmail khác xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC, Thông tin công trình này'; shb.addEventListener('click', () => shareDlg(S));
     const bt = $('button', 'sb-btn ghost sm', '🤖 Bot Zalo'); bt.type = 'button'; bt.title = 'Gửi tổng quan vào Zalo mỗi ngày'; bt.addEventListener('click', botDlg);
     if (botCfg.on && botCfg.chatId) bt.append($('i', 'sb-on', '●'));
     if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
@@ -414,12 +414,12 @@
     if (!a.token) return dialog('👥 Chia sẻ công trình', b => { b.append($('p', 'sb-p', 'Cần đăng nhập Google trước (nút 🔐 Đăng nhập Google ở đầu trang) – dữ liệu phải lưu trên máy chủ thì người khác mới xem được.')); }, () => {}, 'Đóng');
     const api = (m, body) => fetch(SB_API + '/sb/share' + (m === 'GET' ? '?s=' + encodeURIComponent(S.id) : ''), { method: m, headers: { authorization: 'Bearer ' + a.token, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, error: 'mất mạng' }));
     dialog('👥 Chia sẻ: ' + (S.code ? S.code + ' · ' : '') + S.name, b => {
-      b.append($('p', 'sb-p', 'Người được chia sẻ mở ' + LOGIN_URL.replace('https://', '') + ', đăng nhập Gmail của họ → chỉ thấy 📅 Tiến độ · 👷 Nhân lực · 🧱 Vật tư · 📑 Báo cáo · ✅ QA/QC Shop của công trình này, nhập được. Không thấy chi phí, hợp đồng, thanh toán, kế hoạch, các công trình khác.'));
+      b.append($('p', 'sb-p', 'Người được chia sẻ mở ' + LOGIN_URL.replace('https://', '') + ', đăng nhập Gmail của họ → chỉ thấy 📅 Tiến độ · 👷 Nhân lực · 🧱 Vật tư · 📑 Báo cáo · ✅ QA/QC Shop · ℹ️ Thông tin (chỉ danh mục vật tư duyệt) của công trình này, nhập được. Không thấy chi phí, hợp đồng, thanh toán, kế hoạch, các công trình khác.'));
       const f = $('form', 'sb-row'), em = $('input', 'sb-in'); em.type = 'email'; em.placeholder = 'gmail người cần chia sẻ'; em.setAttribute('aria-label', 'Gmail người được chia sẻ'); em.autocomplete = 'off'; em.style.flex = '1';
       const ad = $('button', 'sb-btn sm', '＋ Thêm'); f.append(em, ad); b.append(f);
       const ul = $('ul', 'sb-list sb-shl'), st = $('div', 'sb-note'); b.append(ul, st);
       const link = LOGIN_URL + '?g=' + encodeURIComponent(String(a.email || '').toLowerCase()) + '&s=' + encodeURIComponent(S.id);   // V1.6.1: link đi thẳng vào công trình
-      const msg = em => '🏗️ ' + S.name + ' – Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
+      const msg = em => '🏗️ ' + S.name + ' – Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC, Thông tin:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
       const copy = async em => { const t = msg(em); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép link – dán vào Zalo'); } catch { st.textContent = t; } };
       const show = r => { ul.replaceChildren(); if (!r.ok) { st.textContent = '⚠ ' + (r.error || 'Lỗi'); return; } st.textContent = r.list.length ? '' : 'Chưa chia sẻ cho ai.';
         r.list.forEach(x => { const li = $('li'); li.append($('span', '', '👤 ' + x.email)); const cb = $('button', 'sb-btn sm', '📋 Chép link'); cb.type = 'button'; cb.title = 'Chép link + Gmail đăng nhập để gửi Zalo cho ' + x.email; cb.addEventListener('click', () => copy(x.email)); const sp2 = $('div'); sp2.style.flex = '1'; li.insertBefore(sp2, null); li.append(cb); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
@@ -1332,9 +1332,10 @@
       });
       t.append(tb); box.append(t); W.append(box);
     }
-    // 2) hồ sơ tạm ứng / thanh toán / quyết toán
+    // 2) hồ sơ tạm ứng / thanh toán / quyết toán – không chia sẻ cho người ngoài (V1.7.5)
+    if (GUEST) return;
     const P = S.pay || { ...PAY0, runs: [] }, h2 = sec(W, '💳 Hồ sơ tạm ứng – thanh toán – quyết toán theo hợp đồng'); h2.classList.add('sb-sechf');
-    if (!RO) { const ed = $('button', 'sb-btn ghost sm', '⚙️ Sửa danh mục hồ sơ'); ed.type = 'button'; ed.addEventListener('click', () => payTplDlg(S)); h2.append(ed); }
+    if (!RO && !GUEST) { const ed = $('button', 'sb-btn ghost sm', '⚙️ Sửa danh mục hồ sơ'); ed.type = 'button'; ed.addEventListener('click', () => payTplDlg(S)); h2.append(ed); }
     const cd = $('div', 'sb-card wide sb-paycond'); cd.append($('h3', '', '📌 Điều kiện thanh toán (Điều 9 HĐ)'));
     if (S.pay && S.pay.cond === PAYC_OLD) S.pay.cond = PAY0.cond;
     // V1.7.4: chỉ xem (sửa ở ⚙️) – liệt kê từng dòng, nhãn trước dấu ":" in đậm; dòng bắt đầu bằng "–" là ý con
