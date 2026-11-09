@@ -554,3 +554,15 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-boqfn { padding-left: 26px !important; } .sb-boqfn input[type=checkbox] { vertical-align: middle; accent-color: #1F7A4A; }
 /* 🙈 V1.7.2: chế độ ẩn đơn giá / thành tiền */
 .sb-boq.nop .pz { display: none; } .sb-boq.nop { min-width: 760px; }
+/* ℹ️ V1.7.3: tab Thông tin */
+.sb-dmvt { min-width: 1150px; } .sb-dmvt td { font-size: 12.5px; }
+.sb-dmvt .sb-st { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: #EEF1F8; color: #23305E; }
+.sb-dmvt .sb-st.ok { background: #E6F4EC; color: #1F7A4A; } .sb-dmvt .sb-st.bad { background: #FDECE7; color: #C4401F; }
+.sb-paycond { margin: 0 0 18px; } .sb-paycond h3 { font-size: 14px; margin: 0 0 8px; } .sb-paycond textarea { font-size: 13px; line-height: 1.5; }
+.sb-paygrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin: 0 0 22px; }
+.sb-payrun { padding: 14px; } .sb-payrun.ok { border-color: #A8DDC2; background: #F6FCF8; }
+.sb-payrun .sb-row { gap: 6px; align-items: center; } .sb-payn { white-space: nowrap; font-size: 13px; color: #23305E; }
+.sb-paylist { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sb-paylist li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
+.sb-paylist li input { margin-top: 2px; accent-color: #1F7A4A; flex: none; } .sb-paylist li.ok span { color: #6B7280; text-decoration: line-through; }
+.sb-paylist li small { margin-left: auto; color: #1F7A4A; font-weight: 700; white-space: nowrap; }

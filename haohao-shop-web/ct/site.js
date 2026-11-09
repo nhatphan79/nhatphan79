@@ -128,7 +128,7 @@
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
   const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['kh', '🗓️ Kế hoạch'], ['crew', '👷 Nhân lực'],
-    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['qa', '✅ QA/QC Shop']];   // V1.6.8: Shopdrawing gộp vào QA/QC (nhóm SHD)
+    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['qa', '✅ QA/QC Shop'], ['info', 'ℹ️ Thông tin']];   // V1.6.8: Shopdrawing gộp vào QA/QC (nhóm SHD)
 
   function newSite(name, code) {
     const s0 = today();
@@ -137,7 +137,7 @@
       plan: PHASES0.map((g, i) => ({ id: uid(), g, t: g, s: addD(s0, i * 30), e: addD(s0, i * 30 + 29), pct: 0, mile: i === 1 || i === 5 })),
       tasks: [], logs: [], teams: [], mats: [], stock: [], budget: [], costs: [], incomes: [], issues: [], docs: [] };
   }
-  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas', 'subs'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); subMig(s); return s; };
+  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas', 'subs', 'dmvt'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); subMig(s); return s; };
 
   // ---------- tính toán ----------
   const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
@@ -1228,12 +1228,13 @@
       const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }), B = boqParse(wb);
       const old = (S.boq && S.boq.items) || []; B.items.forEach(it => { const o = old.find(x => x.grp === it.grp && x.stt === it.stt && x.t === it.t); if (o) { if (o.done != null) it.done = o.done; if (o.fd) it.fd = o.fd; } });   // nạp lại: giữ khối lượng thực hiện
       S.boq = { ...B, src: f.name, at: Date.now() };
+      const dm = dmvtParse(wb); if (dm.length) { const old2 = S.dmvt || []; dm.forEach(x => { const o = old2.find(z => z.t === x.t && z.grp === x.grp); if (o) { x.id = o.id; if (o.sub) x.sub = o.sub; } }); S.dmvt = dm; }   // V1.7.3: danh mục vật tư duyệt
       // ngân sách theo nhóm hạng mục: cập nhật dòng đã nạp lần trước (giữ liên kết với các khoản chi), thêm nhóm mới
       B.groups.forEach(G => { const nm = G.k + '. ' + G.name.charAt(0) + G.name.slice(1).toLowerCase(); let b = S.budget.find(x => x.boqK === G.k);
         if (b) { b.name = nm; b.est = Math.round(G.amt); } else S.budget.push({ id: uid(), name: nm, est: Math.round(G.amt), boqK: G.k }); });
       S.budget = S.budget.filter(b => !b.boqK || B.groups.some(G => G.k === b.boqK) || S.costs.some(c => c.cat === b.id));
       S.value = Math.round(B.total); S.valuePre = Math.round(B.pre);
-      save(); render(true); toast('📥 Đã nạp ' + B.items.length + ' công việc · ' + B.groups.length + ' nhóm · tổng ' + short(B.total));
+      save(); render(true); toast('📥 Đã nạp ' + B.items.length + ' công việc · ' + B.groups.length + ' nhóm · tổng ' + short(B.total) + (S.dmvt.length ? ' · ' + S.dmvt.length + ' vật tư duyệt' : ''));
     } catch (e) { dialog('⚠ Chưa nạp được file', b => b.append($('p', 'sb-p', String(e && e.message || e))), () => {}, 'Đóng'); }
   }
   const boqOpen = new Set(), boqFl = new Set();
@@ -1279,6 +1280,92 @@
     const foot = (l, v, cls, dvv) => { const r = $('tr', 'sb-boqf ' + (cls || '')), a = $('td', '', l); a.colSpan = hp ? 5 : 9; r.append(a, $('td', 'r pz', money(v)), $('td', 'sb-boqd'), $('td', 'r sb-boqd pz', dvv != null ? money(dvv) : ''), $('td', 'r sb-boqd', dvv != null ? pcs(pc(dvv, v)) : ''), $('td')); tb.append(r); };
     foot(hp ? 'TỔNG HỢP ĐỒNG (theo giá trị)' : 'CỘNG TRƯỚC THUẾ', B.pre, '', dvAll); if (B.vat && !hp) foot('THUẾ VAT' + (B.vatPct ? ' ' + B.vatPct + '%' : ''), B.vat, '', B.vatPct ? dvAll * B.vatPct / 100 : null); if (!hp) foot('TỔNG GIÁ TRỊ SAU THUẾ', B.total, 'tot', B.vatPct ? dvAll * (1 + B.vatPct / 100) : null);
     t.append(tb); box.append(t); W.append(box);
+  }
+  // ℹ️ V1.7.3: tab THÔNG TIN – danh mục vật tư duyệt theo hợp đồng + hồ sơ tạm ứng / thanh toán / quyết toán theo hợp đồng
+  function dmvtParse(wb) {
+    for (const n of wb.SheetNames) {
+      const a = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' });
+      const hr = a.findIndex(r => r.map(fold2).some(x => /chung loai vat tu/.test(x))); if (hr < 0) continue;
+      const H = a[hr].map(fold2), cT = H.findIndex(x => /chung loai/.test(x)), cS = H.findIndex(x => /tieu chuan/.test(x)), cC = H.findIndex(x => /chu dau tu/.test(x)), cN = H.findIndex(x => /nha thau/.test(x));
+      const out = []; let g = null;
+      for (let r = hr + 1; r < a.length; r++) {
+        const row = a[r], no = String(row[0] ?? '').trim(), t = String(row[cT] ?? '').trim(), rest = row.slice(cT + 1).some(v => String(v ?? '').trim());
+        if (/^\d+$/.test(no) && t && !rest) { g = { k: no, name: t }; continue; }
+        if (!t || /^ma hieu/.test(fold2(t))) continue;
+        const v = i => i >= 0 ? String(row[i] ?? '').trim() : '';
+        out.push({ id: uid(), grp: g ? g.k : '', grpName: g ? g.name : '', t, std: v(cS), cdt: { code: v(cC), brand: v(cC + 1), origin: v(cC + 2) }, nt: { code: v(cN), brand: v(cN + 1), origin: v(cN + 2) } });
+      }
+      if (out.length) return out;
+    }
+    return [];
+  }
+  const PAY0 = {   // mặc định theo HĐ 0711/PLR-TT-ACON (Điều 9) – sửa được ở ⚙️
+    cond: 'Tạm ứng tối đa 20% giá trị HĐ trước thuế, chia 02 đợt × 10% (3.586.760.000đ/đợt): đợt 1 sau khi HĐ có hiệu lực, đợt 2 sau 45 ngày kể từ đợt 1 – thu hồi dần, hết khi thanh toán đạt 80% giá HĐ.\nThanh toán: ngày 17–24 hàng tháng lập hồ sơ thanh toán khối lượng hoàn thành được nghiệm thu trong kỳ → Bên A thanh toán đến 90% giá trị nghiệm thu trong kỳ (trừ tạm ứng, các khoản đã thanh toán, khấu trừ khác) trong 07 ngày làm việc sau khi nhận đủ 04 bộ hồ sơ hợp lệ.\nBê tông, vữa xây trát chưa có kết quả nén R28: kỳ đó chỉ đề xuất thanh toán đến 70% giá trị khối lượng hạng mục.\nQuyết toán: nộp hồ sơ chậm nhất 60 ngày sau nghiệm thu hoàn thành; Bên A trả lời trong 20 ngày làm việc; thanh toán đến 97,5% giá trị quyết toán trong 15 ngày làm việc sau thanh lý + hoá đơn (2,5% bảo hành theo chứng thư bảo lãnh).',
+    tpl: {
+      tu: ['Giấy đề nghị tạm ứng có xác nhận của Bên B (03 bản gốc)', 'Bản gốc thư bảo lãnh hoàn trả tạm ứng (điều 5.2 HĐ)'],
+      tt: ['Công văn đề nghị thanh toán có xác nhận của Bên B', 'Biên bản nghiệm thu khối lượng, công việc + hồ sơ chất lượng vật tư, vật liệu, pháp lý của kỳ (chưa có R28 → 70%)', 'Sơ họa hoàn công có xác nhận của TVGS', 'Nhật ký thi công có xác nhận của TVGS (bản sao đóng dấu giáp lai)', 'Biên bản rà soát tiến độ có xác nhận các bên', 'Hồ sơ khối lượng, giá trị kỳ thanh toán được Bên A phê duyệt', 'Hóa đơn GTGT tương ứng giá trị hoàn thành kỳ thanh toán', 'File scan toàn bộ hồ sơ thanh toán'],
+      qt: ['Công văn đề nghị quyết toán có xác nhận của Bên B', 'Biên bản nghiệm thu hoàn thành hạng mục / công trình đưa vào sử dụng', 'Chứng nhận hoàn thành toàn bộ công việc thuộc hợp đồng', 'Biên bản nghiệm thu hoàn thành gói thầu', 'Hồ sơ phê duyệt khối lượng, đơn giá công việc phát sinh (nếu có)', 'Hồ sơ nghiệm thu khối lượng hoàn thành được TVGS, TVQLDA xác nhận', 'Bảng tính giá trị quyết toán hợp đồng', 'Hồ sơ hoàn công, nhật ký thi công được các bên xác nhận', 'Hóa đơn GTGT giá trị hoàn thành còn lại kỳ quyết toán', 'Bản gốc chứng thư bảo lãnh bảo hành (điều 10.3 HĐ)', 'Biên bản thanh lý hợp đồng', 'File scan toàn bộ hồ sơ quyết toán']
+    }, copies: { tu: '03 bản gốc', tt: '04 bộ', qt: '04 bộ' }
+  };
+  const PAYK = [['tu', '💵 Tạm ứng', 'Tạm ứng đợt '], ['tt', '💳 Thanh toán hàng tháng', 'Thanh toán đợt '], ['qt', '📦 Quyết toán', 'Quyết toán']];
+  const payOf = S => { if (!S.pay) S.pay = JSON.parse(JSON.stringify({ ...PAY0, runs: [] })); return S.pay; };
+  function info(W, S) {
+    // 1) vật tư duyệt
+    const h = sec(W, '🧱 Danh mục vật tư duyệt theo hợp đồng'); h.classList.add('sb-sechf');
+    if (!RO && !WEB) { const im = $('button', 'sb-btn ghost sm', S.dmvt.length ? '📥 Nạp lại từ file Excel HĐ' : '📥 Nạp từ file Excel HĐ'); im.type = 'button'; im.title = 'Chọn file phụ lục hợp đồng (.xlsx) có sheet Danh mục vật tư'; im.addEventListener('click', () => boqImport(S)); h.append(im); }
+    if (!S.dmvt.length) W.append($('div', 'sb-note', 'Chưa có danh mục vật tư. Bấm "📥 Nạp từ file Excel HĐ" (cùng file phụ lục đã nạp ở tab Chi phí) – HaoHao đọc sheet "Danh mục vật tư xây dựng".'));
+    else {
+      const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-boq sb-dmvt'), th = $('thead'), r0 = $('tr'), r1 = $('tr');
+      [['STT'], ['Chủng loại vật tư'], ['Tiêu chuẩn – quy chuẩn']].forEach(([l]) => { const c = $('th', '', l); c.rowSpan = 2; r0.append(c); });
+      [['Đề xuất chủ đầu tư', ''], ['Đề xuất nhà thầu', ' sb-boqd']].forEach(([l, z]) => { const c = $('th', 'c' + z, l); c.colSpan = 3; r0.append(c); });
+      { const c = $('th', '', 'Trình duyệt (MAA)'); c.rowSpan = 2; r0.append(c); }
+      ['Mã hiệu – quy cách', 'Nhãn mác', 'Xuất xứ'].forEach(l => r1.append($('th', '', l))); ['Mã hiệu – quy cách', 'Nhãn mác', 'Xuất xứ'].forEach(l => r1.append($('th', 'sb-boqd', l)));
+      th.append(r0, r1); t.append(th); const tb = $('tbody'); let lastG = null, n = 0;
+      S.dmvt.forEach(x => {
+        if (x.grp !== lastG) { lastG = x.grp; n = 0; const gr = $('tr', 'sb-boqg'), a = $('td', 'n', x.grp), b = $('td', '', x.grpName); b.colSpan = 9; gr.append(a, b); tb.append(gr); }
+        n++; const r = $('tr'), sub = x.sub && S.subs.find(z => z.id === x.sub), tc = $('td');
+        if (sub) { const b = $('span', 'sb-st ' + (sub.st === 'A' || sub.st === 'B' ? 'ok' : sub.st === 'C' ? 'bad' : ''), lbl(SST, sub.st)); tc.append(b, $('div', 'sb-scode', subCode(S, sub))); tc.title = 'Xem ở tab QA/QC Shop – nhóm 3 MAA'; }
+        else if (!RO) { const b = $('button', 'sb-btn ghost sm', '＋ Tạo hồ sơ MAA'); b.type = 'button'; b.title = 'Tạo dòng trình duyệt vật liệu trong tab QA/QC Shop';
+          b.addEventListener('click', () => { const z = { id: uid(), grp: 'MAA', no: subNext(S, 'MAA'), rev: 0, t: x.t + (x.nt.brand ? ' – ' + x.nt.brand : ''), d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: x.nt.code || '', hist: [{ r: 0, d: today() }] }; S.subs.push(z); x.sub = z.id; save(); render(true); toast('＋ Đã tạo hồ sơ ' + subCode(S, z)); }); tc.append(b); }
+        r.append($('td', 'n', x.grp + '.' + n), $('td', 'sb-boqt', x.t), $('td', 'sb-boqp', x.std), $('td', '', x.cdt.code), $('td', '', x.cdt.brand), $('td', '', x.cdt.origin), $('td', 'sb-boqd', x.nt.code), $('td', 'sb-boqd', x.nt.brand), $('td', 'sb-boqd', x.nt.origin), tc); tb.append(r);
+      });
+      t.append(tb); box.append(t); W.append(box);
+    }
+    // 2) hồ sơ tạm ứng / thanh toán / quyết toán
+    const P = S.pay || { ...PAY0, runs: [] }, h2 = sec(W, '💳 Hồ sơ tạm ứng – thanh toán – quyết toán theo hợp đồng'); h2.classList.add('sb-sechf');
+    if (!RO) { const ed = $('button', 'sb-btn ghost sm', '⚙️ Sửa danh mục hồ sơ'); ed.type = 'button'; ed.addEventListener('click', () => payTplDlg(S)); h2.append(ed); }
+    const cd = $('div', 'sb-card wide sb-paycond'); cd.append($('h3', '', '📌 Điều kiện thanh toán (Điều 9 HĐ)'));
+    const ta = $('textarea', 'sb-in sb-ta sb-grow'); ta.value = P.cond || ''; ta.rows = 4; ta.setAttribute('aria-label', 'Điều kiện thanh toán'); if (RO) ta.readOnly = true; else ta.addEventListener('change', () => { payOf(S).cond = ta.value; save(); });
+    ta.addEventListener('input', () => grow(ta)); cd.append(ta); W.append(cd);
+    PAYK.forEach(([k, lb, nm]) => {
+      const runs = (P.runs || []).filter(r => r.kind === k), hh = $('h3', 'sb-khh'); hh.append($('span', '', lb), $('small', '', (P.tpl[k] || []).length + ' hồ sơ · ' + ((P.copies || {})[k] || '')));
+      if (!RO && !(k === 'qt' && runs.length)) { const ad = $('button', 'sb-btn ghost sm', '＋ ' + (k === 'qt' ? 'Lập hồ sơ quyết toán' : nm + (runs.length + 1))); ad.type = 'button';
+        ad.addEventListener('click', () => { const PP = payOf(S); PP.runs.push({ id: uid(), kind: k, name: k === 'qt' ? nm : nm + (runs.length + 1), d: '', chk: {}, note: '' }); save(); render(true); }); hh.append(ad); }
+      W.append(hh);
+      if (!runs.length) { W.append($('div', 'sb-note', k === 'tt' ? 'Bấm "＋ Thanh toán đợt 1" để lập checklist hồ sơ cho kỳ thanh toán.' : 'Chưa lập.')); return; }
+      const grid = $('div', 'sb-paygrid');
+      runs.forEach(R => { const L = P.tpl[k] || [], done = L.filter((_, i) => R.chk[i]).length, card = $('div', 'sb-card sb-payrun' + (done === L.length && L.length ? ' ok' : ''));
+        const top = $('div', 'sb-row'), nmI = $('input', 'sb-in'); nmI.value = R.name; nmI.setAttribute('aria-label', 'Tên đợt'); nmI.style.fontWeight = '800'; if (RO) nmI.readOnly = true; else nmI.addEventListener('change', () => { R.name = nmI.value; save(); });
+        const dI = $('input', 'sb-in'); dI.type = 'date'; dI.value = R.d || ''; dI.title = 'Ngày nộp hồ sơ'; dI.setAttribute('aria-label', 'Ngày nộp'); dI.style.maxWidth = '150px'; if (RO) dI.readOnly = true; else dI.addEventListener('change', () => { R.d = dI.value; save(); });
+        top.append(nmI, dI, $('b', 'sb-payn', done + '/' + L.length));
+        if (!RO) top.append(delBtn(() => { P.runs.splice(P.runs.indexOf(R), 1); save(); render(true); }));
+        card.append(top);
+        const ul = $('ul', 'sb-paylist'); L.forEach((txt, i) => { const li = $('li'), ck = $('input'); ck.type = 'checkbox'; ck.checked = !!R.chk[i]; ck.setAttribute('aria-label', txt); if (RO) ck.disabled = true;
+          ck.addEventListener('change', () => { if (ck.checked) R.chk[i] = today(); else delete R.chk[i]; save(); render(true); });
+          li.append(ck, $('span', '', txt)); if (R.chk[i]) li.append($('small', '', '✓ ' + fd(R.chk[i] === true ? '' : R.chk[i]))); if (R.chk[i]) li.classList.add('ok'); ul.append(li); });
+        card.append(ul);
+        const nt = $('textarea', 'sb-in sb-ta sb-grow'); nt.rows = 1; nt.placeholder = 'Ghi chú (giá trị đề nghị, số công văn…)'; nt.value = R.note || ''; nt.setAttribute('aria-label', 'Ghi chú ' + R.name); if (RO) nt.readOnly = true; else nt.addEventListener('change', () => { R.note = nt.value; save(); });
+        nt.addEventListener('input', () => grow(nt)); card.append(nt); grid.append(card); });
+      W.append(grid);
+    });
+  }
+  function payTplDlg(S) {
+    const P = payOf(S), T = {};
+    dialog('⚙️ Danh mục hồ sơ theo hợp đồng', b => {
+      b.append($('p', 'sb-p', 'Mỗi dòng là 1 hồ sơ. Sửa theo hợp đồng của công trình này – các đợt đã lập dùng danh mục mới (dấu tích theo thứ tự dòng).'));
+      PAYK.forEach(([k, lb]) => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = Math.max(3, (P.tpl[k] || []).length + 1); ta.value = (P.tpl[k] || []).join('\n'); const cp = $('input', 'sb-in'); cp.value = (P.copies || {})[k] || ''; cp.placeholder = 'Số bộ (vd 04 bộ)';
+        T[k] = [ta, cp]; b.append(lab(lb, ta, true), lab('Số bộ – ' + lb, cp, true)); });
+    }, () => { PAYK.forEach(([k]) => { P.tpl[k] = T[k][0].value.split('\n').map(x => x.trim()).filter(Boolean); (P.copies = P.copies || {})[k] = T[k][1].value.trim(); }); save(); render(true); toast('⚙️ Đã lưu danh mục hồ sơ'); });
   }
   // ---------- 💰 CHI PHÍ ----------
   function cost(W, S) {
@@ -1712,7 +1799,7 @@
   }
 
   // ---------- vẽ ----------
-  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file, sd: shopdraw, qa: qaqc };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
+  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file, sd: shopdraw, qa: qaqc, info };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
   let rendering = false;
   function render(force) {
     if (rendering) { setTimeout(() => render(force), 0); return; }
