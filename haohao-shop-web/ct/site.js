@@ -1149,18 +1149,105 @@
     const T = stockOf(S); if (T.length) { const c = card('Tồn kho hiện trường', 'wide'), u = $('div', 'sb-stock'); T.sort((a, b) => a.name.localeCompare(b.name, 'vi')).forEach(o => { const it = $('div', 'sb-stk' + (o.in - o.out <= 0 ? ' zero' : '')); it.append($('span', '', o.name), $('b', '', (Math.round((o.in - o.out) * 100) / 100).toLocaleString('vi-VN') + ' ' + o.unit), $('small', '', 'nhập ' + o.in.toLocaleString('vi-VN') + ' · xuất ' + o.out.toLocaleString('vi-VN'))); u.append(it); }); c.append(u); W.append(c); }
   }
 
+  // 📋 V1.7.0: BẢNG KHỐI LƯỢNG – GIÁ TRỊ HỢP ĐỒNG – nạp từ file Excel phụ lục hợp đồng (bảng tổng hợp giá trị + bảng khối lượng chi tiết)
+  const fold2 = t => String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/\s+/g, ' ').trim();
+  const nv = v => typeof v === 'number' ? v : num(v);
+  const ROMAN = /^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV)$/;
+  function boqParse(wb) {
+    const sheets = wb.SheetNames.map(n => ({ n, a: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }) }));
+    // 1) bảng khối lượng chi tiết: dòng tiêu đề có "nội dung công việc" + "thành tiền"
+    let det = null;
+    for (const sh of sheets) { for (let r = 0; r < Math.min(sh.a.length, 40); r++) { const f = sh.a[r].map(fold2); if (f.some(x => /noi dung cong viec|noi dung/.test(x)) && f.some(x => /thanh tien/.test(x)) && f.some(x => /khoi luong/.test(x))) { det = { sh, r }; break; } } if (det) break; }
+    if (!det) throw new Error('Không thấy bảng khối lượng (cần cột "Nội dung công việc", "Khối lượng", "Thành tiền")');
+    const H = det.sh.a[det.r].map(fold2), H2 = (det.sh.a[det.r + 1] || []).map(fold2), col = re => H.findIndex(x => re.test(x));
+    const c = { stt: col(/^stt|^tt$/), t: col(/noi dung/), pos: col(/vi tri/), req: col(/yeu cau/), unit: col(/don vi|dvt/), qty: col(/khoi luong/), amt: col(/thanh tien/), note: col(/ghi chu/) };
+    const sub = re => H2.findIndex(x => re.test(x));
+    c.pVT = sub(/vat tu|vat lieu/); c.pNC = sub(/nhan cong/); c.pQL = sub(/quan ly|cpql|loi nhuan/); c.pT = sub(/^tong/);
+    if (c.pT < 0) c.pT = col(/don gia/);
+    const items = [], groups = []; let g = null;
+    for (let r = det.r + 1; r < det.sh.a.length; r++) {
+      const row = det.sh.a[r], stt = String(row[c.stt] ?? '').trim(), t = String(row[c.t] ?? '').trim(), f0 = fold2(row[c.stt]) + ' ' + fold2(t);
+      if (/cong truoc|tong cong|cong sau|thue vat/.test(f0)) break;
+      if (!t) continue;
+      if (ROMAN.test(stt)) { g = { k: stt, name: t, amt: nv(row[c.amt]) }; groups.push(g); continue; }
+      if (!/^\d+([.,]\d+)*$/.test(stt) || !g) continue;
+      const it = { id: uid(), grp: g.k, stt, t, pos: c.pos >= 0 ? String(row[c.pos] || '').trim() : '', req: c.req >= 0 ? String(row[c.req] || '').trim() : '', unit: c.unit >= 0 ? String(row[c.unit] || '').trim() : '',
+        qty: nv(row[c.qty]), pVT: c.pVT >= 0 ? nv(row[c.pVT]) : 0, pNC: c.pNC >= 0 ? nv(row[c.pNC]) : 0, pQL: c.pQL >= 0 ? nv(row[c.pQL]) : 0, pT: c.pT >= 0 ? nv(row[c.pT]) : 0, amt: nv(row[c.amt]), note: c.note >= 0 ? String(row[c.note] || '').trim() : '' };
+      if (!it.amt && it.qty && it.pT) it.amt = it.qty * it.pT;
+      items.push(it);
+    }
+    groups.forEach(G => { if (!G.amt) G.amt = items.filter(i => i.grp === G.k).reduce((a, i) => a + i.amt, 0); });
+    // 2) bảng tổng hợp giá trị (nếu có): hạng mục chung, cộng trước thuế, VAT, tổng sau thuế
+    let pre = 0, vat = 0, vatPct = 0, total = 0; const chung = [];
+    for (const sh of sheets) {
+      const i0 = sh.a.findIndex(r => r.some(x => /bang tong hop gia tri/.test(fold2(x)))); if (i0 < 0) continue;
+      let inA = false;
+      for (let r = i0 + 1; r < sh.a.length; r++) { const row = sh.a[r], cells = row.map(x => String(x ?? '').trim()), f = row.map(fold2).join(' | '), val = row.map(nv).filter((v, j) => typeof row[j] === 'number' && v > 1000).pop() || 0;
+        if (/cong truoc thue/.test(f)) pre = val; else if (/thue vat/.test(f)) { vat = val; vatPct = +((f.match(/vat\s*(\d+)/) || [])[1] || 0); } else if (/tong gia tri sau thue|sau thue/.test(f)) total = val;
+        else { const k = cells.find(x => x) || '', nm = cells.filter(x => x && !/^\d+([.,]\d+)?$/.test(x))[1] || cells[2] || '';
+          if (/^[A-Z]$/.test(k)) inA = /hang muc chung/.test(fold2(cells.join(' '))) ;
+          else if (inA && /^\d+$/.test(k) && val) chung.push({ id: uid(), grp: 'A', stt: k, t: cells.filter(x => x && x !== k && !/^[\d.,]+$/.test(x))[0] || nm, pos: '', req: '', unit: 'Trọn gói', qty: 1, pVT: 0, pNC: 0, pQL: 0, pT: val, amt: val, note: cells.filter(x => x && x !== k && !/^[\d.,]+$/.test(x))[1] || '' }); }
+      }
+      break;
+    }
+    if (chung.length) { groups.unshift({ k: 'A', name: 'HẠNG MỤC CHUNG', amt: chung.reduce((a, i) => a + i.amt, 0) }); items.unshift(...chung); }
+    const sum = groups.reduce((a, G) => a + G.amt, 0);
+    if (!pre) pre = sum; if (!total) total = pre + vat;
+    if (!items.length) throw new Error('Đọc được tiêu đề nhưng không thấy dòng công việc nào');
+    return { groups, items, pre, vat, vatPct, total };
+  }
+  async function boqImport(S) {
+    if (WEB || RO) return toast('Nạp file Excel trên máy tính (HaoHao trong Chrome)');
+    const f = await new Promise(ok => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.xlsx,.xlsm,.xls'; i.onchange = () => ok(i.files[0]); i.click(); });
+    if (!f) return;
+    toast('⏳ Đang đọc ' + f.name + '…');
+    try {
+      if (!window.XLSX) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'lib/xlsx/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('thiếu thư viện Excel')); document.head.append(sc); });
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }), B = boqParse(wb);
+      S.boq = { ...B, src: f.name, at: Date.now() };
+      // ngân sách theo nhóm hạng mục: cập nhật dòng đã nạp lần trước (giữ liên kết với các khoản chi), thêm nhóm mới
+      B.groups.forEach(G => { const nm = G.k + '. ' + G.name.charAt(0) + G.name.slice(1).toLowerCase(); let b = S.budget.find(x => x.boqK === G.k);
+        if (b) { b.name = nm; b.est = Math.round(G.amt); } else S.budget.push({ id: uid(), name: nm, est: Math.round(G.amt), boqK: G.k }); });
+      S.budget = S.budget.filter(b => !b.boqK || B.groups.some(G => G.k === b.boqK) || S.costs.some(c => c.cat === b.id));
+      S.value = Math.round(B.total); S.valuePre = Math.round(B.pre);
+      save(); render(true); toast('📥 Đã nạp ' + B.items.length + ' công việc · ' + B.groups.length + ' nhóm · tổng ' + short(B.total));
+    } catch (e) { dialog('⚠ Chưa nạp được file', b => b.append($('p', 'sb-p', String(e && e.message || e))), () => {}, 'Đóng'); }
+  }
+  const boqOpen = new Set();
+  function boqView(W, S) {
+    const B = S.boq, h = sec(W, '📋 Khối lượng – giá trị hợp đồng'); h.classList.add('sb-sechf');
+    if (!RO) { const im = $('button', 'sb-btn sm', B ? '📥 Nạp lại file Excel' : '📥 Nạp file Excel hợp đồng'); im.type = 'button'; im.title = 'Chọn file phụ lục hợp đồng (.xlsx) có bảng khối lượng – giá trị'; im.addEventListener('click', () => boqImport(S)); h.append(im); }
+    if (!B) { W.append($('div', 'sb-note', 'Chưa có bảng khối lượng. Bấm "📥 Nạp file Excel hợp đồng" và chọn file phụ lục (vd PLHD … .xlsx) – HaoHao tự đọc bảng tổng hợp giá trị và bảng khối lượng chi tiết.')); return; }
+    W.append($('div', 'sb-note', 'Nạp từ ' + (B.src || 'file Excel') + ' lúc ' + new Date(B.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · bấm dòng nhóm để mở / thu gọn · rê chuột vào nội dung để xem yêu cầu kỹ thuật'));
+    const q = v => v ? (+v).toLocaleString('vi-VN', { maximumFractionDigits: 3 }) : '', m = v => v ? money(v) : '';
+    const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-boq'), th = $('thead'), r0 = $('tr'), r1 = $('tr');
+    [['STT', 2], ['Nội dung công việc', 2], ['Vị trí', 2], ['ĐVT', 2], ['Khối lượng', 2]].forEach(([l, rs]) => { const c = $('th', '', l); c.rowSpan = rs; r0.append(c); });
+    const dg = $('th', 'c', 'Đơn giá (VNĐ)'); dg.colSpan = 4; r0.append(dg); [['Thành tiền (VNĐ)', 2], ['Ghi chú', 2]].forEach(([l, rs]) => { const c = $('th', '', l); c.rowSpan = rs; r0.append(c); });
+    ['Vật tư', 'NC + MTC', 'QL + LN', 'Tổng'].forEach(l => r1.append($('th', 'r', l))); th.append(r0, r1); t.append(th);
+    const tb = $('tbody');
+    B.groups.forEach(G => { const open = !boqOpen.has(G.k), L = B.items.filter(i => i.grp === G.k);
+      const gr = $('tr', 'sb-boqg'); gr.tabIndex = 0; gr.title = open ? 'Bấm để thu gọn' : 'Bấm để mở';
+      const tg = () => { if (open) boqOpen.add(G.k); else boqOpen.delete(G.k); render(true); }; gr.addEventListener('click', tg); gr.addEventListener('keydown', e => { if (e.key === 'Enter') tg(); });
+      const c1 = $('td', 'n', G.k), c2 = $('td', '', (open ? '▾ ' : '▸ ') + G.name + ' (' + L.length + ')'); c2.colSpan = 8; gr.append(c1, c2, $('td', 'r', money(G.amt)), $('td')); tb.append(gr);
+      if (open) L.forEach(i => { const r = $('tr'), tc = $('td', 'sb-boqt', i.t); if (i.req) tc.title = i.req;
+        r.append($('td', 'n', i.stt), tc, $('td', 'sb-boqp', i.pos), $('td', 'c', i.unit), $('td', 'r', q(i.qty)), $('td', 'r', m(i.pVT)), $('td', 'r', m(i.pNC)), $('td', 'r', m(i.pQL)), $('td', 'r', m(i.pT)), $('td', 'r b', money(i.amt)), $('td', 'sb-boqp', i.note)); tb.append(r); }); });
+    const foot = (l, v, cls) => { const r = $('tr', 'sb-boqf ' + (cls || '')), a = $('td', '', l); a.colSpan = 9; r.append(a, $('td', 'r', money(v)), $('td')); tb.append(r); };
+    foot('CỘNG TRƯỚC THUẾ', B.pre); if (B.vat) foot('THUẾ VAT' + (B.vatPct ? ' ' + B.vatPct + '%' : ''), B.vat); foot('TỔNG GIÁ TRỊ SAU THUẾ', B.total, 'tot');
+    t.append(tb); box.append(t); W.append(box);
+  }
   // ---------- 💰 CHI PHÍ ----------
   function cost(W, S) {
     const B = S.budget.reduce((a, b) => a + num(b.est), 0), C = spent(S), I = S.incomes.reduce((a, x) => a + num(x.amt), 0), debt = S.costs.filter(x => !x.paid).reduce((a, x) => a + num(x.amt), 0);
     sec(W, '💰 Chi phí & dòng tiền');
     const k = $('div', 'sb-kpis');
-    k.append(kpi('Giá trị HĐ', short(num(S.value))), kpi('Dự toán', short(B)), kpi('Đã chi', short(C), B ? Math.round(C / B * 100) + '% dự toán' : '', C > B && B ? 'bad' : ''), kpi('Còn lại', short(B - C), '', B - C < 0 ? 'bad' : ''),
+    k.append(kpi('Giá trị HĐ', short(num(S.value)), S.valuePre ? 'trước thuế ' + short(num(S.valuePre)) : ''), kpi('Dự toán', short(B)), kpi('Đã chi', short(C), B ? Math.round(C / B * 100) + '% dự toán' : '', C > B && B ? 'bad' : ''), kpi('Còn lại', short(B - C), '', B - C < 0 ? 'bad' : ''),
       kpi('Đã thu (CĐT)', short(I)), kpi('Dòng tiền', short(I - C), I - C < 0 ? 'đang ứng tiền' : '', I - C < 0 ? 'bad' : 'good'), kpi('Công nợ phải trả', short(debt), '', debt ? 'warn' : ''));
     W.append(k);
-    sec(W, 'Ngân sách theo hạng mục');
+    sec(W, 'Ngân sách theo hạng mục', S.boq ? 'Tự lấy theo bảng khối lượng hợp đồng bên dưới – khoản chi chọn đúng nhóm để theo dõi % sử dụng' : '');
     W.append(table(S.budget, [{ k: 'name', lb: 'Hạng mục', t: 'text', ph: 'Phần thô / Điện nước / Hoàn thiện…' }, { k: 'est', lb: 'Dự toán', t: 'money', w: '150px' },
       { k: 'sp', lb: 'Đã chi', t: 'calc', w: '130px', f: b => money(spent(S, b.id)) }, { k: 'pc', lb: '% sử dụng', t: 'calc', w: '150px', f: b => { const e = num(b.est), s = spent(S, b.id), w = $('div', 'sb-pcw'); w.append(bar(e ? s / e * 100 : 0, s > e && e ? 'bad' : ''), $('span', '', e ? Math.round(s / e * 100) + '%' : '')); return w; } }],
     { list: S.budget, add: () => ({ id: uid(), name: '', est: 0 }), addLb: '＋ Thêm hạng mục dự toán', empty: 'Chưa có dự toán – thêm hạng mục để theo dõi % sử dụng' }));
+    boqView(W, S);
     sec(W, 'Chi (vật tư, nhân công, thiết bị, khác)');
     const cats = () => [['', '—'], ...S.budget.map(b => [b.id, b.name || '(chưa đặt tên)'])];
     W.append(table(S.costs.slice().sort((a, b) => (b.d || '').localeCompare(a.d || '')), [

@@ -537,3 +537,11 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-subbar small { color: var(--soft); font-size: 12px; }
 input.sb-scode { width: 100%; box-sizing: border-box; cursor: text; }
 input.sb-scode.man { color: #7A5AF8; }
+/* 📋 V1.7.0: bảng khối lượng – giá trị hợp đồng */
+.sb-boq { min-width: 1100px; font-size: 12.5px; }
+.sb-boq th { white-space: normal; vertical-align: middle; }
+.sb-boq th.c, .sb-boq td.c { text-align: center; } .sb-boq th.r, .sb-boq td.r { text-align: right; white-space: nowrap; }
+.sb-boq td { padding: 6px 8px; vertical-align: top; } .sb-boq td.b { font-weight: 700; }
+.sb-boqt { min-width: 260px; cursor: help; } .sb-boqp { color: var(--soft); min-width: 140px; }
+.sb-boqg td { background: #F3F5FA; font-weight: 800; cursor: pointer; } .sb-boqg:hover td { background: #E9EDF7; }
+.sb-boqf td { font-weight: 800; background: #FAFAFB; } .sb-boqf.tot td { background: #FFF3E4; color: #A65A06; font-size: 13.5px; }
