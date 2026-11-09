@@ -545,3 +545,10 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-boqt { min-width: 260px; cursor: help; } .sb-boqp { color: var(--soft); min-width: 140px; }
 .sb-boqg td { background: #F3F5FA; font-weight: 800; cursor: pointer; } .sb-boqg:hover td { background: #E9EDF7; }
 .sb-boqf td { font-weight: 800; background: #FAFAFB; } .sb-boqf.tot td { background: #FFF3E4; color: #A65A06; font-size: 13.5px; }
+/* 📋 V1.7.1: khối lượng thực hiện */
+.sb-boq .sb-boqd { background: #F3FAF5; } .sb-boq th.sb-boqd { background: #E6F4EC; color: #1F5E3E; }
+.sb-boq td.ok { color: #1F7A4A; font-weight: 800; }
+.sb-boqin { width: 96px; text-align: right; padding: 4px 6px; height: 28px; font-size: 12.5px; }
+.sb-boqfb { all: unset; cursor: pointer; color: #2F6DB5; font-weight: 800; padding: 0 4px; margin-right: 2px; }
+.sb-boqfl td { background: #FBFCFE; color: #4B5563; font-size: 12px; padding: 3px 8px; }
+.sb-boqfn { padding-left: 26px !important; } .sb-boqfn input[type=checkbox] { vertical-align: middle; accent-color: #1F7A4A; }
