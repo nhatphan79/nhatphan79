@@ -68,6 +68,8 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.6.2 (1.10.417) | 09/11 | Chặn quảng cáo: mọi trang đuôi **.xyz** và **.fun** nằm sẵn trong "Trang không chặn" mặc định (`HT.AD_SKIP_DEF` + `adhide.js`, luật DNR allowAllRequests nhận cả đuôi). Chép máy anh. **Store: chờ V1.6.1 duyệt xong mới nộp V1.6.2** (anh chọn A). |
+| V1.6.1 (1.10.416) | 08/11 | Link chia sẻ công trình đi thẳng; **08/11 đã gửi Store gói V1.6.1** (không có tab Công trình, tự xuất bản khi duyệt). |
 | V1.6.0 (1.10.415) | 04/11 | 👥 **Chia sẻ công trình cho Gmail khác** – xem + nhập Kế hoạch & Báo cáo (xem tóm tắt đầu file). Chép máy anh + máy chủ + /cong-trinh. |
 | V1.5.18 (1.10.414) | 04/11 | Bot Zalo gửi **Kế hoạch tuần tới** (mặc định T7 8h; chọn thứ/giờ, bật/tắt trong 🤖 Bot Zalo) – tiện ích + máy chủ (`weekText`). |
 | V1.5.17 (1.10.413) | 04/11 | Công việc: bỏ dòng chữ phụ, bộ lọc lên cùng dòng tiêu đề. Vật tư: cột **Người đề xuất** (gợi ý tên, mặc định người lần trước `data.lastBy`), hiện cả ở Kế hoạch + tin Zalo. |
