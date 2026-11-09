@@ -28,7 +28,7 @@
   // ---------- lưu ----------
   const RO = !!window.SB_RO, WEB = !!window.SB_WEB;
   const GUEST = window.SB_GUEST || null;   // 👥 V1.6.0: người được chia sẻ (Gmail khác) – chỉ thấy Kế hoạch + Báo cáo của 1 công trình, nhập được
-  const GTABS = ['kh', 'rep', 'crew'];   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
+  const GTABS = ['plan', 'crew', 'mat', 'rep', 'qa'];   // V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (không Kế hoạch)   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
   const SB_API = window.SB_API || 'https://haohao-gia.nhatphan79.workers.dev';
   const photoSrc = s => /^p_[a-f0-9]{32}$/.test(s) ? SB_API + '/sbp/' + s : s;
   let syncT = 0; const syncSoon = () => { if (RO) return; clearTimeout(syncT); syncT = setTimeout(() => { if (WEB) window.SB_SYNC_SOON && window.SB_SYNC_SOON(); else chrome.runtime.sendMessage({ type: 'sb-sync-now' }).catch(() => {}); }, 1500); };   // V1.2.7: bản xem trên điện thoại (haohaostore.com/cong-trinh) – chỉ xem
@@ -346,7 +346,7 @@
     dw.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); dv.focus(); } });
     mi('💾 Sao lưu', 'Tải file chụp toàn bộ dữ liệu (.json)', backup); mi('📂 Khôi phục', 'Nạp lại từ file sao lưu', restore);
     dw.append(dv, mn);
-    const shb = $('button', 'sb-btn ghost sm', '👥 Chia sẻ'); shb.type = 'button'; shb.title = 'Cho Gmail khác xem và nhập Kế hoạch, Báo cáo công trình này'; shb.addEventListener('click', () => shareDlg(S));
+    const shb = $('button', 'sb-btn ghost sm', '👥 Chia sẻ'); shb.type = 'button'; shb.title = 'Cho Gmail khác xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC công trình này'; shb.addEventListener('click', () => shareDlg(S));
     const bt = $('button', 'sb-btn ghost sm', '🤖 Bot Zalo'); bt.type = 'button'; bt.title = 'Gửi tổng quan vào Zalo mỗi ngày'; bt.addEventListener('click', botDlg);
     if (botCfg.on && botCfg.chatId) bt.append($('i', 'sb-on', '●'));
     if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
@@ -414,12 +414,12 @@
     if (!a.token) return dialog('👥 Chia sẻ công trình', b => { b.append($('p', 'sb-p', 'Cần đăng nhập Google trước (nút 🔐 Đăng nhập Google ở đầu trang) – dữ liệu phải lưu trên máy chủ thì người khác mới xem được.')); }, () => {}, 'Đóng');
     const api = (m, body) => fetch(SB_API + '/sb/share' + (m === 'GET' ? '?s=' + encodeURIComponent(S.id) : ''), { method: m, headers: { authorization: 'Bearer ' + a.token, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, error: 'mất mạng' }));
     dialog('👥 Chia sẻ: ' + (S.code ? S.code + ' · ' : '') + S.name, b => {
-      b.append($('p', 'sb-p', 'Người được chia sẻ mở ' + LOGIN_URL.replace('https://', '') + ', đăng nhập Gmail của họ → chỉ thấy 🗓️ Kế hoạch và 📑 Báo cáo của công trình này; được nhập báo cáo ngày, quân số, thêm / đánh xong công việc, vấn đề, vật tư. Không thấy chi phí, các công trình khác.'));
+      b.append($('p', 'sb-p', 'Người được chia sẻ mở ' + LOGIN_URL.replace('https://', '') + ', đăng nhập Gmail của họ → chỉ thấy 📅 Tiến độ · 👷 Nhân lực · 🧱 Vật tư · 📑 Báo cáo · ✅ QA/QC Shop của công trình này, nhập được. Không thấy chi phí, hợp đồng, thanh toán, kế hoạch, các công trình khác.'));
       const f = $('form', 'sb-row'), em = $('input', 'sb-in'); em.type = 'email'; em.placeholder = 'gmail người cần chia sẻ'; em.setAttribute('aria-label', 'Gmail người được chia sẻ'); em.autocomplete = 'off'; em.style.flex = '1';
       const ad = $('button', 'sb-btn sm', '＋ Thêm'); f.append(em, ad); b.append(f);
       const ul = $('ul', 'sb-list sb-shl'), st = $('div', 'sb-note'); b.append(ul, st);
       const link = LOGIN_URL + '?g=' + encodeURIComponent(String(a.email || '').toLowerCase()) + '&s=' + encodeURIComponent(S.id);   // V1.6.1: link đi thẳng vào công trình
-      const msg = em => '🏗️ ' + S.name + ' – Kế hoạch & Báo cáo:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
+      const msg = em => '🏗️ ' + S.name + ' – Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
       const copy = async em => { const t = msg(em); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép link – dán vào Zalo'); } catch { st.textContent = t; } };
       const show = r => { ul.replaceChildren(); if (!r.ok) { st.textContent = '⚠ ' + (r.error || 'Lỗi'); return; } st.textContent = r.list.length ? '' : 'Chưa chia sẻ cho ai.';
         r.list.forEach(x => { const li = $('li'); li.append($('span', '', '👤 ' + x.email)); const cb = $('button', 'sb-btn sm', '📋 Chép link'); cb.type = 'button'; cb.title = 'Chép link + Gmail đăng nhập để gửi Zalo cho ' + x.email; cb.addEventListener('click', () => copy(x.email)); const sp2 = $('div'); sp2.style.flex = '1'; li.insertBefore(sp2, null); li.append(cb); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
@@ -1492,7 +1492,7 @@
     const F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ phản hồi', L0.filter(x => x.st === 'tr').length], ['lai', 'Cần trình lại', L0.filter(x => x.st === 'C' || x.st === 'BC').length], ['late', 'Quá deadline', L0.filter(subLate).length], ['ok', 'Đã duyệt A/B', L0.filter(x => x.st === 'A' || x.st === 'B').length]];
     const h = sec(W, title); h.classList.add('sb-sechf'); const fs = flt[key] || 'all'; h.append(chips(F, fs, v => { flt[key] = v; render(true); }));
     const bar = $('div', 'sb-row sb-subbar sb-noprint'), pre = $('input', 'sb-in'); pre.value = S.subPre || ''; pre.placeholder = subPre(S); pre.setAttribute('aria-label', 'Tiền tố mã số kiểm soát'); pre.style.maxWidth = '220px';
-    if (RO) pre.readOnly = true; pre.addEventListener('change', () => { S.subPre = pre.value.trim().toUpperCase().replace(/\s+/g, '_'); save(); render(true); });
+    if (RO || GUEST) pre.readOnly = true; pre.addEventListener('change', () => { S.subPre = pre.value.trim().toUpperCase().replace(/\s+/g, '_'); save(); render(true); });
     const ex = $('button', 'sb-btn ghost sm', '📤 Xuất Excel'); ex.type = 'button'; ex.addEventListener('click', () => subExport(S, groups, title));
     bar.append($('span', 'sb-fl', 'Tiền tố mã'), pre, $('small', '', 'vd mã: ' + subCode(S, { d: today(), grp: groups[0][0], no: '001', rev: 0 })), ex); W.append(bar);
     return { all: () => true, cho: x => x.st === 'tr', lai: x => x.st === 'C' || x.st === 'BC', late: subLate, ok: x => x.st === 'A' || x.st === 'B' }[fs] || (() => true);
@@ -1821,9 +1821,9 @@
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
         const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, qa: S.subs.filter(subBad).length + (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
-        if (GUEST && !GTABS.includes(tab)) tab = 'kh';
+        if (GUEST && !GTABS.includes(tab)) tab = 'plan';
         if (tab === 'sd') tab = 'qa';   // V1.6.8: tab Shopdrawing cũ
-        TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || k === 'kh' || k === 'rep' || (k === 'crew' && tab === 'crew'))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
+        TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || GTABS.includes(k))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
       }
       const keep = [...root.querySelectorAll('.sb-toast,.sb-dlg')];

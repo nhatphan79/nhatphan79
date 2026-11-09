@@ -572,8 +572,9 @@ await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.strin
    Chủ: GET /sb/share?s=<mã công trình> → danh sách · POST /sb/share { s, email, off? } → thêm / cắt quyền.
    Người được chia sẻ: GET /sb/shared → các công trình được chia sẻ · GET|PUT /sb?ns=g&o=<gmail chủ>&s=<mã> (giống /sb, đồng bộ 3 chiều)
    – chỉ nhận các mục SB_GV (không có chi phí / dòng tiền / hồ sơ), chỉ ghi được các mục SB_GW vào đúng công trình đó của chủ. */
-const SB_GV = ['id', 'code', 'name', 'owner', 'addr', 'start', 'end', 'phase', 'plan', 'tasks', 'issues', 'mats', 'logs', 'teams', 'roles', 'dayers', 'staff', 'hist', 'reports'];
-const SB_GW = ['tasks', 'issues', 'mats', 'logs', 'teams', 'roles', 'dayers'];
+// V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (anh Nhật 09/11) – vẫn không có chi phí, hợp đồng, thanh toán, thư mục máy
+const SB_GV = ['id', 'code', 'name', 'owner', 'addr', 'start', 'end', 'phase', 'plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'staff', 'hist', 'reports', 'subs', 'qas', 'subPre', 'subMig'];
+const SB_GW = ['plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'subs', 'qas'];
 async function sbshInit(env) {
 if (sbshInit.ok) return;
 await env.DB.prepare('CREATE TABLE IF NOT EXISTS sbsh (owner TEXT, site TEXT, email TEXT, at INTEGER, PRIMARY KEY (owner, site, email))').run();
