@@ -127,7 +127,7 @@
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
   const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['kh', '🗓️ Kế hoạch'], ['crew', '👷 Nhân lực'],
-    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['sd', '📐 Shopdrawing'], ['qa', '✅ QA/QC']];
+    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['qa', '✅ QA/QC Shop']];   // V1.6.8: Shopdrawing gộp vào QA/QC (nhóm SHD)
 
   function newSite(name, code) {
     const s0 = today();
@@ -1283,12 +1283,13 @@
     }
   }
   function shopdraw(W, S) { const pk = subHead(W, S, '📐 Danh mục Shopdrawing trình duyệt', [SHDG], 'sd'); subTable(W, S, SHDG, 1, pk); }
-  function qaqc(W, S) {
-    const pk = subHead(W, S, '✅ Danh mục hồ sơ trình duyệt QA/QC', SGRP, 'qs');
-    SGRP.forEach((G, i) => subTable(W, S, G, i + 1, pk));
+  function qaqc(W, S) {   // V1.6.8: 1 tab chung, thứ tự nhóm theo file mẫu: MTS · SHD · MAA · OTS · HSE · SCH · RFA · RFI · NT
+    const GS = [SGRP[0], SHDG, SGRP[2], SGRP[3], SGRP[4], SGRP[1], SGRP[5], SGRP[6]];
+    const pk = subHead(W, S, '✅ Danh mục hồ sơ trình duyệt – QA/QC & Shopdrawing', GS, 'qs');
+    GS.forEach((G, i) => subTable(W, S, G, i + 1, pk));
     // ✅ V1.6.4: hồ sơ QA/QC
     { const L0 = S.qas, F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ', L0.filter(x => x.res === 'cho').length], ['bad', 'Không đạt / NCR', L0.filter(qaBad).length], ...QTYPE.map(([v, l]) => [v, l, L0.filter(x => x.type === v).length])];
-      const h = sec(W, '8. NT – Nghiệm thu / NCR'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
+      const h = sec(W, '9. NT – Nghiệm thu / NCR'); h.classList.add('sb-sechf'); const fs = flt.qa || 'all';
       h.append(chips(F, fs, v => { flt.qa = v; render(true); }));
       const pk = fs === 'all' ? () => true : fs === 'cho' ? x => x.res === 'cho' : fs === 'bad' ? qaBad : x => x.type === fs;
       W.append(table(L0.slice().sort((a, b) => String(b.d || '').localeCompare(String(a.d || ''))).filter(pk), [
@@ -1586,8 +1587,9 @@
       else {
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
-        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, sd: S.subs.filter(x => x.grp === 'SHD' && (x.st === 'tr' || subBad(x))).length, qa: S.subs.filter(x => x.grp !== 'SHD' && subBad(x)).length + (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
+        const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, qa: S.subs.filter(subBad).length + (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
         if (GUEST && !GTABS.includes(tab)) tab = 'kh';
+        if (tab === 'sd') tab = 'qa';   // V1.6.8: tab Shopdrawing cũ
         TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || k === 'kh' || k === 'rep' || (k === 'crew' && tab === 'crew'))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
       }
