@@ -21,8 +21,8 @@ body.pg-site .proj { display: none; }
 .sb-btn:focus-visible, .sb-tab:focus-visible, .sb-chip:focus-visible, .sb-add:focus-visible, .sb-fold:focus-visible, .sb-logh:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
 
 /* thanh mục */
-.sb-tabs { display: flex; gap: 4px; overflow-x: auto; padding: 4px; background: var(--bg2); border-radius: 14px; margin-bottom: 20px; scrollbar-width: thin; position: sticky; top: 0; z-index: 5; }
-.sb-tab { all: unset; cursor: pointer; position: relative; flex: none; padding: 9px 14px; border-radius: 10px; font-weight: 700; font-size: 13.5px; color: var(--soft); white-space: nowrap; }
+.sb-tabs { display: flex; gap: 2px; overflow-x: auto; padding: 4px; background: var(--bg2); border-radius: 14px; margin-bottom: 20px; scrollbar-width: thin; position: sticky; top: 0; z-index: 5; }
+.sb-tab { all: unset; cursor: pointer; position: relative; flex: none; padding: 8px 10px; border-radius: 10px; font-weight: 700; font-size: 12.5px; color: var(--soft); white-space: nowrap; }
 .sb-tab:hover { color: var(--ink); background: #fff; }
 .sb-tab.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(35,48,94,.14); }
 .sb-tab i { font-style: normal; display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--bad); color: #fff; font-size: 11px; margin-left: 6px; box-sizing: border-box; }
