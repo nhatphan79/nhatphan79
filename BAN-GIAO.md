@@ -68,6 +68,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 ## Đã làm – HaoHao V1 (tiện ích Chrome) – mới nhất trước
 | Bản | Đã sửa |
 | --- | --- |
+| V1.6.9 (1.10.424) | 09/11 | QA/QC Shop: **mã số kiểm soát sửa tay từng dòng** (`x.mcode`, chữ tím); xoá trắng + Enter → về mã tự tạo; ↻ trình lại tự đổi đuôi `_Rxx` của mã sửa tay. |
 | V1.6.8 (1.10.423) | 09/11 | Gộp Shopdrawing vào 1 tab **✅ QA/QC Shop**: nhóm theo thứ tự file mẫu 1 MTS · 2 SHD · 3 MAA · 4 OTS · 5 HSE · 6 SCH · 7 RFA · 8 RFI · 9 NT; bộ lọc, tiền tố mã, xuất Excel dùng chung; số đỏ = tổng hồ sơ cần xử lý. |
 | V1.6.7 (1.10.422) | 09/11 | Tab Shopdrawing + QA/QC làm theo mẫu **Danh mục hồ sơ trình duyệt** (file anh gửi TLC_THL_HTL_TRINH_DUYET_HO_SO.xlsx – chỉ lấy quy cách): `S.subs` nhóm MTS · SCH · MAA · OTS · HSE · RFA · RFI (tab QA/QC) và SHD (tab Shopdrawing); cột STT g.i · Mã số kiểm soát tự sinh `YYMMDD_<tiền tố>_<nhóm>_<số>_Rxx` (tiền tố `S.subPre`, mặc định theo mã công trình) · R · Mô tả · Số · Ngày trình · Tình trạng A/B/B-C/C/Đã trình/Đang triển khai/Hủy · Bản cứng · Người · Deadline · Ghi chú; nút ↻ trình lại tăng Rev + lưu lịch sử ngày trình/phản hồi; C hoặc quá deadline đỏ; 📤 Xuất Excel đúng cột (kèm R00–R04). Bảng Shopdrawing cũ tự chuyển sang SHD (`subMig`). Nghiệm thu/NCR giữ thành nhóm 8 NT trong tab QA/QC (vẫn tự gợi ý mục C báo cáo ngày). |
 | V1.6.6 (1.10.421) | 09/11 | Thanh tab Công trình chữ nhỏ lại (12.5px, đệm 8×10, cách 2px) – 12 tab vừa 1 hàng, không còn thanh kéo ngang từ màn 1280px. |

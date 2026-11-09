@@ -535,3 +535,5 @@ textarea.sb-grow { overflow: hidden; resize: none; min-height: 34px; line-height
 .sb-subbar { align-items: center; gap: 8px; margin: -4px 0 14px; flex-wrap: wrap; }
 .sb-subbar .sb-fl { margin: 0; font-weight: 700; font-size: 13px; }
 .sb-subbar small { color: var(--soft); font-size: 12px; }
+input.sb-scode { width: 100%; box-sizing: border-box; cursor: text; }
+input.sb-scode.man { color: #7A5AF8; }

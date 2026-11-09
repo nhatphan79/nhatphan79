@@ -109,7 +109,8 @@
   const SHC = [['', '—'], ['gui', 'Đã gửi bản cứng'], ['nhan', 'Đã nhận lại bản cứng'], ['scan', 'Đã scan']];
   const subPre = S => String(S.subPre || '').trim() || String(S.code || 'DA').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   const rv = x => 'R' + String(+x.rev || 0).padStart(2, '0');
-  const subCode = (S, x) => [x.d ? x.d.slice(2, 4) + x.d.slice(5, 7) + x.d.slice(8, 10) : '', subPre(S), x.grp, String(x.no || '').padStart(3, '0'), rv(x)].filter(Boolean).join('_');
+  const subCode = (S, x) => x.mcode ? String(x.mcode) : subAuto(S, x);   // V1.6.9: mã sửa tay (mcode) – để trống thì tự tạo
+  const subAuto = (S, x) => [x.d ? x.d.slice(2, 4) + x.d.slice(5, 7) + x.d.slice(8, 10) : '', subPre(S), x.grp, String(x.no || '').padStart(3, '0'), rv(x)].filter(Boolean).join('_');
   const subLate = x => !['A', 'B', 'huy'].includes(x.st) && x.dl && x.dl < today();
   const subBad = x => x.st === 'C' || subLate(x);
   const subNext = (S, g) => String(Math.max(0, ...S.subs.filter(x => x.grp === g).map(x => parseInt(x.no, 10) || 0)) + 1).padStart(3, '0');
@@ -1236,7 +1237,10 @@
     const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', idx + '. ' + g + ' – ' + nm), $('small', '', all.length + ' hồ sơ' + (all.filter(subBad).length ? ' · ' + all.filter(subBad).length + ' cần xử lý' : ''))); hh.title = full; c.append(hh);
     c.append(table(list, [
       { k: 'stt', lb: 'STT', t: 'calc', w: '46px', f: x => idx + '.' + (all.indexOf(x) + 1) },
-      { k: 'code', lb: 'Mã số kiểm soát', t: 'calc', w: '250px', f: x => { const sp = $('span', 'sb-scode', subCode(S, x)); sp.title = 'Bấm để chép mã'; sp.addEventListener('click', () => navigator.clipboard.writeText(subCode(S, x)).then(() => toast('📋 Đã chép mã ' + subCode(S, x))).catch(() => {})); return sp; } },
+      { k: 'code', lb: 'Mã số kiểm soát', t: 'calc', w: '260px', f: x => { const el = $('input', 'sb-in sb-scode' + (x.mcode ? ' man' : '')); el.value = subCode(S, x); el.placeholder = subAuto(S, x); el.setAttribute('aria-label', 'Mã số kiểm soát');
+        el.title = x.mcode ? 'Mã sửa tay – xoá trắng rồi Enter để quay về mã tự tạo (' + subAuto(S, x) + ')' : 'Mã tự tạo – gõ để sửa tay';
+        if (RO) el.readOnly = true; else el.addEventListener('change', () => { const v = el.value.trim(); if (!v || v === subAuto(S, x)) delete x.mcode; else x.mcode = v; save(); render(true); });
+        return el; } },
       { k: 'r', lb: 'R', t: 'calc', w: '44px', f: x => { const sp = $('b', '', rv(x)); sp.title = subHist(x) || 'Chưa có lịch sử'; return sp; } },
       { k: 't', lb: 'Mô tả trình duyệt', t: 'area', rows: 1, ph: g === 'SHD' ? 'Bản vẽ xây tường tầng 2 khối H2' : 'Nội dung hồ sơ', rr: false },
       { k: 'no', lb: 'Số', t: 'text', w: '58px', rr: false },
@@ -1248,7 +1252,7 @@
       { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
     ], { list: S.subs, num: false, empty: all.length ? 'Không có hồ sơ nào ở bộ lọc này' : 'Chưa có hồ sơ ' + g,
       extra: (r, x) => { if (!RO) { const b = $('button', 'sb-btn ghost sm', '↻'); b.type = 'button'; b.title = 'Trình lại: tăng Rev (' + rv(r) + ' → R' + String((+r.rev || 0) + 1).padStart(2, '0') + '), ngày trình = hôm nay';
-          b.addEventListener('click', () => { r.rev = (+r.rev || 0) + 1; r.d = today(); r.st = 'tr'; r.hc = ''; (r.hist = r.hist || []).push({ r: r.rev, d: r.d }); save(); render(true); toast('↻ Đã tạo lần trình ' + rv(r)); }); x.append(b); }
+          b.addEventListener('click', () => { r.rev = (+r.rev || 0) + 1; r.d = today(); r.st = 'tr'; r.hc = ''; if (r.mcode) r.mcode = /_R\d{2}$/.test(r.mcode) ? r.mcode.replace(/_R\d{2}$/, '_' + rv(r)) : r.mcode; (r.hist = r.hist || []).push({ r: r.rev, d: r.d }); save(); render(true); toast('↻ Đã tạo lần trình ' + rv(r)); }); x.append(b); }
         dirCell(r, S, x); },
       add: () => ({ id: uid(), grp: g, no: subNext(S, g), rev: 0, t: '', d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: '', hist: [{ r: 0, d: today() }] }), addLb: '＋ Thêm hồ sơ ' + g,
       cls: x => (x.st === 'A' || x.st === 'B' || x.st === 'huy' ? 'done' : '') + (subBad(x) ? ' late lateBg' : '') }));
