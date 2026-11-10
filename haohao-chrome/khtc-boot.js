@@ -10,7 +10,7 @@
     snap: x => HOSTP && HOSTP.snap(sid, x),
   };
   const info = (HOSTP && HOSTP.info(sid)) || { code: '', name: '' };
-  $('#kBrand').textContent = (info.code ? info.code + ' · ' : '') + (info.name || 'Công trình') + ' · Quản lý chi phí';
+  if ($('#kBrand')) $('#kBrand').textContent = (info.code ? info.code + ' · ' : '') + (info.name || 'Công trình') + ' · Quản lý chi phí';
   // ---- IndexedDB: hhKhtc / wb (khoá = mã công trình) ----
   const idb = () => new Promise((ok, no) => { const r = indexedDB.open('hhKhtc', 1); r.onupgradeneeded = () => r.result.createObjectStore('wb'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
   const get = async k => { const d = await idb(); return new Promise((ok, no) => { const q = d.transaction('wb').objectStore('wb').get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => no(q.error); }); };
@@ -49,7 +49,7 @@
     }
     $('#kMain').hidden = false;
     window.KHTC_SRC = rec.name;
-    $('#kSub').textContent = 'Nguồn: ' + rec.name + ' · nạp ' + new Date(rec.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+    if ($('#kSub')) $('#kSub').textContent = 'Nguồn: ' + rec.name + ' · nạp ' + new Date(rec.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     const bytes = rec.bytes instanceof Uint8Array ? rec.bytes : new Uint8Array(rec.bytes);
     window.KHTCStart(rec.data, rec.name, bytes, (HOSTP && HOSTP.edits(sid)) || {}, HOST);
   })();
