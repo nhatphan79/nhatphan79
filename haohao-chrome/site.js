@@ -317,6 +317,25 @@
   }
 
   // ---------- khung trang ----------
+  // 📄 V1.7.8: xuất PDF tab đang mở – hộp in của Chrome (chọn "Lưu dưới dạng PDF"), A4 ngang, đầu trang tên công trình + tab + ngày
+  function pdfBtn(S) {
+    const b = $('button', 'sb-btn ghost sm', '📄 Xuất PDF'); b.type = 'button'; b.title = 'Xuất tab đang mở ra file PDF (A4 ngang) – trong hộp in chọn "Lưu dưới dạng PDF"';
+    b.addEventListener('click', () => pdfTab(S)); return b;
+  }
+  function pdfTab(S) {
+    const body = root.querySelector('.sb-body'); if (!body || !S) return;
+    const tl = ((TABS.find(([k]) => k === tab) || [])[1] || '').trim(), now = new Date(), t0 = document.title;
+    const h = $('div', 'sb-pdfh'); h.append($('b', '', (S.code ? S.code + ' · ' : '') + (S.name || '')), $('span', '', tl), $('small', '', 'Xuất lúc ' + now.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })));
+    body.prepend(h);
+    const zs = [...body.querySelectorAll('.sb-tw, .sb-gwrap')].map(w => { const ow = w.style.width; w.style.width = '1030px'; const sw = w.scrollWidth; w.style.width = ow; const z = Math.min(1, 1030 / Math.max(1, sw)); const o = w.style.zoom; if (z < 1) w.style.zoom = z.toFixed(3); return [w, o]; });   // bảng rộng → thu vừa khổ A4 ngang
+    const fn = (S.code || 'CONG-TRINH') + ' - ' + tl.replace(/^\S+\s+/, '') + ' - ' + today();
+    const ps = document.createElement('style'); ps.textContent = '@page { size: A4 landscape; margin: 10mm 10mm 12mm; @bottom-right { content: "Trang " counter(page) "/" counter(pages); font: 9pt "Segoe UI", sans-serif; color: #6B625B; } @bottom-left { content: "HaoHao · Site Brain"; font: 9pt "Segoe UI", sans-serif; color: #9A918A; } }'; document.head.append(ps);   // chỉ lúc xuất PDF – không đụng khổ in báo cáo ngày
+    const ed = [...body.querySelectorAll('input[type=date]')].filter(x => !x.value); ed.forEach(x => x.classList.add('sb-pdfe'));   // ô ngày trống → không in mm/dd/yyyy
+    document.title = fn; body.classList.add('sb-pdfz'); document.body.classList.add('sb-pdf');
+    const done = () => { window.removeEventListener('afterprint', done); document.body.classList.remove('sb-pdf'); body.classList.remove('sb-pdfz'); h.remove(); ps.remove(); ed.forEach(x => x.classList.remove('sb-pdfe')); zs.forEach(([w, o]) => { w.style.zoom = o; }); document.title = t0; };
+    window.addEventListener('afterprint', done);
+    setTimeout(() => { window.print(); setTimeout(() => { if (document.body.classList.contains('sb-pdf')) done(); }, 1500); }, 60);
+  }
   function head(W, S) {
     const h = $('div', 'sb-head');
     const br = $('div', 'sb-brand'), im = document.createElement('img'); im.src = window.SB_ICON || 'icons/icon48.png'; im.alt = '';
@@ -324,7 +343,7 @@
     if (GUEST) {   // 👥 V1.6.0: trang người được chia sẻ – chỉ tên công trình + người chia sẻ
       if (S) h.append($('b', 'sb-gname', (S.code ? S.code + ' · ' : '') + (S.name || '')));
       h.append($('small', 'sb-upd', '👥 Được chia sẻ bởi ' + GUEST.o));
-      const sp = $('div'); sp.style.flex = '1'; h.append(sp, acctBtn());
+      const sp = $('div'); sp.style.flex = '1'; h.append(sp, pdfBtn(S), acctBtn());
       const hm0 = $('a', 'sb-btn ghost sm', '🏠 Trang của tôi'); hm0.href = '/cong-trinh'; h.append(hm0); W.append(h); return; }
     if (S) {
       const sel = $('select', 'sb-sitesel'); sel.setAttribute('aria-label', 'Chọn công trình');
@@ -333,7 +352,7 @@
       if (!RO) { const ed = $('button', 'sb-btn ghost sm sb-ico', '✏️'); ed.type = 'button'; ed.title = 'Sửa thông tin công trình'; ed.setAttribute('aria-label', 'Sửa thông tin công trình'); ed.addEventListener('click', () => infoDlg(S)); h.append(ed); }
     }
     if (RO) { const t = new Date(window.SB_RO.at || Date.now()); h.append($('small', 'sb-upd', '🕐 Cập nhật ' + t.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + t.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })));
-      const rl = $('button', 'sb-btn ghost sm', '↻'); rl.type = 'button'; rl.title = 'Tải lại'; rl.setAttribute('aria-label', 'Tải lại'); rl.addEventListener('click', () => location.reload()); h.append(rl); W.append(h); return; }
+      const rl = $('button', 'sb-btn ghost sm', '↻'); rl.type = 'button'; rl.title = 'Tải lại'; rl.setAttribute('aria-label', 'Tải lại'); rl.addEventListener('click', () => location.reload()); if (S) h.append(pdfBtn(S)); h.append(rl); W.append(h); return; }
     const sp = $('div'); sp.style.flex = '1'; h.append(sp);
     const add = $('button', 'sb-btn sm', '＋ Công trình'); add.type = 'button'; add.addEventListener('click', () => infoDlg(newSite(''), true));
     // V1.4.7: gộp Sao lưu + Khôi phục vào 1 nút "💾 Dữ liệu ▾" cho đầu trang gọn 1 hàng
@@ -352,7 +371,7 @@
     if (botCfg.err) { bt.classList.add('err'); bt.title = '⚠ Lần gửi gần nhất lỗi: ' + botCfg.err; }
     const mb = $('button', 'sb-btn ghost sm', '📱 Điện thoại'); mb.type = 'button'; mb.title = 'Xem trang Công trình trên điện thoại'; mb.addEventListener('click', mobileDlg);
     if (mobCfg.on) mb.append($('i', 'sb-on', '●')); if (mobCfg.on && mobCfg.err) { mb.classList.add('err'); mb.title = '⚠ Đồng bộ lỗi: ' + mobCfg.err; }
-    h.append(acctBtn()); if (S) h.append(shb); if (!WEB) h.append(mb, bt); h.append(add, dw); W.append(h);
+    h.append(acctBtn()); if (S) h.append(shb); if (!WEB) h.append(mb, bt); h.append(add); if (S) h.append(pdfBtn(S)); h.append(dw); W.append(h);
   }
   // 📱 V1.2.7: xem trên điện thoại – đẩy bản chụp (bỏ ảnh) lên máy chủ HaoHao; điện thoại mở haohao-gia.nhatphan79.workers.dev/cong-trinh#<mã>
   const CT_API = 'https://haohao-gia.nhatphan79.workers.dev/ct', CT_PAGE = 'https://haohao-gia.nhatphan79.workers.dev/cong-trinh#';

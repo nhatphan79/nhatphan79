@@ -580,3 +580,25 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-paycl > li.h { margin-top: 8px; list-style: disc; } .sb-paycl > li.h:first-child { margin-top: 0; }
 .sb-paycl ul { margin: 4px 0 0; padding-left: 18px; } .sb-paycl ul li { list-style: circle; margin: 2px 0; }
 .sb-paycl b { color: #23305E; }
+
+/* 📄 V1.7.8: xuất PDF tab đang mở – A4 ngang */
+.sb-pdfh { display: none; }
+@media print {
+  body.sb-pdf * { visibility: hidden !important; }
+  body.sb-pdf .sb-pdfz, body.sb-pdf .sb-pdfz * { visibility: visible !important; }
+  body.sb-pdf > *:not(:has(.sb-pdfz)), html:has(body.sb-pdf) > :not(head):not(body), body.sb-pdf #hattieu-host { display: none !important; }
+  body.sb-pdf .sb-pdfz { position: absolute; left: 0; top: 0; width: 100%; max-width: none; margin: 0; padding: 0; background: #fff; }
+  body.sb-pdf { background: #fff !important; }
+  body.sb-pdf .sb-head, body.sb-pdf .sb-tabs { display: none !important; }
+  .sb-pdfz .sb-pdfh { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; border-bottom: 2px solid #1E1A17; padding-bottom: 6px; margin-bottom: 12px; font-size: 13pt; }
+  .sb-pdfz .sb-pdfh b { font-size: 15pt; } .sb-pdfz .sb-pdfh small { margin-left: auto; font-size: 9pt; color: #6B625B; }
+  .sb-pdfz button, .sb-pdfz .sb-noprint, .sb-pdfz .sb-remind, .sb-pdfz [hidden] { display: none !important; }
+  .sb-pdfz .sb-tw, .sb-pdfz .sb-gwrap { overflow: visible !important; max-height: none !important; box-shadow: none; }
+  .sb-pdfz thead { display: table-header-group; } .sb-pdfz tr, .sb-pdfz .sb-card, .sb-pdfz .sb-kpi { break-inside: avoid; }
+  .sb-pdfz th { position: static !important; }
+  .sb-pdfz input:not([type=checkbox]):not([type=radio]), .sb-pdfz select, .sb-pdfz textarea { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; appearance: none; -webkit-appearance: none; resize: none; color: inherit; }
+  .sb-pdfz textarea:placeholder-shown, .sb-pdfz .sb-boqmn:placeholder-shown { display: none !important; }
+  .sb-pdfz input::placeholder, .sb-pdfz textarea::placeholder { color: transparent !important; opacity: 0 !important; }
+  .sb-pdfz input[type=date]::-webkit-calendar-picker-indicator { display: none; } .sb-pdfz input.sb-pdfe { visibility: hidden !important; }
+  .sb-pdfz * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
