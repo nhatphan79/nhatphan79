@@ -12,7 +12,7 @@ const SI={}; SHEETS.forEach((s,i)=>SI[s.name]=i);
 const NK=(si,r,c)=>SHEETS[si].name+'|'+r+'|'+c;   // khoá lưu: tên sheet|dòng|cột (0-based)
 
 /* ---------------- routing ---------------- */
-const VIEWS=['ke-hoach','thanh-toan','tam-ung','de-nghi-tt'];
+const VIEWS=['ke-hoach'];   // V1.8.2: chỉ giữ Kế hoạch thi công (bỏ Thanh toán / Tạm ứng / Mẫu đề nghị thanh toán)
 function route(){let h=location.hash.replace('#','');if(!VIEWS.includes(h))h='ke-hoach';
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+h));
   document.querySelectorAll('nav a').forEach(a=>{a.classList.toggle('on',a.dataset.v===h);a.toggleAttribute('aria-current',a.dataset.v===h)});}

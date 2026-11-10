@@ -13,10 +13,7 @@
 <header>
   <div class="brand"><b id="kBrand">Quản lý chi phí</b><span id="kSub"></span></div>
   <nav aria-label="Chức năng">
-    <a href="#ke-hoach" data-v="ke-hoach">1. Kế hoạch thi công</a>
-    <a href="#thanh-toan" data-v="thanh-toan">2. Thanh toán</a>
-    <a href="#tam-ung" data-v="tam-ung">3. Tạm ứng</a>
-    <a href="#de-nghi-tt" data-v="de-nghi-tt">Mẫu đề nghị thanh toán</a>
+    <a href="#ke-hoach" data-v="ke-hoach">Kế hoạch thi công</a>
   </nav>
 </header>
 <div class="kempty" id="kEmpty" hidden>
@@ -57,33 +54,6 @@
     </div>
     </div>
   </section>
-
-  <section class="view" id="v-thanh-toan"><div class="plan">
-    <h2>Thanh toán <span class="pill">Bước 2 – đang chuẩn bị</span></h2>
-    <p>Tab này sẽ lập hồ sơ thanh toán cho nhà thầu phụ và tổ đội ngay trên app, rồi xuất ra Excel đúng mẫu công ty đang dùng.</p>
-    <div class="card"><h3>Biểu mẫu xuất hóa đơn NTP</h3><ul>
-      <li>Bảng tổng hợp thanh toán (BMNC1), bảng giá trị thanh toán (BMNC2), tổng hợp khối lượng, biên bản nghiệm thu giai đoạn</li>
-      <li>Theo dõi lũy kế: nghiệm thu – đã thanh toán – khấu trừ – còn lại</li>
-      <li>Mẫu gốc: <i>2. HSTT. NHAN CONG LAMINCO_CLEAN.xlsx</i></li></ul></div>
-    <div class="card"><h3>Biểu mẫu nhân công tổ đội</h3><ul>
-      <li>Mỗi tổ một bảng giá trị và khối lượng; bảng lũy kế các lần đã chi</li>
-      <li>Danh sách lao động, hợp đồng dịch vụ khoán, bảng xác nhận công việc (thuê ngoài)</li>
-      <li>Mẫu gốc: <i>I Tower HSTT. NHAN CONG 06112026_CLEAN.xlsx</i>, <i>BM. HDGK DVU THUENGOAI.ACON 8.2026 FN.xlsx</i></li></ul></div>
-  </div></section>
-  <section class="view" id="v-tam-ung"><div class="plan">
-    <h2>Tạm ứng <span class="pill">Bước 3 – đang chuẩn bị</span></h2>
-    <p>Sổ tạm ứng và hoàn ứng theo từng người, tổ đội; cảnh báo khoản quá hạn chưa hoàn ứng. Làm theo quy trình “QT Tạm ứng và Quyết toán hoàn ứng” của công ty.</p>
-    <div class="card"><h3>Biểu mẫu sẽ có</h3><ul>
-      <li>Giấy đề nghị tạm ứng (DNTU)</li>
-      <li>Giấy thanh toán tiền tạm ứng (DNTTTU): đã tạm ứng – đã chi – chênh lệch</li>
-      <li>Bảng đề nghị tạm ứng, thanh toán theo kế hoạch (BM-CT-06), sổ quỹ công trường</li>
-      <li>Theo dõi tạm ứng chủ đầu tư: đợt 1 và đợt 2, mỗi đợt 3.586.760.000 đ, thu hồi hết khi thanh toán đạt 80% giá HĐ</li></ul></div>
-  </div></section>
-  <section class="view" id="v-de-nghi-tt"><div class="plan">
-    <h2>Mẫu đề nghị thanh toán <span class="pill">Bước 4 – đang chuẩn bị</span></h2>
-    <p>Điền giấy đề nghị thanh toán (DNTT) trên app, mỗi khoản gắn mã chi phí của KHTC để tự trừ vào ngân sách, rồi xuất Excel để trình ký.</p>
-    <div class="card"><h3>Nguồn</h3><ul><li>Mẫu gốc: <i>MAU DNTT 22026.xlsx</i> (sheet DNTT)</li><li>Quy trình: <i>Ban hành. QT Thanh toán chi phí.pdf</i></li></ul></div>
-  </div></section>
 </main>
 <div class="panel" id="edPanel" hidden></div>
 <div class="modal" id="modal" hidden><div class="box" role="dialog" aria-modal="true"><div id="mText"></div><div class="row"><button id="mNo">Hủy</button><button class="primary" id="mYes">Đồng ý</button></div></div></div>
