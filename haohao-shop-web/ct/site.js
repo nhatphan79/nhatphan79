@@ -128,7 +128,7 @@
   const lbl = (L, v) => (L.find(x => x[0] === v) || ['', ''])[1];
   const PHASES0 = ['Chuẩn bị', 'Móng', 'Phần thân', 'Mái', 'Hoàn thiện', 'Nghiệm thu – Bàn giao'];
   const TABS = [['dash', '📊 Tổng quan'], ['plan', '📅 Tiến độ'], ['task', '✅ Công việc'], ['kh', '🗓️ Kế hoạch'], ['crew', '👷 Nhân lực'],
-    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['qa', '✅ QA/QC Shop'], ['info', 'ℹ️ Thông tin']];   // V1.6.8: Shopdrawing gộp vào QA/QC (nhóm SHD)
+    ['mat', '🧱 Vật tư'], ['cost', '💰 Chi phí'], ['issue', '⚠️ Vấn đề'], ['rep', '📑 Báo cáo'], ['file', '📁 Hồ sơ'], ['qa', '✅ QA/QC Shop'], ['info', 'ℹ️ Thông tin'], ['cp', '💼 Quản lý chi phí']];   // V1.8.0: Quản lý chi phí (KHTC)   // V1.6.8: Shopdrawing gộp vào QA/QC (nhóm SHD)
 
   function newSite(name, code) {
     const s0 = today();
@@ -324,6 +324,7 @@
   }
   function pdfTab(S) {
     const body = root.querySelector('.sb-body'); if (!body || !S) return;
+    if (tab === 'cp' && cpF && !cpF.hidden) { try { cpF.contentWindow.KHTCPrint((S.code || 'CONG-TRINH') + ' - Quản lý chi phí - ' + today()); } catch {} return; }
     const tl = ((TABS.find(([k]) => k === tab) || [])[1] || '').trim(), now = new Date(), t0 = document.title;
     const h = $('div', 'sb-pdfh'); h.append($('b', '', (S.code ? S.code + ' · ' : '') + (S.name || '')), $('span', '', tl), $('small', '', 'Xuất lúc ' + now.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })));
     body.prepend(h);
@@ -1841,8 +1842,43 @@
   }
 
   // ---------- vẽ ----------
-  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file, sd: shopdraw, qa: qaqc, info };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
+  const VIEWS = { dash, plan, task, kh: kehoach, log: report, crew, mat, cost, issue, rep: report, file, sd: shopdraw, qa: qaqc, info, cp: cpView };   // V1.5.11: bỏ tab Nhật ký – báo cáo ngày ở tab Báo cáo
   let rendering = false;
+  // 💼 V1.8.0: tab QUẢN LÝ CHI PHÍ – bảng tính KHTC (khtc.html) trong khung riêng nằm ngay dưới trang (không vẽ lại khi trang vẽ lại)
+  //   Máy tính: đầy đủ (sửa ô, công thức, tải Excel). Điện thoại / bản xem: chỉ xem thẻ số liệu + bảng phân bổ (ảnh chụp S.khtc.snap).
+  let cpF = null, cpSid = null;
+  const cpS = sid => data.sites.find(x => x.id === sid);
+  const cpOf = S => { if (!S.khtc || typeof S.khtc !== 'object') S.khtc = {}; if (!S.khtc.edits || typeof S.khtc.edits !== 'object') S.khtc.edits = {}; return S.khtc; };
+  window.SB_KHTC = {
+    info: sid => { const S = cpS(sid); return S ? { code: S.code || '', name: S.name || '' } : null; },
+    edits: sid => { const S = cpS(sid); return S && S.khtc && S.khtc.edits ? JSON.parse(JSON.stringify(S.khtc.edits)) : {}; },
+    src: sid => { const S = cpS(sid); return S && S.khtc ? S.khtc.src || '' : ''; },
+    set: (sid, k, e) => { const S = cpS(sid); if (!S || RO) return; const K = cpOf(S); if (e) K.edits[k] = { v: e.v, t: e.t || Date.now() }; else delete K.edits[k]; saveSoon(); },
+    snap: (sid, x) => { const S = cpS(sid); if (!S || RO) return; const K = cpOf(S), o = JSON.stringify(K.snap ? { ...K.snap, at: 0 } : null); if (o === JSON.stringify({ ...x, at: 0 })) return; K.snap = { ...x, at: Date.now() }; saveSoon(); },
+    file: (sid, f) => { const S = cpS(sid); if (!S || RO) return; const K = cpOf(S); K.src = f.src; K.fileAt = f.at; save(); },
+  };
+  function cpSync() {
+    const S = site(), show = ready && !root.hidden && S && tab === 'cp' && !WEB && !RO;
+    if (!show) { if (cpF) cpF.hidden = true; return; }
+    if (!cpF) { cpF = document.createElement('iframe'); cpF.className = 'sb-cpf'; cpF.title = 'Quản lý chi phí'; root.after(cpF); }
+    if (cpSid !== S.id) { cpSid = S.id; cpF.src = 'khtc.html?s=' + encodeURIComponent(S.id); }
+    cpF.hidden = false;
+    try { const w = cpF.contentWindow; if (w && w.KHTCRemote) w.KHTCRemote((S.khtc && S.khtc.edits) || {}); } catch {}
+  }
+  new MutationObserver(() => cpSync()).observe(root, { attributes: true, attributeFilter: ['hidden'] });
+  function cpView(W, S) {
+    if (!WEB && !RO) return;   // máy tính: khung bảng tính nằm ngay dưới (cpSync)
+    const K = S.khtc || {}, P = K.snap;
+    sec(W, '💼 Quản lý chi phí', P ? 'Nguồn: ' + (P.src || K.src || 'file KHTC') + ' · cập nhật ' + new Date(P.at || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) + (P.n ? ' · ' + P.n + ' ô đã sửa' : '') : '');
+    if (!P) { W.append($('div', 'sb-note', 'Chưa có số liệu. Mở HaoHao trên máy tính → tab 💼 Quản lý chi phí → nạp file KHTC (.xlsx); số liệu tự hiện ở đây.')); return; }
+    const k = $('div', 'sb-kpis'); (P.kpi || []).forEach(x => k.append(kpi(x.l, money(x.v), x.n, x.g ? 'good' : ''))); W.append(k);
+    const box = $('div', 'sb-tw'), t = $('table', 'sb-t sb-cpal'), th = $('thead'), hr = $('tr');
+    [['Khoản mục', ''], ['KHTC P. Dự án (đ)', 'r'], ['% giá trước thuế', 'r'], ['Dự thầu (đ)', 'r'], ['Chênh lệch', 'r']].forEach(([l, c]) => hr.append($('th', c, l))); th.append(hr); t.append(th);
+    const tb = $('tbody'); (P.alloc || []).forEach(a => { const r = $('tr', a.k === 'res' ? 'res' : a.k === 'base' ? 'base' : ''), d = a.k === 'base' ? 0 : a.v - a.dt, cost = !a.k;
+      const dc = $('td', 'r ' + (!a.dt || a.k === 'base' || Math.abs(d) < 1 ? '' : (cost ? d < 0 : d > 0) ? 'ok' : 'bad'), a.k === 'base' || !a.dt ? '' : (d > 0 ? '+' : '−') + money(Math.abs(d)));
+      r.append($('td', '', a.l), $('td', 'r b', money(a.v)), $('td', 'r', (Math.round((a.p || 0) * 1000) / 10).toLocaleString('vi-VN') + '%'), $('td', 'r', a.dt ? money(a.dt) : '–'), dc); tb.append(r); });
+    t.append(tb); box.append(t); W.append(box, $('div', 'sb-note', 'Điện thoại chỉ xem. Sửa số liệu ở HaoHao trên máy tính (tab 💼 Quản lý chi phí).'));
+  }
   function render(force) {
     if (rendering) { setTimeout(() => render(force), 0); return; }
     if (!ready || root.hidden || (!force && editing())) return;
@@ -1861,7 +1897,7 @@
       }
       const keep = [...root.querySelectorAll('.sb-toast,.sb-dlg')];
       if (S) W.append(peopleDl(S));
-      root.replaceChildren(W, ...keep); window.scrollTo(0, y);
+      root.replaceChildren(W, ...keep); window.scrollTo(0, y); cpSync();
       root.querySelectorAll('textarea.sb-grow').forEach(grow);
     } finally { rendering = false; }
   }

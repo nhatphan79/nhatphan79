@@ -602,3 +602,10 @@ input.sb-scode.man { color: #7A5AF8; }
   .sb-pdfz input[type=date]::-webkit-calendar-picker-indicator { display: none; } .sb-pdfz input.sb-pdfe { visibility: hidden !important; }
   .sb-pdfz * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* 💼 V1.8.0: tab Quản lý chi phí – khung bảng tính KHTC (máy tính) + bản xem (điện thoại) */
+.sb-cpf { display: block; width: min(1320px, calc(100% - 32px)); height: max(640px, calc(100vh - 170px)); margin: 0 auto 24px; border: 1px solid #E3E6EC; border-radius: 14px; background: #fff; }
+.sb-cpf[hidden] { display: none; }
+.sb-cpal td.ok { color: #1F7A4A; font-weight: 700; } .sb-cpal td.bad { color: #B4540A; font-weight: 700; }
+.sb-cpal tr.base td { background: #F3F5FA; font-weight: 800; } .sb-cpal tr.res td { background: #E6F4EC; color: #1F5E3E; font-weight: 800; }
+@media print { body.sb-pdf .sb-cpf { display: none !important; } }

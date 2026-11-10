@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quản lý chi phí – HaoHao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="khtc.css">
+<style id="xlstyles"></style>
+</head>
+<body>
+<header>
+  <div class="brand"><b id="kBrand">Quản lý chi phí</b><span id="kSub"></span></div>
+  <nav aria-label="Chức năng">
+    <a href="#ke-hoach" data-v="ke-hoach">1. Kế hoạch thi công</a>
+    <a href="#thanh-toan" data-v="thanh-toan">2. Thanh toán</a>
+    <a href="#tam-ung" data-v="tam-ung">3. Tạm ứng</a>
+    <a href="#de-nghi-tt" data-v="de-nghi-tt">Mẫu đề nghị thanh toán</a>
+  </nav>
+</header>
+<div class="kempty" id="kEmpty" hidden>
+  <h2>💼 Quản lý chi phí</h2>
+  <p>Chưa có file Kế hoạch thi công (KHTC) cho công trình này. Nạp file Excel (.xlsx) – HaoHao mở đủ các sheet, công thức tự tính, sửa ô ngay trên trang và tải lại Excel giữ nguyên định dạng.</p>
+  <div class="row"><button class="primary" id="kPick">📥 Nạp file KHTC (.xlsx)</button><button id="kDemo" hidden></button></div>
+  <p class="hint" id="kHint">File Excel chỉ lưu trên máy này. Các ô anh sửa thì lưu theo công trình và tự đồng bộ sang máy khác cùng Gmail (máy khác cần nạp file 1 lần).</p>
+</div>
+<main id="kMain" hidden>
+  <section class="view" id="v-ke-hoach">
+    <div class="kpis" id="kpis"></div>
+    <div class="khtc">
+    <aside class="snav" id="snav" aria-label="Danh mục sheet"></aside>
+    <div class="work">
+    <div class="bar">
+      <div class="title" id="sheetTitle">Kế hoạch thi công</div>
+      <span class="gridonly"><input type="search" id="q" placeholder="Tìm…" aria-label="Tìm trong sheet" style="width:150px"></span>
+      <label class="chk gridonly" title="Chỉ hiện dòng khớp từ tìm kiếm"><input type="checkbox" id="onlyHit"> Lọc</label>
+      <label class="chk gridonly" title="Hiện công thức trong ô (Ctrl + `)"><input type="checkbox" id="showF"> Công thức</label>
+      <label class="chk" title="Hiện cả dòng, cột và sheet đang bị ẩn"><input type="checkbox" id="showHidden"> Hiện ẩn</label>
+      <span class="sep"></span>
+      <button id="btnUndo" title="Hoàn tác (Ctrl+Z)" aria-label="Hoàn tác" disabled>↶</button>
+      <button id="btnRedo" title="Làm lại (Ctrl+Y)" aria-label="Làm lại" disabled>↷</button>
+      <button id="btnEdits">Ô đã sửa (<span id="nEd">0</span>)</button>
+      <button id="btnLoad" title="Nạp file KHTC (.xlsx) khác cho công trình này">📥 Nạp file khác</button>
+      <button class="primary" id="btnXlsx" title="Tải file Excel kèm các chỉnh sửa, giữ nguyên định dạng và công thức">Tải Excel</button>
+    </div>
+    <div class="fbar gridonly">
+      <input type="text" id="nameBox" aria-label="Địa chỉ ô" value="A1" spellcheck="false">
+      <span class="fx">fx</span>
+      <input type="text" id="fInput" aria-label="Nội dung / công thức của ô" spellcheck="false" autocomplete="off">
+      <span class="fstat"><span class="dot busy" id="eDot"></span><span id="eStat">Đang nạp bộ tính…</span></span>
+    </div>
+    <div class="gridwrap gridonly" id="grid" tabindex="0" aria-label="Bảng tính"></div>
+    <div class="summary sumonly" id="summary"></div>
+    <div class="msg" id="msg"></div>
+    <div class="help gridonly">Bấm ô để xem công thức · Gõ trực tiếp hoặc <kbd>F2</kbd>/nhấp đúp để sửa · <kbd>Enter</kbd> lưu · <kbd>Esc</kbd> hủy · <kbd>Delete</kbd> xóa · <kbd>Ctrl+Z</kbd> hoàn tác · <kbd>Ctrl+`</kbd> xem công thức · kéo mép tiêu đề cột để đổi độ rộng</div>
+    </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-thanh-toan"><div class="plan">
+    <h2>Thanh toán <span class="pill">Bước 2 – đang chuẩn bị</span></h2>
+    <p>Tab này sẽ lập hồ sơ thanh toán cho nhà thầu phụ và tổ đội ngay trên app, rồi xuất ra Excel đúng mẫu công ty đang dùng.</p>
+    <div class="card"><h3>Biểu mẫu xuất hóa đơn NTP</h3><ul>
+      <li>Bảng tổng hợp thanh toán (BMNC1), bảng giá trị thanh toán (BMNC2), tổng hợp khối lượng, biên bản nghiệm thu giai đoạn</li>
+      <li>Theo dõi lũy kế: nghiệm thu – đã thanh toán – khấu trừ – còn lại</li>
+      <li>Mẫu gốc: <i>2. HSTT. NHAN CONG LAMINCO_CLEAN.xlsx</i></li></ul></div>
+    <div class="card"><h3>Biểu mẫu nhân công tổ đội</h3><ul>
+      <li>Mỗi tổ một bảng giá trị và khối lượng; bảng lũy kế các lần đã chi</li>
+      <li>Danh sách lao động, hợp đồng dịch vụ khoán, bảng xác nhận công việc (thuê ngoài)</li>
+      <li>Mẫu gốc: <i>I Tower HSTT. NHAN CONG 06112026_CLEAN.xlsx</i>, <i>BM. HDGK DVU THUENGOAI.ACON 8.2026 FN.xlsx</i></li></ul></div>
+  </div></section>
+  <section class="view" id="v-tam-ung"><div class="plan">
+    <h2>Tạm ứng <span class="pill">Bước 3 – đang chuẩn bị</span></h2>
+    <p>Sổ tạm ứng và hoàn ứng theo từng người, tổ đội; cảnh báo khoản quá hạn chưa hoàn ứng. Làm theo quy trình “QT Tạm ứng và Quyết toán hoàn ứng” của công ty.</p>
+    <div class="card"><h3>Biểu mẫu sẽ có</h3><ul>
+      <li>Giấy đề nghị tạm ứng (DNTU)</li>
+      <li>Giấy thanh toán tiền tạm ứng (DNTTTU): đã tạm ứng – đã chi – chênh lệch</li>
+      <li>Bảng đề nghị tạm ứng, thanh toán theo kế hoạch (BM-CT-06), sổ quỹ công trường</li>
+      <li>Theo dõi tạm ứng chủ đầu tư: đợt 1 và đợt 2, mỗi đợt 3.586.760.000 đ, thu hồi hết khi thanh toán đạt 80% giá HĐ</li></ul></div>
+  </div></section>
+  <section class="view" id="v-de-nghi-tt"><div class="plan">
+    <h2>Mẫu đề nghị thanh toán <span class="pill">Bước 4 – đang chuẩn bị</span></h2>
+    <p>Điền giấy đề nghị thanh toán (DNTT) trên app, mỗi khoản gắn mã chi phí của KHTC để tự trừ vào ngân sách, rồi xuất Excel để trình ký.</p>
+    <div class="card"><h3>Nguồn</h3><ul><li>Mẫu gốc: <i>MAU DNTT 22026.xlsx</i> (sheet DNTT)</li><li>Quy trình: <i>Ban hành. QT Thanh toán chi phí.pdf</i></li></ul></div>
+  </div></section>
+</main>
+<div class="panel" id="edPanel" hidden></div>
+<div class="modal" id="modal" hidden><div class="box" role="dialog" aria-modal="true"><div id="mText"></div><div class="row"><button id="mNo">Hủy</button><button class="primary" id="mYes">Đồng ý</button></div></div></div>
+<script src="lib/khtc/hyperformula.min.js"></script>
+<script src="lib/khtc/jszip.min.js"></script>
+<script src="lib/khtc/xlengine.js"></script>
+<script src="lib/khtc/xlpatch.js"></script>
+<script src="lib/khtc/xlread.js"></script>
+<script src="khtc.js"></script>
+<script src="khtc-boot.js"></script>
+</body>
+</html>
