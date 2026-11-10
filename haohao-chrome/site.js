@@ -1853,15 +1853,21 @@
     info: sid => { const S = cpS(sid); return S ? { code: S.code || '', name: S.name || '' } : null; },
     edits: sid => { const S = cpS(sid); return S && S.khtc && S.khtc.edits ? JSON.parse(JSON.stringify(S.khtc.edits)) : {}; },
     src: sid => { const S = cpS(sid); return S && S.khtc ? S.khtc.src || '' : ''; },
-    set: (sid, k, e) => { const S = cpS(sid); if (!S || RO) return; const K = cpOf(S); if (e) K.edits[k] = { v: e.v, t: e.t || Date.now() }; else delete K.edits[k]; saveSoon(); },
-    snap: (sid, x) => { const S = cpS(sid); if (!S || RO) return; const K = cpOf(S), o = JSON.stringify(K.snap ? { ...K.snap, at: 0 } : null); if (o === JSON.stringify({ ...x, at: 0 })) return; K.snap = { ...x, at: Date.now() }; saveSoon(); },
+    set: (sid, k, e) => { const S = cpS(sid); if (!S || RO || WEB) return; const K = cpOf(S); if (e) K.edits[k] = { v: e.v, t: e.t || Date.now() }; else delete K.edits[k]; saveSoon(); },
+    snap: (sid, x) => { const S = cpS(sid); if (!S || RO || WEB) return; const K = cpOf(S), o = JSON.stringify(K.snap ? { ...K.snap, at: 0 } : null); if (o === JSON.stringify({ ...x, at: 0 })) return; K.snap = { ...x, at: Date.now() }; saveSoon(); },
     file: (sid, f) => { const S = cpS(sid); if (!S || RO) return; const K = cpOf(S); K.src = f.src; K.fileAt = f.at; save(); },
+    ro: WEB || RO,
+    api: async (m, sid, q, body) => {   // V1.8.7: file KHTC trên máy chủ (/sb/khtc)
+      let tok = acct.token; if (WEB) { try { tok = (JSON.parse(localStorage.getItem('sbAuth')) || {}).token; } catch {} } if (!tok) return null;
+      const r = await fetch(SB_API + '/sb/khtc?s=' + encodeURIComponent(sid) + (q && q.meta ? '&meta=1' : ''), { method: m, headers: { authorization: 'Bearer ' + tok, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+      return r.json().catch(() => null);
+    },
   };
   function cpSync() {
-    const S = site(), show = ready && !root.hidden && S && tab === 'cp' && !WEB && !RO;
+    const S = site(), show = ready && !root.hidden && S && tab === 'cp' && !RO;
     if (!show) { if (cpF) cpF.hidden = true; if (cpG) cpG.hidden = true; return; }
     if (!cpF) { cpF = document.createElement('iframe'); cpF.className = 'sb-cpf'; cpF.title = 'Quản lý chi phí'; document.body.append(cpF); }
-    if (cpSid !== S.id) { cpSid = S.id; cpF.src = 'khtc.html?s=' + encodeURIComponent(S.id); }
+    if (cpSid !== S.id) { cpSid = S.id; cpF.src = (WEB ? '/ct/' : '') + 'khtc.html?s=' + encodeURIComponent(S.id); }
     const sl = root.querySelector('.sb-cpslot');   // V1.8.1: khung đặt đè đúng chỗ ô trống ngay dưới thanh tab (không bị đẩy xuống cuối trang)
     if (sl) { const r0 = sl.getBoundingClientRect(); let uh = 0; try { uh = +localStorage.getItem('hhCpH') || 0; } catch {}
       const h = uh >= 400 ? uh : Math.max(480, window.innerHeight - (r0.top + window.scrollY) - 46); sl.style.height = h + 'px';   // V1.8.3: sát chân trang · V1.8.4: anh kéo mép dưới để cao hơn (nhớ theo máy)
@@ -1879,7 +1885,7 @@
   new MutationObserver(() => cpSync()).observe(root, { attributes: true, attributeFilter: ['hidden'] });
   window.addEventListener('resize', () => { if (cpF && !cpF.hidden) cpSync(); });
   function cpView(W, S) {
-    if (!WEB && !RO) { W.append($('div', 'sb-cpslot')); return; }   // máy tính: khung bảng tính đặt đè lên ô này (cpSync)
+    if (!RO) { W.append($('div', 'sb-cpslot')); return; }   // máy tính + web (V1.8.7, chỉ xem): khung bảng tính đặt đè lên ô này (cpSync)
     const K = S.khtc || {}, P = K.snap;
     sec(W, '💼 Quản lý chi phí', P ? 'Nguồn: ' + (P.src || K.src || 'file KHTC') + ' · cập nhật ' + new Date(P.at || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) + (P.n ? ' · ' + P.n + ' ô đã sửa' : '') : '');
     if (!P) { W.append($('div', 'sb-note', 'Chưa có số liệu. Mở HaoHao trên máy tính → tab 💼 Quản lý chi phí → nạp file KHTC (.xlsx); số liệu tự hiện ở đây.')); return; }

@@ -5,6 +5,7 @@
 window.KHTCStart=function(D,SRC_NAME,ORIG,EDIT0,HOST){
 "use strict";
 const SHEETS=D.sheets, STY=D.styles;
+const RO=!!window.KHTC_RO;   // V1.8.7: điện thoại (web) chỉ xem – sửa ở HaoHao trên máy tính
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const {toEngine,colStr,colNum}=window.XLEngine;
@@ -366,6 +367,7 @@ function goTo(si,r,c){ if(si!==cur){cur=si;render()} sel={r,c}; markSel(true); }
 /* ---- trình sửa trong ô ---- */
 let editor=null;
 function startEdit(initial){
+  if(RO){msg('Điện thoại chỉ xem – sửa ô ở HaoHao trên máy tính.',true);return}
   const td=tdAt(sel.r,sel.c); if(!td) return;
   const inp=curInput(cur,sel.r,sel.c);
   if(typeof inp==='string'&&/\[\d+\]/.test(inp)){msg('Ô này lấy số từ file Excel khác, không sửa trên app được.',true);return}
@@ -417,11 +419,11 @@ grid.addEventListener('keydown',e=>{
   else if(k==='ArrowRight'||k==='Tab'&&!e.shiftKey){e.preventDefault();move(0,1)}
   else if(k==='ArrowLeft'||k==='Tab'&&e.shiftKey){e.preventDefault();move(0,-1)}
   else if(k==='F2'){e.preventDefault();startEdit()}
-  else if(k==='Delete'||k==='Backspace'){e.preventDefault();const inp=curInput(cur,sel.r,sel.c);if(typeof inp==='string'&&/\[\d+\]/.test(inp))return;applyInput(cur,sel.r,sel.c,null)}
+  else if(k==='Delete'||k==='Backspace'){e.preventDefault();if(RO)return;const inp=curInput(cur,sel.r,sel.c);if(typeof inp==='string'&&/\[\d+\]/.test(inp))return;applyInput(cur,sel.r,sel.c,null)}
   else if(k.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();startEdit(k)}
 });
 $('#fInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.preventDefault();const inp=curInput(cur,sel.r,sel.c);if(typeof inp==='string'&&/\[\d+\]/.test(inp)){msg('Ô này lấy số từ file Excel khác, không sửa trên app được.',true);return}
+  if(e.key==='Enter'){e.preventDefault();if(RO){grid.focus();return}const inp=curInput(cur,sel.r,sel.c);if(typeof inp==='string'&&/\[\d+\]/.test(inp)){msg('Ô này lấy số từ file Excel khác, không sửa trên app được.',true);return}
     applyInput(cur,sel.r,sel.c,parseInput(e.target.value));grid.focus();move(1,0)}
   else if(e.key==='Escape'){markSel(false);grid.focus()}
 });
@@ -482,6 +484,7 @@ function renderPanel(){
 $('#btnEdits').addEventListener('click',()=>{const p=$('#edPanel');p.hidden=!p.hidden;if(!p.hidden)renderPanel()});
 $('#edPanel').addEventListener('click',e=>{
   const t=e.target;
+  if(RO&&(t.dataset.rv||t.id==='pReset')){msg('Điện thoại chỉ xem – trả gốc ở HaoHao trên máy tính.',true);return}
   if(t.id==='pClose'){$('#edPanel').hidden=true;return}
   if(t.dataset.go){e.preventDefault();const [si,r,c]=t.dataset.go.split(',').map(Number);goTo(si,r,c);grid.focus();return}
   if(t.dataset.rv){const [si,r,c]=t.dataset.rv.split(',').map(Number);applyInput(si,r,c,undefined);return}
@@ -518,6 +521,7 @@ $('#btnXlsx').addEventListener('click',async()=>{
 });
 
 /* ---------------- khởi động ---------------- */
+if(RO){ $('#fInput').readOnly=true; $('#btnUndo').hidden=$('#btnRedo').hidden=true; }
 if(!HASK) cur=SHEETS.findIndex(x=>x.state==='visible'); if(cur<-1) cur=0;
 renderKPI(); render();
 setTimeout(()=>{

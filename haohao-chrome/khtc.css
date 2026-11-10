@@ -199,3 +199,5 @@ ol.top .bx .fl{height:100%;border-radius:3px;background:var(--accent)}
 
 /* V1.8.4: nút thu phóng */
 .zm{display:inline-flex}.zm button{border-radius:0;padding:7px 9px;min-width:34px}.zm button:first-child{border-radius:6px 0 0 6px}.zm button:last-child{border-radius:0 6px 6px 0}.zm button+button{border-left:none}#zVal{min-width:54px;font-variant-numeric:tabular-nums}
+/* V1.8.7: điện thoại – thẻ số 2 cột, gọn */
+@media (max-width:600px){.kpis{grid-template-columns:1fr 1fr;gap:6px;padding:8px 8px 0}.kpi{padding:5px 8px}.kpi b{font-size:17px}.kpi em{font-size:11px}.bar{padding:6px 8px}.fbar,.gridwrap{margin:0 8px}.snav{padding:0 8px 6px}}

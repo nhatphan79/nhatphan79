@@ -291,7 +291,8 @@ async function sbInit(env) {
   await env.DB.batch([
     env.DB.prepare('CREATE TABLE IF NOT EXISTS sb (email TEXT PRIMARY KEY, rev INTEGER, v TEXT, at INTEGER)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS sbs (tok TEXT PRIMARY KEY, email TEXT, at INTEGER)'),
-    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbp (id TEXT PRIMARY KEY, email TEXT, d TEXT, at INTEGER)')
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbp (id TEXT PRIMARY KEY, email TEXT, d TEXT, at INTEGER)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS sbk (email TEXT, sid TEXT, name TEXT, at INTEGER, d TEXT, PRIMARY KEY (email, sid))')   // V1.8.7: file KHTC (Quản lý chi phí) theo công trình
   ]);
   sbInit.ok = true;
 }
@@ -337,6 +338,23 @@ async function sbRoute(env, req, u) {
     if (!/^p_[a-f0-9]{32}$/.test(id) || !/^data:image\/[a-z]+;base64,/.test(d)) return json({ ok: false, error: 'sai dữ liệu ảnh' }, 400);
     await env.DB.prepare('INSERT OR IGNORE INTO sbp (id, email, d, at) VALUES (?, ?, ?, ?)').bind(id, email, d, Date.now()).run();
     return json({ ok: true, id });
+  }
+  if (u.pathname === '/sb/khtc') {   // 💼 V1.8.7: file Excel KHTC của chủ công trình – máy khác / điện thoại tự lấy về (chỉ chủ đọc được)
+    const sid = String(u.searchParams.get('s') || '').slice(0, 80); if (!sid) return json({ ok: false, error: 'thiếu mã công trình' }, 400);
+    if (req.method === 'GET') {
+      if (u.searchParams.get('meta')) { const r = await env.DB.prepare('SELECT name, at FROM sbk WHERE email = ? AND sid = ?').bind(email, sid).first(); return json({ ok: true, name: r ? r.name : '', at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' }); }
+      const r = await env.DB.prepare('SELECT name, at, d FROM sbk WHERE email = ? AND sid = ?').bind(email, sid).first();
+      return json(r ? { ok: true, name: r.name, at: r.at, b64: r.d } : { ok: true, at: 0 }, 200, { 'cache-control': 'no-store' });
+    }
+    if (req.method === 'PUT') {
+      if (Number(req.headers.get('content-length') || 0) > 1900000) return json({ ok: false, error: 'file quá lớn (tối đa ~1,4MB)' }, 413);
+      const b = await req.json().catch(() => null), name = String(b && b.name || 'KHTC.xlsx').slice(0, 200), d = String(b && b.b64 || '');
+      if (!d || !/^[A-Za-z0-9+/=]+$/.test(d) || d.length > 1880000) return json({ ok: false, error: 'sai dữ liệu file' }, 400);
+      const at = Date.now();
+      await env.DB.prepare('INSERT INTO sbk (email, sid, name, at, d) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email, sid) DO UPDATE SET name = excluded.name, at = excluded.at, d = excluded.d').bind(email, sid, name, at, d).run();
+      return json({ ok: true, at });
+    }
+    return json({ ok: false, error: 'không có lệnh này' }, 405);
   }
   if (u.pathname === '/sb' && req.method === 'GET') {
     const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(email).first();
@@ -1148,6 +1166,9 @@ export default {
       if (u.pathname === '/ct/sbsync.js') return await shopFile('ct/sbsync.js', 'js');
       if (u.pathname === '/ct/todo.js' || u.pathname === '/ct/proj.js') return await shopFile(u.pathname.slice(1), 'js');
       if (u.pathname === '/ct/icon48.png') return await shopFile('ct/icon48.png', 'png');
+      if (u.pathname === '/ct/khtc.html') return await shopFile('ct/khtc.html', 'html');   // 💼 V1.8.7: Quản lý chi phí xem trên điện thoại
+      if (/^\/ct\/(khtc\.js|khtc-boot\.js|lib\/khtc\/(hyperformula\.min|jszip\.min|xlengine|xlpatch|xlread)\.js)$/.test(u.pathname)) return await shopFile(u.pathname.slice(1), 'js');
+      if (u.pathname === '/ct/khtc.css') return await shopFile('ct/khtc.css', 'css');
       if (u.pathname === '/don' && req.method === 'POST') { if (Number(req.headers.get('content-length') || 0) > 8000) return json({ ok: false, error: 'too big' }, 413); return json(await donHang(env, await req.json().catch(() => null), req)); }
       if (u.pathname === '/store') {   // 🏬 19/10: sản phẩm HaoHao Store cho web (đọc từ collshp, 6 giờ/lần)
         if (u.searchParams.get('run')) { if (!isAdmin(env, u)) return json({ ok: false, error: 'cần mật khẩu' }, 403); return json(await storeMaybe(env, true)); }
