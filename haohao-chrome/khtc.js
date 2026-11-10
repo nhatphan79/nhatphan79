@@ -82,23 +82,24 @@ function engineContent(si,input){
 }
 
 /* ---------------- KPI (tính trực tiếp từ sheet 1. THKHTC) ---------------- */
-const KPI=[
+const ty2=v=>(v/1e9).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})+' tỷ';
+const KPI=[   // V1.8.5: thẻ khớp menu trái – trực tiếp / gián tiếp (gián tiếp = chi phí chung + tài chính + khác)
   {label:'Giá hợp đồng sau VAT',a:'I7',note:()=>'Trước thuế '+fmt(kv('I11'),'n0')},
-  {label:'Chi phí sản xuất (VL+NC+M+BPTC)',a:'I14',note:()=>pct(kv('I14')/kv('I11'))+' giá trước thuế'},
-  {label:'Chi phí chung',a:'I32',note:()=>pct(kv('I32')/kv('I11'))+' giá trước thuế'},
-  {label:'Chi phí tài chính',a:'I36',note:()=>'Bảo lãnh, lãi vay, chuyển đổi thuế'},
+  {label:'Chi phí trực tiếp',a:'I14',note:()=>pct(kv('I14')/kv('I11'))+' giá trước thuế · VL + NC + máy + BPTC'},
+  {label:'Chi phí gián tiếp',a:['I32','I36','I40'],note:()=>'Chung '+ty2(kv('I32'))+' · tài chính '+ty2(kv('I36'))+' · khác '+ty2(kv('I40'))},
   {label:'Hiệu quả trước thuế',a:'I48',good:1,note:()=>pct(kv('I48')/kv('I11'))+' · theo 1. THKHTC'},
 ];
 const KSI=SI['1. THKHTC']; const HASK=KSI!=null;   // file khác mẫu (không có sheet 1. THKHTC) → bỏ thẻ số liệu + tóm tắt, chỉ còn danh mục sheet
 const addrRC=a=>{const m=/^([A-Z]+)(\d+)$/.exec(a);return [+m[2]-1,colNum(m[1])-1]};
-function kv(a){if(!HASK)return 0;const [r,c]=addrRC(a);const v=valueOf(KSI,r,c);return typeof v==='number'?v:0}
+function kv(a){if(!HASK)return 0;if(Array.isArray(a))return a.reduce((t,x)=>t+kv(x),0);const [r,c]=addrRC(a);const v=valueOf(KSI,r,c);return typeof v==='number'?v:0}
 const pct=x=>isFinite(x)?(x*100).toLocaleString('vi-VN',{maximumFractionDigits:1})+'%':'–';
-const KPI0=KPI.map(k=>{if(!HASK)return 0;const [r,c]=addrRC(k.a);const x=cellOf(KSI,r,c);return x?x[0]:0});
+const kv0=a=>{if(Array.isArray(a))return a.reduce((t,x)=>t+kv0(x),0);const [r,c]=addrRC(a);const x=cellOf(KSI,r,c);return x&&typeof x[0]==='number'?x[0]:0};
+const KPI0=KPI.map(k=>HASK?kv0(k.a):0);
 function renderKPI(){
   if(!HASK){$('#kpis').hidden=true;return}
   snapLater();
   $('#kpis').innerHTML=KPI.map((k,i)=>{const v=kv(k.a);const chg=Math.abs(v-KPI0[i])>0.5;
-    return `<div class="kpi${k.good?' good':''}${chg?' chg':''}" title="${chg?'Đã thay đổi so với file gốc: '+fmt(KPI0[i],'n0'):'Ô '+k.a+' sheet 1. THKHTC'}"><small>${esc(k.label)}</small><b>${fmt(Math.round(v),'n0')}</b><em>${esc(k.note())}${chg?' · gốc '+fmt(KPI0[i],'n0'):''}</em></div>`}).join('');
+    return `<div class="kpi${k.good?' good':''}${chg?' chg':''}" title="${chg?'Đã thay đổi so với file gốc: '+fmt(KPI0[i],'n0'):'Ô '+[].concat(k.a).join(' + ')+' sheet 1. THKHTC'}"><small>${esc(k.label)}</small><b>${fmt(Math.round(v),'n0')}</b><em>${esc(k.note())}${chg?' · gốc '+fmt(KPI0[i],'n0'):''}</em></div>`}).join('');
 }
 
 /* ---------------- lưới ---------------- */
