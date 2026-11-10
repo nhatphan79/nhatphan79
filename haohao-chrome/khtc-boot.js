@@ -11,6 +11,11 @@
   };
   const info = (HOSTP && HOSTP.info(sid)) || { code: '', name: '' };
   const RO = !!(HOSTP && HOSTP.ro); window.KHTC_RO = RO;   // V1.8.7: trang web (điện thoại) chỉ xem
+  if (RO) {   // V1.8.8: web – khung tự cao bằng nội dung, cuộn bằng trang ngoài (không phải cuộn trong khung nhỏ)
+    document.documentElement.classList.add('kro');
+    let lh = 0; const fit = () => { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4;   /* đo thân trang (không đo cửa sổ khung) → co lại được khi đổi sheet */ if (Math.abs(h - lh) > 2 && HOSTP.fit) { lh = h; HOSTP.fit(sid, h); } };
+    new ResizeObserver(fit).observe(document.body); setTimeout(fit, 300);
+  }
   const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
   const unb64 = t => { const b = atob(t); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
   // V1.8.7: file KHTC cất trên máy chủ HaoHao (theo Gmail + công trình) → máy khác, điện thoại tự lấy về
