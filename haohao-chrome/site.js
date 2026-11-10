@@ -1860,14 +1860,17 @@
   function cpSync() {
     const S = site(), show = ready && !root.hidden && S && tab === 'cp' && !WEB && !RO;
     if (!show) { if (cpF) cpF.hidden = true; return; }
-    if (!cpF) { cpF = document.createElement('iframe'); cpF.className = 'sb-cpf'; cpF.title = 'Quản lý chi phí'; root.after(cpF); }
+    if (!cpF) { cpF = document.createElement('iframe'); cpF.className = 'sb-cpf'; cpF.title = 'Quản lý chi phí'; document.body.append(cpF); }
     if (cpSid !== S.id) { cpSid = S.id; cpF.src = 'khtc.html?s=' + encodeURIComponent(S.id); }
+    const sl = root.querySelector('.sb-cpslot');   // V1.8.1: khung đặt đè đúng chỗ ô trống ngay dưới thanh tab (không bị đẩy xuống cuối trang)
+    if (sl) { const r = sl.getBoundingClientRect(); Object.assign(cpF.style, { left: (r.left + window.scrollX) + 'px', top: (r.top + window.scrollY) + 'px', width: r.width + 'px', height: r.height + 'px' }); }
     cpF.hidden = false;
     try { const w = cpF.contentWindow; if (w && w.KHTCRemote) w.KHTCRemote((S.khtc && S.khtc.edits) || {}); } catch {}
   }
   new MutationObserver(() => cpSync()).observe(root, { attributes: true, attributeFilter: ['hidden'] });
+  window.addEventListener('resize', () => { if (cpF && !cpF.hidden) cpSync(); });
   function cpView(W, S) {
-    if (!WEB && !RO) return;   // máy tính: khung bảng tính nằm ngay dưới (cpSync)
+    if (!WEB && !RO) { W.append($('div', 'sb-cpslot')); return; }   // máy tính: khung bảng tính đặt đè lên ô này (cpSync)
     const K = S.khtc || {}, P = K.snap;
     sec(W, '💼 Quản lý chi phí', P ? 'Nguồn: ' + (P.src || K.src || 'file KHTC') + ' · cập nhật ' + new Date(P.at || Date.now()).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) + (P.n ? ' · ' + P.n + ' ô đã sửa' : '') : '');
     if (!P) { W.append($('div', 'sb-note', 'Chưa có số liệu. Mở HaoHao trên máy tính → tab 💼 Quản lý chi phí → nạp file KHTC (.xlsx); số liệu tự hiện ở đây.')); return; }

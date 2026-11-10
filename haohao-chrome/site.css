@@ -604,7 +604,8 @@ input.sb-scode.man { color: #7A5AF8; }
 }
 
 /* 💼 V1.8.0: tab Quản lý chi phí – khung bảng tính KHTC (máy tính) + bản xem (điện thoại) */
-.sb-cpf { display: block; width: min(1320px, calc(100% - 32px)); height: max(640px, calc(100vh - 170px)); margin: 0 auto 24px; border: 1px solid #E3E6EC; border-radius: 14px; background: #fff; }
+.sb-cpslot { height: max(600px, calc(100vh - 215px)); }
+.sb-cpf { position: absolute; z-index: 5; display: block; border: 1px solid #E3E6EC; border-radius: 14px; background: #fff; box-sizing: border-box; }
 .sb-cpf[hidden] { display: none; }
 .sb-cpal td.ok { color: #1F7A4A; font-weight: 700; } .sb-cpal td.bad { color: #B4540A; font-weight: 700; }
 .sb-cpal tr.base td { background: #F3F5FA; font-weight: 800; } .sb-cpal tr.res td { background: #E6F4EC; color: #1F5E3E; font-weight: 800; }
