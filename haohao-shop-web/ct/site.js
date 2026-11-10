@@ -1863,7 +1863,8 @@
     if (!cpF) { cpF = document.createElement('iframe'); cpF.className = 'sb-cpf'; cpF.title = 'Quản lý chi phí'; document.body.append(cpF); }
     if (cpSid !== S.id) { cpSid = S.id; cpF.src = 'khtc.html?s=' + encodeURIComponent(S.id); }
     const sl = root.querySelector('.sb-cpslot');   // V1.8.1: khung đặt đè đúng chỗ ô trống ngay dưới thanh tab (không bị đẩy xuống cuối trang)
-    if (sl) { const r = sl.getBoundingClientRect(); Object.assign(cpF.style, { left: (r.left + window.scrollX) + 'px', top: (r.top + window.scrollY) + 'px', width: r.width + 'px', height: r.height + 'px' }); }
+    if (sl) { const r0 = sl.getBoundingClientRect(), h = Math.max(480, window.innerHeight - (r0.top + window.scrollY) - 46); sl.style.height = h + 'px';   // V1.8.3: kéo xuống sát thanh chân trang
+      const r = sl.getBoundingClientRect(); Object.assign(cpF.style, { left: (r.left + window.scrollX) + 'px', top: (r.top + window.scrollY) + 'px', width: r.width + 'px', height: h + 'px' }); }
     cpF.hidden = false;
     try { const w = cpF.contentWindow; if (w && w.KHTCRemote) w.KHTCRemote((S.khtc && S.khtc.edits) || {}); } catch {}
   }
