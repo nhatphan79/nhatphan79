@@ -62,7 +62,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .dot.ok{background:var(--good)} .dot.busy{background:var(--warn)}
 /* lưới (giấy trắng như Excel ở cả 2 giao diện) */
 .gridwrap{flex:1;min-height:220px;overflow:auto;margin:0 16px;border:1px solid var(--line);background:#fff;position:relative;outline:none}
-table.xl{border-collapse:collapse;table-layout:fixed;color:#000;font:11pt Calibri,"Segoe UI",Arial,sans-serif;background:#fff}
+table.xl{zoom:var(--zm,1);border-collapse:collapse;table-layout:fixed;color:#000;font:11pt Calibri,"Segoe UI",Arial,sans-serif;background:#fff}
 table.xl td{padding:0 3px;overflow:hidden;vertical-align:bottom;white-space:nowrap;border:none;position:relative;cursor:cell;
   background-image:linear-gradient(#e1e1e1,#e1e1e1),linear-gradient(#e1e1e1,#e1e1e1);background-size:1px 100%,100% 1px;background-position:right top,left bottom;background-repeat:no-repeat}
 table.xl td .v{overflow:hidden}
@@ -196,3 +196,6 @@ ol.top .bx .fl{height:100%;border-radius:3px;background:var(--accent)}
   body.kprint table.xl thead th{position:static}
   body.kprint *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* V1.8.4: nút thu phóng */
+.zm{display:inline-flex}.zm button{border-radius:0;padding:7px 9px;min-width:34px}.zm button:first-child{border-radius:6px 0 0 6px}.zm button:last-child{border-radius:0 6px 6px 0}.zm button+button{border-left:none}#zVal{min-width:54px;font-variant-numeric:tabular-nums}

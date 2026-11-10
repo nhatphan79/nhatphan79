@@ -610,3 +610,7 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-cpal td.ok { color: #1F7A4A; font-weight: 700; } .sb-cpal td.bad { color: #B4540A; font-weight: 700; }
 .sb-cpal tr.base td { background: #F3F5FA; font-weight: 800; } .sb-cpal tr.res td { background: #E6F4EC; color: #1F5E3E; font-weight: 800; }
 @media print { body.sb-pdf .sb-cpf { display: none !important; } }
+.sb-cpgrip { position: absolute; z-index: 6; height: 14px; margin-top: 2px; cursor: ns-resize; text-align: center; font-size: 10px; line-height: 14px; color: #8A93A3; border-radius: 0 0 8px 8px; user-select: none; touch-action: none; }
+.sb-cpgrip:hover { background: #E9EDF4; color: #2F6DB5; } .sb-cpgrip[hidden] { display: none; }
+.sb-cpslot { margin-bottom: 18px; }
+@media print { body.sb-pdf .sb-cpgrip { display: none !important; } }

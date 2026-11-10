@@ -438,11 +438,17 @@ let tq; $('#q').addEventListener('input',()=>{clearTimeout(tq);tq=setTimeout(()=
 $('#btnUndo').addEventListener('click',undo); $('#btnRedo').addEventListener('click',redo);
 
 /* ---- kéo đổi độ rộng cột ---- */
+/* ---- V1.8.4: thu phóng bảng (50–200%, nhớ theo máy) ---- */
+let ZM=1; try{ZM=Math.min(2,Math.max(.5,+localStorage.getItem('khtc-zoom')||1))}catch(_){}
+function setZoom(z){ ZM=Math.round(Math.min(2,Math.max(.5,z))*10)/10; grid.style.setProperty('--zm',ZM); $('#zVal').textContent=Math.round(ZM*100)+'%'; try{localStorage.setItem('khtc-zoom',String(ZM))}catch(_){} }
+$('#zIn').addEventListener('click',()=>setZoom(ZM+.1)); $('#zOut').addEventListener('click',()=>setZoom(ZM-.1)); $('#zVal').addEventListener('click',()=>setZoom(1));
+grid.addEventListener('wheel',e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); setZoom(ZM+(e.deltaY<0?.1:-.1)); },{passive:false});
+setZoom(ZM);
 function startResize(e,c){
   e.preventDefault(); const sh=SHEETS[cur]; const x0=e.clientX; const w0=colW(cur,c)||24;
   const col=grid.querySelectorAll('col')[LAYOUT.vc.indexOf(c)+1]; const tbl=grid.querySelector('table'); const tw0=tbl.offsetWidth;
-  const mv=ev=>{const w=Math.max(16,w0+ev.clientX-x0);col.style.width=w+'px';tbl.style.width=(tw0+w-w0)+'px'};
-  const up=ev=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up);const w=Math.max(16,w0+ev.clientX-x0);widthOv[sh.name+'|'+c]=Math.round(w);try{localStorage.setItem('polaris-colw',JSON.stringify(widthOv))}catch(_){}render(true)};
+  const mv=ev=>{const w=Math.max(16,w0+(ev.clientX-x0)/ZM);col.style.width=w+'px';tbl.style.width=(tw0+w-w0)+'px'};
+  const up=ev=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up);const w=Math.max(16,w0+(ev.clientX-x0)/ZM);widthOv[sh.name+'|'+c]=Math.round(w);try{localStorage.setItem('polaris-colw',JSON.stringify(widthOv))}catch(_){}render(true)};
   addEventListener('mousemove',mv); addEventListener('mouseup',up);
 }
 

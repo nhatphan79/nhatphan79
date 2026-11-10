@@ -1846,7 +1846,7 @@
   let rendering = false;
   // 💼 V1.8.0: tab QUẢN LÝ CHI PHÍ – bảng tính KHTC (khtc.html) trong khung riêng nằm ngay dưới trang (không vẽ lại khi trang vẽ lại)
   //   Máy tính: đầy đủ (sửa ô, công thức, tải Excel). Điện thoại / bản xem: chỉ xem thẻ số liệu + bảng phân bổ (ảnh chụp S.khtc.snap).
-  let cpF = null, cpSid = null;
+  let cpF = null, cpSid = null, cpG = null;
   const cpS = sid => data.sites.find(x => x.id === sid);
   const cpOf = S => { if (!S.khtc || typeof S.khtc !== 'object') S.khtc = {}; if (!S.khtc.edits || typeof S.khtc.edits !== 'object') S.khtc.edits = {}; return S.khtc; };
   window.SB_KHTC = {
@@ -1859,13 +1859,21 @@
   };
   function cpSync() {
     const S = site(), show = ready && !root.hidden && S && tab === 'cp' && !WEB && !RO;
-    if (!show) { if (cpF) cpF.hidden = true; return; }
+    if (!show) { if (cpF) cpF.hidden = true; if (cpG) cpG.hidden = true; return; }
     if (!cpF) { cpF = document.createElement('iframe'); cpF.className = 'sb-cpf'; cpF.title = 'Quản lý chi phí'; document.body.append(cpF); }
     if (cpSid !== S.id) { cpSid = S.id; cpF.src = 'khtc.html?s=' + encodeURIComponent(S.id); }
     const sl = root.querySelector('.sb-cpslot');   // V1.8.1: khung đặt đè đúng chỗ ô trống ngay dưới thanh tab (không bị đẩy xuống cuối trang)
-    if (sl) { const r0 = sl.getBoundingClientRect(), h = Math.max(480, window.innerHeight - (r0.top + window.scrollY) - 46); sl.style.height = h + 'px';   // V1.8.3: kéo xuống sát thanh chân trang
+    if (sl) { const r0 = sl.getBoundingClientRect(); let uh = 0; try { uh = +localStorage.getItem('hhCpH') || 0; } catch {}
+      const h = uh >= 400 ? uh : Math.max(480, window.innerHeight - (r0.top + window.scrollY) - 46); sl.style.height = h + 'px';   // V1.8.3: sát chân trang · V1.8.4: anh kéo mép dưới để cao hơn (nhớ theo máy)
       const r = sl.getBoundingClientRect(); Object.assign(cpF.style, { left: (r.left + window.scrollX) + 'px', top: (r.top + window.scrollY) + 'px', width: r.width + 'px', height: h + 'px' }); }
     cpF.hidden = false;
+    if (!cpG) { cpG = $('div', 'sb-cpgrip', '⋯ kéo để đổi chiều cao ⋯'); cpG.title = 'Kéo lên / xuống để đổi chiều cao bảng · bấm đúp: về mặc định'; document.body.append(cpG);
+      cpG.addEventListener('dblclick', () => { try { localStorage.removeItem('hhCpH'); } catch {} cpSync(); });
+      cpG.addEventListener('pointerdown', e => { e.preventDefault(); const y0 = e.pageY, h0 = cpF.offsetHeight; cpF.style.pointerEvents = 'none'; cpG.setPointerCapture(e.pointerId);
+        const mv = ev => { const h = Math.max(400, h0 + ev.pageY - y0); cpF.style.height = h + 'px'; const s2 = root.querySelector('.sb-cpslot'); if (s2) s2.style.height = h + 'px'; cpG.style.top = (cpF.offsetTop + h) + 'px'; };
+        const up = ev => { cpG.removeEventListener('pointermove', mv); cpG.removeEventListener('pointerup', up); cpF.style.pointerEvents = ''; try { localStorage.setItem('hhCpH', String(cpF.offsetHeight)); } catch {} };
+        cpG.addEventListener('pointermove', mv); cpG.addEventListener('pointerup', up); }); }
+    Object.assign(cpG.style, { left: cpF.style.left, width: cpF.style.width, top: (parseFloat(cpF.style.top) + parseFloat(cpF.style.height)) + 'px' }); cpG.hidden = false;
     try { const w = cpF.contentWindow; if (w && w.KHTCRemote) w.KHTCRemote((S.khtc && S.khtc.edits) || {}); } catch {}
   }
   new MutationObserver(() => cpSync()).observe(root, { attributes: true, attributeFilter: ['hidden'] });
