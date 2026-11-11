@@ -1,5 +1,5 @@
 // © 2026 HaoHao – Bản quyền thuộc Phan Thanh Nhật (0366.159.790). Mọi quyền được bảo lưu.
-// 📄 V1.9.0: COVER HỒ SƠ TRÌNH (tab QA/QC Shop) – bìa "Yêu cầu phê duyệt" theo mẫu ACON (Tài liệu / Vật liệu / Shop-BPTC),
+// 📄 V1.9.0 (V1.9.1: mục lục theo mẫu DANH MỤC HỒ SƠ – Stt | Tên hồ sơ | Có | Không | Ghi chú, 3 cấp Phần › Nhóm › Tài liệu; ô bìa điền sẵn từ dòng hồ sơ bên ngoài): COVER HỒ SƠ TRÌNH (tab QA/QC Shop) – bìa "Yêu cầu phê duyệt" theo mẫu ACON (Tài liệu / Vật liệu / Shop-BPTC),
 //   mục lục tự động từ các file chọn (mã con …-01, -02), xuất 1 bộ PDF: bìa + mục lục + file – bấm mã nhảy trang, có bookmark.
 //   File lưu trên máy (IndexedDB hhCover), thông tin bìa + mục lục lưu trong hồ sơ (S.subs[].cv) – đồng bộ như dữ liệu công trình.
 const P = new URLSearchParams(location.search), SID = P.get('s') || '', XID = P.get('x') || '', CODE0 = P.get('c') || '';
@@ -13,32 +13,41 @@ const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(
 let msgT = 0; const msg = (t, bad) => { const m = q('#msg'); m.textContent = t; m.className = 'msg' + (bad ? ' bad' : ''); m.hidden = !t; clearTimeout(msgT); if (t) msgT = setTimeout(() => { m.hidden = true; }, bad ? 7000 : 3500); };
 
 // ---------- dữ liệu ----------
-const MAU = { tl: ['Tài liệu', 'YÊU CẦU PHÊ DUYỆT TÀI LIỆU', 'TÀI LIỆU'], vl: ['Vật liệu', 'YÊU CẦU PHÊ DUYỆT VẬT LIỆU', 'VẬT LIỆU'], shop: ['Shopdrawing / BPTC', 'YÊU CẦU PHÊ DUYỆT SHOPDRAWING', 'SHOP-BPTC'] };
-const KIND = ['Bản vẽ', 'Thuyết minh', 'Catalogue', 'Chứng chỉ CO/CQ', 'Biểu mẫu', 'Hợp đồng / báo giá', 'Khác'];
+const MAU = { tl: ['Tài liệu', 'YÊU CẦU PHÊ DUYỆT TÀI LIỆU', 'TÀI LIỆU', 'TRÌNH DUYỆT TÀI LIỆU'], vl: ['Vật liệu', 'YÊU CẦU PHÊ DUYỆT VẬT LIỆU', 'VẬT LIỆU', 'TRÌNH DUYỆT VẬT LIỆU'], shop: ['Shopdrawing / BPTC', 'YÊU CẦU PHÊ DUYỆT SHOPDRAWING', 'SHOP-BPTC', 'TRÌNH DUYỆT SHOPDRAWING'] };
 const LOAI = [['bptc', 'Hồ sơ bản vẽ biện pháp thi công'], ['shop', 'Hồ sơ bản vẽ shopdrawing'], ['bm', 'Hồ sơ biểu mẫu nghiệm thu'], ['khac', 'Khác']];
 let S = null, X = null, CV = null;
 const mauOf = g => g === 'MAA' ? 'vl' : (g === 'SHD' || g === 'MTS') ? 'shop' : 'tl';
 const rv = x => 'R' + pad(+x.rev || 0);
 const NT0 = 'CÔNG TY CỔ PHẦN ĐẦU TƯ XÂY DỰNG ACON';
+const KEYS = ['mau', 'ct', 'ngay', 'so', 'pb', 'chude', 'dien', 'gom', 'ph', 'nt', 'nl', 'tt', 'da', 'hm', 'dd', 'bdh', 'tvgs'];
 function cvOf(x) {
-  const c = x.cv && typeof x.cv === 'object' ? x.cv : {};
-  return { mau: c.mau || mauOf(x.grp), ct: c.ct || '', ngay: c.ngay || '', so: c.so || '', pb: c.pb || '', chude: c.chude || '', dien: c.dien || '', gom: c.gom || '', ph: c.ph || '', nt: c.nt || '',
-    loai: c.loai || { bptc: x.grp === 'MTS', shop: x.grp === 'SHD', bm: false, khac: false }, items: Array.isArray(c.items) ? c.items : [] };
+  const c = x.cv && typeof x.cv === 'object' ? x.cv : {}, o = {}; KEYS.forEach(k => { o[k] = c[k] || ''; });
+  o.loai = c.loai || { bptc: x.grp === 'MTS', shop: x.grp === 'SHD', bm: false, khac: false };
+  o.items = (Array.isArray(c.items) ? c.items : []).map(it => ({ lv: 'd', ...it }));   // lv: 'p' = Phần (A, B…) · 'g' = Nhóm (1, 2…) · 'd' = tài liệu
+  return o;
 }
-// giá trị hiển thị (ô trống → tự lấy từ hồ sơ)
-const V = {
-  ct: () => CV.ct || ('Khách sạn ' + (S.name || '')).replace(/^Khách sạn (Khách sạn )/, '$1'),
-  ngay: () => CV.ngay || X.d || today(), so: () => CV.so || CODE0, pb: () => CV.pb || rv(X),
-  chude: () => CV.chude || X.t || '', nt: () => CV.nt || NT0, ph: () => CV.ph || CV.ngay || X.d || today(),
-  dien: () => CV.dien || ('Công ty cổ phần đầu tư xây dựng ACON kính gửi chủ đầu tư, ban quản lý, tư vấn giám sát phê duyệt: ' + (CV.chude || X.t || '')),
-  gom: () => CV.gom || autoGom(),
+// giá trị mặc định lấy từ bên ngoài (dòng hồ sơ ở QA/QC Shop + thông tin công trình) – ô để trống thì dùng giá trị này
+const D0 = {
+  mau: () => mauOf(X.grp),
+  ct: () => S.name || '', ngay: () => X.d || today(), so: () => CODE0, pb: () => rv(X), ph: () => CV.ngay || X.d || today(),
+  chude: () => X.t || '', nt: () => NT0, nl: () => X.who || '',
+  dien: () => 'Công ty cổ phần đầu tư xây dựng ACON kính gửi chủ đầu tư, ban quản lý, tư vấn giám sát phê duyệt: ' + (CV.chude || X.t || '') + (X.note ? '\n' + X.note : ''),
+  gom: () => autoGom(),
+  tt: () => 'DANH MỤC HỒ SƠ ' + MAU[V.mau()][3],
+  da: () => (S.name || '').toUpperCase(), hm: () => (CV.chude || X.t || '').toUpperCase(), dd: () => (S.addr || '').toUpperCase(),
+  bdh: () => (S.owner || 'CÔNG TY TNHH TÂN THỦY ĐÀ NẴNG').toUpperCase(), tvgs: () => 'CÔNG TY CỔ PHẦN CONINCO THĂNG LONG',
 };
-const itCode = i => V.so() + '-' + pad(i + 1);
+const V = {}; KEYS.forEach(k => { V[k] = () => CV[k] || D0[k](); });
+const docs = () => CV.items.filter(it => it.lv === 'd');
+const hasF = it => !!it.fid;
+const coOf = it => it.co === 1 || it.co === 0 ? it.co : (hasF(it) ? 1 : 0);   // Có / Không: tự động theo file, sửa tay được
+function numbering() {   // Stt: Phần A, B… · Nhóm 1, 2… (đánh lại theo từng phần) · tài liệu: mã con -01, -02…
+  let p = 0, g = 0, d = 0; return CV.items.map(it => { if (it.lv === 'p') { g = 0; return { stt: String.fromCharCode(65 + (p++ % 26)) }; } if (it.lv === 'g') return { stt: String(++g) }; d++; return { stt: '', code: V.so() + '-' + pad(d), sub: '-' + pad(d) }; });
+}
 function autoGom() {
-  if (!CV.items.length) return '';
-  const n = {}; CV.items.forEach(it => { n[it.kind] = (n[it.kind] || 0) + 1; });
-  const pg = CV.items.reduce((a, it) => a + (+it.pages || 0), 0);
-  return KIND.filter(k => n[k]).map(k => pad(n[k]) + ' ' + k.toLowerCase()).join(', ') + (pg ? ' (' + pg + ' trang)' : '');
+  const L = docs(); if (!L.length) return '';
+  const pg = L.reduce((a, it) => a + (+it.pages || 0), 0);
+  return pad(L.length) + ' tài liệu theo danh mục hồ sơ đính kèm' + (pg ? ' (' + pg + ' trang)' : '');
 }
 async function loadData() {
   const r = await chrome.storage.local.get('siteBrain'); const D = r.siteBrain || { sites: [] };
@@ -48,7 +57,7 @@ async function loadData() {
 let saveT = 0;
 function saveSoon() { clearTimeout(saveT); saveT = setTimeout(saveNow, 350); }
 async function saveNow() {   // đọc bản mới nhất rồi chỉ ghi phần cv của đúng hồ sơ này (không đè thay đổi khác của trang Công trình)
-  const r = await chrome.storage.local.get('siteBrain'); const D = r.siteBrain; if (!D) return;
+  saveT = 0; const r = await chrome.storage.local.get('siteBrain'); const D = r.siteBrain; if (!D) return;
   const s = (D.sites || []).find(z => z.id === SID), x = s && (s.subs || []).find(z => z.id === XID); if (!x) return;
   x.cv = JSON.parse(JSON.stringify(CV)); await chrome.storage.local.set({ siteBrain: D });
 }
@@ -60,86 +69,96 @@ const fdel = async k => { const d = await idb(); return new Promise(ok => { cons
 let pdflibP; const pdflib = () => pdflibP ||= import('./lib/pdflib/pdf-lib.esm.min.js');
 const isPdf = f => /pdf/i.test(f.type || '') || /\.pdf$/i.test(f.name || '');
 const isImg = f => /^image\/(png|jpe?g|webp|gif|bmp)$/i.test(f.type || '') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name || '');
-function guessKind(n) {
-  const s = n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
-  if (/catalog|brochure/.test(s)) return 'Catalogue';
-  if (/\bco\b|\bcq\b|chung chi|chung nhan|certificate|test|thi nghiem|kiem dinh/.test(s)) return 'Chứng chỉ CO/CQ';
-  if (/thuyet minh|\btm\b|bien phap|method|quy trinh/.test(s)) return 'Thuyết minh';
-  if (/bieu mau|bien ban|checklist|\bbm\b/.test(s)) return 'Biểu mẫu';
-  if (/bao gia|hop dong|quotation|contract/.test(s)) return 'Hợp đồng / báo giá';
-  if (/\.(dwg|dxf)$/.test(s) || /ban ve|shop|\bbv\b|\bsd\b|drawing|mat bang|mat cat|chi tiet/.test(s)) return 'Bản vẽ';
-  return CV.mau === 'shop' ? 'Bản vẽ' : 'Khác';
+async function readFile(f) {
+  const bytes = new Uint8Array(await f.arrayBuffer()), fid = 'f_' + uid(); let pages = 0;
+  if (isPdf(f)) { try { const { PDFDocument } = await pdflib(); pages = (await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false })).getPageCount(); } catch { pages = 0; } }
+  else if (isImg(f)) pages = 1;
+  await fput(fid, { name: f.name, type: f.type || '', bytes });
+  return { fid, fname: f.name, size: f.size, mime: f.type || '', pages, pdf: isPdf(f) ? 1 : 0, img: isImg(f) ? 1 : 0 };
 }
-async function addFiles(files) {
+async function addFiles(files) {   // chọn nhiều file: mỗi file 1 dòng tài liệu (thêm cuối danh mục – dùng ↑ ↓ đưa vào đúng nhóm)
   const L = [...files]; if (!L.length) return;
   msg('⏳ Đang đọc ' + L.length + ' file…');
-  for (const f of L) {
-    const bytes = new Uint8Array(await f.arrayBuffer()), fid = 'f_' + uid();
-    let pages = 0;
-    if (isPdf(f)) { try { const { PDFDocument } = await pdflib(); pages = (await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false })).getPageCount(); } catch { pages = 0; } }
-    else if (isImg(f)) pages = 1;
-    await fput(fid, { name: f.name, type: f.type || '', bytes });
-    CV.items.push({ id: uid(), t: f.name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim(), kind: guessKind(f.name), pages, fid, fname: f.name, size: f.size, mime: f.type || '', pdf: isPdf(f) ? 1 : 0, img: isImg(f) ? 1 : 0 });
-  }
-  saveSoon(); draw(); msg('📎 Đã thêm ' + L.length + ' file vào mục lục');
+  for (const f of L) CV.items.push({ id: uid(), lv: 'd', t: f.name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim(), note: '', ...(await readFile(f)) });
+  saveSoon(); draw(); msg('📎 Đã thêm ' + L.length + ' tài liệu vào danh mục');
+}
+async function attach(it) {   // gắn / đổi file cho 1 dòng tài liệu
+  const fl = await pick(false); if (!fl[0]) return; msg('⏳ Đang đọc ' + fl[0].name + '…');
+  const old = it.fid; Object.assign(it, await readFile(fl[0])); delete it.co; if (old) fdel(old); saveSoon(); draw(); msg('📎 Đã gắn file cho "' + it.t + '"');
 }
 async function openFile(it) {
   const r = it.fid && await fget(it.fid);
-  if (!r) return msg('File "' + (it.fname || it.t) + '" không có trên máy này – bấm ✎ để chọn lại file.', true);
+  if (!r) return msg('File "' + (it.fname || it.t) + '" không có trên máy này – bấm 📎 ở dòng đó để chọn lại file.', true);
   const u = URL.createObjectURL(new Blob([r.bytes], { type: r.type || 'application/octet-stream' }));
   if (it.pdf || it.img) window.open(u, '_blank'); else { const a = document.createElement('a'); a.href = u; a.download = r.name; a.click(); }
   setTimeout(() => URL.revokeObjectURL(u), 60000);
 }
+const TPL_PL = [['p', 'HỒ SƠ PHÁP LÝ'], ['g', 'Hợp đồng'], ['g', 'Hồ sơ năng lực'], ['d', 'Giấy chứng nhận đăng ký doanh nghiệp'], ['d', 'Chứng chỉ năng lực hoạt động xây dựng'], ['d', 'Giấy xác nhận đủ điều kiện kinh doanh dịch vụ PCCC'],
+  ['g', 'Quyết định Ban Chỉ huy'], ['d', 'Quyết định thành lập Ban chỉ huy công trình (Danh sách Ban chỉ huy đính kèm, Sơ đồ tổ chức)'], ['d', 'Quyết định, Hợp đồng lao động, CCCD, Bằng cấp, chứng chỉ của BCH'],
+  ['g', 'Hồ sơ an toàn'], ['d', 'Quyết định thành lập Ban ATLĐ-VSMT-PCCN'], ['d', 'Giấy chứng nhận ATLĐ của BCH'], ['d', 'Biện pháp ATLĐ-VSMT, PCCN'], ['d', 'Cam kết ATLĐ'], ['g', 'Hồ sơ BHTN'], ['d', 'Giấy chứng nhận BHTN']];
 // ---------- giao diện ----------
 function field(lb, k, type, opts = {}) {
-  const l = $('label', opts.w ? 'w' : ''); l.append(lb);
+  const l = $('label', opts.w ? 'w' : ''), hd = $('span', 'lb', lb), rs = $('button', 'rs', '↺'); rs.type = 'button'; rs.title = 'Trả về thông tin mặc định lấy từ bên ngoài'; hd.append(rs); l.append(hd);
   const el = type === 'area' ? $('textarea') : type === 'sel' ? $('select') : $('input');
   if (type === 'sel') opts.o.forEach(([v, t]) => { const o = $('option', '', t); o.value = v; el.append(o); });
   else if (type !== 'area') el.type = type || 'text';
-  el.value = CV[k] || ''; if (opts.ph) el.placeholder = opts.ph();
   if (type === 'area') el.rows = opts.rows || 3;
-  el.addEventListener('input', () => { CV[k] = el.value; saveSoon(); drawPv(); if (k === 'mau') drawForm(); if (k === 'so') drawToc(); });
-  l.append(el); return l;
+  const upd = () => { rs.hidden = !CV[k]; el.classList.toggle('man', !!CV[k]); };
+  el.value = V[k](); upd();   // V1.9.1: điền sẵn giá trị mặc định từ bên ngoài; sửa tay thì giữ bản sửa (viền cam + nút ↺)
+  el.addEventListener('input', () => { CV[k] = el.value === D0[k]() ? '' : el.value; upd(); saveSoon(); after(k); });
+  rs.addEventListener('click', e => { e.preventDefault(); CV[k] = ''; el.value = D0[k](); upd(); saveSoon(); after(k); });
+  l.dataset.k = k; l.append(el); return l;
 }
+function after(k) { drawPv(); if (k === 'mau') { drawForm(); drawToc(); } else { if (k === 'so') drawToc(); refill(k); } }
+function refill(skip) { document.querySelectorAll('#form label[data-k], #head label[data-k]').forEach(l => { const k = l.dataset.k; if (k === skip || CV[k]) return; const el = l.querySelector('input,textarea,select'); if (el && document.activeElement !== el) el.value = D0[k](); }); }
 function drawForm() {
   const F = q('#form'); F.replaceChildren(
     field('Mẫu bìa', 'mau', 'sel', { o: Object.entries(MAU).map(([k, v]) => [k, v[0]]) }),
-    field('Công trình', 'ct', 'text', { ph: V.ct }),
+    field('Công trình', 'ct', 'text'),
     field('Ngày trình', 'ngay', 'date'),
-    field('Số (mã hồ sơ)', 'so', 'text', { ph: () => CODE0 }),
-    field('Phiên bản', 'pb', 'text', { ph: () => rv(X) }),
+    field('Số (mã hồ sơ)', 'so', 'text'),
+    field('Phiên bản', 'pb', 'text'),
     field('Ngày phát hành', 'ph', 'date'),
-    field('Chủ đề – yêu cầu phê duyệt', 'chude', 'text', { ph: () => X.t || '', w: 1 }),
-    field('Diễn giải chi tiết yêu cầu phê duyệt', 'dien', 'area', { ph: V.dien, w: 1, rows: 3 }),
-    field('Trình duyệt bao gồm (để trống = tự ghi theo mục lục)', 'gom', 'area', { ph: () => autoGom() || 'vd: 05 bản vẽ, 01 thuyết minh', w: 1, rows: 2 }));
-  if (CV.mau !== 'shop') F.append(field('Nhà thầu', 'nt', 'text', { ph: () => NT0, w: 1 }));
-  else { const l = $('label', 'w'); l.append('Loại tài liệu'); const c = $('div', 'chks');
+    field('Chủ đề – yêu cầu phê duyệt', 'chude', 'text', { w: 1 }),
+    field('Diễn giải chi tiết yêu cầu phê duyệt', 'dien', 'area', { w: 1, rows: 3 }),
+    field('Trình duyệt bao gồm (tự ghi theo danh mục)', 'gom', 'area', { w: 1, rows: 2 }),
+    field('Người lập (người thực hiện)', 'nl', 'text'));
+  if (V.mau() !== 'shop') F.append(field('Nhà thầu', 'nt', 'text'));
+  else { const l = $('label', 'w'); l.append($('span', 'lb', 'Loại tài liệu')); const c = $('div', 'chks');
     LOAI.forEach(([k, t]) => { const lb = $('label'), b = $('input'); b.type = 'checkbox'; b.checked = !!CV.loai[k]; b.addEventListener('change', () => { CV.loai = { ...CV.loai, [k]: b.checked }; saveSoon(); drawPv(); }); lb.append(b, t); c.append(lb); });
     l.append(c); F.append(l); }
-  if (!CV.ngay) q('#form input[type=date]').value = '';
+  q('#head').replaceChildren(field('Tiêu đề danh mục', 'tt', 'text', { w: 1 }), field('Dự án', 'da', 'text', { w: 1 }), field('Hạng mục / Gói thầu', 'hm', 'text', { w: 1 }), field('Địa điểm', 'dd', 'text', { w: 1 }),
+    field('Ban điều hành dự án', 'bdh', 'text'), field('Đơn vị TVGS', 'tvgs', 'text'));
 }
 function drawToc() {
-  const tb = q('#tb'); tb.replaceChildren();
-  q('#sum').textContent = CV.items.length ? CV.items.length + ' tài liệu · ' + CV.items.reduce((a, it) => a + (+it.pages || 0), 0) + ' trang' : '';
-  if (!CV.items.length) { const r = $('tr', 'none'), d = $('td', '', 'Chưa có tài liệu – bấm 📎 Chọn file'); d.colSpan = 6; r.append(d); tb.append(r); return; }
+  const tb = q('#tb'); tb.replaceChildren(); const N = numbering(), L = docs();
+  q('#sum').textContent = L.length ? L.length + ' tài liệu · ' + L.filter(hasF).length + ' có file · ' + L.reduce((a, it) => a + (+it.pages || 0), 0) + ' trang' : '';
+  if (!CV.items.length) { const r = $('tr', 'none'), d = $('td', '', 'Chưa có dòng nào – bấm ＋ Phần / ＋ Nhóm / ＋ Tài liệu, 📎 Chọn nhiều file, hoặc 📋 Mẫu Hồ sơ pháp lý'); d.colSpan = 6; r.append(d); tb.append(r); return; }
   CV.items.forEach((it, i) => {
-    const r = $('tr'), a = $('a', 'code', itCode(i)); a.title = 'Mở file: ' + (it.fname || ''); a.addEventListener('click', () => openFile(it));
-    const t = $('input'); t.value = it.t; t.addEventListener('input', () => { it.t = t.value; saveSoon(); drawPv(); });
-    const k = $('select'); KIND.forEach(v => { const o = $('option', '', v); o.value = v; k.append(o); }); k.value = it.kind; k.addEventListener('change', () => { it.kind = k.value; saveSoon(); drawPv(); drawToc(); });
-    const pg = $('td', 'r', it.pdf || it.img ? String(it.pages || 0) : 'gửi kèm');
-    const f = $('td', 'f', (it.fname || '') + (it.size ? ' · ' + (it.size / 1048576).toFixed(it.size > 1048576 ? 1 : 2) + ' MB' : '')); f.title = it.fname || '';
+    const r = $('tr', 'lv-' + it.lv), n = N[i];
+    const lv = $('select', 'lvs'); [['p', 'Phần'], ['g', 'Nhóm'], ['d', 'Tài liệu']].forEach(([v, t]) => { const o = $('option', '', t); o.value = v; lv.append(o); }); lv.value = it.lv; lv.title = 'Cấp của dòng'; lv.addEventListener('change', () => { it.lv = lv.value; saveSoon(); draw(); });
+    const c0 = $('td', 'st'); c0.append($('b', '', n.stt || '·'), lv);
+    const t = $('input', 'nm'); t.value = it.t || ''; t.placeholder = it.lv === 'p' ? 'TÊN PHẦN (vd HỒ SƠ PHÁP LÝ)' : it.lv === 'g' ? 'Tên nhóm (vd Hồ sơ năng lực)' : 'Tên tài liệu'; t.addEventListener('input', () => { it.t = t.value; saveSoon(); drawPv(); });
+    const c1 = $('td'); c1.append(t);
+    const c2 = $('td', 'cc'), c3 = $('td', 'f'), c4 = $('td');
+    if (it.lv === 'd') {
+      const co = $('select'); [['', 'Tự động'], ['1', 'Có'], ['0', 'Không']].forEach(([v, x]) => { const o = $('option', '', x); o.value = v; co.append(o); }); co.value = it.co === 1 ? '1' : it.co === 0 ? '0' : '';
+      co.addEventListener('change', () => { if (co.value === '') delete it.co; else it.co = +co.value; saveSoon(); draw(); }); c2.append(co, $('span', 'cov ' + (coOf(it) ? 'y' : 'n'), coOf(it) ? '✓ Có' : '✗ Không'));
+      const at = $('button', 'sm', hasF(it) ? '📎 Đổi' : '📎 Gắn file'); at.type = 'button'; at.addEventListener('click', () => attach(it)); c3.append(at);
+      if (hasF(it)) { const a = $('a', 'code', n.sub + ' ' + (it.fname || '')); a.title = 'Mở file: ' + (it.fname || '') + (it.size ? ' · ' + (it.size / 1048576).toFixed(2) + ' MB' : '') + ' · mã ' + n.code; a.addEventListener('click', () => openFile(it)); c3.append(a, $('small', '', it.pdf || it.img ? (it.pages || 0) + ' tr.' : 'gửi kèm'));
+        fget(it.fid).then(z => { if (!z) { a.classList.add('nf'); a.title = 'File chưa có trên máy này – bấm 📎 Đổi để chọn lại'; } }).catch(() => {}); }
+      const nt = $('input'); nt.value = it.note || ''; nt.placeholder = 'Ghi chú'; nt.addEventListener('input', () => { it.note = nt.value; saveSoon(); drawPv(); }); c4.append(nt);
+    }
     const x = $('td', 'x');
     const mv = (d, lb, tl) => { const b = $('button', 'sm', lb); b.type = 'button'; b.title = tl; b.disabled = !CV.items[i + d]; b.addEventListener('click', () => { const z = CV.items.splice(i, 1)[0]; CV.items.splice(i + d, 0, z); saveSoon(); draw(); }); return b; };
-    const re = $('button', 'sm', '✎'); re.type = 'button'; re.title = 'Chọn lại file cho dòng này';
-    re.addEventListener('click', async () => { const fl = await pick(false); if (!fl[0]) return; const old = it.fid; await addFiles(fl); const nw = CV.items.pop(); Object.assign(it, { fid: nw.fid, fname: nw.fname, size: nw.size, mime: nw.mime, pages: nw.pages, pdf: nw.pdf, img: nw.img }); if (old) fdel(old); saveSoon(); draw(); });
-    const del = $('button', 'sm', '✕'); del.type = 'button'; del.title = 'Bỏ khỏi mục lục';
-    del.addEventListener('click', () => { if (!confirm('Bỏ "' + it.t + '" khỏi mục lục?')) return; CV.items.splice(i, 1); if (it.fid) fdel(it.fid); saveSoon(); draw(); });
-    x.append(mv(-1, '↑', 'Lên'), mv(1, '↓', 'Xuống'), re, del);
-    const c0 = $('td'); c0.append(a); const c1 = $('td'); c1.append(t); const c2 = $('td'); c2.append(k);
-    r.append(c0, c1, c2, pg, f, x); tb.append(r);
-    fget(it.fid).then(z => { if (!z) { a.classList.add('nf'); a.title = 'File chưa có trên máy này – bấm ✎ chọn lại'; } }).catch(() => {});
+    const ad = $('button', 'sm', '＋'); ad.type = 'button'; ad.title = 'Thêm 1 tài liệu ngay dưới dòng này'; ad.addEventListener('click', () => { CV.items.splice(i + 1, 0, { id: uid(), lv: 'd', t: '', note: '' }); saveSoon(); draw(); const z = q('#tb').children[i + 1]; z && z.querySelector('input.nm').focus(); });
+    const del = $('button', 'sm', '✕'); del.type = 'button'; del.title = 'Xoá dòng';
+    del.addEventListener('click', () => { if ((it.t || hasF(it)) && !confirm('Xoá dòng "' + (it.t || it.fname) + '"?')) return; CV.items.splice(i, 1); if (it.fid) fdel(it.fid); saveSoon(); draw(); });
+    x.append(mv(-1, '↑', 'Lên'), mv(1, '↓', 'Xuống'), ad, del);
+    r.append(c0, c1, c2, c3, c4, x); tb.append(r);
   });
 }
+function addRow(lv) { CV.items.push({ id: uid(), lv, t: '', note: '' }); saveSoon(); draw(); const z = q('#tb').lastElementChild; z && z.querySelector('input.nm').focus(); }
 // ---------- bìa A4 (HTML dùng chung: xem trước, in, xuất PDF) ----------
 const CV_CSS = `
 .cvp{width:794px;height:1123px;padding:34px 38px;background:#fff;color:#000;font:13.3px/1.3 "Times New Roman",Times,serif;box-sizing:border-box}
@@ -155,14 +174,17 @@ const CV_CSS = `
 .cvp .sig{height:96px;vertical-align:bottom;font-size:12.5px}
 .cvp .pre{white-space:pre-wrap}
 .cvp .sp{height:8px;border-left:0;border-right:0}
-.cvp.toc h1{font-size:18.6px;text-align:center;margin:6px 0 4px}.cvp.toc .sub{text-align:center;margin:0 0 14px}
-.cvp.toc th{border:1px solid #000;padding:5px 6px;background:#F8CBAD;font-weight:700;text-align:center}
-.cvp.toc td{padding:5px 6px;height:30px}.cvp.toc td.code{font:12px Consolas,"Courier New",monospace;color:#1F4E9A;text-decoration:underline;white-space:nowrap}
-.cvp.toc .r{text-align:right}.cvp.toc .ft{margin-top:10px;font-size:12px;color:#444}
+.cvp.dm{padding:40px 46px;font-size:14px}
+.cvp.dm .hd{display:flex;align-items:center;gap:18px;margin-bottom:10px}.cvp.dm .hd img{height:58px}.cvp.dm h1{flex:1;font-size:19px;text-align:center;margin:0;padding-right:120px}
+.cvp.dm .inf{margin:0 0 12px}.cvp.dm .inf td{border:0;padding:2px 4px;vertical-align:top;font-size:13.3px}.cvp.dm .inf td:first-child{width:190px;font-weight:700}
+.cvp.dm th{border:1px solid #000;padding:5px 6px;font-weight:700;text-align:center}
+.cvp.dm .t td{padding:4px 7px;height:32px}.cvp.dm tr.p td{font-weight:700}.cvp.dm tr.g td{font-weight:700}.cvp.dm tr.d td.n{font-style:italic}
+.cvp.dm tr.d.lk td.n{color:#1F3F8A}.cvp.dm td.gc{font-size:11.5px}.cvp.dm td.gc b{font-family:Consolas,"Courier New",monospace;font-weight:600}
+.cvp.dm .ft{margin-top:8px;font-size:11.5px;color:#444}
 `;
 const L = () => window.HH_CV_LOGO || {};
 function coverHTML() {
-  const m = CV.mau, lg = L(), box = on => '<span class="bx' + (on ? ' on' : '') + '"></span>';
+  const m = V.mau(), lg = L(), box = on => '<span class="bx' + (on ? ' on' : '') + '"></span>';
   const head = `<table><colgroup><col style="width:21%"><col style="width:40%"><col style="width:21%"><col style="width:18%"></colgroup>
 <tr><td class="lg" rowspan="3"><img src="${lg.acon || ''}"></td><td class="h">Công trình: ${esc(V.ct())}</td><td class="lg" rowspan="3"><img src="${lg.coninco || ''}"></td><td class="lg" rowspan="3"><img src="${lg.tanthuy || ''}"></td></tr>
 <tr><td class="h">Ngày &nbsp; &nbsp; &nbsp; &nbsp;: ${esc(fd(V.ngay()))}</td></tr><tr><td class="h">Số &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;: ${esc(V.so())}</td></tr>
@@ -176,9 +198,9 @@ ${m !== 'shop' ? `<tr><td class="c"><b>CHỦ ĐỀ</b></td><td colspan="5">Yêu 
   const gom = m !== 'shop'
     ? `<table><colgroup><col style="width:55%"><col style="width:15%"><col style="width:30%"></colgroup>
 <tr><td class="c"><b>Trình duyệt bao gồm</b></td><td class="c"><b>Ngày phát hành</b></td><td class="c"><b>Đại diện Nhà thầu ký tên:</b></td></tr>
-<tr><td class="pre" style="height:70px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td></td></tr></table>`
+<tr><td class="pre" style="height:70px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td style="vertical-align:bottom;font-size:12px">${V.nl() ? 'Người lập: ' + esc(V.nl()) : ''}</td></tr></table>`
     : `<table><colgroup><col style="width:52%"><col style="width:12%"><col style="width:36%"></colgroup>
-<tr><td colspan="2"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ……………………………</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
+<tr><td colspan="2"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ${V.nl() ? esc(V.nl()) : '……………………………'}</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
 <tr><td colspan="2" class="c"><b>Loại tài liệu</b></td></tr>
 ${LOAI.map(([k, t]) => `<tr><td><b>${t}</b></td><td class="c">${box(CV.loai && CV.loai[k])}</td></tr>`).join('')}</table>`;
   const tt = `<table><colgroup><col style="width:12%"><col style="width:43%"><col style="width:22%"><col style="width:23%"></colgroup>
@@ -190,17 +212,29 @@ ${LOAI.map(([k, t]) => `<tr><td><b>${t}</b></td><td class="c">${box(CV.loai && C
 <tr><td class="sig"><table class="nb"><tr><td style="width:52%">Người phê duyệt:…........................................................</td><td style="width:20%">Chữ ký:</td><td style="width:14%">Ngày:</td><td>…./…./20..</td></tr></table></td></tr></table>`;
   return `<div class="cvp">${head}${meta}${gom}${tt}${eva('TƯ VẤN GIÁM SÁT ĐÁNH GIÁ')}${eva('CHỦ ĐẦU TƯ - BAN QUẢN LÝ DỰ ÁN ĐÁNH GIÁ')}</div>`;
 }
-const ROWS = 24;
-function tocHTML(page, nPages, starts) {
-  const it = CV.items.slice(page * ROWS, page * ROWS + ROWS);
-  return `<div class="cvp toc"><h1>MỤC LỤC HỒ SƠ TRÌNH DUYỆT</h1><p class="sub"><b>${esc(V.so())}</b> · ${esc(V.pb())} · ${esc(fd(V.ngay()))}<br>${esc(V.chude())}</p>
-<table><colgroup><col style="width:7%"><col style="width:30%"><col style="width:37%"><col style="width:14%"><col style="width:12%"></colgroup>
-<thead><tr><th>STT</th><th>Mã tài liệu</th><th>Tên tài liệu</th><th>Loại</th><th>Trang</th></tr></thead><tbody>
-${it.map((x, j) => { const i = page * ROWS + j, st = starts[i]; return `<tr data-i="${i}"><td class="c">${i + 1}</td><td class="code">${esc(itCode(i))}</td><td>${esc(x.t)}</td><td class="c">${esc(x.kind)}</td><td class="r">${st ? st + (x.pages > 1 ? '–' + (st + x.pages - 1) : '') : 'gửi kèm'}</td></tr>`; }).join('')}
-</tbody></table><p class="ft">Bấm mã tài liệu để tới trang tương ứng · Trang mục lục ${page + 1}/${nPages} · ${esc(V.ct())}</p></div>`;
+// ---------- DANH MỤC HỒ SƠ (mục lục theo mẫu bìa còng: Stt | Tên hồ sơ | Có | Không | Ghi chú) ----------
+const R1 = 17, RN = 24;   // số dòng trang đầu (có phần thông tin dự án) / các trang sau
+const dmPages = () => { const n = CV.items.length; return n <= R1 ? 1 : 1 + Math.ceil((n - R1) / RN); };
+function dmHTML(page, nPages, starts) {
+  const N = numbering(), a = page ? R1 + (page - 1) * RN : 0, b = page ? a + RN : R1, lg = L(), ck = '<b style="font-size:15px">✓</b>';
+  const rows = CV.items.slice(a, b).map((it, j) => { const i = a + j, n = N[i];
+    if (it.lv !== 'd') return `<tr class="${it.lv}"><td class="c">${n.stt}</td><td class="n">${esc(it.lv === 'p' ? String(it.t || '').toUpperCase() : it.t)}</td><td></td><td></td><td></td></tr>`;
+    const st = starts && starts[i], co = coOf(it), gc = [hasF(it) ? '<b>' + esc(n.sub) + '</b>' + (st ? ' · tr. ' + st + (it.pages > 1 ? '–' + (st + it.pages - 1) : '') : (it.pdf || it.img) ? '' : ' · gửi kèm') : '', esc(it.note || '')].filter(Boolean).join('<br>');
+    return `<tr class="d${st ? ' lk' : ''}" data-i="${i}"><td></td><td class="n">${esc(it.t)}</td><td class="c">${co ? ck : ''}</td><td class="c">${co ? '' : ck}</td><td class="gc">${gc}</td></tr>`; }).join('');
+  const inf = [['DỰ ÁN', V.da()], ['HẠNG MỤC/GÓI THẦU', V.hm()], ['ĐỊA ĐIỂM', V.dd()], ['BAN ĐIỀU HÀNH DỰ ÁN', V.bdh()], ['ĐƠN VỊ TVGS', V.tvgs()], ['NHÀ THẦU', V.nt()]];
+  return `<div class="cvp dm">${page ? '' : `<div class="hd"><img src="${lg.acon || ''}"><h1>${esc(V.tt())}</h1></div>
+<table class="inf">${inf.map(([k, v]) => `<tr><td>${k}</td><td>: ${esc(v)}</td></tr>`).join('')}</table>`}
+<table class="t"><colgroup><col style="width:7%"><col style="width:53%"><col style="width:8%"><col style="width:9%"><col style="width:23%"></colgroup>
+<thead><tr><th>Stt</th><th>Tên hồ sơ</th><th>Có</th><th>Không</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="ft">${esc(V.so())} · ${esc(V.pb())} · ${esc(fd(V.ngay()))} · trang danh mục ${page + 1}/${nPages}${starts ? ' · bấm tên hồ sơ (chữ xanh) để tới đúng trang' : ''}</p></div>`;
 }
-function drawPv() { q('#pv').innerHTML = coverHTML(); q('#hCode').textContent = V.so() + ' · ' + V.pb() + ' · ' + MAU[CV.mau][0]; }
-function draw() { drawToc(); drawPv(); }
+let pvTab = 'cv';
+function drawPv() {
+  const dm = pvTab === 'dm'; q('#pv').innerHTML = dm ? dmHTML(0, dmPages(), null) : coverHTML();
+  document.querySelectorAll('.pvt button').forEach(b => b.classList.toggle('on', b.dataset.t === pvTab));
+  q('#hCode').textContent = V.so() + ' · ' + V.pb() + ' · ' + MAU[V.mau()][0];
+}
+function draw() { drawToc(); drawPv(); refill(); }
 function pick(multi = true) { return new Promise(ok => { const i = document.createElement('input'); i.type = 'file'; i.multiple = multi; i.onchange = () => ok([...i.files]); i.click(); }); }
 
 // ---------- chụp HTML → ảnh (SVG foreignObject) ----------
@@ -225,23 +259,22 @@ async function exportPdf() {
   const btn = q('#bPdf'); btn.disabled = true;
   try {
     const PL = await pdflib(), { PDFDocument, PDFName, PDFHexString, PDFNumber } = PL;
-    const W = 595.28, H = 841.89, k = W / 794;
-    // file thật: kiểm tra trước, đếm trang thật
+    const W = 595.28, H = 841.89, k = W / 794, IT = CV.items, N = numbering();
     const files = []; let miss = 0;
-    for (const it of CV.items) { const r = (it.pdf || it.img) ? await fget(it.fid) : null; if ((it.pdf || it.img) && !r) miss++; files.push(r); }
-    if (miss && !confirm(miss + ' file chưa có trên máy này (mã màu cam) – vẫn xuất, các file đó ghi "gửi kèm"?')) return;
+    for (const it of IT) { const r = it.lv === 'd' && (it.pdf || it.img) && it.fid ? await fget(it.fid) : null; if (it.lv === 'd' && (it.pdf || it.img) && it.fid && !r) miss++; files.push(r); }
+    if (miss && !confirm(miss + ' file chưa có trên máy này (tên file màu cam) – vẫn xuất, bỏ qua các file đó?')) return;
     msg('⏳ Đang gộp hồ sơ…');
     const srcs = [];
-    for (let i = 0; i < CV.items.length; i++) { const it = CV.items[i], r = files[i]; if (!r) { srcs.push(null); continue; }
+    for (let i = 0; i < IT.length; i++) { const it = IT[i], r = files[i]; if (!r) { srcs.push(null); continue; }
       if (it.pdf) { try { const d = await PDFDocument.load(r.bytes, { ignoreEncryption: true }); srcs.push({ pdf: d, n: d.getPageCount() }); } catch { srcs.push(null); } }
       else srcs.push({ img: r, n: 1 }); }
-    const nToc = Math.max(1, Math.ceil(CV.items.length / ROWS)), starts = []; let p = 1 + nToc;
-    srcs.forEach((s, i) => { if (s) { starts[i] = p + 1; CV.items[i].pages = s.n; p += s.n; } else starts[i] = 0; });
+    const nDm = dmPages(), starts = []; let p = 1 + nDm;
+    srcs.forEach((s, i) => { if (s) { starts[i] = p + 1; IT[i].pages = s.n; p += s.n; } else starts[i] = 0; });
     const doc = await PDFDocument.create(); doc.setTitle(V.so() + ' – ' + V.chude()); doc.setAuthor(V.nt()); doc.setCreator('HaoHao – Site Brain');
-    const addImgPage = async (jpg, w = W, h = H) => { const im = await doc.embedJpg(jpg); const pg = doc.addPage([w, h]); pg.drawImage(im, { x: 0, y: 0, width: w, height: h }); return pg; };
+    const addImgPage = async jpg => { const im = await doc.embedJpg(jpg); const pg = doc.addPage([W, H]); pg.drawImage(im, { x: 0, y: 0, width: W, height: H }); return pg; };
     await addImgPage(await shot(coverHTML()));
-    const tocPages = [], tocRects = [];
-    for (let t = 0; t < nToc; t++) { const h = tocHTML(t, nToc, starts); tocPages.push(await addImgPage(await shot(h))); tocRects.push(measure(h)); }
+    const dmP = [], dmR = [];
+    for (let t = 0; t < nDm; t++) { const h = dmHTML(t, nDm, starts); dmP.push(await addImgPage(await shot(h))); dmR.push(measure(h)); }
     const first = [];
     for (let i = 0; i < srcs.length; i++) { const s = srcs[i]; if (!s) { first.push(null); continue; }
       if (s.pdf) { const cp = await doc.copyPages(s.pdf, s.pdf.getPageIndices()); cp.forEach(pg => doc.addPage(pg)); first.push(cp[0]); }
@@ -250,19 +283,24 @@ async function exportPdf() {
         const im = jpg ? await doc.embedJpg(bytes) : await doc.embedPng(bytes); const land = im.width > im.height, pw = land ? H : W, ph = land ? W : H;
         const sc = Math.min((pw - 40) / im.width, (ph - 40) / im.height), w = im.width * sc, hh = im.height * sc; const pg = doc.addPage([pw, ph]); pg.drawImage(im, { x: (pw - w) / 2, y: (ph - hh) / 2, width: w, height: hh }); first.push(pg); } }
     const ctx = doc.context, dest = pg => ctx.obj([pg.ref, PDFName.of('Fit')]);
-    // liên kết bấm mã trong mục lục → trang đầu của tài liệu
-    tocPages.forEach((pg, t) => { const ann = [];
-      Object.entries(tocRects[t]).forEach(([i, [x1, y1, x2, y2]]) => { const tg = first[+i]; if (!tg) return;
+    // bấm dòng tài liệu trong danh mục → trang đầu của tài liệu
+    dmP.forEach((pg, t) => { const ann = [];
+      Object.entries(dmR[t]).forEach(([i, [x1, y1, x2, y2]]) => { const tg = first[+i]; if (!tg) return;
         ann.push(ctx.register(ctx.obj({ Type: 'Annot', Subtype: 'Link', Rect: [x1 * k, H - y2 * k, x2 * k, H - y1 * k], Border: [0, 0, 0], Dest: dest(tg) }))); });
       if (ann.length) pg.node.set(PDFName.of('Annots'), ctx.obj(ann)); });
-    // dấu trang (bookmark)
-    const pages = doc.getPages(), ent = [['Bìa – ' + MAU[CV.mau][1], pages[0]], ['Mục lục', tocPages[0]]];
-    CV.items.forEach((it, i) => { if (first[i]) ent.push([itCode(i) + ' – ' + it.t, first[i]]); });
-    const oRef = ctx.nextRef(), refs = ent.map(() => ctx.nextRef());
-    ent.forEach(([t, pg], i) => { const o = { Title: PDFHexString.fromText(t), Parent: oRef, Dest: dest(pg) }; if (i) o.Prev = refs[i - 1]; if (i < refs.length - 1) o.Next = refs[i + 1]; ctx.assign(refs[i], ctx.obj(o)); });
-    ctx.assign(oRef, ctx.obj({ Type: 'Outlines', First: refs[0], Last: refs[refs.length - 1], Count: PDFNumber.of(refs.length) }));
+    // dấu trang (bookmark) theo cây: Phần › Nhóm › Tài liệu
+    const pages = doc.getPages(), tree = [{ t: 'Bìa – ' + MAU[V.mau()][1], pg: pages[0], ch: [] }, { t: V.tt(), pg: dmP[0], ch: [] }]; let cp = null, cg = null;
+    IT.forEach((it, i) => { const nd = { t: (N[i].stt ? N[i].stt + '. ' : N[i].sub + ' ') + (it.t || ''), pg: first[i], ch: [] };
+      if (it.lv === 'p') { tree.push(nd); cp = nd; cg = null; } else if (it.lv === 'g') { (cp ? cp.ch : tree).push(nd); cg = nd; } else if (first[i]) (cg || cp || { ch: tree }).ch.push(nd); });
+    const fill = n => { n.ch.forEach(fill); n.ch = n.ch.filter(c => c.pg); if (!n.pg && n.ch.length) n.pg = n.ch[0].pg; }; tree.forEach(fill);
+    const build = (L, parent) => { L = L.filter(n => n.pg); const refs = L.map(() => ctx.nextRef()); let cnt = L.length;
+      L.forEach((n, i) => { const o = { Title: PDFHexString.fromText(n.t), Parent: parent, Dest: dest(n.pg) }; if (i) o.Prev = refs[i - 1]; if (i < L.length - 1) o.Next = refs[i + 1];
+        if (n.ch.length) { const c = build(n.ch, refs[i]); if (c.refs.length) { o.First = c.refs[0]; o.Last = c.refs[c.refs.length - 1]; o.Count = PDFNumber.of(c.cnt); cnt += c.cnt; } }
+        ctx.assign(refs[i], ctx.obj(o)); }); return { refs, cnt }; };
+    const oRef = ctx.nextRef(), top = build(tree, oRef);
+    ctx.assign(oRef, ctx.obj({ Type: 'Outlines', First: top.refs[0], Last: top.refs[top.refs.length - 1], Count: PDFNumber.of(top.cnt) }));
     doc.catalog.set(PDFName.of('Outlines'), oRef); doc.catalog.set(PDFName.of('PageMode'), PDFName.of('UseOutlines'));
-    const out = await doc.save(); saveSoon(); drawToc();
+    const out = await doc.save(); saveSoon(); draw();
     dl(out, fname(V.so() + ' - Bo ho so trinh.pdf'), 'application/pdf');
     msg('✅ Đã xuất bộ hồ sơ: ' + doc.getPageCount() + ' trang (' + (out.length / 1048576).toFixed(1) + ' MB)');
   } catch (e) { msg('⚠ Chưa xuất được: ' + (e && e.message || e), true); }
@@ -271,7 +309,7 @@ async function exportPdf() {
 async function exportXls() {
   const btn = q('#bXls'); btn.disabled = true;
   try {
-    const src = new Uint8Array(await (await fetch('khtc-mau/cover-acon.xlsx')).arrayBuffer()), sh = MAU[CV.mau][2], m = CV.mau;
+    const src = new Uint8Array(await (await fetch('khtc-mau/cover-acon.xlsx')).arrayBuffer()), sh = MAU[V.mau()][2], m = V.mau();
     const e = { C1: 'Công trình: ' + V.ct(), C2: 'Ngày        : ' + fd(V.ngay()), C3: 'Số            : ' + V.so(), A4: MAU[m][1], C6: fd(V.ngay()), E6: V.so(), G6: V.pb() };
     if (m !== 'shop') Object.assign(e, { A5: 'NHÀ THẦU: ' + V.nt(), B7: 'Yêu cầu phê duyệt: ' + V.chude(), A9: V.dien(), A11: V.gom(), E11: fd(V.ph()) }, m === 'vl' ? { Q9: '' } : {});
     else { Object.assign(e, { A8: V.dien(), A9: 'Trình duyệt bao gồm: ' + V.gom() }); LOAI.forEach(([k], i) => { e['E' + (11 + i)] = CV.loai && CV.loai[k] ? 'þ' : 'o '; }); }
@@ -303,13 +341,18 @@ async function exportXls() {
   document.title = 'Cover ' + V.so() + ' – HaoHao';
   drawForm(); draw();
   q('#bPick').addEventListener('click', async () => addFiles(await pick(true)));
+  q('#bP').addEventListener('click', () => addRow('p')); q('#bG').addEventListener('click', () => addRow('g')); q('#bD').addEventListener('click', () => addRow('d'));
+  q('#bTpl').addEventListener('click', () => { if (CV.items.length && !confirm('Thêm mẫu "Hồ sơ pháp lý" (16 dòng) vào cuối danh mục đang có?')) return; TPL_PL.forEach(([lv, t]) => CV.items.push({ id: uid(), lv, t, note: '' })); saveSoon(); draw(); msg('📋 Đã thêm mẫu Hồ sơ pháp lý – bấm 📎 Gắn file ở từng dòng'); });
   q('#bPdf').addEventListener('click', exportPdf);
   q('#bXls').addEventListener('click', exportXls);
   q('#bPrint').addEventListener('click', () => window.print());
+  document.querySelectorAll('.pvt button').forEach(b => b.addEventListener('click', () => { pvTab = b.dataset.t; drawPv(); }));
   const dz = q('#drop');
   ['dragenter', 'dragover'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); dz.classList.add('on'); }));
   ['dragleave', 'drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); if (t === 'drop' || e.target === document.documentElement) dz.classList.remove('on'); }));
   document.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
-  chrome.storage.onChanged.addListener((ch, a) => { if (a !== 'local' || !ch.siteBrain) return; const D = ch.siteBrain.newValue; const s = D && D.sites.find(z => z.id === SID), x = s && s.subs.find(z => z.id === XID); if (!x) return; S = s; X = x; if (JSON.stringify(x.cv || null) !== JSON.stringify(CV) && !document.activeElement.matches('input,textarea,select')) { CV = cvOf(x); drawForm(); draw(); } });
+  chrome.storage.onChanged.addListener((ch, a) => { if (a !== 'local' || !ch.siteBrain) return; const D = ch.siteBrain.newValue; const s = D && D.sites.find(z => z.id === SID), x = s && s.subs.find(z => z.id === XID); if (!x) return; S = s; X = x;
+    if (document.activeElement.matches('input,textarea,select')) return;
+    if (JSON.stringify(x.cv || null) !== JSON.stringify(CV)) { CV = cvOf(x); drawForm(); draw(); } else { refill(); drawPv(); } });   // bên ngoài sửa Mô tả / Ngày / ↻ trình lại → ô mặc định tự đổi theo
   window.addEventListener('beforeunload', () => { if (saveT) { clearTimeout(saveT); saveNow(); } });
 })();

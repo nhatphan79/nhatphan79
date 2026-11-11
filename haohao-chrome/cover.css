@@ -13,6 +13,9 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
 .card h2 { margin: 0 0 10px; font-size: 16px; } .card h2 small { color: var(--soft); font-weight: 500; font-size: 12.5px; margin-left: 6px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.grid label .lb { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.grid label .rs { border: 0; padding: 0 4px; font-size: 13px; color: #B4540A; background: none; } .grid label .rs[hidden] { display: none; }
+.grid .man { border-color: #E8A15C !important; background: #FFFAF3 !important; }
 .grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--soft); font-weight: 600; } .grid label.w { grid-column: 1 / -1; }
 .grid input, .grid select, .grid textarea, .toc input, .toc select { font: 13.5px inherit; font-family: inherit; color: var(--ink); border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #fff; width: 100%; }
 .grid textarea { resize: vertical; min-height: 60px; }
@@ -30,3 +33,13 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .msg { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-weight: 600; z-index: 20; max-width: 90vw; }
 .msg.bad { background: #B4401F; }
 @media print { @page { size: A4; margin: 0; } body { background: #fff; } .top, .left, .pvh, .msg { display: none !important; } .wrap { display: block; padding: 0; } .right { position: static; } .pv { width: auto; height: auto; border: 0; box-shadow: none; overflow: visible; } .pv > .cvp { transform: none; } }
+
+/* V1.9.1: danh mục hồ sơ 3 cấp */
+.rowb { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .sm2 { padding: 6px 10px; font-size: 12.5px; }
+.toc td.st { white-space: nowrap; } .toc td.st b { display: inline-block; min-width: 18px; } .toc .lvs { width: auto; padding: 3px 4px; font-size: 12px; }
+.toc tr.lv-p td { background: #F3F5FA; } .toc tr.lv-p input.nm { font-weight: 800; text-transform: uppercase; }
+.toc tr.lv-g input.nm { font-weight: 700; } .toc tr.lv-d input.nm { font-style: italic; }
+.toc td.cc { white-space: nowrap; } .toc td.cc select { width: auto; padding: 3px 4px; font-size: 12px; } .cov { margin-left: 6px; font-weight: 700; font-size: 12px; } .cov.y { color: #1F7A4A; } .cov.n { color: #B4540A; }
+.toc td.f { max-width: 230px; white-space: normal; } .toc td.f a.code { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; } .toc td.f small { color: var(--soft); }
+.pvt { display: flex; align-items: center; gap: 6px; } .pvt button { padding: 5px 12px; font-size: 13px; } .pvt button.on { background: var(--acc); color: #fff; border-color: var(--acc); } .pvt small { margin-left: 6px; }
+.grid .chks label { display: flex; flex-direction: row; align-items: center; gap: 6px; } .grid .chks input[type=checkbox] { width: auto; flex: none; margin: 0; }

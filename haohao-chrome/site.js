@@ -1516,7 +1516,7 @@
     ], { list: S.subs, num: false, empty: all.length ? 'Không có hồ sơ nào ở bộ lọc này' : 'Chưa có hồ sơ ' + g,
       extra: (r, x) => { if (!RO) { const b = $('button', 'sb-btn ghost sm', '↻'); b.type = 'button'; b.title = 'Trình lại: tăng Rev (' + rv(r) + ' → R' + String((+r.rev || 0) + 1).padStart(2, '0') + '), ngày trình = hôm nay';
           b.addEventListener('click', () => { r.rev = (+r.rev || 0) + 1; r.d = today(); r.st = 'tr'; r.hc = ''; if (r.mcode) r.mcode = /_R\d{2}$/.test(r.mcode) ? r.mcode.replace(/_R\d{2}$/, '_' + rv(r)) : r.mcode; (r.hist = r.hist || []).push({ r: r.rev, d: r.d }); save(); render(true); toast('↻ Đã tạo lần trình ' + rv(r)); }); x.append(b); }
-        { const n = r.cv && Array.isArray(r.cv.items) ? r.cv.items.length : 0, cb = $('button', 'sb-btn ghost sm', '📄' + (n ? ' ' + n : '')); cb.type = 'button';   // V1.9.0: Cover hồ sơ trình + mục lục
+        { const n = r.cv && Array.isArray(r.cv.items) ? r.cv.items.filter(z => (z.lv || 'd') === 'd').length : 0, cb = $('button', 'sb-btn ghost sm', '📄' + (n ? ' ' + n : '')); cb.type = 'button';   // V1.9.0: Cover hồ sơ trình + mục lục
           cb.title = 'Cover hồ sơ trình (bìa Yêu cầu phê duyệt + mục lục' + (n ? ' ' + n + ' tài liệu' : '') + ') – xuất bộ hồ sơ PDF bấm mã nhảy trang';
           cb.addEventListener('click', () => coverOpen(S, r)); x.append(cb); }
         dirCell(r, S, x); },
@@ -1531,8 +1531,12 @@
     const it = x.cv && Array.isArray(x.cv.items) ? x.cv.items : [], so = (x.cv && x.cv.so) || subCode(S, x);
     dialog('📄 Mục lục hồ sơ ' + so, b => {
       if (!it.length) return b.append($('p', 'sb-p', 'Chưa có tài liệu. Lập Cover và chọn file ở HaoHao trên máy tính (nút 📄 ở dòng hồ sơ).'));
-      const t = $('table', 'sb-t'), th = $('tr'); ['Mã', 'Tên tài liệu', 'Loại', 'Trang'].forEach(l => th.append($('th', '', l))); const hd = $('thead'); hd.append(th); t.append(hd);
-      const tb = $('tbody'); it.forEach((z, i) => { const r = $('tr'); r.append($('td', 'sb-scode', so + '-' + String(i + 1).padStart(2, '0')), $('td', '', z.t), $('td', '', z.kind), $('td', 'r', z.pdf || z.img ? String(z.pages || 0) : 'gửi kèm')); tb.append(r); }); t.append(tb);
+      const t = $('table', 'sb-t'), th = $('tr'); ['Stt', 'Tên hồ sơ', 'Có', 'Ghi chú'].forEach(l => th.append($('th', '', l))); const hd = $('thead'); hd.append(th); t.append(hd);
+      const tb = $('tbody'); let p = 0, g = 0, d = 0; it.forEach(z => { const lv = z.lv || 'd', r = $('tr'), co = z.co === 1 || z.co === 0 ? z.co : z.fid ? 1 : 0;   // V1.9.1: danh mục 3 cấp
+        if (lv === 'p') { g = 0; r.append($('td', '', String.fromCharCode(65 + p++ % 26)), $('td', '', String(z.t || '').toUpperCase()), $('td'), $('td')); r.style.fontWeight = '800'; }
+        else if (lv === 'g') { r.append($('td', '', String(++g)), $('td', '', z.t || ''), $('td'), $('td')); r.style.fontWeight = '700'; }
+        else { d++; r.append($('td', 'sb-scode', '-' + String(d).padStart(2, '0')), $('td', '', z.t || ''), $('td', '', co ? '✓' : '✗'), $('td', '', [z.fid ? (z.pdf || z.img ? (z.pages || 0) + ' tr.' : 'gửi kèm') : '', z.note || ''].filter(Boolean).join(' · '))); r.style.fontStyle = 'italic'; }
+        tb.append(r); }); t.append(tb);
       const w = $('div', 'sb-tw'); w.append(t); b.append(w, $('p', 'sb-p', 'Điện thoại chỉ xem mục lục – mở file và xuất bộ hồ sơ PDF ở HaoHao trên máy tính.'));
     }, () => {}, 'Đóng');
   }

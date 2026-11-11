@@ -24,14 +24,19 @@
       <div class="grid" id="form"></div>
     </div>
     <div class="card">
-      <h2>Mục lục – tài liệu trình <small id="sum"></small></h2>
-      <div class="drop" id="drop">Kéo thả file vào đây hoặc bấm <b>📎 Chọn file</b> (chọn nhiều file một lúc: PDF, ảnh, DWG, Excel…)</div>
-      <div class="tw"><table class="toc"><thead><tr><th>Mã</th><th>Tên tài liệu</th><th>Loại</th><th class="r">Trang</th><th>File</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
-      <p class="hint">Bấm <b>mã</b> để mở file. Khi xuất bộ hồ sơ PDF: bìa → mục lục → các file PDF/ảnh nối theo thứ tự; bấm mã trong mục lục nhảy tới đúng trang, có dấu trang (bookmark) bên trái. File khác (DWG, Excel…) ghi "gửi kèm". File lưu trên máy này, không gửi lên máy chủ.</p>
+      <h2>Danh mục hồ sơ – phần đầu <small>điền sẵn từ Thông tin công trình, sửa được</small></h2>
+      <div class="grid" id="head"></div>
+    </div>
+    <div class="card">
+      <h2>Danh mục hồ sơ – các dòng <small id="sum"></small></h2>
+      <div class="rowb"><button type="button" id="bP" class="sm2">＋ Phần (A, B…)</button><button type="button" id="bG" class="sm2">＋ Nhóm (1, 2…)</button><button type="button" id="bD" class="sm2">＋ Tài liệu</button><button type="button" id="bTpl" class="sm2">📋 Mẫu Hồ sơ pháp lý</button></div>
+      <div class="drop" id="drop">Kéo thả file vào đây hoặc bấm <b>📎 Chọn file</b> – mỗi file thành 1 dòng tài liệu (dùng ↑ ↓ đưa vào đúng nhóm)</div>
+      <div class="tw"><table class="toc"><thead><tr><th>Stt / cấp</th><th>Tên hồ sơ</th><th>Có / Không</th><th>File · mã</th><th>Ghi chú</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+      <p class="hint">Có / Không tự tích theo file đã gắn (chỉnh tay được). Bấm <b>mã</b> để mở file. Khi xuất bộ hồ sơ PDF: bìa → danh mục → các file PDF/ảnh nối theo thứ tự; bấm tên hồ sơ trong danh mục nhảy tới đúng trang, bookmark chia Phần › Nhóm › Tài liệu. File khác (DWG, Excel…) ghi "gửi kèm". File lưu trên máy này, không gửi lên máy chủ.</p>
     </div>
   </section>
   <section class="right">
-    <div class="pvh">Xem trước bìa <small>(A4)</small></div>
+    <div class="pvh pvt"><button type="button" data-t="cv" class="on">Bìa</button><button type="button" data-t="dm">Danh mục</button><small>xem trước A4</small></div>
     <div class="pv" id="pv"></div>
   </section>
 </main>
