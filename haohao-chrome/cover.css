@@ -13,10 +13,10 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
 .card h2 { margin: 0 0 10px; font-size: 16px; } .card h2 small { color: var(--soft); font-weight: 500; font-size: 12.5px; margin-left: 6px; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-.grid label .lb { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-.grid label .rs { border: 0; padding: 0 4px; font-size: 13px; color: #B4540A; background: none; } .grid label .rs[hidden] { display: none; }
+.grid .fld .lb { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.grid .fld .rs { border: 0; padding: 0 4px; font-size: 13px; color: #B4540A; background: none; } .grid .fld .rs[hidden] { display: none; }
 .grid .man { border-color: #E8A15C !important; background: #FFFAF3 !important; }
-.grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--soft); font-weight: 600; } .grid label.w { grid-column: 1 / -1; }
+.grid .fld { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--soft); font-weight: 600; } .grid .fld.w { grid-column: 1 / -1; }
 .grid input, .grid select, .grid textarea, .toc input, .toc select { font: 13.5px inherit; font-family: inherit; color: var(--ink); border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #fff; width: 100%; }
 .grid textarea { resize: vertical; min-height: 60px; }
 .chks { display: flex; flex-wrap: wrap; gap: 6px 14px; font-weight: 500; color: var(--ink); font-size: 13px; } .chks label { flex-direction: row; align-items: center; gap: 5px; color: var(--ink); font-size: 13px; }
@@ -45,3 +45,8 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .grid .chks label { display: flex; flex-direction: row; align-items: center; gap: 6px; } .grid .chks input[type=checkbox] { width: auto; flex: none; margin: 0; }
 .sm2.tpl { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 800; }
 .toc td.cc select.co { width: auto; font-weight: 700; } .toc td.cc select.co.y { color: #1F7A4A; border-color: #9FD5B5; } .toc td.cc select.co.n { color: #B4540A; }
+/* V1.9.7: ô khoá (bấm đúp để sửa) · ô cần nhập nền vàng */
+.grid .fld.lk input, .grid .fld.lk select, .grid .fld.lk textarea { background: #F3F4F6; color: #4B5563; border-color: #E5E7EB; cursor: default; }
+.grid .fld.lk:not(.open) select { pointer-events: none; } .grid .fld.lk .lb::after { content: "🔒"; font-size: 10px; margin-left: auto; opacity: .6; }
+.grid .fld.lk.open input, .grid .fld.lk.open select, .grid .fld.lk.open textarea { background: #fff; color: var(--ink); border-color: var(--acc); cursor: text; } .grid .fld.lk.open .lb::after { content: "✎"; }
+.grid .fld.lk .lb .rs { order: 2; } .grid .fld.lk { cursor: default; user-select: none; }

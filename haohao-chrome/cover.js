@@ -103,7 +103,7 @@ const TPL_PL = [['p', 'HỒ SƠ PHÁP LÝ'], ['g', 'Hợp đồng'], ['g', 'Hồ
   ['g', 'Hồ sơ an toàn'], ['d', 'Quyết định thành lập Ban ATLĐ-VSMT-PCCN'], ['d', 'Giấy chứng nhận ATLĐ của BCH'], ['d', 'Biện pháp ATLĐ-VSMT, PCCN'], ['d', 'Cam kết ATLĐ'], ['g', 'Hồ sơ BHTN'], ['d', 'Giấy chứng nhận BHTN']];
 // ---------- giao diện ----------
 function field(lb, k, type, opts = {}) {
-  const l = $('label', opts.w ? 'w' : ''), hd = $('span', 'lb', lb), rs = $('button', 'rs', '↺'); rs.type = 'button'; rs.title = 'Trả về thông tin mặc định lấy từ bên ngoài'; hd.append(rs); l.append(hd);
+  const l = $('div', 'fld' + (opts.w ? ' w' : '')), hd = $('span', 'lb', lb), rs = $('button', 'rs', '↺'); rs.type = 'button'; rs.title = 'Trả về thông tin mặc định lấy từ bên ngoài'; hd.append(rs); l.append(hd);
   const el = type === 'area' ? $('textarea') : type === 'sel' ? $('select') : $('input');
   if (type === 'sel') opts.o.forEach(([v, t]) => { const o = $('option', '', t); o.value = v; el.append(o); });
   else if (type !== 'area') el.type = type || 'text';
@@ -112,10 +112,16 @@ function field(lb, k, type, opts = {}) {
   el.value = V[k](); upd();   // V1.9.1: điền sẵn giá trị mặc định từ bên ngoài; sửa tay thì giữ bản sửa (viền cam + nút ↺)
   el.addEventListener('input', () => { sv(k, el.value === D0[k]() ? '' : el.value); upd(); saveSoon(); after(k); });
   rs.addEventListener('click', e => { e.preventDefault(); sv(k, ''); el.value = D0[k](); upd(); saveSoon(); after(k); });
+  // V1.9.7: mọi ô thông tin bìa / phần đầu danh mục khoá – bấm đúp mới sửa (Enter / bấm ra ngoài là khoá lại)
+  { l.classList.add('lk'); const lock = () => { if (type === 'sel') el.tabIndex = -1; else el.readOnly = true; l.classList.remove('open'); };
+    const open = () => { if (type === 'sel') el.tabIndex = 0; else el.readOnly = false; l.classList.add('open'); el.focus(); if (el.select && type !== 'sel' && type !== 'date') el.select(); };
+    lock(); l.title = 'Bấm đúp để sửa';
+    l.addEventListener('dblclick', e => { e.preventDefault(); if (!l.classList.contains('open')) open(); });
+    el.addEventListener('blur', () => setTimeout(lock, 120)); el.addEventListener('keydown', e => { if (e.key === 'Enter' && type !== 'area') { e.preventDefault(); el.blur(); } if (e.key === 'Escape') el.blur(); }); }
   l.dataset.k = k; l.append(el); return l;
 }
 function after(k) { drawPv(); if (k === 'mau') { drawForm(); drawToc(); } else { if (k === 'so') drawToc(); refill(k); } }
-function refill(skip) { document.querySelectorAll('#form label[data-k], #head label[data-k]').forEach(l => { const k = l.dataset.k; if (k === skip || gv(k)) return; const el = l.querySelector('input,textarea,select'); if (el && document.activeElement !== el) el.value = D0[k](); }); }
+function refill(skip) { document.querySelectorAll('#form .fld[data-k], #head .fld[data-k]').forEach(l => { const k = l.dataset.k; if (k === skip || gv(k)) return; const el = l.querySelector('input,textarea,select'); if (el && document.activeElement !== el) el.value = D0[k](); }); }
 function drawForm() {
   const F = q('#form'); F.replaceChildren(
     field('Mẫu bìa', 'mau', 'sel', { o: Object.entries(MAU).map(([k, v]) => [k, v[0]]) }),
@@ -128,9 +134,11 @@ function drawForm() {
     field('Diễn giải chi tiết yêu cầu phê duyệt', 'dien', 'area', { w: 1, rows: 3 }),
     field('Trình duyệt bao gồm (tự ghi theo danh mục)', 'gom', 'area', { w: 1, rows: 2 }));
   if (V.mau() !== 'shop') F.append(field('Nhà thầu', 'nt', 'text'));
-  else { const l = $('label', 'w'); l.append($('span', 'lb', 'Loại tài liệu')); const c = $('div', 'chks');
+  else { const l = $('div', 'fld w'); l.append($('span', 'lb', 'Loại tài liệu')); const c = $('div', 'chks');
     LOAI.forEach(([k, t]) => { const lb = $('label'), b = $('input'); b.type = 'checkbox'; b.checked = !!CV.loai[k]; b.addEventListener('change', () => { CV.loai = { ...CV.loai, [k]: b.checked }; saveSoon(); drawPv(); }); lb.append(b, t); c.append(lb); });
-    l.append(c); F.append(l); }
+    l.append(c); F.append(l);
+    l.classList.add('lk'); l.title = 'Bấm đúp để sửa'; const bx = () => [...c.querySelectorAll('input')], lockB = () => { bx().forEach(b => { b.disabled = true; }); l.classList.remove('open'); };   // V1.9.7: khoá như các ô khác
+    lockB(); l.addEventListener('dblclick', e => { e.preventDefault(); bx().forEach(b => { b.disabled = false; }); l.classList.add('open'); }); l.addEventListener('mouseleave', lockB); }
   q('#head').replaceChildren(field('Tiêu đề danh mục', 'tt', 'text', { w: 1 }), field('Dự án', 'da', 'text', { w: 1 }), field('Hạng mục / Gói thầu', 'hm', 'text', { w: 1 }), field('Địa điểm', 'dd', 'text', { w: 1 }),
     field('Ban điều hành dự án', 'bdh', 'text'), field('Đơn vị TVGS', 'tvgs', 'text'));
 }
