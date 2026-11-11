@@ -137,7 +137,10 @@
       plan: PHASES0.map((g, i) => ({ id: uid(), g, t: g, s: addD(s0, i * 30), e: addD(s0, i * 30 + 29), pct: 0, mile: i === 1 || i === 5 })),
       tasks: [], logs: [], teams: [], mats: [], stock: [], budget: [], costs: [], incomes: [], issues: [], docs: [] };
   }
-  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas', 'subs', 'dmvt'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); subMig(s); return s; };
+  const fix = s => { ['plan', 'tasks', 'logs', 'teams', 'staff', 'mats', 'stock', 'budget', 'costs', 'incomes', 'issues', 'docs', 'shops', 'qas', 'subs', 'dmvt'].forEach(k => { if (!Array.isArray(s[k])) s[k] = []; }); subMig(s); hdDef(s); return s; };
+  // V1.9.3: công trình Polaris – địa chỉ + chủ đầu tư mặc định theo HĐ 0711/2026/HĐXD/TTĐN-ACON (ô đang trống thì tự điền, anh sửa ở ✏️)
+  const HD_POL = { addr: 'Thửa đất số 14, tờ bản đồ số 56, lô B3 thuộc khu phức hợp đô thị thương mại dịch vụ Royal Era 1, Phường Ngũ Hành Sơn, Thành phố Đà Nẵng', owner: 'Công ty TNHH Tân Thủy Đà Nẵng' };
+  function hdDef(s) { if (!/polaris/i.test((s.code || '') + ' ' + (s.name || ''))) return; let ch = 0; if (!s.addr) { s.addr = HD_POL.addr; ch = 1; } if (!s.owner) { s.owner = HD_POL.owner; ch = 1; } if (ch && !RO) setTimeout(() => saveSoon(), 0); }
 
   // ---------- tính toán ----------
   const plab = p => p.g && p.t ? p.g + ' – ' + p.t : (p.t || p.g || '');
