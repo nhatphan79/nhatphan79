@@ -29,10 +29,14 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .hint { color: var(--soft); font-size: 12.5px; margin: 10px 0 0; }
 .right { position: sticky; top: 76px; } .pvh { font-weight: 700; margin: 0 0 6px; } .pvh small { color: var(--soft); font-weight: 500; }
 .pv { width: 640px; height: 905px; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 24px rgba(30, 36, 51, .08); }
-.pv > .cvp { transform: scale(.806); transform-origin: 0 0; }
+.pv { position: relative; } .pv #pvc > .cvp { transform: scale(.806); transform-origin: 0 0; }
+#pvz { position: absolute; inset: 0; pointer-events: none; }
+.hzh { position: absolute; height: 10px; cursor: ns-resize; pointer-events: auto; touch-action: none; }
+.hzh::after { content: ""; position: absolute; left: 50%; top: 3px; width: 46px; height: 4px; margin-left: -23px; border-radius: 3px; background: #2F6DB5; opacity: .35; }
+.hzh:hover::after, .hzh.man::after { opacity: .9; } .hzh:hover { background: rgba(47, 109, 181, .08); }
 .msg { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-weight: 600; z-index: 20; max-width: 90vw; }
 .msg.bad { background: #B4401F; }
-@media print { @page { size: A4; margin: 0; } body { background: #fff; } .top, .left, .pvh, .msg { display: none !important; } .wrap { display: block; padding: 0; } .right { position: static; } .pv { width: auto; height: auto; border: 0; box-shadow: none; overflow: visible; } .pv > .cvp { transform: none; } }
+@media print { @page { size: A4; margin: 0; } body { background: #fff; } .top, .left, .pvh, .msg { display: none !important; } .wrap { display: block; padding: 0; } .right { position: static; } .pv { width: auto; height: auto; border: 0; box-shadow: none; overflow: visible; } .pv #pvc > .cvp { transform: none; } #pvz { display: none; } }
 
 /* V1.9.1: danh mục hồ sơ 3 cấp */
 .rowb { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .sm2 { padding: 6px 10px; font-size: 12.5px; }

@@ -22,6 +22,7 @@ const NT0 = 'CÔNG TY CỔ PHẦN ĐẦU TƯ XÂY DỰNG ACON';
 const KEYS = ['mau', 'ct', 'ngay', 'so', 'pb', 'chude', 'dien', 'gom', 'ph', 'nt', 'nl', 'tt', 'da', 'hm', 'dd', 'bdh', 'tvgs'];
 function cvOf(x) {
   const c = x.cv && typeof x.cv === 'object' ? x.cv : {}, o = {}; KEYS.forEach(k => { o[k] = c[k] || ''; });
+  o.hz = c.hz && typeof c.hz === 'object' ? { ...c.hz } : {};   // V1.9.9: chiều cao các ô trống trên bìa (kéo tay)
   o.loai = c.loai || { bptc: x.grp === 'MTS', shop: x.grp === 'SHD', bm: false, khac: false };
   o.items = (Array.isArray(c.items) ? c.items : []).map(it => ({ lv: 'd', ...it }));   // lv: 'p' = Phần (A, B…) · 'g' = Nhóm (1, 2…) · 'd' = tài liệu
   return o;
@@ -180,7 +181,7 @@ const CV_CSS = `
 .cvp b{font-weight:700}.cvp .c{text-align:center}.cvp .pe{background:#F8CBAD;font-weight:700}.cvp .gr{background:#E2EFDA}
 .cvp .bx{display:inline-block;width:11px;height:11px;border:1.3px solid #000;vertical-align:-1px;margin-right:8px;position:relative}
 .cvp .bx.on::after{content:"";position:absolute;left:2px;top:-2px;width:4px;height:8px;border:solid #000;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.cvp .sig{height:96px;vertical-align:bottom;font-size:12.5px}
+.cvp .sig{vertical-align:bottom;font-size:12.5px}
 .cvp .pre{white-space:pre-wrap}
 .cvp .sp{height:8px;border-left:0;border-right:0}
 .cvp.dm{padding:40px 46px;font-size:14px}
@@ -192,7 +193,8 @@ const CV_CSS = `
 .cvp.dm .ft{margin-top:8px;font-size:11.5px;color:#444}
 `;
 const L = () => window.HH_CV_LOGO || {};
-function coverHTML() {
+function coverHTML(h0) {
+  const h = h0 || fitH();
   const m = V.mau(), lg = L(), box = on => '<span class="bx' + (on ? ' on' : '') + '"></span>';
   const head = `<table><colgroup><col style="width:21%"><col style="width:40%"><col style="width:21%"><col style="width:18%"></colgroup>
 <tr><td class="lg" rowspan="3"><img src="${lg.acon || ''}"></td><td class="h">Công trình: ${esc(V.ct())}</td><td class="lg" rowspan="3"><img src="${lg.coninco || ''}"></td><td class="lg" rowspan="3"><img src="${lg.tanthuy || ''}"></td></tr>
@@ -203,11 +205,11 @@ ${m !== 'shop' ? `<tr><td colspan="6"><b>NHÀ THẦU: ${esc(V.nt())}</b></td></t
 <tr><td class="c"><b>Ngày trình duyệt:</b></td><td class="c">${esc(fd(V.ngay()))}</td><td class="c"><b>Số:</b></td><td class="c" style="font-size:11.5px">${esc(V.so())}</td><td class="c"><b>Phiên bản:</b></td><td class="c">${esc(V.pb())}</td></tr>
 ${m !== 'shop' ? `<tr><td class="c"><b>CHỦ ĐỀ</b></td><td colspan="5">Yêu cầu phê duyệt: ${esc(V.chude())}</td></tr>` : ''}
 <tr><td colspan="6" class="pe">DIỄN GIẢI CHI TIẾT YÊU CẦU PHÊ DUYỆT</td></tr>
-<tr><td colspan="6" class="pre" style="height:${m === 'shop' ? 92 : 120}px;vertical-align:top">${esc(V.dien())}</td></tr></table>`;
+<tr><td colspan="6" class="pre" data-hz="dien" style="height:${h.dien}px;vertical-align:top">${esc(V.dien())}</td></tr></table>`;
   const gom = m !== 'shop'
     ? `<table><colgroup><col style="width:55%"><col style="width:15%"><col style="width:30%"></colgroup>
 <tr><td class="c"><b>Trình duyệt bao gồm</b></td><td class="c"><b>Ngày phát hành</b></td><td class="c"><b>Đại diện Nhà thầu ký tên:</b></td></tr>
-<tr><td class="pre" style="height:70px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td></td></tr></table>`
+<tr><td class="pre" data-hz="gom" style="height:${h.gom}px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td></td></tr></table>`
     : `<table><colgroup><col style="width:52%"><col style="width:12%"><col style="width:36%"></colgroup>
 <tr><td colspan="2"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ……………………………</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
 <tr><td colspan="2" class="c"><b>Loại tài liệu</b></td></tr>
@@ -216,10 +218,10 @@ ${LOAI.map(([k, t]) => `<tr><td><b>${t}</b></td><td class="c">${box(CV.loai && C
 <tr><td colspan="4" class="pe">TÌNH TRẠNG PHÊ DUYỆT</td></tr>
 <tr><td class="c"><b>A</b></td><td><b>CHẤP THUẬN</b></td><td rowspan="3" class="c"><b>TÌNH TRẠNG PHÊ DUYỆT</b></td><td rowspan="3" class="gr"></td></tr>
 <tr><td class="c"><b>B</b></td><td><b>CHẤP THUẬN - CÓ Ý KIẾN</b></td></tr><tr><td class="c"><b>C</b></td><td><b>KHÔNG CHẤP THUẬN, ĐỆ TRÌNH LẠI</b></td></tr></table>`;
-  const eva = t => `<table><tr><td class="pe">${t}</td></tr>
+  const eva = (t, k) => `<table><tr><td class="pe">${t}</td></tr>
 <tr><td style="padding:6px 6px 2px 24px">${box()}<b>CHẤP THUẬN</b></td></tr><tr><td style="padding:2px 6px 2px 24px;border-top:0">${box()}<b>CHẤP THUẬN - CÓ Ý KIẾN</b></td></tr><tr><td style="padding:2px 6px 6px 24px;border-top:0">${box()}<b>KHÔNG CHẤP THUẬN, ĐỆ TRÌNH LẠI</b></td></tr>
-<tr><td class="sig"><table class="nb"><tr><td style="width:52%">Người phê duyệt:…........................................................</td><td style="width:20%">Chữ ký:</td><td style="width:14%">Ngày:</td><td>…./…./20..</td></tr></table></td></tr></table>`;
-  return `<div class="cvp">${head}${meta}${gom}${tt}${eva('TƯ VẤN GIÁM SÁT ĐÁNH GIÁ')}${eva('CHỦ ĐẦU TƯ - BAN QUẢN LÝ DỰ ÁN ĐÁNH GIÁ')}</div>`;
+<tr><td class="sig" data-hz="${k}" style="height:${h[k]}px"><table class="nb"><tr><td style="width:52%">Người phê duyệt:…........................................................</td><td style="width:20%">Chữ ký:</td><td style="width:14%">Ngày:</td><td>…./…./20..</td></tr></table></td></tr></table>`;
+  return `<div class="cvp"><div class="cvi">${head}${meta}${gom}${tt}${eva('TƯ VẤN GIÁM SÁT ĐÁNH GIÁ', 's1')}${eva('CHỦ ĐẦU TƯ - BAN QUẢN LÝ DỰ ÁN ĐÁNH GIÁ', 's2')}</div></div>`;
 }
 // ---------- DANH MỤC HỒ SƠ (mục lục theo mẫu bìa còng: Stt | Tên hồ sơ | Có | Không | Ghi chú) ----------
 const R1 = 17, RN = 24;   // số dòng trang đầu (có phần thông tin dự án) / các trang sau
@@ -238,8 +240,34 @@ function dmHTML(page, nPages, starts) {
 <p class="ft">${esc(V.so())} · ${esc(V.pb())} · ${esc(fd(V.ngay()))} · trang danh mục ${page + 1}/${nPages}</p></div>`;
 }
 let pvTab = 'cv';
+// ---------- V1.9.9: bìa vừa đúng 1 trang A4 – 2 ô ký tự giãn, kéo tay các ô trống ----------
+const HZ_MIN = { dien: 40, gom: 30, s1: 40, s2: 40 };
+function fitH() {
+  const m = V.mau(), base = { dien: m === 'shop' ? 92 : 120, gom: 70, s1: 96, s2: 96 }, hz = CV.hz || {}, h = { ...base };
+  Object.keys(h).forEach(k => { if (hz[k] > 0) h[k] = hz[k]; });
+  const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;visibility:hidden'; box.innerHTML = coverHTML(h); document.body.append(box);
+  const cvp = box.querySelector('.cvp'), cs = getComputedStyle(cvp), avail = 1123 - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 2;
+  const used = box.querySelector('.cvi').getBoundingClientRect().height; box.remove();
+  let free = avail - used; const auto = ['s1', 's2'].filter(k => !(hz[k] > 0));
+  if (auto.length) { const per = free / auto.length; auto.forEach(k => { h[k] = Math.max(HZ_MIN[k], Math.round(h[k] + per)); }); }
+  return h;
+}
+let pvH = null;
+function placeHz() {   // thanh kéo ═ ở mép dưới các ô trống (chỉ trên trang xem trước bìa)
+  const pv = q('#pv'), lay = q('#pvz'); lay.replaceChildren(); if (pvTab !== 'cv') return;
+  const pr = pv.getBoundingClientRect(), sc = .806;
+  pv.querySelectorAll('[data-hz]').forEach(td => { const k = td.dataset.hz, r = td.getBoundingClientRect(), g = $('div', 'hzh' + (CV.hz && CV.hz[k] > 0 ? ' man' : ''));
+    g.dataset.k = k; g.title = 'Kéo lên / xuống để đổi chiều cao ô · bấm đúp: về tự động'; g.style.cssText = `left:${r.left - pr.left}px;top:${r.bottom - pr.top - 5}px;width:${r.width}px`;
+    g.addEventListener('dblclick', () => { delete CV.hz[k]; saveSoon(); drawPv(); });
+    g.addEventListener('pointerdown', e => { e.preventDefault(); g.setPointerCapture(e.pointerId); const y0 = e.clientY, h0 = pvH[k], partner = k === 's1' ? 's2' : k === 's2' ? 's1' : null;
+      let raf = 0; const mv = ev => { const nh = Math.max(HZ_MIN[k], Math.round(h0 + (ev.clientY - y0) / sc)); CV.hz = { ...(CV.hz || {}), [k]: nh }; if (partner) delete CV.hz[partner]; else { delete CV.hz.s1; delete CV.hz.s2; }
+        if (!raf) raf = requestAnimationFrame(() => { raf = 0; pvH = fitH(); q('#pvc').innerHTML = coverHTML(pvH); const r2 = q(`#pvc [data-hz="${k}"]`).getBoundingClientRect(); g.style.top = (r2.bottom - pr.top - 5) + 'px'; }); };
+      const up = () => { g.removeEventListener('pointermove', mv); g.removeEventListener('pointerup', up); saveSoon(); drawPv(); };
+      g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up); });
+    lay.append(g); });
+}
 function drawPv() {
-  const dm = pvTab === 'dm'; q('#pv').innerHTML = dm ? dmHTML(0, dmPages(), null) : coverHTML();
+  const dm = pvTab === 'dm'; if (!dm) pvH = fitH(); q('#pv').innerHTML = '<div id="pvc">' + (dm ? dmHTML(0, dmPages(), null) : coverHTML(pvH)) + '</div><div id="pvz"></div>'; placeHz();
   document.querySelectorAll('.pvt button').forEach(b => b.classList.toggle('on', b.dataset.t === pvTab));
   q('#hCode').textContent = V.so() + ' · ' + V.pb() + ' · ' + MAU[V.mau()][0];
 }
