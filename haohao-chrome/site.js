@@ -1503,21 +1503,20 @@
     const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', idx + '. ' + g + ' – ' + nm), $('small', '', all.length + ' hồ sơ' + (all.filter(subBad).length ? ' · ' + all.filter(subBad).length + ' cần xử lý' : ''))); hh.title = full; c.append(hh);
     c.append(table(list, [
       { k: 'stt', lb: 'STT', t: 'calc', w: '46px', f: x => idx + '.' + (all.indexOf(x) + 1) },
-      { k: 'code', lb: 'Mã số kiểm soát', t: 'calc', w: '260px', f: x => { const el = $('input', 'sb-in sb-scode' + (x.mcode ? ' man' : '')); el.value = subCode(S, x); el.placeholder = subAuto(S, x); el.setAttribute('aria-label', 'Mã số kiểm soát');
+      { k: 'code', lb: 'Mã số kiểm soát', t: 'calc', w: '1%', f: x => { const el = $('input', 'sb-in sb-scode' + (x.mcode ? ' man' : '')); el.value = subCode(S, x); el.style.width = (Math.max(14, el.value.length) * 7.6 + 22) + 'px';   // V1.9.6: ô vừa đủ thấy hết mã el.placeholder = subAuto(S, x); el.setAttribute('aria-label', 'Mã số kiểm soát');
         el.title = x.mcode ? 'Mã sửa tay – xoá trắng rồi Enter để quay về mã tự tạo (' + subAuto(S, x) + ')' : 'Mã tự tạo – gõ để sửa tay';
         if (RO) el.readOnly = true; else el.addEventListener('change', () => { const v = el.value.trim(); if (!v || v === subAuto(S, x)) delete x.mcode; else x.mcode = v; save(); render(true); });
         return el; } },
       { k: 'r', lb: 'R', t: 'calc', w: '62px', f: x => { const el = $('input', 'sb-in sb-rv'); el.value = rv(x); el.title = 'Phiên bản – sửa được (vd R02)' + (subHist(x) ? '\n' + subHist(x) : ''); el.setAttribute('aria-label', 'Phiên bản R');   // V1.9.5: cột R sửa tay
         if (RO) el.readOnly = true; else el.addEventListener('change', () => { const n = parseInt(String(el.value).replace(/\D/g, ''), 10); if (!(n >= 0) || n > 99) { el.value = rv(x); return; } x.rev = n; if (!(x.hist || []).some(h => h.r === n)) (x.hist = x.hist || []).push({ r: n, d: x.d || today() }); save(); render(true); });
         return el; } },
-      { k: 't', lb: 'Mô tả trình duyệt', t: 'area', rows: 1, ph: g === 'SHD' ? 'Bản vẽ xây tường tầng 2 khối H2' : 'Nội dung hồ sơ', rr: false },
-      { k: 'no', lb: 'Số', t: 'text', w: '58px', rr: false },
+      { k: 't', lb: 'Mô tả trình duyệt', t: 'area', rows: 1, w: '42%', ph: g === 'SHD' ? 'Bản vẽ xây tường tầng 2 khối H2' : 'Nội dung hồ sơ', rr: false },
+      { k: 'no', lb: 'Số', t: 'text', w: '56px', rr: false },
       { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px', on: x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)); if (h) h.d = x.d; else (x.hist = x.hist || []).push({ r: +x.rev || 0, d: x.d }); } },
-      { k: 'st', lb: 'Tình trạng phê duyệt', t: 'sel', o: SST, w: '200px', on: x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)); if (h && ['A', 'B', 'BC', 'C'].includes(x.st) && !h.p) h.p = today(); } },
-      { k: 'hc', lb: 'Bản cứng', t: 'sel', o: SHC, w: '160px' },
-      { k: 'who', lb: 'Người thực hiện', who: true, t: 'text', w: '10%', rr: false },
-      { k: 'dl', lb: 'Deadline', t: 'date', w: '128px' },
-      { k: 'note', lb: 'Ghi chú', t: 'area', rows: 1, rr: false }
+      { k: 'st', lb: 'Tình trạng phê duyệt', t: 'sel', o: SST, w: '160px', on: x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)); if (h && ['A', 'B', 'BC', 'C'].includes(x.st) && !h.p) h.p = today(); } },
+      { k: 'hc', lb: 'Bản cứng', t: 'sel', o: SHC, w: '120px' },
+      { k: 'who', lb: 'Người thực hiện', who: true, t: 'text', w: '100px', rr: false },
+      { k: 'dl', lb: 'Deadline', t: 'date', w: '128px' }   // V1.9.6: bỏ cột Ghi chú (dữ liệu cũ vẫn giữ, vẫn xuất Excel)
     ], { list: S.subs, num: false, empty: all.length ? 'Không có hồ sơ nào ở bộ lọc này' : 'Chưa có hồ sơ ' + g,
       extra: (r, x) => { if (!RO) { const b = $('button', 'sb-btn ghost sm', '↻'); b.type = 'button'; b.title = 'Trình lại: tăng Rev (' + rv(r) + ' → R' + String((+r.rev || 0) + 1).padStart(2, '0') + '), ngày trình = hôm nay';
           b.addEventListener('click', () => { r.rev = (+r.rev || 0) + 1; r.d = today(); r.st = 'tr'; r.hc = ''; if (r.mcode) r.mcode = /_R\d{2}$/.test(r.mcode) ? r.mcode.replace(/_R\d{2}$/, '_' + rv(r)) : r.mcode; (r.hist = r.hist || []).push({ r: r.rev, d: r.d }); save(); render(true); toast('↻ Đã tạo lần trình ' + rv(r)); }); x.append(b); }
