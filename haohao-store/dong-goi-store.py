@@ -8,7 +8,7 @@
 import json, os, zipfile, re
 here = os.path.dirname(os.path.abspath(__file__)); src = os.path.join(os.path.dirname(here), 'haohao-chrome')
 out = os.path.join(here, 'HaoHao-Store.zip')
-NO_SITE = {'site.js', 'site.css', 'khtc.html', 'khtc.js', 'khtc-boot.js', 'khtc.css'}   # 08/11: anh Nhật – tab Công trình KHÔNG gửi lên Store (sitebot.js giữ: còn lo đồng bộ Todo / Dự án)
+NO_SITE = {'site.js', 'site.css', 'khtc.html', 'khtc.js', 'khtc-boot.js', 'khtc.css', 'cover.html', 'cover.js', 'cover.css', 'cover-logo.js'}   # 08/11: anh Nhật – tab Công trình KHÔNG gửi lên Store (sitebot.js giữ: còn lo đồng bộ Todo / Dự án)
 SKIP_DIRS = {'server-cloudflare', '.git', 'node_modules', '_metadata', 'khtc', 'khtc-mau'}   # V1.8.0: Quản lý chi phí (lib/khtc, khtc-mau) cũng là phần riêng   # V1.2.2: _metadata do Chrome tự sinh, Store không nhận
 n = 0
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:

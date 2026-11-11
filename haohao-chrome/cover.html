@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cover hồ sơ trình – HaoHao</title>
+<link rel="stylesheet" href="cover.css">
+<style id="cvcss"></style>
+</head>
+<body>
+<header class="top">
+  <div class="tt"><b>📄 Cover hồ sơ trình</b><span id="hCode"></span></div>
+  <div class="acts">
+    <button type="button" id="bPick" class="pri">📎 Chọn file</button>
+    <button type="button" id="bPdf" class="pri">📦 Xuất bộ hồ sơ PDF</button>
+    <button type="button" id="bXls">📊 Tải bìa Excel</button>
+    <button type="button" id="bPrint">🖨 In bìa</button>
+  </div>
+</header>
+<main class="wrap">
+  <section class="left">
+    <div class="card">
+      <h2>Thông tin bìa</h2>
+      <div class="grid" id="form"></div>
+    </div>
+    <div class="card">
+      <h2>Mục lục – tài liệu trình <small id="sum"></small></h2>
+      <div class="drop" id="drop">Kéo thả file vào đây hoặc bấm <b>📎 Chọn file</b> (chọn nhiều file một lúc: PDF, ảnh, DWG, Excel…)</div>
+      <div class="tw"><table class="toc"><thead><tr><th>Mã</th><th>Tên tài liệu</th><th>Loại</th><th class="r">Trang</th><th>File</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+      <p class="hint">Bấm <b>mã</b> để mở file. Khi xuất bộ hồ sơ PDF: bìa → mục lục → các file PDF/ảnh nối theo thứ tự; bấm mã trong mục lục nhảy tới đúng trang, có dấu trang (bookmark) bên trái. File khác (DWG, Excel…) ghi "gửi kèm". File lưu trên máy này, không gửi lên máy chủ.</p>
+    </div>
+  </section>
+  <section class="right">
+    <div class="pvh">Xem trước bìa <small>(A4)</small></div>
+    <div class="pv" id="pv"></div>
+  </section>
+</main>
+<div class="msg" id="msg" hidden></div>
+<script src="cover-logo.js"></script>
+<script src="lib/khtc/jszip.min.js"></script>
+<script src="lib/khtc/xlpatch.js"></script>
+<script src="cover.js" type="module"></script>
+</body>
+</html>

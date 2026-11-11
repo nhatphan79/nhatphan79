@@ -1516,10 +1516,25 @@
     ], { list: S.subs, num: false, empty: all.length ? 'Không có hồ sơ nào ở bộ lọc này' : 'Chưa có hồ sơ ' + g,
       extra: (r, x) => { if (!RO) { const b = $('button', 'sb-btn ghost sm', '↻'); b.type = 'button'; b.title = 'Trình lại: tăng Rev (' + rv(r) + ' → R' + String((+r.rev || 0) + 1).padStart(2, '0') + '), ngày trình = hôm nay';
           b.addEventListener('click', () => { r.rev = (+r.rev || 0) + 1; r.d = today(); r.st = 'tr'; r.hc = ''; if (r.mcode) r.mcode = /_R\d{2}$/.test(r.mcode) ? r.mcode.replace(/_R\d{2}$/, '_' + rv(r)) : r.mcode; (r.hist = r.hist || []).push({ r: r.rev, d: r.d }); save(); render(true); toast('↻ Đã tạo lần trình ' + rv(r)); }); x.append(b); }
+        { const n = r.cv && Array.isArray(r.cv.items) ? r.cv.items.length : 0, cb = $('button', 'sb-btn ghost sm', '📄' + (n ? ' ' + n : '')); cb.type = 'button';   // V1.9.0: Cover hồ sơ trình + mục lục
+          cb.title = 'Cover hồ sơ trình (bìa Yêu cầu phê duyệt + mục lục' + (n ? ' ' + n + ' tài liệu' : '') + ') – xuất bộ hồ sơ PDF bấm mã nhảy trang';
+          cb.addEventListener('click', () => coverOpen(S, r)); x.append(cb); }
         dirCell(r, S, x); },
       add: () => ({ id: uid(), grp: g, no: subNext(S, g), rev: 0, t: '', d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: '', hist: [{ r: 0, d: today() }] }), addLb: '＋ Thêm hồ sơ ' + g,
       cls: x => (x.st === 'A' || x.st === 'B' || x.st === 'huy' ? 'done' : '') + (subBad(x) ? ' late lateBg' : '') }));
     W.append(c);
+  }
+  // 📄 V1.9.0: mở trang Cover (cover.html) – máy tính; điện thoại / bản xem: chỉ xem mục lục
+  function coverOpen(S, x) {
+    if (!WEB && !RO && !GUEST) { const u = 'cover.html?s=' + encodeURIComponent(S.id) + '&x=' + encodeURIComponent(x.id) + '&c=' + encodeURIComponent(subCode(S, x));
+      try { if (chrome.tabs && chrome.tabs.create) { chrome.tabs.create({ url: chrome.runtime.getURL(u) }); return; } } catch {} window.open(u, '_blank'); return; }
+    const it = x.cv && Array.isArray(x.cv.items) ? x.cv.items : [], so = (x.cv && x.cv.so) || subCode(S, x);
+    dialog('📄 Mục lục hồ sơ ' + so, b => {
+      if (!it.length) return b.append($('p', 'sb-p', 'Chưa có tài liệu. Lập Cover và chọn file ở HaoHao trên máy tính (nút 📄 ở dòng hồ sơ).'));
+      const t = $('table', 'sb-t'), th = $('tr'); ['Mã', 'Tên tài liệu', 'Loại', 'Trang'].forEach(l => th.append($('th', '', l))); const hd = $('thead'); hd.append(th); t.append(hd);
+      const tb = $('tbody'); it.forEach((z, i) => { const r = $('tr'); r.append($('td', 'sb-scode', so + '-' + String(i + 1).padStart(2, '0')), $('td', '', z.t), $('td', '', z.kind), $('td', 'r', z.pdf || z.img ? String(z.pages || 0) : 'gửi kèm')); tb.append(r); }); t.append(tb);
+      const w = $('div', 'sb-tw'); w.append(t); b.append(w, $('p', 'sb-p', 'Điện thoại chỉ xem mục lục – mở file và xuất bộ hồ sơ PDF ở HaoHao trên máy tính.'));
+    }, () => {}, 'Đóng');
   }
   function subHead(W, S, title, groups, key) {
     const L0 = S.subs.filter(x => groups.some(G => G[0] === x.grp));
