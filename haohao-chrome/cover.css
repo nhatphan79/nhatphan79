@@ -43,3 +43,5 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .toc td.f { max-width: 230px; white-space: normal; } .toc td.f a.code { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; } .toc td.f small { color: var(--soft); }
 .pvt { display: flex; align-items: center; gap: 6px; } .pvt button { padding: 5px 12px; font-size: 13px; } .pvt button.on { background: var(--acc); color: #fff; border-color: var(--acc); } .pvt small { margin-left: 6px; }
 .grid .chks label { display: flex; flex-direction: row; align-items: center; gap: 6px; } .grid .chks input[type=checkbox] { width: auto; flex: none; margin: 0; }
+.sm2.tpl { background: var(--acc); border-color: var(--acc); color: #fff; font-weight: 800; }
+.toc td.cc select.co { width: auto; font-weight: 700; } .toc td.cc select.co.y { color: #1F7A4A; border-color: #9FD5B5; } .toc td.cc select.co.n { color: #B4540A; }

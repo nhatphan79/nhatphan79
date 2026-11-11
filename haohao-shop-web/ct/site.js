@@ -1535,12 +1535,12 @@
     dialog('📄 Mục lục hồ sơ ' + so, b => {
       if (!it.length) return b.append($('p', 'sb-p', 'Chưa có tài liệu. Lập Cover và chọn file ở HaoHao trên máy tính (nút 📄 ở dòng hồ sơ).'));
       const t = $('table', 'sb-t'), th = $('tr'); ['Stt', 'Tên hồ sơ', 'Có', 'Ghi chú'].forEach(l => th.append($('th', '', l))); const hd = $('thead'); hd.append(th); t.append(hd);
-      const tb = $('tbody'); let p = 0, g = 0, d = 0; it.forEach(z => { const lv = z.lv || 'd', r = $('tr'), co = z.co === 1 || z.co === 0 ? z.co : z.fid ? 1 : 0;   // V1.9.1: danh mục 3 cấp
+      const tb = $('tbody'); let p = 0, g = 0, d = 0; it.forEach(z => { const lv = z.lv || 'd', r = $('tr'), co = z.co === 1 ? 1 : 0;   // V1.9.1: danh mục 3 cấp
         if (lv === 'p') { g = 0; r.append($('td', '', String.fromCharCode(65 + p++ % 26)), $('td', '', String(z.t || '').toUpperCase()), $('td'), $('td')); r.style.fontWeight = '800'; }
         else if (lv === 'g') { r.append($('td', '', String(++g)), $('td', '', z.t || ''), $('td'), $('td')); r.style.fontWeight = '700'; }
-        else { d++; r.append($('td', 'sb-scode', '-' + String(d).padStart(2, '0')), $('td', '', z.t || ''), $('td', '', co ? '✓' : '✗'), $('td', '', [z.fid ? (z.pdf || z.img ? (z.pages || 0) + ' tr.' : 'gửi kèm') : '', z.note || ''].filter(Boolean).join(' · '))); r.style.fontStyle = 'italic'; }
+        else { d++; r.append($('td', 'sb-scode', '-' + String(d).padStart(2, '0')), $('td', '', z.t || ''), $('td', '', co ? '✓ Có' : '✗ Không'), $('td', '', z.note || '')); r.style.fontStyle = 'italic'; }
         tb.append(r); }); t.append(tb);
-      const w = $('div', 'sb-tw'); w.append(t); b.append(w, $('p', 'sb-p', 'Điện thoại chỉ xem mục lục – mở file và xuất bộ hồ sơ PDF ở HaoHao trên máy tính.'));
+      const w = $('div', 'sb-tw'); w.append(t); b.append(w, $('p', 'sb-p', 'Điện thoại chỉ xem danh mục – sửa và xuất PDF ở HaoHao trên máy tính.'));
     }, () => {}, 'Đóng');
   }
   function subHead(W, S, title, groups, key) {

@@ -11,8 +11,7 @@
 <header class="top">
   <div class="tt"><b>📄 Cover hồ sơ trình</b><span id="hCode"></span></div>
   <div class="acts">
-    <button type="button" id="bPick" class="pri">📎 Chọn file</button>
-    <button type="button" id="bPdf" class="pri">📦 Xuất bộ hồ sơ PDF</button>
+    <button type="button" id="bPdf" class="pri">📦 Xuất PDF (bìa + danh mục)</button>
     <button type="button" id="bXls">📊 Tải bìa Excel</button>
     <button type="button" id="bPrint">🖨 In bìa</button>
   </div>
@@ -24,15 +23,14 @@
       <div class="grid" id="form"></div>
     </div>
     <div class="card">
-      <h2>Danh mục hồ sơ – phần đầu <small>điền sẵn từ Thông tin công trình, sửa được</small></h2>
+      <h2>Danh mục hồ sơ – phần đầu <small>theo hợp đồng + TVGS · dùng chung cả công trình · sửa được</small></h2>
       <div class="grid" id="head"></div>
     </div>
     <div class="card">
       <h2>Danh mục hồ sơ – các dòng <small id="sum"></small></h2>
-      <div class="rowb"><button type="button" id="bP" class="sm2">＋ Phần (A, B…)</button><button type="button" id="bG" class="sm2">＋ Nhóm (1, 2…)</button><button type="button" id="bD" class="sm2">＋ Tài liệu</button><button type="button" id="bTpl" class="sm2">📋 Mẫu Hồ sơ pháp lý</button></div>
-      <div class="drop" id="drop">Kéo thả file vào đây hoặc bấm <b>📎 Chọn file</b> – mỗi file thành 1 dòng tài liệu (dùng ↑ ↓ đưa vào đúng nhóm)</div>
-      <div class="tw"><table class="toc"><thead><tr><th>Stt / cấp</th><th>Tên hồ sơ</th><th>Có / Không</th><th>File · mã</th><th>Ghi chú</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
-      <p class="hint">Có / Không tự tích theo file đã gắn (chỉnh tay được). Bấm <b>mã</b> để mở file. Khi xuất bộ hồ sơ PDF: bìa → danh mục → các file PDF/ảnh nối theo thứ tự; bấm tên hồ sơ trong danh mục nhảy tới đúng trang, bookmark chia Phần › Nhóm › Tài liệu. File khác (DWG, Excel…) ghi "gửi kèm". File lưu trên máy này, không gửi lên máy chủ.</p>
+      <div class="rowb"><button type="button" id="bP" class="sm2">＋ Phần (A, B…)</button><button type="button" id="bG" class="sm2">＋ Nhóm (1, 2…)</button><button type="button" id="bD" class="sm2">＋ Tài liệu</button><button type="button" id="bTpl" class="sm2 tpl">📋 Mẫu Hồ sơ pháp lý</button></div>
+      <div class="tw"><table class="toc"><thead><tr><th>Stt / cấp</th><th>Tên hồ sơ</th><th>Có / Không</th><th>Ghi chú</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+      <p class="hint">Chọn <b>Có / Không</b> ở từng dòng tài liệu (mặc định Không). Phần đầu danh mục (Dự án, Gói thầu, Địa điểm, Ban điều hành, TVGS, Nhà thầu) dùng chung cho mọi hồ sơ của công trình. Xuất PDF gồm bìa + danh mục.</p>
     </div>
   </section>
   <section class="right">
