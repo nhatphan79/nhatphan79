@@ -615,5 +615,18 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-cpslot { margin-bottom: 18px; }
 @media print { body.sb-pdf .sb-cpgrip { display: none !important; } }
 .sb-rv { width: 54px; text-align: center; font-weight: 800; padding: 4px 4px; }   /* V1.9.5 */
-.sb-khs .sb-t td textarea.sb-ta { min-width: 320px; white-space: pre-wrap; }   /* V1.9.6: mô tả trình duyệt rộng, tự xuống dòng */
-.sb-khs input.sb-scode { width: auto; max-width: none; }
+.sb-khs .sb-t td textarea.sb-ta { min-width: 0; white-space: pre-wrap; }   /* V1.9.6: mô tả trình duyệt rộng, tự xuống dòng */
+.sb-khs input.sb-scode { width: 100%; }
+/* V1.9.8: QA/QC Shop – chữ nhỏ lại, bảng vừa khung, bỏ thanh kéo ngang */
+.sb-khs .sb-tw { overflow-x: visible; }
+.sb-khs .sb-t { min-width: 0; table-layout: fixed; font-size: 12px; }
+.sb-khs .sb-t th.x { width: 112px; }
+.sb-khs .sb-t th { font-size: 11px; padding: 6px 4px; white-space: normal; line-height: 1.2; }
+.sb-khs .sb-t td { padding: 2px 2px; }
+.sb-khs .sb-t td.calc { padding: 3px 4px; font-size: 12px; }
+.sb-khs .sb-t .sb-in { font-size: 12px; padding: 4px 4px; min-height: 28px; height: auto; }
+.sb-khs .sb-t select.sb-in { padding-right: 16px; }
+.sb-khs .sb-t input[type=date].sb-in { width: 100%; min-width: 0; font-size: 11.5px; }
+.sb-khs input.sb-scode { font-size: 11px; }
+.sb-khs .sb-rv { width: 40px; font-size: 12px; }
+.sb-khs .sb-t td.x .sb-btn.sm { padding: 3px 6px; font-size: 12px; }
