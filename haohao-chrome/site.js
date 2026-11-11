@@ -109,8 +109,8 @@
   const SHC = [['', '—'], ['gui', 'Đã gửi bản cứng'], ['nhan', 'Đã nhận lại bản cứng'], ['scan', 'Đã scan']];
   const subPre = S => String(S.subPre || '').trim() || String(S.code || 'DA').toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   const rv = x => 'R' + String(+x.rev || 0).padStart(2, '0');
-  const subCode = (S, x) => x.mcode ? String(x.mcode) : subAuto(S, x);   // V1.6.9: mã sửa tay (mcode) – để trống thì tự tạo
-  const subAuto = (S, x) => [x.d ? x.d.slice(2, 4) + x.d.slice(5, 7) + x.d.slice(8, 10) : '', subPre(S), x.grp, String(x.no || '').padStart(3, '0'), rv(x)].filter(Boolean).join('_');
+  const subCode = (S, x) => x.mcode ? String(x.mcode).replace(/_R\d{2}$/i, '') : subAuto(S, x);   // V1.6.9: mã sửa tay (mcode) – để trống thì tự tạo
+  const subAuto = (S, x) => [x.d ? x.d.slice(2, 4) + x.d.slice(5, 7) + x.d.slice(8, 10) : '', subPre(S), x.grp, String(x.no || '').padStart(3, '0')].filter(Boolean).join('_');   // V1.9.5: mã không kèm R – phiên bản ở cột R riêng
   const subLate = x => !['A', 'B', 'huy'].includes(x.st) && x.dl && x.dl < today();
   const subBad = x => x.st === 'C' || subLate(x);
   const subNext = (S, g) => String(Math.max(0, ...S.subs.filter(x => x.grp === g).map(x => parseInt(x.no, 10) || 0)) + 1).padStart(3, '0');
@@ -1507,7 +1507,9 @@
         el.title = x.mcode ? 'Mã sửa tay – xoá trắng rồi Enter để quay về mã tự tạo (' + subAuto(S, x) + ')' : 'Mã tự tạo – gõ để sửa tay';
         if (RO) el.readOnly = true; else el.addEventListener('change', () => { const v = el.value.trim(); if (!v || v === subAuto(S, x)) delete x.mcode; else x.mcode = v; save(); render(true); });
         return el; } },
-      { k: 'r', lb: 'R', t: 'calc', w: '44px', f: x => { const sp = $('b', '', rv(x)); sp.title = subHist(x) || 'Chưa có lịch sử'; return sp; } },
+      { k: 'r', lb: 'R', t: 'calc', w: '62px', f: x => { const el = $('input', 'sb-in sb-rv'); el.value = rv(x); el.title = 'Phiên bản – sửa được (vd R02)' + (subHist(x) ? '\n' + subHist(x) : ''); el.setAttribute('aria-label', 'Phiên bản R');   // V1.9.5: cột R sửa tay
+        if (RO) el.readOnly = true; else el.addEventListener('change', () => { const n = parseInt(String(el.value).replace(/\D/g, ''), 10); if (!(n >= 0) || n > 99) { el.value = rv(x); return; } x.rev = n; if (!(x.hist || []).some(h => h.r === n)) (x.hist = x.hist || []).push({ r: n, d: x.d || today() }); save(); render(true); });
+        return el; } },
       { k: 't', lb: 'Mô tả trình duyệt', t: 'area', rows: 1, ph: g === 'SHD' ? 'Bản vẽ xây tường tầng 2 khối H2' : 'Nội dung hồ sơ', rr: false },
       { k: 'no', lb: 'Số', t: 'text', w: '58px', rr: false },
       { k: 'd', lb: 'Ngày trình', t: 'date', w: '128px', on: x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)); if (h) h.d = x.d; else (x.hist = x.hist || []).push({ r: +x.rev || 0, d: x.d }); } },

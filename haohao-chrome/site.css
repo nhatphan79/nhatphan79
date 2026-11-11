@@ -614,3 +614,4 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-cpgrip:hover { background: #E9EDF4; color: #2F6DB5; } .sb-cpgrip[hidden] { display: none; }
 .sb-cpslot { margin-bottom: 18px; }
 @media print { body.sb-pdf .sb-cpgrip { display: none !important; } }
+.sb-rv { width: 54px; text-align: center; font-weight: 800; padding: 4px 4px; }   /* V1.9.5 */
