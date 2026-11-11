@@ -121,8 +121,7 @@ function drawForm() {
     field('Ngày phát hành', 'ph', 'date'),
     field('Chủ đề – yêu cầu phê duyệt', 'chude', 'text', { w: 1 }),
     field('Diễn giải chi tiết yêu cầu phê duyệt', 'dien', 'area', { w: 1, rows: 3 }),
-    field('Trình duyệt bao gồm (tự ghi theo danh mục)', 'gom', 'area', { w: 1, rows: 2 }),
-    field('Người lập (người thực hiện)', 'nl', 'text'));
+    field('Trình duyệt bao gồm (tự ghi theo danh mục)', 'gom', 'area', { w: 1, rows: 2 }));
   if (V.mau() !== 'shop') F.append(field('Nhà thầu', 'nt', 'text'));
   else { const l = $('label', 'w'); l.append($('span', 'lb', 'Loại tài liệu')); const c = $('div', 'chks');
     LOAI.forEach(([k, t]) => { const lb = $('label'), b = $('input'); b.type = 'checkbox'; b.checked = !!CV.loai[k]; b.addEventListener('change', () => { CV.loai = { ...CV.loai, [k]: b.checked }; saveSoon(); drawPv(); }); lb.append(b, t); c.append(lb); });
@@ -198,9 +197,9 @@ ${m !== 'shop' ? `<tr><td class="c"><b>CHỦ ĐỀ</b></td><td colspan="5">Yêu 
   const gom = m !== 'shop'
     ? `<table><colgroup><col style="width:55%"><col style="width:15%"><col style="width:30%"></colgroup>
 <tr><td class="c"><b>Trình duyệt bao gồm</b></td><td class="c"><b>Ngày phát hành</b></td><td class="c"><b>Đại diện Nhà thầu ký tên:</b></td></tr>
-<tr><td class="pre" style="height:70px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td style="vertical-align:bottom;font-size:12px">${V.nl() ? 'Người lập: ' + esc(V.nl()) : ''}</td></tr></table>`
+<tr><td class="pre" style="height:70px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td></td></tr></table>`
     : `<table><colgroup><col style="width:52%"><col style="width:12%"><col style="width:36%"></colgroup>
-<tr><td colspan="2"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ${V.nl() ? esc(V.nl()) : '……………………………'}</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
+<tr><td colspan="2"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ……………………………</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
 <tr><td colspan="2" class="c"><b>Loại tài liệu</b></td></tr>
 ${LOAI.map(([k, t]) => `<tr><td><b>${t}</b></td><td class="c">${box(CV.loai && CV.loai[k])}</td></tr>`).join('')}</table>`;
   const tt = `<table><colgroup><col style="width:12%"><col style="width:43%"><col style="width:22%"><col style="width:23%"></colgroup>
