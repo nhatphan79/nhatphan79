@@ -463,3 +463,7 @@
 .pj-kpis.k6, .pj-kpis.k5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .pj-kpi.tsan b { color: #0F766E; }
 @media (max-width: 1100px) { .pj-kpis.k5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* V2.0.1: cột Tổng = Vốn + Lãi/lỗ */
+.pj-list.wt .pj-lr { grid-template-columns: 48px minmax(180px, 2fr) 132px 132px minmax(110px, 1fr) 118px 150px 130px 130px 104px; min-width: 1234px; }
+.pj-lr .c-tot { justify-content: flex-end; font-variant-numeric: tabular-nums; font-weight: 800; padding-right: 16px; }
+.pj-lr .c-tot.pos { color: #1F7A4A; } .pj-lr .c-tot.neg { color: #C4401F; }

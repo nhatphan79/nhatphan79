@@ -463,11 +463,11 @@
     }
     if (!isIdeaA(A)) { const rs = rutSum(A), rb = $('button', 'pj-x pj-rutb', rs ? '💸 Đã rút ' + fmtC(rs, 'vnd') : '💸 Rút tiền'); rb.title = 'Ghi tiền đã rút (lợi nhuận lấy ra) của mảng này'; rb.addEventListener('click', () => rutDlg(A)); top.append(rb); }   // V1.70
     top.append(add); W.append(top);
-    const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); T.setAttribute('aria-label', 'Danh sách dự án');
+    const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); const rowUpd = [];   // V2.0.1: cột Tổng = Vốn + Lãi/lỗ T.setAttribute('aria-label', 'Danh sách dự án');
     const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
     const IDEA = isIdeaA(A), AIR = (tplOf(A) || {}).id === 'air';   // V1.72: mảng Airdrop – 5 ô tích cho 5 trình duyệt (p.br)
-    (IDEA ? ['STT', 'Tên ý tưởng', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Ghi chú', ''] : ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', AIR ? '5 trình duyệt' : 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', '']).forEach(t => { const c = $('div', 'c', t); if (IDEA && t === 'Ghi chú') c.style.gridColumn = 'span 2'; hd.append(c); });
-    T.append(hd);
+    (IDEA ? ['STT', 'Tên ý tưởng', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Ghi chú', ''] : ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', AIR ? '5 trình duyệt' : 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', 'Tổng', '']).forEach(t => { const c = $('div', 'c', t); if (IDEA && t === 'Ghi chú') c.style.gridColumn = 'span 2'; hd.append(c); });
+    if (!IDEA) T.classList.add('wt'); T.append(hd);
     // V1.34: 👁 ẩn dự án đã xong / không cần xem (p.hidden) – mặc định không hiện; ✕ xoá dự án (bấm 2 lần)
     const nHid = PL.filter(p => p.hidden).length, VL = showHidden ? PL : PL.filter(p => !p.hidden);
     VL.forEach((p, i) => {
@@ -513,18 +513,22 @@
       ac.append(al, eye, del);
       if (IDEA) { const nc = $('div', 'c c-note'), ni = $('input', 'pj-in pj-note'); ni.value = p.note || ''; ni.placeholder = 'Ghi chú…'; ni.setAttribute('aria-label', 'Ghi chú ' + (p.name || '')); nc.style.gridColumn = 'span 2';
         ni.addEventListener('input', () => { p.note = ni.value; saveSoon(); }); ni.addEventListener('change', () => { p.note = ni.value.trim(); save(); }); nc.append(ni); r.append(no, nmc, ds, de, pc, sc, nc, ac); }
-      else r.append(no, nmc, ds, de, pc, sc, vc, lc, ac);
+      else { const tc = $('div', 'c c-tot'), tb = $('b', '');   // V2.0.1: Tổng = Vốn đầu tư + Lãi/lỗ (cùng đơn vị tiền của dự án)
+        const up = () => { const l = laiOf(p); tb.textContent = fmtC(vonOf(p) + l, curOf(p)); tc.className = 'c c-tot' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); tc.title = 'Vốn ' + fmtC(vonOf(p), curOf(p)) + ' + lãi/lỗ ' + fmtC(l, curOf(p), true); };
+        up(); rowUpd.push(up); tc.append(tb); r.append(no, nmc, ds, de, pc, sc, vc, lc, tc, ac); }
       T.append(r);
     });
     if (!VL.length) T.append($('div', 'pj-empty', PL.length ? 'Các dự án trong mảng này đang ẩn' : 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
     else if (!IDEA) {
       const ft = $('div', 'pj-lr ft'), tv = $('div', 'c c-sum'), tl = $('div', 'c c-sum');
-      ft.append($('div', 'c'), $('div', 'c', nHid && !showHidden ? 'Tổng (gồm cả ' + nHid + ' dự án ẩn)' : 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl, $('div', 'c'));
+      const tt = $('div', 'c c-sum');
+      ft.append($('div', 'c'), $('div', 'c', nHid && !showHidden ? 'Tổng (gồm cả ' + nHid + ' dự án ẩn)' : 'Tổng'), $('div', 'c'), $('div', 'c'), $('div', 'c'), $('div', 'c'), tv, tl, tt, $('div', 'c'));
       updTotal = () => {
         const sv = sumC(PL, 'von'), sl = sumC(PL, 'lai');
         const vv = sumV(PL, 'von'), vl = sumV(PL, 'lai'), ap = hasUsdt(PL) ? '≈ ' : '';   // V1.40: quy USDT ra VND, 1 dòng
         tv.textContent = ap + fmtC(vv, 'vnd'); tl.textContent = ap + fmtC(vl, 'vnd', true); tl.className = 'c c-sum' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : '');
-        tv.title = tl.title = hasUsdt(PL) ? 'Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') : '';
+        tv.title = tl.title = tt.title = hasUsdt(PL) ? 'Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') : '';
+        tt.textContent = ap + fmtC(vv + vl, 'vnd'); tt.className = 'c c-sum c-tot' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : ''); rowUpd.forEach(f => f());
       };
       updTotal(); T.append(ft);
     }

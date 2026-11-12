@@ -19,7 +19,7 @@ let S = null, X = null, CV = null;
 const mauOf = g => g === 'MAA' ? 'vl' : (g === 'SHD' || g === 'MTS') ? 'shop' : 'tl';
 const rv = x => 'R' + pad(+x.rev || 0);
 const NT0 = 'CÔNG TY CỔ PHẦN ĐẦU TƯ XÂY DỰNG ACON';
-const KEYS = ['mau', 'ct', 'ngay', 'so', 'pb', 'chude', 'dien', 'gom', 'ph', 'nt', 'nl', 'tt', 'da', 'hm', 'dd', 'bdh', 'tvgs'];
+const KEYS = ['mau', 'ct', 'ngay', 'so', 'pb', 'chude', 'dien', 'gom', 'ph', 'nt', 'nl', 'tt', 'da', 'hm', 'dd', 'bdh', 'tvgs', 'ctiet', 'nsx', 'hdso'];
 function cvOf(x) {
   const c = x.cv && typeof x.cv === 'object' ? x.cv : {}, o = {}; KEYS.forEach(k => { o[k] = c[k] || ''; });
   o.hz = c.hz && typeof c.hz === 'object' ? { ...c.hz } : {};   // V1.9.9: chiều cao các ô trống trên bìa (kéo tay)
@@ -32,15 +32,18 @@ const D0 = {
   mau: () => mauOf(X.grp),
   ct: () => POL() ? 'Khách sạn Polaris Danang Hotel' : (S.name || ''), ngay: () => X.d || today(), so: () => CODE0, pb: () => rv(X), ph: () => CV.ngay || X.d || today(),
   chude: () => X.t || '', nt: () => NT0, nl: () => X.who || '',
-  dien: () => 'Công ty cổ phần đầu tư xây dựng ACON kính gửi chủ đầu tư, ban quản lý, tư vấn giám sát phê duyệt: ' + (CV.chude || X.t || '') + (X.note ? '\n' + X.note : ''),
-  gom: () => autoGom(),
+  // V2.0.1: Diễn giải theo mẫu (ảnh Newtecons): phê duyệt <loại>: <nội dung chi tiết> · Nhà sản xuất · Hợp đồng số, gói thầu
+  dien: () => { const m = V.mau(), loai = m === 'vl' ? 'vật liệu' : m === 'shop' ? 'bản vẽ shopdrawing' : 'tài liệu', gt = POL() ? 'Thi công xây tô và hoàn thiện nền cơ bản' : (V.hm() ? V.hm().charAt(0) + V.hm().slice(1).toLowerCase() : '');
+    return 'Công ty cổ phần đầu tư xây dựng ACON kính gửi chủ đầu tư, ban quản lý, tư vấn giám sát phê duyệt ' + loai + ': ' + V.ctiet() + (m === 'vl' && V.nsx() ? '\nNhà sản xuất: ' + V.nsx() : '') + (V.hdso() ? '\nHợp đồng số: ' + V.hdso() + (gt ? ', gói thầu: ' + gt : '') : ''); },
+  gom: () => { const L = docs().filter(coOf).map(it => it.t).filter(Boolean); return L.length ? L.join('\n') : autoGom(); },   // V2.0.1: liệt kê tài liệu chọn Có
+  ctiet: () => X.t || '', nsx: () => '', hdso: () => POL() ? '0711/2026/HĐXD/TTĐN-ACON' : '',
   tt: () => 'DANH MỤC HỒ SƠ ' + MAU[V.mau()][3],
   da: () => POL() ? 'KHÁCH SẠN POLARIS DANANG HOTEL' : (S.name || '').toUpperCase(), hm: () => POL() ? 'THI CÔNG XÂY TÔ VÀ HOÀN THIỆN NỀN CƠ BẢN' : '', dd: () => (S.addr || '').toUpperCase(),
   bdh: () => (S.owner || '').toUpperCase(), tvgs: () => POL() ? 'CÔNG TY CỔ PHẦN CONINCO THĂNG LONG' : '',
 };
 // V1.9.4: phần đầu danh mục + công trình + nhà thầu lưu chung cho cả công trình (S.cvHd) – theo hợp đồng / TVGS; còn lại theo từng hồ sơ (cv)
 const POL = () => /polaris/i.test((S.code || '') + ' ' + (S.name || ''));   // HĐ 0711/2026/HĐXD/TTĐN-ACON
-const SK = new Set(['ct', 'da', 'hm', 'dd', 'bdh', 'tvgs', 'nt']);
+const SK = new Set(['ct', 'da', 'hm', 'dd', 'bdh', 'tvgs', 'nt', 'hdso']);
 const gv = k => SK.has(k) ? ((S.cvHd || {})[k] || '') : (CV[k] || '');
 const sv = (k, v) => { if (SK.has(k)) S.cvHd = { ...(S.cvHd || {}), [k]: v }; else CV[k] = v; };
 const V = {}; KEYS.forEach(k => { V[k] = () => gv(k) || D0[k](); });
@@ -131,7 +134,9 @@ function drawForm() {
     field('Số (mã hồ sơ)', 'so', 'text'),
     field('Phiên bản', 'pb', 'text'),
     field('Ngày phát hành', 'ph', 'date'),
-    field('Chủ đề – yêu cầu phê duyệt', 'chude', 'text', { w: 1 }),
+    field('Chủ đề – yêu cầu phê duyệt (ngắn, vd Vật liệu thép)', 'chude', 'text', { w: 1 }),
+    field('Nội dung chi tiết (đưa vào Diễn giải)', 'ctiet', 'text', { w: 1 }),
+    ...(V.mau() === 'vl' ? [field('Nhà sản xuất / nhà cung cấp', 'nsx', 'text', { w: 1 })] : []),
     field('Diễn giải chi tiết yêu cầu phê duyệt', 'dien', 'area', { w: 1, rows: 3 }),
     field('Trình duyệt bao gồm (tự ghi theo danh mục)', 'gom', 'area', { w: 1, rows: 2 }));
   if (V.mau() !== 'shop') F.append(field('Nhà thầu', 'nt', 'text'));
@@ -141,7 +146,7 @@ function drawForm() {
     l.classList.add('lk'); l.title = 'Bấm đúp để sửa'; const bx = () => [...c.querySelectorAll('input')], lockB = () => { bx().forEach(b => { b.disabled = true; }); l.classList.remove('open'); };   // V1.9.7: khoá như các ô khác
     lockB(); l.addEventListener('dblclick', e => { e.preventDefault(); bx().forEach(b => { b.disabled = false; }); l.classList.add('open'); }); l.addEventListener('mouseleave', lockB); }
   q('#head').replaceChildren(field('Tiêu đề danh mục', 'tt', 'text', { w: 1 }), field('Dự án', 'da', 'text', { w: 1 }), field('Hạng mục / Gói thầu', 'hm', 'text', { w: 1 }), field('Địa điểm', 'dd', 'text', { w: 1 }),
-    field('Ban điều hành dự án', 'bdh', 'text'), field('Đơn vị TVGS', 'tvgs', 'text'));
+    field('Ban điều hành dự án', 'bdh', 'text'), field('Đơn vị TVGS', 'tvgs', 'text'), field('Hợp đồng số', 'hdso', 'text'));
 }
 function drawToc() {
   const tb = q('#tb'); tb.replaceChildren(); const N = numbering(), L = docs();
@@ -211,7 +216,7 @@ ${m !== 'shop' ? `<tr><td class="c"><b>CHỦ ĐỀ</b></td><td colspan="5">Yêu 
 <tr><td class="c"><b>Trình duyệt bao gồm</b></td><td class="c"><b>Ngày phát hành</b></td><td class="c"><b>Đại diện Nhà thầu ký tên:</b></td></tr>
 <tr><td class="pre" data-hz="gom" style="height:${h.gom}px">${esc(V.gom())}</td><td class="c">${esc(fd(V.ph()))}</td><td></td></tr></table>`
     : `<table><colgroup><col style="width:52%"><col style="width:12%"><col style="width:36%"></colgroup>
-<tr><td colspan="2"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ……………………………</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
+<tr><td colspan="2" class="pre"><b>Trình duyệt bao gồm:</b> ${esc(V.gom())}</td><td rowspan="6" style="vertical-align:top"><b>Đại diện Nhà thầu ký tên:</b><div style="height:70px"></div><div style="font-size:12px">Họ tên/ Full-name: ……………………………</div><div style="font-size:12px;margin-top:4px">Ngày ký/ Date: ……………………………</div></td></tr>
 <tr><td colspan="2" class="c"><b>Loại tài liệu</b></td></tr>
 ${LOAI.map(([k, t]) => `<tr><td><b>${t}</b></td><td class="c">${box(CV.loai && CV.loai[k])}</td></tr>`).join('')}</table>`;
   const tt = `<table><colgroup><col style="width:12%"><col style="width:43%"><col style="width:22%"><col style="width:23%"></colgroup>
