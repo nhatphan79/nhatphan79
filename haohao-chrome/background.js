@@ -495,6 +495,7 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   // 📲 HaoHao Transfer: hỏi app ChuyenAnh-iPhone đang chạy trên máy (cổng 8686)
   // ⬆️ V1.1: tự cập nhật – xem có bản mới không (+ app Transfer có hỗ trợ tự cài không), chạy cập nhật qua app Transfer
   if (msg.type === 'upd-st') { (async () => { const info = await updCheck(); let tf = false; try { const r = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(2000) }).then(r => r.json()); tf = !!r.up; } catch {} send({ info, tf }); })(); return true; }
+  if (msg.type === 'nhat-upd') { nhatUpd(!!msg.force).then(send).catch(e => send({ err: String(e) })); return true; }
   if (msg.type === 'upd-run') { fetch('http://127.0.0.1:8686/capnhat?id=' + chrome.runtime.id, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(180000) }).then(r => r.json()).then(send).catch(e => send({ error: String(e && e.message || e) })); return true; }
   // 💬 V1.8: góp ý → máy chủ HaoHao (chỉ chủ app đọc)
   if (msg.type === 'week-step') { weekStep(msg.id).then(send).catch(() => send(null)); return true; }
@@ -2209,6 +2210,33 @@ async function updCheck(force) {
 }
 
 const TFH = { 'x-haohao': '1' };   // V1.6: app Transfer chỉ nhận lệnh có header này (trang web lạ không gửi được)
+
+// 🔁 V2.0.0: KÊNH CẬP NHẬT RIÊNG của anh Nhật (máy bàn + laptop) – bản có Công trình / Quản lý chi phí / Cover, không phát công khai.
+//   Máy đăng nhập Gmail của anh: 30 phút xem downloads/nhat/haohao-latest.json; có bản mới thì đợi máy rảnh (không gõ phím / chuột 2 phút)
+//   rồi nhờ app HaoHao Transfer (127.0.0.1:8686) tải gói, kiểm chữ ký số, chép đè đúng thư mục HaoHao → manifest đổi → HaoHao tự nạp lại.
+const NHAT_MAIL = ['anhnhatpro79@gmail.com', 'nhatphan79@gmail.com'];
+async function nhatUpd(force) {
+  if ('update_url' in chrome.runtime.getManifest()) return { skip: 'store' };
+  const { sbAuth } = await chrome.storage.local.get('sbAuth'); const em = String(sbAuth && sbAuth.email || '').toLowerCase();
+  if (!NHAT_MAIL.includes(em)) return { skip: 'not-owner' };
+  const run = chrome.runtime.getManifest().version, st = { at: Date.now(), run };
+  try {
+    fetch('http://127.0.0.1:8686/tu-chay', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(3000) }).catch(() => {});   // app Transfer tự chạy cùng Windows (chỉ máy của anh)
+    const j = await fetch(UPD_BASE + 'nhat/haohao-latest.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json());
+    st.v = String(j.version || ''); st.name = String(j.name || '').slice(0, 20);
+    if (!st.v || !verGt(st.v, run)) { st.ok = 'moi-nhat'; return await nhatSave(st); }
+    if (!force && chrome.idle) { const id = await chrome.idle.queryState(120); if (id === 'active') { st.wait = 'dang-dung'; return await nhatSave(st); } }   // đang dùng máy → để lần sau
+    const tf = await fetch('http://127.0.0.1:8686/info', { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(3000) }).then(r => r.json()).catch(() => null);
+    if (!tf || !tf.up) { st.err = 'chua-mo-transfer'; return await nhatSave(st); }
+    const x = await fetch('http://127.0.0.1:8686/capnhat?ch=nhat&id=' + chrome.runtime.id, { cache: 'no-store', headers: TFH, signal: AbortSignal.timeout(300000) }).then(r => r.json()).catch(e => ({ error: String(e && e.message || e) }));
+    if (x && x.ok) st.done = x.v || st.name; else st.err = (x && x.error) || 'loi';
+  } catch (e) { st.err = String(e && e.message || e); }
+  return nhatSave(st);
+}
+async function nhatSave(st) { await chrome.storage.local.set({ nhatUpd: st }).catch(() => {}); return st; }
+chrome.alarms.create('nhat-upd', { delayInMinutes: 1, periodInMinutes: 30 });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'nhat-upd') nhatUpd().catch(() => {}); });
+if (chrome.idle && chrome.idle.onStateChanged) chrome.idle.onStateChanged.addListener(s => { if (s !== 'active') chrome.storage.local.get('nhatUpd').then(r => { const u = r.nhatUpd; if (u && u.wait && u.v && verGt(u.v, chrome.runtime.getManifest().version)) nhatUpd().catch(() => {}); }).catch(() => {}); });
 
 // 🔑 V1.86: kiểm tra mã Gemini nhanh – chỉ hỏi Google danh sách mẫu (không bắt Gemini viết), tối đa 10 giây
 async function aiCheck(key) {

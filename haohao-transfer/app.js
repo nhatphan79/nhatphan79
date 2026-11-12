@@ -425,7 +425,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ path: r }));
   }
-  if (p === '/capnhat' && ctl) { let r; try { r = await capNhat(new URL(req.url, 'http://x').searchParams.get('id') || ''); } catch (e) { r = { error: String(e && e.message || e) }; } res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(r)); }
+  if (p === '/tu-chay' && ctl) { tuChay(); res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":1}'); }   // V2.0.0
+  if (p === '/capnhat' && ctl) { let r; try { const sp = new URL(req.url, 'http://x').searchParams; r = await capNhat(sp.get('id') || '', sp.get('ch') || ''); } catch (e) { r = { error: String(e && e.message || e) }; } res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(r)); }
   if (p === '/thoat' && ctl) { res.writeHead(200); res.end('{}'); setTimeout(() => process.exit(0), 200); return; }
   if (p === '/gui-moi' && req.method === 'POST' && ctl) { guiClear(); res.writeHead(200); return res.end('{}'); }
   if (p === '/gui' && req.method === 'POST' && ctl) return guiPut(req, res);
@@ -486,16 +487,26 @@ function extDir(id) {
   return '';
 }
 const UPD = 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/downloads/';
-async function capNhat(id) {
+// V2.0.0: tự chạy cùng Windows (thu nhỏ) – chỉ bật khi máy dùng kênh cập nhật riêng của anh Nhật. Xoá HaoHao-Transfer.vbs trong thư mục Startup là thôi.
+function tuChay() {
+  if (process.platform === 'win32' && /\.exe$/i.test(process.execPath) && !/node\.exe$/i.test(process.execPath)) {
+  try { const st = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'HaoHao-Transfer.vbs');
+    const vbs = 'CreateObject("WScript.Shell").Run """' + process.execPath + '""", 7, False\r\n';
+    if (!fs.existsSync(st) || fs.readFileSync(st, 'utf8') !== vbs) fs.writeFileSync(st, vbs); } catch {}
+}
+}
+async function capNhat(id, ch) {
+  const NH = ch === 'nhat', B = NH ? UPD + 'nhat/' : UPD;   // V2.0.0: kênh riêng của anh Nhật (bản có Công trình)
+  if (NH) tuChay();
   if (process.platform !== 'win32') return { error: 'Chỉ chạy trên Windows' };
   if (!/^[a-p]{32}$/.test(id)) return { error: 'id' };
   const dir = extDir(id); if (!dir) return { error: 'Không tìm thấy thư mục HaoHao' };
-  if (fs.existsSync(path.join(dir, '.git')) || fs.existsSync(path.join(dir, '..', 'content.1.10.199.bak.js'))) return { error: 'Máy chủ app: không tự ghi đè' };
-  const j = JSON.parse((await dl(UPD + 'haohao-latest.json')).toString());
+  if (fs.existsSync(path.join(dir, '.git')) || (!NH && fs.existsSync(path.join(dir, '..', 'content.1.10.199.bak.js')))) return { error: 'Máy chủ app: không tự ghi đè' };
+  const j = JSON.parse((await dl(B + 'haohao-latest.json')).toString());
   if (!/^[\w.-]+\.zip$/.test(j.file || '')) return { error: 'file' };
   const tmp = path.join(os.tmpdir(), 'haohao-up'), z = tmp + '.zip';
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
-  await dl(UPD + j.file, z);
+  await dl(B + j.file, z);
   // chữ ký số: chỉ cài gói do chủ app ký (khoá riêng nằm trên máy chủ app, không có trên GitHub)
   const crypto = require('crypto'), PUB = crypto.createPublicKey({ key: Buffer.from('MCowBQYDK2VwAyEAvmkfSaXXZjW5QtfkhMfELl9V8ikDkTGfXL4Qkm5mSb8=', 'base64'), format: 'der', type: 'spki' });
   if (!j.sig || !crypto.verify(null, fs.readFileSync(z), PUB, Buffer.from(String(j.sig), 'base64'))) return { error: 'Chữ ký gói không đúng – không cài' };

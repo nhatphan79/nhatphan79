@@ -33,7 +33,7 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
             elif rel == 'manifest.json':
                 m = json.loads(data.decode('utf-8'))
                 # V1.2.1: dùng đúng tên trong manifest (tên mới tối ưu tìm kiếm), không ép tên cũ nữa
-                m['permissions'] = [x for x in m['permissions'] if x != 'geolocation']
+                m['permissions'] = [x for x in m['permissions'] if x not in ('geolocation', 'idle')]   # V2.0.0: idle chỉ dùng cho kênh tự cập nhật riêng của anh Nhật
                 m['host_permissions'] = [x for x in m['host_permissions'] if '127.0.0.1:47321' not in x]
                 data = (json.dumps(m, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
             z.writestr(rel, data); n += 1
