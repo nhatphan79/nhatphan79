@@ -1,7 +1,7 @@
 {
- "name": "V2.0.5",
- "version": "1.10.458",
+ "name": "V2.0.7",
+ "version": "1.10.460",
  "file": "HaoHao-nhat.zip",
- "sig": "aYt66rVG+yrMOTgvUY39sM4t/K4HA5fkY2gwAGDhhk3OB5F2XFaQY/IoFBUwql8O8gDS6ynVDF8eIFZiOnyTCQ==",
- "notes": "Danh sách Người thực hiện lấy từ Ban chỉ huy"
+ "sig": "cR7XYTiTL5Q27zhMxdELUL/8hblmI5NVmSm9RIYOBVjlQuxu6+9o2u1mkcl6gxzsmOHD//2pDqUG0CX6tggICQ==",
+ "notes": "Cover lưu đúng bản lúc xuất PDF/Excel/In; nút Mẫu"
 }
