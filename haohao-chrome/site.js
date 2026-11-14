@@ -1723,6 +1723,16 @@
     const photos = logs.reduce((a, l) => a + ((l.photos || []).length || num(l.pc)), 0);
     return { P, startKh, startTt, endKh, endTt, logs, crewT, other, cong, rain, done, added, late, nextT, costs, inc, cSum, iSum, byCat, cAll, iAll, debt, B, stIn, stOut, matNext, isNew, isClosed, isOpen, items, photos };
   }
+  // V2.1.5: báo cáo – 1. NHÂN LỰC theo ngày trong kỳ (lấy từ Quân số / Nhật ký) · 2. KHỐI LƯỢNG THỰC HIỆN theo tiến độ (% hoàn thành kế hoạch)
+  function repQS(S, P) {
+    const D = []; for (let x = P.a; x <= P.b; x = addD(x, 1)) D.push(x);
+    const LG = D.map(x => S.logs.find(l => l.d === x) || null);
+    const rows = [{ nm: 'Ban chỉ huy', g: 1, v: LG.map(L => L ? bchOf(L) : 0) }, ...S.teams.map(tm => ({ nm: teamName(tm), job: tm.scope || '', v: LG.map(L => L ? num((L.crew || {})[tm.id]) : 0) })),
+      ...dwOf(S).map(x => ({ nm: x.name || 'Công nhật', job: x.job || '', v: LG.map(L => L ? dwVal(L, x) : 0) }))].map(r => ({ ...r, t: r.v.reduce((a, n) => a + n, 0) })).filter(r => r.g || r.t);
+    const dayT = D.map((_, i) => rows.reduce((a, r) => a + r.v[i], 0)), tot = dayT.reduce((a, n) => a + n, 0), nd = dayT.filter(Boolean).length;
+    return { D, rows, dayT, tot, nd, avg: nd ? Math.round(tot / nd) : 0 };
+  }
+  const repKL = (p, dE) => { const kh = planPct(p, dE), tt = Math.min(100, num(p.pct)); return { kh, tt, ht: kh ? Math.round(tt / kh * 100) : (tt ? 100 : null) }; };   // ht = % hoàn thành kế hoạch
   // V1.3.4: báo cáo dành cho LÃNH ĐẠO – chỉ thông tin chính, không kèm nhật ký chi tiết
   const ord3 = { cao: 0, tb: 1, thap: 2 };
   function repLead(S, R) {
@@ -1741,14 +1751,15 @@
     const S4 = { slow: p => '📅 Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày', need: x => (x.st === 'cd' ? '🖊 Chờ duyệt: ' : '⚠️ ') + (x.t || '').split('\n')[0], late: t => (t.pri === 'cao' ? '🔴 ' : '❗ ') + t.t };
     const ad = k => ((add || {})[k] || []).filter(t => t.trim()).forEach(t => L.push((/^\s{2}/.test(t) ? '   – ' : '• ') + t.trim()));
     L.push('📑 BÁO CÁO ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG') + ' – ' + P.label.replace(/^(Tuần|Tháng) /, ''), '🏗️ ' + (S.code ? S.code + ' · ' : '') + S.name, '');
-    L.push('1. TÌNH HÌNH CHUNG', '• Tiến độ: thực tế ' + R.endTt + '% / kế hoạch ' + R.endKh + '% → ' + (X.verdict === 'CHẬM' ? '🔴 CHẬM' + (X.maxLag ? ' ' + X.maxLag + ' ngày' : '') : X.verdict === 'chậm nhẹ' ? '🟡 chậm nhẹ ' + X.maxLag + ' ngày' : '🟢 đúng kế hoạch') + (R.startTt != null ? ' (tăng ' + (R.endTt - R.startTt) + '% trong kỳ)' : ''));
-    L.push('• Thi công ' + R.logs.length + ' ngày · TB ' + (R.logs.length ? Math.round(R.cong / R.logs.length) : 0) + ' người/ngày' + (R.rain ? ' · ' + R.rain + ' ngày mưa/nghỉ' : ''));
-    L.push('• Tài chính: chi trong kỳ ' + short(R.cSum) + ' · luỹ kế ' + short(R.cAll) + (R.B ? ' (' + Math.round(R.cAll / R.B * 100) + '% dự toán)' : '') + ' · đã thu ' + short(R.iAll) + (R.debt ? ' · còn nợ ' + short(R.debt) : ''));
+    { const Q = repQS(S, P); L.push('1. NHÂN LỰC (' + Q.nd + ' ngày có quân số · TB ' + Q.avg + ' người/ngày · tổng ' + Q.tot + ' công)');   // V2.1.5
+      Q.rows.forEach(r => L.push('• ' + r.nm + (r.job ? ' (' + r.job + ')' : '') + ': ' + r.t + ' công' + (Q.nd ? ' · TB ' + Math.round(r.t / Q.nd) + '/ngày' : '')));
+      if (rp.kind === 'w') L.push('• Theo ngày: ' + Q.D.map((x, i) => dowLb(x) + ' ' + (Q.dayT[i] || '–')).join(' · ')); }
     ad('s1');
-    L.push('', '2. TIẾN ĐỘ HẠNG MỤC'); R.items.filter(p => !hid('s2', plab(p))).forEach(p => { const lg = lagDays(p, dE); L.push('• ' + plab(p) + ': ' + num(p.pct) + '% / KH ' + planPct(p, dE) + '%' + (num(p.pct) >= 100 ? ' – xong' : lg ? ' – 🔴 chậm ' + lg + ' ngày' : ' – đúng tiến độ') + (String(p.why || '').trim() ? ' (lý do: ' + String(p.why).trim() + ')' : '')); }); ad('s2');
+    L.push('', '2. KHỐI LƯỢNG THỰC HIỆN (theo tiến độ) – tổng: thực tế ' + R.endTt + '% / KH ' + R.endKh + '% → đạt ' + (R.endKh ? Math.round(R.endTt / R.endKh * 100) : 100) + '% kế hoạch');
+    R.items.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (k.ht != null ? ' → đạt ' + k.ht + '% KH' : '') + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
     L.push('', '3. KẾT QUẢ CHÍNH (' + R.done.length + ' việc xong)');
     X.done.slice(0, 8).filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 6).forEach(t => L.push('• ' + t.t)); if (R.done.length > 6) L.push('• … và ' + (R.done.length - 6) + ' việc khác'); ad('s3');
-    L.push('', '4. VƯỚNG MẮC CẦN CHỈ ĐẠO');
+    L.push('', '4. VƯỚNG MẮC');
     X.slow.filter(p => lagDays(p, dE) >= 3 && !hid('s4', S4.slow(p))).forEach(p => L.push('• Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày' + (String(p.why || '').trim() ? ' – lý do: ' + String(p.why).trim() : '')));
     X.needs.slice(0, 6).filter(x => !hid('s4', S4.need(x))).slice(0, 5).forEach(x => L.push('• ' + (x.st === 'cd' ? '[Chờ duyệt] ' : '') + (x.t || '').split('\n')[0] + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '')));
     X.late.slice(0, 5).filter(t => !hid('s4', S4.late(t))).slice(0, 4).forEach(t => L.push('• ' + (t.pri === 'cao' ? '🔴 ' : '') + '[' + catName(catOf(t)) + '] ' + t.t + ' – trễ ' + days(t.due, today()) + ' ngày')); ad('s4');
@@ -1825,21 +1836,37 @@
     const k = $('div', 'sb-kpis');
     { const X0 = repLead(S, R); k.append(kpi('Tiến độ thực tế', R.endTt + '%', 'kế hoạch ' + R.endKh + '%', R.endTt + 5 < R.endKh || X0.maxLag >= 3 ? 'bad' : 'good'), kpi('Chậm nhất', X0.maxLag ? X0.maxLag + ' ngày' : '0', X0.slow.length ? X0.slow.length + ' hạng mục chậm' : 'không chậm', X0.maxLag >= 3 ? 'bad' : X0.maxLag ? 'warn' : 'good'),
       kpi('Việc hoàn thành', String(R.done.length), R.late.length ? R.late.length + ' quá hạn' : 'không quá hạn', R.late.length ? 'warn' : ''), kpi('Nhân lực TB', (R.logs.length ? Math.round(R.cong / R.logs.length) : 0) + ' người', R.logs.length + ' ngày thi công'), kpi('Chi trong kỳ', short(R.cSum), 'luỹ kế ' + short(R.cAll))); }
-    doc.append(k);
-    let si = 0; const S2 = (t, cls) => { const c = $('section', 'sb-rps ' + (cls || '')); c.dataset.k = 's' + (++si); c.append($('h2', '', t)); doc.append(c); return c; };
+    let si = 0;   // V2.1.5: bỏ ô số liệu đầu báo cáo (anh Nhật)
+ const S2 = (t, cls) => { const c = $('section', 'sb-rps ' + (cls || '')); c.dataset.k = 's' + (++si); c.append($('h2', '', t)); doc.append(c); return c; };
     const ul = (arr, f, empty) => { const u = $('ul', 'sb-list'); arr.forEach(x => { const li = $('li'); f(x, li); u.append(li); }); if (!arr.length) u.append($('li', 'sb-none', empty || 'Không có')); return u; };
     const X = repLead(S, R), dE = P.b < today() ? P.b : today();
     // 1 tình hình chung
-    { const c = S2('1. Tình hình chung'); const p = $('p', 'sb-rpsum');
+    { const c = S2('1. Nhân lực'), Q = repQS(S, P);   // V2.1.5: bảng nhân lực trong kỳ (từ Quân số)
+      c.append($('p', 'sb-p', Q.nd + ' ngày có quân số · bình quân ' + Q.avg + ' người/ngày · tổng ' + Q.tot + ' công'));
+      const wk = rp.kind === 'w', bx = $('div', 'sb-tw'), t = $('table', 'sb-t sb-rpt'), hr = $('tr');
+      hr.append($('th', 'n', 'STT'), $('th', '', 'Chức vụ / Tổ đội'), ...(wk ? Q.D.map(x => { const h = $('th', 'c'); h.append(DOW[new Date(x + 'T00:00').getDay()], $('br'), x.slice(8, 10) + '/' + x.slice(5, 7)); return h; }) : [$('th', 'c', 'Số ngày')]), $('th', 'r', 'Tổng công'), $('th', 'r', 'TB/ngày'));
+      const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
+      Q.rows.forEach((r, i) => { const tr = $('tr'), nm = $('td', ''); nm.append($('span', '', r.nm)); if (r.job) nm.append($('small', 'sb-rpj', ' – ' + r.job));
+        tr.append($('td', 'n', String(i + 1)), nm, ...(wk ? r.v.map(n => $('td', 'c', n ? String(n) : '')) : [$('td', 'c', String(r.v.filter(Boolean).length))]), $('td', 'r b', String(r.t)), $('td', 'r', Q.nd ? String(Math.round(r.t / Q.nd)) : '')); tb.append(tr); });
+      const fr = $('tr', 'sum'); fr.append($('td', 'n', ''), $('td', 'b', 'Cộng'), ...(wk ? Q.dayT.map(n => $('td', 'c b', n ? String(n) : '')) : [$('td', 'c b', String(Q.nd))]), $('td', 'r b', String(Q.tot)), $('td', 'r b', String(Q.avg))); tb.append(fr);
+      t.append(tb); bx.append(t); c.append(bx); }
+    if (0) { const c = S2('1. Tình hình chung'); const p = $('p', 'sb-rpsum');
       p.append('Tiến độ thực tế ', $('b', '', R.endTt + '%'), ' / kế hoạch ' + R.endKh + '% → ', $('b', X.verdict === 'CHẬM' ? 'bad' : X.verdict === 'chậm nhẹ' ? 'warnt' : 'goodt', X.verdict === 'đúng kế hoạch' ? 'đúng kế hoạch' : X.verdict + ' ' + X.maxLag + ' ngày'),
         (R.startTt != null ? ' (tăng ' + (R.endTt - R.startTt) + '% trong kỳ)' : '') + '. Thi công ' + R.logs.length + ' ngày, bình quân ' + (R.logs.length ? Math.round(R.cong / R.logs.length) : 0) + ' người/ngày' + (R.rain ? ', ' + R.rain + ' ngày mưa/nghỉ' : '') + '. Chi trong kỳ ' + short(R.cSum) + ', luỹ kế ' + short(R.cAll) + (R.B ? ' (' + Math.round(R.cAll / R.B * 100) + '% dự toán)' : '') + '.');
       c.append(p); }
     // 2 tiến độ hạng mục
-    { const c = S2('2. Tiến độ hạng mục'); c.append(ul(R.items, (p, li) => { const lg = lagDays(p, dE); li.append($('span', '', plab(p)), ...(String(p.why || '').trim() ? [$('em', 'sb-why', 'Lý do: ' + String(p.why).trim())] : []), $('small', '', num(p.pct) + '% / KH ' + planPct(p, dE) + '%'), $('b', lg >= 3 ? 'bad' : lg ? 'warnt' : 'goodt', num(p.pct) >= 100 ? 'Xong' : lg ? 'Chậm ' + lg + ' ngày' : 'Đúng tiến độ')); }, 'Không có hạng mục nào trong kỳ')); }
+    { const c = S2('2. Khối lượng thực hiện (theo tiến độ)');   // V2.1.5: % hoàn thành kế hoạch = thực tế / kế hoạch đến cuối kỳ
+      const bx = $('div', 'sb-tw'), t = $('table', 'sb-t sb-rpt'), hr = $('tr'); hr.append($('th', 'n', 'STT'), $('th', '', 'Hạng mục'), $('th', 'c', 'Thời gian'), $('th', 'r', 'Kế hoạch %'), $('th', 'r', 'Thực hiện %'), $('th', 'r', 'Đạt % KH'), $('th', '', 'Ghi chú'));
+      const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
+      R.items.forEach((p, i) => { const k = repKL(p, dE), tr = $('tr', k.tt >= 100 ? 'done' : '');
+        tr.append($('td', 'n', String(i + 1)), $('td', '', plab(p)), $('td', 'c', fd(p.s) + ' – ' + fd(p.e)), $('td', 'r', k.kh + '%'), $('td', 'r b', k.tt + '%'), $('td', 'r b ' + (k.ht == null ? '' : k.ht >= 90 ? 'goodt' : k.ht >= 60 ? 'warnt' : 'bad'), k.ht == null ? '' : k.ht + '%'), $('td', 'sb-rpj', String(p.why || '').trim())); tb.append(tr); });
+      if (!R.items.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Không có hạng mục nào trong kỳ'); td.colSpan = 7; tr.append(td); tb.append(tr); }
+      else { const fr = $('tr', 'sum'), ht = R.endKh ? Math.round(R.endTt / R.endKh * 100) : 100; fr.append($('td', 'n', ''), $('td', 'b', 'Tổng tiến độ công trình'), $('td', 'c', ''), $('td', 'r b', R.endKh + '%'), $('td', 'r b', R.endTt + '%'), $('td', 'r b ' + (ht >= 90 ? 'goodt' : ht >= 60 ? 'warnt' : 'bad'), ht + '%'), $('td', '', R.startTt != null ? 'tăng ' + (R.endTt - R.startTt) + '% trong kỳ' : '')); tb.append(fr); }
+      t.append(tb); bx.append(t); c.append(bx); }
     // 3 kết quả chính
     { const c = S2('3. Kết quả chính (' + R.done.length + ' việc hoàn thành)'); c.append(ul(X.done.slice(0, 8), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận việc hoàn thành')); if (R.done.length > 8) c.append($('p', 'sb-p', '… và ' + (R.done.length - 8) + ' việc khác')); }
     // 4 vướng mắc cần chỉ đạo
-    { const c = S2('4. Vướng mắc cần lãnh đạo chỉ đạo', 'sb-rpwarn');
+    { const c = S2('4. Vướng mắc', 'sb-rpwarn');
       const rows = [...X.slow.filter(p => lagDays(p, dE) >= 3).map(p => ['📅 Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày', String(p.why || '').trim() ? 'Lý do: ' + String(p.why).trim() : '']), ...X.needs.slice(0, 6).map(x => [(x.st === 'cd' ? '🖊 Chờ duyệt: ' : '⚠️ ') + (x.t || '').split('\n')[0], (x.who || 'chưa giao') + (x.due ? ' · hạn ' + fd(x.due) : '')]), ...X.late.slice(0, 5).map(t => [(t.pri === 'cao' ? '🔴 ' : '❗ ') + t.t, catName(catOf(t)) + ' · trễ ' + days(t.due, today()) + ' ngày'])];
       c.append(ul(rows, ([a, b], li) => li.append($('span', '', a), $('small', '', b)), 'Không có vướng mắc')); }
     // 5 kế hoạch kỳ tới

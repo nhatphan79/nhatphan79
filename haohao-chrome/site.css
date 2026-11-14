@@ -642,3 +642,7 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-rp.sb-hedit { outline: 2px dashed #F2A71B; outline-offset: 4px; background: #FFFDF6; cursor: text; }
 .sb-rp.sb-hedit:focus { outline-style: solid; }
 @media print { .sb-rp.sb-hedit { outline: 0; background: #fff; } }
+/* V2.1.5: bảng Nhân lực + Khối lượng thực hiện trong báo cáo */
+.sb-rp .sb-rpt { font-size: 13px; } .sb-rp .sb-rpt th { font-size: 11.5px; line-height: 1.25; } .sb-rp .sb-rpt td, .sb-rp .sb-rpt th { padding: 5px 8px; } .sb-rp .sb-rpt .c { text-align: center; } .sb-rp .sb-rpt .b { font-weight: 700; }
+.sb-rp .sb-rpt tr.sum td { background: #F3F5FA; font-weight: 700; } .sb-rp .sb-rpj { color: #6B7280; font-size: 12px; } .sb-rp .sb-rpt td.goodt { color: #1F7A4A; } .sb-rp .sb-rpt td.warnt { color: #B7791F; } .sb-rp .sb-rpt td.bad { color: #C4401F; }
+@media print { .sb-rp .sb-rpt { font-size: 11px; } .sb-rp .sb-tw { overflow: visible; } }
