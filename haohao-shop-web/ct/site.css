@@ -646,3 +646,6 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-rp .sb-rpt { font-size: 13px; } .sb-rp .sb-rpt th { font-size: 11.5px; line-height: 1.25; } .sb-rp .sb-rpt td, .sb-rp .sb-rpt th { padding: 5px 8px; } .sb-rp .sb-rpt .c { text-align: center; } .sb-rp .sb-rpt .b { font-weight: 700; }
 .sb-rp .sb-rpt tr.sum td { background: #F3F5FA; font-weight: 700; } .sb-rp .sb-rpj { color: #6B7280; font-size: 12px; } .sb-rp .sb-rpt td.goodt { color: #1F7A4A; } .sb-rp .sb-rpt td.warnt { color: #B7791F; } .sb-rp .sb-rpt td.bad { color: #C4401F; }
 @media print { .sb-rp .sb-rpt { font-size: 11px; } .sb-rp .sb-tw { overflow: visible; } }
+/* V2.1.7: gợi ý bấm thêm ở báo cáo ngày */
+.sb-sug { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 4px; padding: 8px 10px; background: #FFFBF2; border: 1px dashed #E8C68A; border-radius: 10px; }
+.sb-sugl { font-size: 12.5px; color: #8A6A2B; font-weight: 600; margin-right: 2px; } .sb-sugb { all: unset; cursor: pointer; font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: #fff; border: 1px solid #EAD7B0; color: #23305E; } .sb-sugb:hover, .sb-sugb:focus-visible { background: #FFF1D6; border-color: #E0B865; }
