@@ -22,7 +22,8 @@ const NT0 = 'CÔNG TY CỔ PHẦN ĐẦU TƯ XÂY DỰNG ACON';
 const KEYS = ['mau', 'ct', 'ngay', 'so', 'pb', 'chude', 'dien', 'gom', 'ph', 'nt', 'nl', 'tt', 'da', 'hm', 'dd', 'bdh', 'tvgs', 'ctiet', 'nsx', 'hdso'];
 function cvOf(x) {
   const c = x.cv && typeof x.cv === 'object' ? x.cv : {}, o = {}; KEYS.forEach(k => { o[k] = c[k] || ''; });
-  o.hz = c.hz && typeof c.hz === 'object' ? { ...c.hz } : {};   // V1.9.9: chiều cao các ô trống trên bìa (kéo tay)
+  o.hz = c.hz && typeof c.hz === 'object' ? { ...c.hz } : {};
+  if (c.snap && c.snap.v) o.snap = { at: c.snap.at || '', v: { ...c.snap.v } };   // V2.0.6: bản đã chốt lúc xuất PDF / Excel / In   // V1.9.9: chiều cao các ô trống trên bìa (kéo tay)
   o.loai = c.loai || { bptc: x.grp === 'MTS', shop: x.grp === 'SHD', bm: false, khac: false };
   o.items = (Array.isArray(c.items) ? c.items : []).map(it => ({ lv: 'd', ...it }));   // lv: 'p' = Phần (A, B…) · 'g' = Nhóm (1, 2…) · 'd' = tài liệu
   return o;
@@ -45,8 +46,11 @@ const D0 = {
 const POL = () => /polaris/i.test((S.code || '') + ' ' + (S.name || ''));   // HĐ 0711/2026/HĐXD/TTĐN-ACON
 const SK = new Set(['ct', 'da', 'hm', 'dd', 'bdh', 'tvgs', 'nt', 'hdso']);
 const gv = k => SK.has(k) ? ((S.cvHd || {})[k] || '') : (CV[k] || '');
-const sv = (k, v) => { if (SK.has(k)) S.cvHd = { ...(S.cvHd || {}), [k]: v }; else CV[k] = v; };
-const V = {}; KEYS.forEach(k => { V[k] = () => gv(k) || D0[k](); });
+const sn = k => (CV && CV.snap && CV.snap.v && CV.snap.v[k]) || '';   // V2.0.6: giá trị đã chốt lúc xuất file
+const sv = (k, v) => { if (SK.has(k)) S.cvHd = { ...(S.cvHd || {}), [k]: v }; else CV[k] = v; if (CV.snap && CV.snap.v) delete CV.snap.v[k]; };
+const V = {}; KEYS.forEach(k => { V[k] = () => sn(k) || gv(k) || D0[k](); });   // V2.0.6: ưu tiên bản đã chốt → không tự đổi theo dữ liệu mới bên ngoài
+function snapNow(how) { CV.snap = { at: new Date().toISOString(), v: Object.fromEntries(KEYS.map(k => [k, V[k]()])) }; if (saveT) clearTimeout(saveT); saveNow(); snapLbl(); return how; }   // V2.0.6: xuất PDF / Excel / In → lưu đúng bản đó
+function snapLbl() { const e = q('#snap'); if (!e) return; const a = CV.snap && CV.snap.at; e.hidden = !a; if (a) { const d = new Date(a); e.textContent = '💾 Bản đã lưu lúc ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); e.title = 'Lần xuất PDF / Excel / In gần nhất – mở lại giữ đúng nội dung này. Bấm ↺ ở từng ô để lấy lại thông tin mới từ bên ngoài.'; } }
 const docs = () => CV.items.filter(it => it.lv === 'd');
 const hasF = it => !!it.fid;
 const coOf = it => it.co === 1 ? 1 : 0;   // V1.9.4: Có / Không anh tự chọn, mặc định Không (bỏ đính kèm file)
@@ -112,7 +116,7 @@ function field(lb, k, type, opts = {}) {
   if (type === 'sel') opts.o.forEach(([v, t]) => { const o = $('option', '', t); o.value = v; el.append(o); });
   else if (type !== 'area') el.type = type || 'text';
   if (type === 'area') el.rows = opts.rows || 3;
-  const upd = () => { rs.hidden = !gv(k); el.classList.toggle('man', !!gv(k)); };
+  const upd = () => { rs.hidden = !(gv(k) || sn(k)); el.classList.toggle('man', !!gv(k)); };
   el.value = V[k](); upd();   // V1.9.1: điền sẵn giá trị mặc định từ bên ngoài; sửa tay thì giữ bản sửa (viền cam + nút ↺)
   el.addEventListener('input', () => { sv(k, el.value === D0[k]() ? '' : el.value); upd(); saveSoon(); after(k); });
   rs.addEventListener('click', e => { e.preventDefault(); sv(k, ''); el.value = D0[k](); upd(); saveSoon(); after(k); });
@@ -125,7 +129,7 @@ function field(lb, k, type, opts = {}) {
   l.dataset.k = k; l.append(el); return l;
 }
 function after(k) { drawPv(); if (k === 'mau') { drawForm(); drawToc(); } else { if (k === 'so') drawToc(); refill(k); } }
-function refill(skip) { document.querySelectorAll('#form .fld[data-k], #head .fld[data-k]').forEach(l => { const k = l.dataset.k; if (k === skip || gv(k)) return; const el = l.querySelector('input,textarea,select'); if (el && document.activeElement !== el) el.value = D0[k](); }); }
+function refill(skip) { document.querySelectorAll('#form .fld[data-k], #head .fld[data-k]').forEach(l => { const k = l.dataset.k; if (k === skip || gv(k) || sn(k)) return; const el = l.querySelector('input,textarea,select'); if (el && document.activeElement !== el) el.value = D0[k](); }); }
 function drawForm() {
   const F = q('#form'); F.replaceChildren(
     field('Mẫu bìa', 'mau', 'sel', { o: Object.entries(MAU).map(([k, v]) => [k, v[0]]) }),
@@ -298,7 +302,7 @@ const dl = (bytes, name, type) => { const a = document.createElement('a'); a.hre
 const fname = s => String(s).replace(/[\\/:*?"<>|]+/g, '_').slice(0, 150);
 
 async function exportPdf() {   // V1.9.4: bìa + danh mục hồ sơ (không gộp file)
-  const btn = q('#bPdf'); btn.disabled = true;
+  const btn = q('#bPdf'); btn.disabled = true; snapNow('pdf');
   try {
     const { PDFDocument, PDFName, PDFHexString, PDFNumber } = await pdflib(), W = 595.28, H = 841.89;
     msg('⏳ Đang tạo PDF…');
@@ -317,7 +321,7 @@ async function exportPdf() {   // V1.9.4: bìa + danh mục hồ sơ (không g�
   finally { btn.disabled = false; }
 }
 async function exportXls() {
-  const btn = q('#bXls'); btn.disabled = true;
+  const btn = q('#bXls'); btn.disabled = true; snapNow('xls');
   try {
     const src = new Uint8Array(await (await fetch('khtc-mau/cover-acon.xlsx')).arrayBuffer()), sh = MAU[V.mau()][2], m = V.mau();
     const e = { C1: 'Công trình: ' + V.ct(), C2: 'Ngày        : ' + fd(V.ngay()), C3: 'Số            : ' + V.so(), A4: MAU[m][1], C6: fd(V.ngay()), E6: V.so(), G6: V.pb() };
@@ -349,15 +353,15 @@ async function exportXls() {
   await loadData();
   if (!X) { document.body.innerHTML = '<p style="padding:40px;font:16px system-ui">Không tìm thấy hồ sơ – mở lại từ tab QA/QC Shop trong Công trình.</p>'; return; }
   document.title = 'Cover ' + V.so() + ' – HaoHao';
-  drawForm(); draw();
+  drawForm(); draw(); snapLbl();
   q('#bP').addEventListener('click', () => addRow('p')); q('#bG').addEventListener('click', () => addRow('g')); q('#bD').addEventListener('click', () => addRow('d'));
   q('#bTpl').addEventListener('click', () => { if (CV.items.length && !confirm('Thêm mẫu "Hồ sơ pháp lý" (16 dòng) vào cuối danh mục đang có?')) return; TPL_PL.forEach(([lv, t]) => CV.items.push({ id: uid(), lv, t, note: '' })); saveSoon(); draw(); msg('📋 Đã thêm mẫu Hồ sơ pháp lý – bấm 📎 Gắn file ở từng dòng'); });
   q('#bPdf').addEventListener('click', exportPdf);
   q('#bXls').addEventListener('click', exportXls);
-  q('#bPrint').addEventListener('click', () => window.print());
+  q('#bPrint').addEventListener('click', () => { snapNow('in'); window.print(); });
   document.querySelectorAll('.pvt button').forEach(b => b.addEventListener('click', () => { pvTab = b.dataset.t; drawPv(); }));
   chrome.storage.onChanged.addListener((ch, a) => { if (a !== 'local' || !ch.siteBrain) return; const D = ch.siteBrain.newValue; const s = D && D.sites.find(z => z.id === SID), x = s && s.subs.find(z => z.id === XID); if (!x) return; S = s; X = x;
     if (document.activeElement.matches('input,textarea,select')) return;
-    if (JSON.stringify(x.cv || null) !== JSON.stringify(CV)) { CV = cvOf(x); drawForm(); draw(); } else { refill(); drawPv(); } });   // bên ngoài sửa Mô tả / Ngày / ↻ trình lại → ô mặc định tự đổi theo
+    if (JSON.stringify(x.cv || null) !== JSON.stringify(CV)) { CV = cvOf(x); drawForm(); draw(); snapLbl(); } else { refill(); drawPv(); } });   // bên ngoài sửa Mô tả / Ngày / ↻ trình lại → ô mặc định tự đổi theo
   window.addEventListener('beforeunload', () => { if (saveT) { clearTimeout(saveT); saveNow(); } });
 })();

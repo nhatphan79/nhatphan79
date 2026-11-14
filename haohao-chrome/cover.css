@@ -54,3 +54,4 @@ button.sm { padding: 3px 7px; font-size: 12px; border-radius: 7px; }
 .grid .fld.lk:not(.open) select { pointer-events: none; } .grid .fld.lk .lb::after { content: "🔒"; font-size: 10px; margin-left: auto; opacity: .6; }
 .grid .fld.lk.open input, .grid .fld.lk.open select, .grid .fld.lk.open textarea { background: #fff; color: var(--ink); border-color: var(--acc); cursor: text; } .grid .fld.lk.open .lb::after { content: "✎"; }
 .grid .fld.lk .lb .rs { order: 2; } .grid .fld.lk { cursor: default; user-select: none; }
+.snap { font-size: 12.5px; font-weight: 600; color: #1F7A4A; background: #E6F4EC; padding: 5px 10px; border-radius: 99px; margin-right: 6px; white-space: nowrap; }   /* V2.0.6: bản đã lưu lúc xuất file */
