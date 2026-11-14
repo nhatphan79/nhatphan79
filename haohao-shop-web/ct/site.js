@@ -153,10 +153,12 @@
     if (!W) return { kh: 0, tt: 0 };
     return { kh: Math.round(P.reduce((a, p) => a + planPct(p, d) * dur(p), 0) / W), tt: Math.round(P.reduce((a, p) => a + Math.min(100, num(p.pct)) * dur(p), 0) / W) };
   }
+  // V2.1.1: thực tế ≥ 90% = ổn, không tính chậm (phần còn lại thường là defect)
   // V1.3.2: chậm tính theo NGÀY = số ngày đã trôi qua − số ngày làm được (theo % thực tế). ≥3 ngày → đỏ, 1–2 ngày → cam.
-  const lagDays = (p, d = today()) => { if (!p.s || !p.e || num(p.pct) >= 100 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
+  const lagDays = (p, d = today()) => { if (!p.s || !p.e || num(p.pct) >= 90 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
   const pState = p => { const d = today(), tt = num(p.pct), lg = lagDays(p, d);
     if (tt >= 100) return ['ok', 'Xong'];
+    if (tt >= 90) return ['ok', 'Đạt ' + tt + '%'];   // V2.1.1: ≥90% coi như ổn (còn ít defect) – không cảnh báo chậm / quá hạn
     if (p.e && d > p.e) return ['late', 'Quá hạn ' + days(p.e, d) + ' ngày'];
     if (lg >= 3) return ['late', 'Chậm ' + lg + ' ngày'];
     if (lg >= 1) return ['warn', 'Chậm ' + lg + ' ngày'];

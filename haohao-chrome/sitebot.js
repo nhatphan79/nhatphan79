@@ -32,7 +32,7 @@
   const CATS0 = { qs: 'QS', qaqc: 'QA/QC', shop: 'Shopdrawing', ht: 'Hiện trường', cdt: 'Chủ đầu tư' };
   let CATS = CATS0;   // V1.3.3: bộ phận anh tự thêm (siteBrain.cats)
   const catOf = t => CATS[t.cat] || CATS.ht || Object.values(CATS)[0] || 'Khác';
-  const lagDays = (p, d) => { if (!p.s || !p.e || num(p.pct) >= 100 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
+  const lagDays = (p, d) => { if (!p.s || !p.e || num(p.pct) >= 90 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
   const todayTasks = (S, d) => L(S, 'tasks').filter(t => t.st !== 'done' && (taskLate(t, d) || t.due === d || t.st === 'doing')).sort((a, b) => (a.due || '9') < (b.due || '9') ? -1 : 1);
   const head = S => '🏗️ ' + (S.code ? S.code + ' · ' : '') + (S.name || 'Công trình');
   const taskLine = (t, d) => '• ' + (taskLate(t, d) ? '❗' : '') + (t.pri === 'cao' ? '🔴' : '') + '[' + catOf(t) + '] ' + cut(t.t, 70) + (t.who ? ' – ' + t.who : '') + (t.due ? (taskLate(t, d) ? ' (trễ ' + days(t.due, d) + ' ngày)' : t.due === d ? '' : ' (' + fd(t.due) + ')') : '');
