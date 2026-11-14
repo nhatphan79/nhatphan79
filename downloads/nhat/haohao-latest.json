@@ -1,7 +1,7 @@
 {
- "name": "V2.1.1",
- "version": "1.10.464",
+ "name": "V2.1.2",
+ "version": "1.10.465",
  "file": "HaoHao-nhat.zip",
- "sig": "pgkASCer3zphbQRPN1HnZpg/80yiMF+rAFvqBzGwVxEjmNyra+zsmuNjmst/er0F0Mg+KudyEE1Wc3YBnavFCw==",
- "notes": "Thực tế ≥90% coi như ổn, không cảnh báo chậm"
+ "sig": "3ahxaJKQ/sVCyXGH7rMYf/QgnOSXHY3VFhTOnw+mfCAiumzs8+oHmwYJj5agtpN+PhkA/YHJM16YeNwZdwlIDA==",
+ "notes": "Chỉ báo chậm khi qua ngày kết thúc; nhắc khi tới ngày làm"
 }
