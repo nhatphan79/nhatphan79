@@ -1,7 +1,7 @@
 {
- "name": "V2.0.7",
- "version": "1.10.460",
+ "name": "V2.0.8",
+ "version": "1.10.461",
  "file": "HaoHao-nhat.zip",
- "sig": "cR7XYTiTL5Q27zhMxdELUL/8hblmI5NVmSm9RIYOBVjlQuxu6+9o2u1mkcl6gxzsmOHD//2pDqUG0CX6tggICQ==",
- "notes": "Cover lưu đúng bản lúc xuất PDF/Excel/In; nút Mẫu"
+ "sig": "WBXtacTLwJo5bFq/F5Mp36tos4dxLAPxziH+KzD+umXzZqroA02jhj3SwsyY9s0CK+drVJL6+JiTKp5f1TqfBw==",
+ "notes": "Cover: nút Xoá toàn bộ danh mục"
 }
