@@ -827,6 +827,26 @@
       if (r.who) rememberWho(r.who); if (r.by) { rememberWho(r.by); data.lastBy = r.by.trim(); }
       S[list].push(r); save(); render(true); toast('＋ Đã thêm'); }, 'Thêm');
   }
+  // ✍️ V2.0.3 (anh Nhật 14/11): SỬA TAY TOÀN BỘ văn bản (Báo cáo tuần/tháng, Kế hoạch tuần) – bấm chữ nào sửa chữ đó, 💾 Lưu nguyên bản đã sửa theo kỳ (S.reports[key].html)
+  let hdEdit = '';
+  const hdStore = S => { if (!S.reports || typeof S.reports !== 'object' || Array.isArray(S.reports)) S.reports = {}; return S.reports; };
+  function hdTools(S, key, label, act) {
+    const N = hdStore(S)[key] = hdStore(S)[key] || {}, on = hdEdit === key; let doc = null;
+    if (!RO) {
+      if (!on) { const ed = $('button', 'sb-btn ghost sm', N.html ? '✏️ Sửa tiếp' : '✏️ Chỉnh tay'); ed.type = 'button'; ed.title = 'Sửa trực tiếp mọi chữ, số trong ' + label; ed.addEventListener('click', () => { hdEdit = key; render(true); }); act.append(ed);
+        if (N.html) { const bk = $('button', 'sb-btn ghost sm', '↺ Về bản tự động'); bk.type = 'button'; bk.title = 'Bỏ bản đã sửa tay – lấy lại số liệu tự động mới nhất'; bk.addEventListener('click', () => { if (!confirm('Bỏ bản đã sửa tay của ' + label + ' và quay về bản tự động?')) return; delete N.html; delete N.savedAt; save(); render(true); toast('↺ Đã về bản tự động'); }); act.append(bk); } }
+      else { const sv = $('button', 'sb-btn sm', '💾 Lưu'), no = $('button', 'sb-btn ghost sm', 'Huỷ'); sv.type = no.type = 'button';
+        sv.addEventListener('click', () => { if (!doc) return; const c = doc.cloneNode(true); c.querySelectorAll('.sb-noprint,button,.sb-rpx').forEach(x => x.remove()); c.querySelectorAll('[contenteditable],[tabindex],[title]').forEach(x => { x.removeAttribute('contenteditable'); x.removeAttribute('tabindex'); }); const box = $('div'); box.append(...cleanHtml(c.innerHTML)); N.html = box.innerHTML; N.savedAt = Date.now(); hdEdit = ''; save(); render(true); toast('💾 Đã lưu ' + label); });
+        no.addEventListener('click', () => { hdEdit = ''; render(true); }); act.append(sv, no); }
+    }
+    return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay: bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
+        else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
+      put: (W, d) => { doc = d; if (N.html) d.replaceChildren(...cleanHtml(N.html)); if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); } W.append(d); } };
+  }
+  const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;
+    const sel = $('select', 'sb-in sb-rpsaved'); sel.setAttribute('aria-label', 'Bản đã lưu'); const o0 = $('option', '', '📚 Đã lưu (' + L.length + ')'); o0.value = ''; sel.append(o0);
+    L.forEach(([k, v]) => { const a = k.slice(pre.length); const o = $('option', '', (a.length === 7 ? 'Tháng ' + (+a.slice(5, 7)) + '/' + a.slice(0, 4) : 'Tuần ' + fd(a) + '/' + a.slice(0, 4)) + (v.html ? ' ✏️' : '')); o.value = a; sel.append(o); });
+    sel.addEventListener('change', () => { if (sel.value) go(sel.value); }); act.append(sel); };
   function kehoach(W, S) {
     const d = today(); if (!khDay) khDay = addD(d, 1);
     const mon = x => addD(x, -((new Date(x + 'T00:00').getDay() + 6) % 7));
@@ -842,8 +862,15 @@
     else { const di = $('input', 'sb-in'); di.type = 'date'; di.value = khDay; di.setAttribute('aria-label', 'Chọn ngày'); di.addEventListener('change', () => { if (di.value) { khDay = di.value; render(true); } }); nav.append(pv, di, nx);
       if (khDay !== addD(d, 1)) { const c = $('button', 'sb-btn ghost sm', 'Ngày mai'); c.type = 'button'; c.addEventListener('click', () => { khDay = addD(d, 1); render(true); }); nav.append(c); } }
     const K = khData(S, a, b), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'); cp.type = 'button';
-    cp.addEventListener('click', async () => { const t = khZalo(S, a, b, K); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép kế hoạch – dán vào Zalo'); } catch { dialog('📋 Kế hoạch', bb => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 16; ta.value = t; bb.append(ta); }, () => {}, 'Đóng'); } });
-    const act = $('div', 'sb-row'); act.append(cp); bar.append(nav, act); W.append(bar);
+    const WK = khMode === 'w', act = $('div', 'sb-row'), HD = WK ? hdTools(S, 'KW' + a, 'kế hoạch tuần ' + fd(a) + ' – ' + fd(b), act) : null;   // ✍️ V2.0.3: kế hoạch tuần = văn bản như báo cáo tuần
+    cp.addEventListener('click', async () => { const lv = root.querySelector('article.sb-khdoc'); const t = HD && HD.N.html && lv ? lv.innerText : khZalo(S, a, b, K); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép kế hoạch – dán vào Zalo'); } catch { dialog('📋 Kế hoạch', bb => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 16; ta.value = t; bb.append(ta); }, () => {}, 'Đóng'); } });
+    act.prepend(cp);
+    if (WK) { const pr = $('button', 'sb-btn ghost sm', '🖨 In / Lưu PDF'); pr.type = 'button'; pr.addEventListener('click', () => { document.body.classList.add('sb-printing'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('sb-printing'), 500); }, 50); }); act.insertBefore(pr, cp.nextSibling);
+      if (!RO) hdSaved(S, 'KW', act, x => { khWk = Math.round((Date.parse(x) - Date.parse(mon(d))) / (7 * 864e5)); hdEdit = ''; render(true); }); }
+    bar.append(nav, act); W.append(bar);
+    let host = W, doc = null;
+    if (WK) { HD.note(W); doc = $('article', 'sb-rp sb-khdoc'); host = doc; const hd = $('header', 'sb-rph');
+      hd.append($('div', 'sb-rpk', 'KẾ HOẠCH TUẦN'), $('h1', '', S.name), $('div', 'sb-rpm', [S.code, 'Tuần ' + fd(a) + ' – ' + fdFull(b), S.owner ? 'CĐT: ' + S.owner : '', S.addr].filter(Boolean).join(' · '))); doc.append(hd); }
     const ged = GL() && !RO ? { task: [t => { t.st = 'done'; }, () => khAdd('task', S, b)], issue: [x => { x.st = 'dong'; }, () => khAdd('issue', S, b)], mat: [m => { m.st = 've'; }, () => khAdd('mat', S, b)] } : {};   // 👥 V1.6.0: người được chia sẻ – ✓ xong / ＋ thêm ngay tại Kế hoạch
     const grid = (title, heads, rows, go, empty) => {
       const E = ged[go[0]];
@@ -854,10 +881,10 @@
       const tb = $('tbody'); rows.forEach((r, i) => { const tr = $('tr', r.cls || ''); tr.append($('td', 'n', String(i + 1))); r.cells.forEach(([v, cl]) => { const td = $('td', cl || ''); if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); });
         if (r.it && r.it.gx) tr.title = 'Người được chia sẻ nhập: ' + r.it.gx;
         if (E) { const x = $('td', 'x'), ok = $('button', 'sb-btn ghost sm', '✓ Xong'); ok.type = 'button'; ok.title = 'Đánh dấu đã xong'; ok.addEventListener('click', () => { E[0](r.it); save(); render(true); toast('✓ Đã đánh xong'); }); x.append(ok); tr.append(x); }
-        else if (!GL()) { tr.tabIndex = 0; tr.title = tr.title || 'Bấm để mở ở mục ' + go[1]; const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); }
+        else if (!GL() && !(HD && HD.on)) { tr.tabIndex = 0; tr.title = tr.title || 'Bấm để mở ở mục ' + go[1]; const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); }
         tb.append(tr); });
       if (!rows.length) { const tr = $('tr'), td = $('td', 'sb-none', empty); td.colSpan = heads.length + (E ? 1 : 0); tr.append(td); tb.append(tr); }
-      t.append(tb); box.append(t); c.append(box); W.append(c); };
+      t.append(tb); box.append(t); c.append(box); host.append(c); };
     const dueTag = x => x < d ? $('b', 'sb-due late', 'Trễ ' + days(x, d) + ' ngày') : x === d ? $('b', 'sb-due today', 'Hôm nay') : x === addD(d, 1) ? $('b', 'sb-due tmr', 'Mai') : '';
     grid('🏗️ Thi công', [['STT', 'n'], ['Hạng mục'], ['Thời gian', 'dt'], ['KH %', 'r'], ['Thực tế %', 'r'], ['Tình trạng', 'st']],
       K.P.map(p => { const [c, l] = pState(p); return { cls: c === 'late' ? 'late lateBg' : '', cells: [[plab(p)], [fd(p.s) + ' → ' + fd(p.e), 'dt'], [planPct(p, b) + '%', 'r'], [num(p.pct) + '%', 'r'], [$('span', 'sb-st ' + c, p.s >= a && p.s > d ? 'Bắt đầu ' + fd(p.s) : l), 'st']] }; }),
@@ -871,6 +898,7 @@
     grid('🧱 Vật tư cần về', [['STT', 'n'], ['Vật tư'], ['Người đề xuất'], ['Số lượng', 'r'], ['Cho hạng mục'], ['Nhà cung cấp'], ['Cần ngày', 'dt'], ['Trạng thái', 'st']],
       K.M.map(m => ({ it: m, cls: m.need < d ? 'late lateBg' : '', cells: [[m.name || ''], [m.by || '–'], [(m.qty ? m.qty + ' ' : '') + (m.unit || ''), 'r'], [m.for || '–'], [m.sup || '–'], [dowLb(m.need), 'dt'], [m.need < d ? $('b', 'sb-due late', 'Trễ ' + days(m.need, d) + ' ngày') : lbl(MST, m.st), 'st']] })),
       ['mat', 'Vật tư'], 'Không có vật tư nào cần về');
+    if (WK) { const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Người lập'), $('span', '', 'Chỉ huy trưởng')); doc.append(ft); HD.put(W, doc); }
   }
   // V1.5.13: B. Công việc thi công – chưa nhập thì tự lấy theo Kế hoạch của chính ngày đó (hạng mục đang thi công + việc tới hạn)
   const sdLate = x => (x.st === 'tr' || x.st === 've' || x.st === 'tl') && x.due && x.due < today();
@@ -1771,33 +1799,16 @@
     nav.append(pv, $('b', 'sb-rplabel', P.label), nx); if (rp.off) nav.append(cur);
     const act = $('div', 'sb-row'), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'), pr = $('button', 'sb-btn ghost sm', '🖨 In / Lưu PDF');
     cp.type = pr.type = 'button';
-    cp.addEventListener('click', async () => { const t = repText(S, R, N.note, N.add, N.hide); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
+    cp.addEventListener('click', async () => { const lv = root.querySelector('article.sb-rp'); const t = N.html && lv ? lv.innerText : repText(S, R, N.note, N.add, N.hide); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
     pr.addEventListener('click', () => { document.body.classList.add('sb-printing'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('sb-printing'), 500); }, 50); });
     act.append(cp, pr);
     // V1.3.7: CHỈNH TAY = giữ nguyên các mục & số liệu tự động, chỉ THÊM Ý dưới từng mục (xuống dòng = gạch đầu dòng mới, Tab = ý con)
     const hasAdd = x => x && ((x.add && Object.values(x.add).some(v => Array.isArray(v) && v.some(t => String(t).trim()))) || (x.hide && Object.values(x.hide).some(v => Array.isArray(v) && v.length)));
     if (N.note && !(N.add && N.add.s6)) { N.add = N.add || {}; N.add.s6 = String(N.note).split('\n'); }
-    if (!RO) {
-      if (!rpEdit) { const ed = $('button', 'sb-btn ghost sm', hasAdd(N) ? '✏️ Sửa ý bổ sung' : '✏️ Chỉnh tay'); ed.type = 'button'; ed.title = 'Thêm ý dưới từng mục báo cáo'; ed.addEventListener('click', () => { rpEdit = true; render(true); setTimeout(() => { const u = root.querySelector('.sb-rpadd'); if (u) { u.focus(); } }, 0); }); act.append(ed); }
-      else {
-        const sv = $('button', 'sb-btn sm', '💾 Lưu báo cáo'), no = $('button', 'sb-btn ghost sm', 'Huỷ'); sv.type = no.type = 'button';
-        sv.addEventListener('click', () => {
-          const add = {}; root.querySelectorAll('.sb-rpadd').forEach(u => { const lines = [...u.querySelectorAll('li')].map(li => (li.classList.contains('sub') ? '  ' : '') + li.textContent.replace(/\s+/g, ' ').trim()).filter(t => t.trim()); if (lines.length) add[u.dataset.k] = lines; });
-          const hide = {}; root.querySelectorAll('.sb-rps').forEach(c => { const ks = [...c.querySelectorAll('ul.sb-list > li.sb-hid')].map(li => li.dataset.key).filter(Boolean); if (ks.length) hide[c.dataset.k] = ks; });
-          N.add = add; N.hide = hide; N.note = (add.s6 || []).map(t => t.trim()).join('\n'); N.savedAt = Date.now(); delete N.html; rpEdit = false; save(); render(true); toast('💾 Đã lưu báo cáo ' + P.label);
-        });
-        no.addEventListener('click', () => { rpEdit = false; render(true); });
-        act.append(sv, no);
-      }
-      const saved = Object.entries(S.reports || {}).filter(([, v]) => hasAdd(v)).sort((a, b) => a[0] < b[0] ? 1 : -1);
-      if (saved.length) { const sel = $('select', 'sb-in sb-rpsaved'); sel.setAttribute('aria-label', 'Báo cáo đã lưu'); const o0 = $('option', '', '📚 Đã lưu (' + saved.length + ')'); o0.value = ''; sel.append(o0);
-        saved.forEach(([key]) => { const o = $('option', '', key[0] === 'W' ? 'Tuần ' + fd(key.slice(1)) + '/' + key.slice(1, 5) : 'Tháng ' + (+key.slice(6, 8)) + '/' + key.slice(1, 5)); o.value = key; sel.append(o); });
-        sel.addEventListener('change', () => { const key = sel.value; if (!key) return; const kind = key[0] === 'W' ? 'w' : 'm'; for (let off = -260; off <= 52; off++) { if (period(kind, off).key === key) { rp = { kind, off }; rpEdit = false; render(true); return; } } });
-        act.append(sel); }
-    }
-    bar.append(nav, act); W.append(bar);
-    if (hasAdd(N) && !rpEdit && N.savedAt) W.append($('div', 'sb-note sb-noprint', '✏️ Có ý bổ sung – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu tự động vẫn cập nhật theo dữ liệu mới.'));
-    if (rpEdit) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang chỉnh tay: gõ ý vào ô vàng dưới mỗi mục · Enter = xuống dòng thêm ý · Tab = ý con (lùi vào) · Shift+Tab = bỏ lùi · xong bấm 💾 Lưu báo cáo.'));
+    const HD = hdTools(S, P.key, 'báo cáo ' + P.label, act);   // ✍️ V2.0.3: sửa tay toàn bộ báo cáo
+    if (!RO) hdSaved(S, rp.kind === 'w' ? 'W' : 'M', act, x => { for (let off = -260; off <= 52; off++) { if (period(rp.kind, off).key === (rp.kind === 'w' ? 'W' : 'M') + x) { rp = { kind: rp.kind, off }; hdEdit = ''; render(true); return; } } });
+    bar.append(nav, act); W.append(bar); HD.note(W);
+    if (hasAdd(N) && !rpEdit && N.savedAt && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Có ý bổ sung – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu tự động vẫn cập nhật theo dữ liệu mới.'));
     if (P.a > today()) { W.append($('div', 'sb-emptybig', 'Kỳ này chưa tới.')); return; }
 
     const doc = $('article', 'sb-rp');
@@ -1861,7 +1872,7 @@
         c.querySelectorAll('.sb-none').forEach(x => x.remove());
       }
     });
-    W.append(doc);
+    HD.put(W, doc);
   }
 
   // ---------- vẽ ----------

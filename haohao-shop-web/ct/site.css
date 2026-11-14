@@ -632,3 +632,8 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-khs .sb-t td.x .sb-btn.sm { padding: 3px 6px; font-size: 12px; }
 .sb-shl .sb-role, .sb-row .sb-role { flex: 0 0 auto; width: auto; min-width: 0; padding-right: 26px; }   /* V2.0.2: chọn quyền chia sẻ */
 .sb-shl li > span { white-space: nowrap; flex-shrink: 0; }
+.sb-rp.sb-khdoc { max-width: none; }   /* V2.0.3: kế hoạch tuần dạng văn bản */
+.sb-rp.sb-khdoc .sb-khs { margin-top: 14px; }
+.sb-rp.sb-hedit { outline: 2px dashed #F2A71B; outline-offset: 4px; background: #FFFDF6; cursor: text; }
+.sb-rp.sb-hedit:focus { outline-style: solid; }
+@media print { .sb-rp.sb-hedit { outline: 0; background: #fff; } }
