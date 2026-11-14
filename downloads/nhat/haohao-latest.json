@@ -1,7 +1,7 @@
 {
- "name": "V2.0.8",
- "version": "1.10.461",
+ "name": "V2.0.9",
+ "version": "1.10.462",
  "file": "HaoHao-nhat.zip",
- "sig": "WBXtacTLwJo5bFq/F5Mp36tos4dxLAPxziH+KzD+umXzZqroA02jhj3SwsyY9s0CK+drVJL6+JiTKp5f1TqfBw==",
- "notes": "Cover: nút Xoá toàn bộ danh mục"
+ "sig": "XOF2Pmh+TaUrBPGKxSKvydD3F9ngRU246eFz2J0K4UemGL7vPbOCoiBeQpSGPw6COg4vyPL0zbxm+o3+mh2/Cw==",
+ "notes": "Cover: xuất PDF luôn có trang danh mục"
 }
