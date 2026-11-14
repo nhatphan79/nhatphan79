@@ -155,7 +155,7 @@ function drawForm() {
 function drawToc() {
   const tb = q('#tb'); tb.replaceChildren(); const N = numbering(), L = docs();
   q('#sum').textContent = L.length ? L.length + ' tài liệu · ' + L.filter(coOf).length + ' có · ' + (L.length - L.filter(coOf).length) + ' không' : '';
-  if (!CV.items.length) { const r = $('tr', 'none'), d = $('td', '', 'Chưa có dòng nào – bấm 📋 Mẫu Hồ sơ pháp lý, hoặc ＋ Phần / ＋ Nhóm / ＋ Tài liệu'); d.colSpan = 5; r.append(d); tb.append(r); return; }
+  if (!CV.items.length) { const r = $('tr', 'none'), d = $('td', '', 'Chưa có dòng nào – bấm 📋 Mẫu, hoặc ＋ Phần / ＋ Nhóm / ＋ Tài liệu'); d.colSpan = 5; r.append(d); tb.append(r); return; }
   CV.items.forEach((it, i) => {
     const r = $('tr', 'lv-' + it.lv), n = N[i];
     const lv = $('select', 'lvs'); [['p', 'Phần'], ['g', 'Nhóm'], ['d', 'Tài liệu']].forEach(([v, t]) => { const o = $('option', '', t); o.value = v; lv.append(o); }); lv.value = it.lv; lv.title = 'Cấp của dòng'; lv.addEventListener('change', () => { it.lv = lv.value; saveSoon(); draw(); });
