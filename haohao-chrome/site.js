@@ -1802,7 +1802,7 @@
     doc.append(qa);
     { const c = $('section', 'sb-rps'); c.append($('h2', '', 'B. Công việc thi công'), workList(S, L, ensure)); doc.append(c); }
     [['qa', 'C. Nghiệm thu', '＋ Gõ việc nghiệm thu rồi Enter… (vd: Lấy mẫu 2 mỏ đất mới, đã gửi request)'], ['issue', 'D. Vướng mắc & đề xuất', '＋ Gõ vướng mắc / đề xuất rồi Enter…']].forEach(([k, lb, ph]) => {
-      const c = $('section', 'sb-rps'); c.append($('h2', '', lb), k === 'qa' ? lineList(S, L, ensure, k, null, ph, '', () => autoQa(S, L.d), 'Hồ sơ QA/QC') : lineList(S, L, ensure, k, null, ph));   // V2.1.7: QA/QC chỉ gợi ý doc.append(c);
+      const c = $('section', 'sb-rps'); c.append($('h2', '', lb), k === 'qa' ? lineList(S, L, ensure, k, null, ph, '', () => autoQa(S, L.d), 'Hồ sơ QA/QC') : lineList(S, L, ensure, k, null, ph)); doc.append(c);   // V2.1.7: QA/QC chỉ gợi ý · V2.1.8: sửa lỗi mất mục C, D
     });
     if (L.rep) doc.append($('div', 'sb-note sb-noprint', '✏️ Ngày này có bản báo cáo đã sửa tay – bấm “📋 Xem & chép gửi Zalo” để xem.'));
     W.append(doc);
