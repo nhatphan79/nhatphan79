@@ -182,12 +182,15 @@
   const qsTxt = L => { const b = bchOf(L), c = crewOf(L); return (b ? 'BCH ' + b + ' · CN ' + c + ' · ' : '') + 'Tổng ' + (b + c) + ' người'; };
   // V1.5.5: danh sách tên người (phụ trách / chịu TN) tự lưu, dùng chung mọi công trình; tên dùng nhiều xếp đầu
   const rememberWho = v => { v = String(v || '').trim(); if (!v || RO) return; data.people = data.people && typeof data.people === 'object' ? data.people : {}; data.people[v] = (data.people[v] || 0) + 1; data.lastWho = v; if (data.peopleOff) data.peopleOff = data.peopleOff.filter(x => x !== v); };
-  const peopleList = S => { const c = { ...(data.people || {}) }, off = new Set(data.peopleOff || []);
+  const bchNames = S => S && Array.isArray(S.roles) ? [...new Set(S.roles.map(r => String(r.who || '').trim()).filter(Boolean))] : [];   // V2.0.5: tên trong Ban chỉ huy (tab Nhân lực)
+  const peopleList = S => { const B = bchNames(S); if (B.length) return B;   // V2.0.5: danh sách Người thực hiện = Ban chỉ huy; tên khác vẫn gõ tay được
+    const c = { ...(data.people || {}) }, off = new Set(data.peopleOff || []);
     if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.roles || []).map(x => x.who), ...S.mats.map(m => m.by)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
     return Object.keys(c).filter(v => !off.has(v)).sort((a, b) => c[b] - c[a] || a.localeCompare(b, 'vi')); };
   const peopleDl = S => { const dl = $('datalist'); dl.id = 'sb-people'; peopleList(S).forEach(v => { const o = $('option'); o.value = v; dl.append(o); }); return dl; };
   function peopleDlg(S) {
     dialog('👤 Danh sách tên người', b => {
+      if (bchNames(S).length) { b.append($('p', 'sb-p', 'Danh sách chọn = họ tên trong BAN CHỈ HUY (tab 👷 Nhân lực). Muốn thêm / bớt người thì sửa ở đó. Tên khác vẫn gõ tay vào ô được.')); const u = $('ul', 'sb-list'); bchNames(S).forEach(v => u.append($('li', '', v))); b.append(u); return; }   // V2.0.5
       b.append($('p', 'sb-p', 'Tên gõ vào ô Người phụ trách / Người chịu TN tự lưu ở đây để chọn lại. Bấm ✕ để bỏ tên gõ nhầm.'));
       const u = $('ul', 'sb-list'); const L = peopleList(S);
       if (!L.length) u.append($('li', 'sb-none', 'Chưa có tên nào'));
