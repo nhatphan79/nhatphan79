@@ -1752,7 +1752,7 @@
     const ad = k => ((add || {})[k] || []).filter(t => t.trim()).forEach(t => L.push((/^\s{2}/.test(t) ? '   – ' : '• ') + t.trim()));
     L.push('📑 BÁO CÁO ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG') + ' – ' + P.label.replace(/^(Tuần|Tháng) /, ''), '🏗️ ' + (S.code ? S.code + ' · ' : '') + S.name, '');
     { const Q = repQS(S, P); L.push('1. NHÂN LỰC (' + Q.nd + ' ngày có quân số · TB ' + Q.avg + ' người/ngày · tổng ' + Q.tot + ' công)');   // V2.1.5
-      Q.rows.forEach(r => L.push('• ' + r.nm + (r.job ? ' (' + r.job + ')' : '') + ': ' + r.t + ' công' + (Q.nd ? ' · TB ' + Math.round(r.t / Q.nd) + '/ngày' : '')));
+      Q.rows.forEach(r => L.push('• ' + r.nm + (r.job ? ' (' + r.job + ')' : '') + ': ' + r.t + ' công'));
       if (rp.kind === 'w') L.push('• Theo ngày: ' + Q.D.map((x, i) => dowLb(x) + ' ' + (Q.dayT[i] || '–')).join(' · ')); }
     ad('s1');
     L.push('', '2. KHỐI LƯỢNG THỰC HIỆN (theo tiến độ) – tổng: thực tế ' + R.endTt + '% / KH ' + R.endKh + '% → đạt ' + (R.endKh ? Math.round(R.endTt / R.endKh * 100) : 100) + '% kế hoạch');
@@ -1844,11 +1844,11 @@
     { const c = S2('1. Nhân lực'), Q = repQS(S, P);   // V2.1.5: bảng nhân lực trong kỳ (từ Quân số)
       c.append($('p', 'sb-p', Q.nd + ' ngày có quân số · bình quân ' + Q.avg + ' người/ngày · tổng ' + Q.tot + ' công'));
       const wk = rp.kind === 'w', bx = $('div', 'sb-tw'), t = $('table', 'sb-t sb-rpt'), hr = $('tr');
-      hr.append($('th', 'n', 'STT'), $('th', '', 'Chức vụ / Tổ đội'), ...(wk ? Q.D.map(x => { const h = $('th', 'c'); h.append(DOW[new Date(x + 'T00:00').getDay()], $('br'), x.slice(8, 10) + '/' + x.slice(5, 7)); return h; }) : [$('th', 'c', 'Số ngày')]), $('th', 'r', 'Tổng công'), $('th', 'r', 'TB/ngày'));
+      hr.append($('th', 'n', 'STT'), $('th', '', 'Chức vụ / Tổ đội'), ...(wk ? Q.D.map(x => { const h = $('th', 'c'); h.append(DOW[new Date(x + 'T00:00').getDay()], $('br'), x.slice(8, 10) + '/' + x.slice(5, 7)); return h; }) : [$('th', 'c', 'Số ngày')]), $('th', 'r', 'Tổng công'));   // V2.1.6: bỏ cột TB/ngày
       const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
       Q.rows.forEach((r, i) => { const tr = $('tr'), nm = $('td', ''); nm.append($('span', '', r.nm)); if (r.job) nm.append($('small', 'sb-rpj', ' – ' + r.job));
-        tr.append($('td', 'n', String(i + 1)), nm, ...(wk ? r.v.map(n => $('td', 'c', n ? String(n) : '')) : [$('td', 'c', String(r.v.filter(Boolean).length))]), $('td', 'r b', String(r.t)), $('td', 'r', Q.nd ? String(Math.round(r.t / Q.nd)) : '')); tb.append(tr); });
-      const fr = $('tr', 'sum'); fr.append($('td', 'n', ''), $('td', 'b', 'Cộng'), ...(wk ? Q.dayT.map(n => $('td', 'c b', n ? String(n) : '')) : [$('td', 'c b', String(Q.nd))]), $('td', 'r b', String(Q.tot)), $('td', 'r b', String(Q.avg))); tb.append(fr);
+        tr.append($('td', 'n', String(i + 1)), nm, ...(wk ? r.v.map(n => $('td', 'c', n ? String(n) : '')) : [$('td', 'c', String(r.v.filter(Boolean).length))]), $('td', 'r b', String(r.t))); tb.append(tr); });
+      const fr = $('tr', 'sum'); fr.append($('td', 'n', ''), $('td', 'b', 'Cộng'), ...(wk ? Q.dayT.map(n => $('td', 'c b', n ? String(n) : '')) : [$('td', 'c b', String(Q.nd))]), $('td', 'r b', String(Q.tot))); tb.append(fr);
       t.append(tb); bx.append(t); c.append(bx); }
     if (0) { const c = S2('1. Tình hình chung'); const p = $('p', 'sb-rpsum');
       p.append('Tiến độ thực tế ', $('b', '', R.endTt + '%'), ' / kế hoạch ' + R.endKh + '% → ', $('b', X.verdict === 'CHẬM' ? 'bad' : X.verdict === 'chậm nhẹ' ? 'warnt' : 'goodt', X.verdict === 'đúng kế hoạch' ? 'đúng kế hoạch' : X.verdict + ' ' + X.maxLag + ' ngày'),
