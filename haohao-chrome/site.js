@@ -155,14 +155,13 @@
   }
   // V2.1.1: thực tế ≥ 90% = ổn, không tính chậm (phần còn lại thường là defect)
   // V1.3.2: chậm tính theo NGÀY = số ngày đã trôi qua − số ngày làm được (theo % thực tế). ≥3 ngày → đỏ, 1–2 ngày → cam.
-  const lagDays = (p, d = today()) => { if (!p.s || !p.e || num(p.pct) >= 90 || d < p.s) return 0; return Math.max(0, days(p.s, d) + 1 - Math.round(Math.min(100, num(p.pct)) / 100 * dur(p))); };
+  const lagDays = (p, d = today()) => { if (!p.s || !p.e || num(p.pct) >= 90 || d <= p.e) return 0; return days(p.e, d); };   // V2.1.2: chỉ chậm khi QUA ngày kết thúc mà chưa xong (đang trong thời gian làm thì không chậm)
   const pState = p => { const d = today(), tt = num(p.pct), lg = lagDays(p, d);
     if (tt >= 100) return ['ok', 'Xong'];
     if (tt >= 90) return ['ok', 'Đạt ' + tt + '%'];   // V2.1.1: ≥90% coi như ổn (còn ít defect) – không cảnh báo chậm / quá hạn
-    if (p.e && d > p.e) return ['late', 'Quá hạn ' + days(p.e, d) + ' ngày'];
-    if (lg >= 3) return ['late', 'Chậm ' + lg + ' ngày'];
-    if (lg >= 1) return ['warn', 'Chậm ' + lg + ' ngày'];
-    if (d < (p.s || d) && !tt) return ['', 'Chưa tới']; return ['run', 'Đúng tiến độ']; };
+    if (lg) return ['late', 'Chậm ' + lg + ' ngày'];   // V2.1.2: qua ngày kết thúc mà chưa xong
+    if (p.s && d < p.s) return ['', 'Chưa tới'];
+    if (!tt) return ['warn', d === p.s ? 'Bắt đầu hôm nay' : 'Tới ngày làm']; return ['run', 'Đang làm']; };   // V2.1.2: tới ngày bắt đầu mà chưa có % → nhắc (cam), không gọi là chậm
   const slowItems = S => S.plan.filter(p => ['late', 'warn'].includes(pState(p)[0])).sort((a, b) => lagDays(b) - lagDays(a));
   function alertBox(W, S, where) {   // 🚨 thanh cảnh báo đỏ: hạng mục chậm + việc quá hạn
     const sl = slowItems(S).filter(p => pState(p)[0] === 'late'), od = S.tasks.filter(taskLate), oi = S.issues.filter(x => x.st !== 'dong' && x.due && x.due < today());
@@ -602,7 +601,7 @@
     // 2. tiến độ
     { const c = card('2 · Tiến độ có chậm không?', late < -5 ? 'warn' : '');
       const lt = slowItems(S);
-      c.append($('div', 'sb-big ' + (late < -5 ? 'bad' : lt.length ? 'warn' : 'good'), late < -5 ? 'Chậm ' + (-late) + '% so với kế hoạch' : (late > 5 ? 'Vượt ' + late + '% kế hoạch' : 'Tổng thể đúng kế hoạch') + (lt.length ? ' · ' + lt.length + ' hạng mục chậm' : ''))); if (lt.length) { const u = $('ul', 'sb-list'); lt.slice(0, 4).forEach(p => { const li = $('li'); li.append($('span', '', p.t), $('b', pState(p)[0] === 'late' ? 'bad' : 'warnt', pState(p)[1])); u.append(li); }); c.append(u); }
+      c.append($('div', 'sb-big ' + (late < -5 ? 'bad' : lt.length ? 'warn' : 'good'), late < -5 ? 'Chậm ' + (-late) + '% so với kế hoạch' : (late > 5 ? 'Vượt ' + late + '% kế hoạch' : 'Tổng thể đúng kế hoạch') + (lt.length ? ' · ' + [lt.filter(p => pState(p)[0] === 'late').length ? lt.filter(p => pState(p)[0] === 'late').length + ' hạng mục chậm' : '', lt.filter(p => pState(p)[0] === 'warn').length ? lt.filter(p => pState(p)[0] === 'warn').length + ' hạng mục tới ngày làm' : ''].filter(Boolean).join(' · ') : ''))); if (lt.length) { const u = $('ul', 'sb-list'); lt.slice(0, 4).forEach(p => { const li = $('li'); li.append($('span', '', p.t), $('b', pState(p)[0] === 'late' ? 'bad' : 'warnt', pState(p)[1])); u.append(li); }); c.append(u); }
       const ms = S.plan.filter(p => p.mile && num(p.pct) < 100 && p.e).sort((a, b) => a.e < b.e ? -1 : 1)[0];
       if (ms) c.append($('div', 'sb-note', '🏁 Mốc nghiệm thu gần nhất: ' + ms.t + ' – ' + fdFull(ms.e) + (days(d, ms.e) >= 0 ? ' (còn ' + days(d, ms.e) + ' ngày)' : ' (đã quá ' + days(ms.e, d) + ' ngày)')));
       g.append(c); }
@@ -749,7 +748,7 @@
         const mk = $('td', 'c mk'); mk.append(field(p, { k: 'mile', lb: 'Mốc nghiệm thu', t: 'chk' }));
         const sc = $('td', 'st'); sc.append(st(p));
         // V1.5.3: ghi chú / lý do chậm – dòng đang chậm mà chưa ghi thì nhắc đỏ
-        const slow = ['late', 'warn'].includes(pState(p)[0]) && num(p.pct) < 100, nt = $('td', 'pnote' + (slow && !String(p.why || '').trim() ? ' need' : ''));
+        const slow = pState(p)[0] === 'late', nt = $('td', 'pnote' + (slow && !String(p.why || '').trim() ? ' need' : ''));
         const ni = field(p, { k: 'why', lb: 'Ghi chú / lý do chậm', t: 'text', ph: slow ? 'Ghi lý do chậm…' : 'Ghi chú' });
         ni.addEventListener('input', () => nt.classList.toggle('need', slow && !ni.value.trim())); nt.append(ni);
         const x = $('td', 'x'); if (!RO) x.append(delBtn(() => { S.plan.splice(S.plan.indexOf(p), 1); save(); render(true); }));
