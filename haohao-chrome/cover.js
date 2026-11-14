@@ -356,6 +356,7 @@ async function exportXls() {
   drawForm(); draw(); snapLbl();
   q('#bP').addEventListener('click', () => addRow('p')); q('#bG').addEventListener('click', () => addRow('g')); q('#bD').addEventListener('click', () => addRow('d'));
   q('#bTpl').addEventListener('click', () => { if (CV.items.length && !confirm('Thêm mẫu "Hồ sơ pháp lý" (16 dòng) vào cuối danh mục đang có?')) return; TPL_PL.forEach(([lv, t]) => CV.items.push({ id: uid(), lv, t, note: '' })); saveSoon(); draw(); msg('📋 Đã thêm mẫu Hồ sơ pháp lý – bấm 📎 Gắn file ở từng dòng'); });
+  q('#bClr').addEventListener('click', () => { if (!CV.items.length) return msg('Danh mục đang trống'); if (!confirm('Xoá TOÀN BỘ ' + CV.items.length + ' dòng danh mục (cả file đã gắn)? Không hoàn tác được.')) return; CV.items.forEach(it => { if (it.fid) fdel(it.fid); }); CV.items = []; saveSoon(); draw(); msg('🗑 Đã xoá toàn bộ danh mục'); });   // V2.0.8
   q('#bPdf').addEventListener('click', exportPdf);
   q('#bXls').addEventListener('click', exportXls);
   q('#bPrint').addEventListener('click', () => { snapNow('in'); window.print(); });
