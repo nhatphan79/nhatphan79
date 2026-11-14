@@ -106,7 +106,7 @@
 
   // ---------- đăng nhập Google ----------
   async function signIn(note) {
-    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : (GO ? 'Đăng nhập bằng Gmail đã được chia sẻ để xem và nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC, Thông tin của công trình.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây. Được người khác chia sẻ công trình thì đăng nhập Gmail đã được chia sẻ.'));
+    const d = screen('🏗️', 'Công trình – HaoHao', EXT ? 'Đăng nhập Google để HaoHao trên máy tính lưu dữ liệu Công trình theo tài khoản của anh.' : (GO ? 'Đăng nhập bằng Gmail đã được chia sẻ để xem và nhập dữ liệu chung của công trình.' : 'Đăng nhập bằng tài khoản Google đã dùng trên HaoHao máy tính để xem và sửa công trình ở đây. Được người khác chia sẻ công trình thì đăng nhập Gmail đã được chia sẻ.'));
     const box = el('<div class="gbtn"></div>'); d.append(box);
     if (note) d.append(Object.assign(el('<div class="err"></div>'), { textContent: note }));
     d.append(Object.assign(el('<small></small>'), { textContent: 'Dữ liệu lưu trên máy chủ HaoHao theo tài khoản Google của anh. HaoHao chỉ đọc địa chỉ email để nhận ra anh.' }));

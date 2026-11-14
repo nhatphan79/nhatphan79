@@ -29,6 +29,7 @@
   const RO = !!window.SB_RO, WEB = !!window.SB_WEB;
   const GUEST = window.SB_GUEST || null;   // 👥 V1.6.0: người được chia sẻ (Gmail khác) – chỉ thấy Kế hoạch + Báo cáo của 1 công trình, nhập được
   const GTABS = ['plan', 'crew', 'mat', 'rep', 'qa', 'info'];   // V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (không Kế hoạch)   // WEB = trang điện thoại đã đăng nhập Google (sửa được)
+  const GL = () => !!GUEST && !(data && data.sites && data.sites[0] && data.sites[0].gRole === 'f');   // V2.0.2: người được chia sẻ quyền Thành viên (Toàn quyền 'f' = như chủ)
   const SB_API = window.SB_API || 'https://haohao-gia.nhatphan79.workers.dev';
   const photoSrc = s => /^p_[a-f0-9]{32}$/.test(s) ? SB_API + '/sbp/' + s : s;
   let syncT = 0; const syncSoon = () => { if (RO) return; clearTimeout(syncT); syncT = setTimeout(() => { if (WEB) window.SB_SYNC_SOON && window.SB_SYNC_SOON(); else chrome.runtime.sendMessage({ type: 'sb-sync-now' }).catch(() => {}); }, 1500); };   // V1.2.7: bản xem trên điện thoại (haohaostore.com/cong-trinh) – chỉ xem
@@ -437,16 +438,17 @@
     if (!a.token) return dialog('👥 Chia sẻ công trình', b => { b.append($('p', 'sb-p', 'Cần đăng nhập Google trước (nút 🔐 Đăng nhập Google ở đầu trang) – dữ liệu phải lưu trên máy chủ thì người khác mới xem được.')); }, () => {}, 'Đóng');
     const api = (m, body) => fetch(SB_API + '/sb/share' + (m === 'GET' ? '?s=' + encodeURIComponent(S.id) : ''), { method: m, headers: { authorization: 'Bearer ' + a.token, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, error: 'mất mạng' }));
     dialog('👥 Chia sẻ: ' + (S.code ? S.code + ' · ' : '') + S.name, b => {
-      b.append($('p', 'sb-p', 'Người được chia sẻ mở ' + LOGIN_URL.replace('https://', '') + ', đăng nhập Gmail của họ → chỉ thấy 📅 Tiến độ · 👷 Nhân lực · 🧱 Vật tư · 📑 Báo cáo · ✅ QA/QC Shop · ℹ️ Thông tin (chỉ danh mục vật tư duyệt) của công trình này, nhập được. Không thấy chi phí, hợp đồng, thanh toán, kế hoạch, các công trình khác.'));
+      b.append($('p', 'sb-p', '👷 Thành viên: thấy + nhập Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC Shop, Thông tin (danh mục vật tư duyệt) – không thấy tiền. ⭐ Toàn quyền: thấy + nhập TẤT CẢ như anh (cả Chi phí, Quản lý chi phí, Hồ sơ).'));
       const f = $('form', 'sb-row'), em = $('input', 'sb-in'); em.type = 'email'; em.placeholder = 'gmail người cần chia sẻ'; em.setAttribute('aria-label', 'Gmail người được chia sẻ'); em.autocomplete = 'off'; em.style.flex = '1';
-      const ad = $('button', 'sb-btn sm', '＋ Thêm'); f.append(em, ad); b.append(f);
+      const rs = () => { const x = $('select', 'sb-in sb-role'); [['m', '👷 Thành viên'], ['f', '⭐ Toàn quyền']].forEach(([v, t]) => { const o = $('option', '', t); o.value = v; x.append(o); }); x.setAttribute('aria-label', 'Quyền'); return x; };   // V2.0.2: phân quyền
+      const nr = rs(); const ad = $('button', 'sb-btn sm', '＋ Thêm'); f.append(em, nr, ad); b.append(f);
       const ul = $('ul', 'sb-list sb-shl'), st = $('div', 'sb-note'); b.append(ul, st);
       const link = LOGIN_URL + '?g=' + encodeURIComponent(String(a.email || '').toLowerCase()) + '&s=' + encodeURIComponent(S.id);   // V1.6.1: link đi thẳng vào công trình
-      const msg = em => '🏗️ ' + S.name + ' – Tiến độ, Nhân lực, Vật tư, Báo cáo, QA/QC, Thông tin:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
+      const msg = em => '🏗️ ' + S.name + ' – dữ liệu công trình dùng chung:\n' + link + (em ? '\nĐăng nhập bằng Gmail: ' + em : '');
       const copy = async em => { const t = msg(em); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép link – dán vào Zalo'); } catch { st.textContent = t; } };
       const show = r => { ul.replaceChildren(); if (!r.ok) { st.textContent = '⚠ ' + (r.error || 'Lỗi'); return; } st.textContent = r.list.length ? '' : 'Chưa chia sẻ cho ai.';
-        r.list.forEach(x => { const li = $('li'); li.append($('span', '', '👤 ' + x.email)); const cb = $('button', 'sb-btn sm', '📋 Chép link'); cb.type = 'button'; cb.title = 'Chép link + Gmail đăng nhập để gửi Zalo cho ' + x.email; cb.addEventListener('click', () => copy(x.email)); const sp2 = $('div'); sp2.style.flex = '1'; li.insertBefore(sp2, null); li.append(cb); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
-      f.addEventListener('submit', async e => { e.preventDefault(); const v = em.value.trim(); if (!v) return em.focus(); ad.disabled = true; const r = await api('POST', { s: S.id, email: v }); ad.disabled = false; if (r.ok) { em.value = ''; toast('👥 Đã chia sẻ cho ' + v.toLowerCase() + ' – bấm 📋 Chép link để gửi Zalo'); } show(r); });
+        r.list.forEach(x => { const li = $('li'); li.append($('span', '', (x.role === 'f' ? '⭐ ' : '👤 ') + x.email)); const rl = rs(); rl.value = x.role === 'f' ? 'f' : 'm'; rl.title = 'Đổi quyền của ' + x.email; rl.addEventListener('change', async () => { rl.disabled = true; const r2 = await api('POST', { s: S.id, email: x.email, role: rl.value }); if (r2.ok) toast((rl.value === 'f' ? '⭐ Toàn quyền: ' : '👷 Thành viên: ') + x.email); show(r2); }); const cb = $('button', 'sb-btn sm', '📋 Chép link'); cb.type = 'button'; cb.title = 'Chép link + Gmail đăng nhập để gửi Zalo cho ' + x.email; cb.addEventListener('click', () => copy(x.email)); const sp2 = $('div'); sp2.style.flex = '1'; li.insertBefore(sp2, null); li.append(rl, cb); const del = $('button', 'sb-btn ghost sm', '✕ Cắt quyền'); del.type = 'button'; del.addEventListener('click', async () => { del.disabled = true; show(await api('POST', { s: S.id, email: x.email, off: true })); toast('Đã cắt quyền ' + x.email); }); li.append(del); ul.append(li); }); };
+      f.addEventListener('submit', async e => { e.preventDefault(); const v = em.value.trim(); if (!v) return em.focus(); ad.disabled = true; const r = await api('POST', { s: S.id, email: v, role: nr.value }); ad.disabled = false; if (r.ok) { em.value = ''; toast('👥 Đã chia sẻ cho ' + v.toLowerCase() + ' – bấm 📋 Chép link để gửi Zalo'); } show(r); });
       st.textContent = '⏳ Đang tải…'; api('GET').then(show);
     }, () => {}, 'Đóng').row.querySelector('.ghost').style.display = 'none';
   }
@@ -830,7 +832,7 @@
     const mon = x => addD(x, -((new Date(x + 'T00:00').getDay() + 6) % 7));
     const a = khMode === 'w' ? addD(mon(d), khWk * 7) : khDay, b = khMode === 'w' ? addD(a, 6) : khDay;
     const ttl = khMode === 'w' ? 'tuần ' + fd(a) + ' – ' + fdFull(b) + (khWk === 0 ? ' (tuần này)' : khWk === 1 ? ' (tuần sau)' : '') : 'ngày ' + fdFull(khDay) + (khDay === d ? ' (hôm nay)' : khDay === addD(d, 1) ? ' (ngày mai)' : '');
-    const h = sec(W, '🗓️ Kế hoạch ' + ttl, GUEST ? 'Bấm ＋ Thêm để ghi việc, vấn đề, vật tư · ✓ Xong khi đã làm xong' : 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề, 🧱 Vật tư – bấm dòng để sửa ở mục đó');
+    const h = sec(W, '🗓️ Kế hoạch ' + ttl, GL() ? 'Bấm ＋ Thêm để ghi việc, vấn đề, vật tư · ✓ Xong khi đã làm xong' : 'Tự tổng hợp từ 📅 Tiến độ, ✅ Công việc, ⚠️ Vấn đề, 🧱 Vật tư – bấm dòng để sửa ở mục đó');
     const bar = $('div', 'sb-rpbar sb-noprint');
     bar.append(chips([['d', 'Ngày'], ['w', 'Tuần']], khMode, v => { khMode = v; render(true); }));
     const nav = $('div', 'sb-row'), pv = $('button', 'sb-btn ghost sm', '‹'), nx = $('button', 'sb-btn ghost sm', '›'); pv.type = nx.type = 'button';
@@ -842,7 +844,7 @@
     const K = khData(S, a, b), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'); cp.type = 'button';
     cp.addEventListener('click', async () => { const t = khZalo(S, a, b, K); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép kế hoạch – dán vào Zalo'); } catch { dialog('📋 Kế hoạch', bb => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 16; ta.value = t; bb.append(ta); }, () => {}, 'Đóng'); } });
     const act = $('div', 'sb-row'); act.append(cp); bar.append(nav, act); W.append(bar);
-    const ged = GUEST && !RO ? { task: [t => { t.st = 'done'; }, () => khAdd('task', S, b)], issue: [x => { x.st = 'dong'; }, () => khAdd('issue', S, b)], mat: [m => { m.st = 've'; }, () => khAdd('mat', S, b)] } : {};   // 👥 V1.6.0: người được chia sẻ – ✓ xong / ＋ thêm ngay tại Kế hoạch
+    const ged = GL() && !RO ? { task: [t => { t.st = 'done'; }, () => khAdd('task', S, b)], issue: [x => { x.st = 'dong'; }, () => khAdd('issue', S, b)], mat: [m => { m.st = 've'; }, () => khAdd('mat', S, b)] } : {};   // 👥 V1.6.0: người được chia sẻ – ✓ xong / ＋ thêm ngay tại Kế hoạch
     const grid = (title, heads, rows, go, empty) => {
       const E = ged[go[0]];
       const c = $('section', 'sb-khs'), hh = $('h3', 'sb-khh'); hh.append($('span', '', title), $('small', '', rows.length + ' mục'));
@@ -852,7 +854,7 @@
       const tb = $('tbody'); rows.forEach((r, i) => { const tr = $('tr', r.cls || ''); tr.append($('td', 'n', String(i + 1))); r.cells.forEach(([v, cl]) => { const td = $('td', cl || ''); if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); });
         if (r.it && r.it.gx) tr.title = 'Người được chia sẻ nhập: ' + r.it.gx;
         if (E) { const x = $('td', 'x'), ok = $('button', 'sb-btn ghost sm', '✓ Xong'); ok.type = 'button'; ok.title = 'Đánh dấu đã xong'; ok.addEventListener('click', () => { E[0](r.it); save(); render(true); toast('✓ Đã đánh xong'); }); x.append(ok); tr.append(x); }
-        else if (!GUEST) { tr.tabIndex = 0; tr.title = tr.title || 'Bấm để mở ở mục ' + go[1]; const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); }
+        else if (!GL()) { tr.tabIndex = 0; tr.title = tr.title || 'Bấm để mở ở mục ' + go[1]; const open = () => { tab = go[0]; render(true); }; tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); }
         tb.append(tr); });
       if (!rows.length) { const tr = $('tr'), td = $('td', 'sb-none', empty); td.colSpan = heads.length + (E ? 1 : 0); tr.append(td); tb.append(tr); }
       t.append(tb); box.append(t); c.append(box); W.append(c); };
@@ -1369,9 +1371,9 @@
       t.append(tb); box.append(t); W.append(box);
     }
     // 2) hồ sơ tạm ứng / thanh toán / quyết toán – không chia sẻ cho người ngoài (V1.7.5)
-    if (GUEST) return;
+    if (GL()) return;
     const P = S.pay || { ...PAY0, runs: [] }, h2 = sec(W, '💳 Hồ sơ tạm ứng – thanh toán – quyết toán theo hợp đồng'); h2.classList.add('sb-sechf');
-    if (!RO && !GUEST) { const ed = $('button', 'sb-btn ghost sm', '⚙️ Sửa danh mục hồ sơ'); ed.type = 'button'; ed.addEventListener('click', () => payTplDlg(S)); h2.append(ed); }
+    if (!RO && !GL()) { const ed = $('button', 'sb-btn ghost sm', '⚙️ Sửa danh mục hồ sơ'); ed.type = 'button'; ed.addEventListener('click', () => payTplDlg(S)); h2.append(ed); }
     const cd = $('div', 'sb-card wide sb-paycond'); cd.append($('h3', '', '📌 Điều kiện thanh toán (Điều 9 HĐ)'));
     if (S.pay && S.pay.cond === PAYC_OLD) S.pay.cond = PAY0.cond;
     // V1.7.4: chỉ xem (sửa ở ⚙️) – liệt kê từng dòng, nhãn trước dấu ":" in đậm; dòng bắt đầu bằng "–" là ý con
@@ -1547,7 +1549,7 @@
     const F = [['all', 'Tất cả', L0.length], ['cho', 'Chờ phản hồi', L0.filter(x => x.st === 'tr').length], ['lai', 'Cần trình lại', L0.filter(x => x.st === 'C' || x.st === 'BC').length], ['late', 'Quá deadline', L0.filter(subLate).length], ['ok', 'Đã duyệt A/B', L0.filter(x => x.st === 'A' || x.st === 'B').length]];
     const h = sec(W, title); h.classList.add('sb-sechf'); const fs = flt[key] || 'all'; h.append(chips(F, fs, v => { flt[key] = v; render(true); }));
     const bar = $('div', 'sb-row sb-subbar sb-noprint'), pre = $('input', 'sb-in'); pre.value = S.subPre || ''; pre.placeholder = subPre(S); pre.setAttribute('aria-label', 'Tiền tố mã số kiểm soát'); pre.style.maxWidth = '220px';
-    if (RO || GUEST) pre.readOnly = true; pre.addEventListener('change', () => { S.subPre = pre.value.trim().toUpperCase().replace(/\s+/g, '_'); save(); render(true); });
+    if (RO || GL()) pre.readOnly = true; pre.addEventListener('change', () => { S.subPre = pre.value.trim().toUpperCase().replace(/\s+/g, '_'); save(); render(true); });
     const ex = $('button', 'sb-btn ghost sm', '📤 Xuất Excel'); ex.type = 'button'; ex.addEventListener('click', () => subExport(S, groups, title));
     bar.append($('span', 'sb-fl', 'Tiền tố mã'), pre, $('small', '', 'vd mã: ' + subCode(S, { d: today(), grp: groups[0][0], no: '001', rev: 0 })), ex); W.append(bar);
     return { all: () => true, cho: x => x.st === 'tr', lai: x => x.st === 'C' || x.st === 'BC', late: subLate, ok: x => x.st === 'A' || x.st === 'B' }[fs] || (() => true);
@@ -1881,7 +1883,7 @@
     fit: (sid, h) => { if (!WEB || !cpF) return; cpFitH = h; cpSync(); },   // V1.8.8: web – khung cao bằng nội dung bảng tính
     api: async (m, sid, q, body) => {   // V1.8.7: file KHTC trên máy chủ (/sb/khtc)
       let tok = acct.token; if (WEB) { try { tok = (JSON.parse(localStorage.getItem('sbAuth')) || {}).token; } catch {} } if (!tok) return null;
-      const r = await fetch(SB_API + '/sb/khtc?s=' + encodeURIComponent(sid) + (q && q.meta ? '&meta=1' : ''), { method: m, headers: { authorization: 'Bearer ' + tok, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+      const r = await fetch(SB_API + '/sb/khtc?s=' + encodeURIComponent(sid) + (GUEST ? '&o=' + encodeURIComponent(GUEST.o) : '') + (q && q.meta ? '&meta=1' : ''), { method: m, headers: { authorization: 'Bearer ' + tok, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
       return r.json().catch(() => null);
     },
   };
@@ -1930,9 +1932,9 @@
         fix(S); snapHist(S);
         const nav = $('nav', 'sb-tabs'); nav.setAttribute('aria-label', 'Mục công trình');
         const badge = { task: S.tasks.filter(taskLate).length, issue: S.issues.filter(x => x.st !== 'dong').length, mat: S.mats.filter(m => m.st !== 've' && m.need && m.need <= addD(today(), 3)).length, qa: S.subs.filter(subBad).length + (S.qas || []).filter(qaBad).length };   // V1.6.5: số đỏ trên tab Shopdrawing (chờ duyệt / quá hạn) và QA/QC (không đạt, NCR chưa khắc phục)
-        if (GUEST && !GTABS.includes(tab)) tab = 'plan';
+        if (GL() && !GTABS.includes(tab)) tab = 'plan';
         if (tab === 'sd') tab = 'qa';   // V1.6.8: tab Shopdrawing cũ
-        TABS.filter(([k]) => (!RO || k !== 'file') && (!GUEST || GTABS.includes(k))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
+        TABS.filter(([k]) => (!RO || k !== 'file') && (!GL() || GTABS.includes(k))).forEach(([k, l]) => { const b = $('button', 'sb-tab' + (k === tab ? ' on' : ''), l); b.type = 'button'; if (k === tab) b.setAttribute('aria-current', 'page'); if (badge[k]) b.append($('i', '', String(badge[k]))); b.addEventListener('click', () => { tab = k; render(true); window.scrollTo(0, 0); }); nav.append(b); });
         W.append(nav); const body = $('div', 'sb-body'); (VIEWS[tab] || dash)(body, S); W.append(body);
       }
       const keep = [...root.querySelectorAll('.sb-toast,.sb-dlg')];

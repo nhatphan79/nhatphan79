@@ -341,9 +341,13 @@ async function sbRoute(env, req, u) {
   }
   if (u.pathname === '/sb/khtc') {   // 💼 V1.8.7: file Excel KHTC của chủ công trình – máy khác / điện thoại tự lấy về (chỉ chủ đọc được)
     const sid = String(u.searchParams.get('s') || '').slice(0, 80); if (!sid) return json({ ok: false, error: 'thiếu mã công trình' }, 400);
+    const ko = sbMail(u.searchParams.get('o'));   // V2.0.2: người được chia sẻ Toàn quyền đọc file KHTC của chủ (chỉ đọc)
+    if (ko && ko !== email) { if (req.method !== 'GET') return json({ ok: false, error: 'chỉ chủ công trình nạp file' }, 403); await sbshInit(env);
+      const g = await env.DB.prepare('SELECT role FROM sbsh WHERE owner = ? AND site = ? AND email = ?').bind(ko, sid, email).first(); if (!g || g.role !== 'f') return json({ ok: false, error: 'không có quyền' }, 403); }
+    const kE = ko || email;
     if (req.method === 'GET') {
-      if (u.searchParams.get('meta')) { const r = await env.DB.prepare('SELECT name, at FROM sbk WHERE email = ? AND sid = ?').bind(email, sid).first(); return json({ ok: true, name: r ? r.name : '', at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' }); }
-      const r = await env.DB.prepare('SELECT name, at, d FROM sbk WHERE email = ? AND sid = ?').bind(email, sid).first();
+      if (u.searchParams.get('meta')) { const r = await env.DB.prepare('SELECT name, at FROM sbk WHERE email = ? AND sid = ?').bind(kE, sid).first(); return json({ ok: true, name: r ? r.name : '', at: r ? r.at : 0 }, 200, { 'cache-control': 'no-store' }); }
+      const r = await env.DB.prepare('SELECT name, at, d FROM sbk WHERE email = ? AND sid = ?').bind(kE, sid).first();
       return json(r ? { ok: true, name: r.name, at: r.at, b64: r.d } : { ok: true, at: 0 }, 200, { 'cache-control': 'no-store' });
     }
     if (req.method === 'PUT') {
@@ -592,17 +596,20 @@ await env.DB.prepare('UPDATE sbz SET dsent = ? WHERE email = ?').bind(JSON.strin
    – chỉ nhận các mục SB_GV (không có chi phí / dòng tiền / hồ sơ), chỉ ghi được các mục SB_GW vào đúng công trình đó của chủ. */
 // V1.7.5: người được chia sẻ thấy Tiến độ · Nhân lực · Vật tư · Báo cáo · QA/QC Shop (anh Nhật 09/11) – vẫn không có chi phí, hợp đồng, thanh toán, thư mục máy
 const SB_GV = ['id', 'code', 'name', 'owner', 'addr', 'start', 'end', 'phase', 'plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'staff', 'hist', 'reports', 'subs', 'qas', 'subPre', 'subMig', 'dmvt'];   // Thông tin: chỉ danh mục vật tư duyệt (không chia sẻ hồ sơ thanh toán)
-const SB_GW = ['plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'subs', 'qas', 'dmvt'];
+const SB_GW = ['plan', 'tasks', 'issues', 'mats', 'stock', 'logs', 'teams', 'roles', 'dayers', 'subs', 'qas', 'dmvt', 'reports'];   // V2.0.2: thành viên lưu được Báo cáo
+// V2.0.2 (anh Nhật 14/11): quyền 'f' = Toàn quyền – thấy + nhập mọi mục của công trình (chi phí, Quản lý chi phí, hồ sơ…), trừ các khoá dưới
+const SB_GFX = ['id', 'code', 'owner', 'gRole'];
 async function sbshInit(env) {
 if (sbshInit.ok) return;
 await env.DB.prepare('CREATE TABLE IF NOT EXISTS sbsh (owner TEXT, site TEXT, email TEXT, at INTEGER, PRIMARY KEY (owner, site, email))').run();
+try { await env.DB.prepare('ALTER TABLE sbsh ADD COLUMN role TEXT').run(); } catch {}   // V2.0.2: 'm' thành viên · 'f' toàn quyền
 sbshInit.ok = true;
 }
 const sbMail = x => { x = String(x || '').trim().toLowerCase(); return x.length < 120 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? x : ''; };
 const sbDoc = async (env, email) => { const r = await env.DB.prepare('SELECT rev, v, at FROM sb WHERE email = ?').bind(email).first(); let v = null; try { v = r ? JSON.parse(r.v) : null; } catch {} return { rev: r ? r.rev : 0, at: r ? r.at : 0, v }; };
 async function sbShare(env, email, req, u) {
 await sbshInit(env);
-const list = async s => (await env.DB.prepare('SELECT email, at FROM sbsh WHERE owner = ? AND site = ? ORDER BY at').bind(email, s).all()).results || [];
+const list = async s => (await env.DB.prepare("SELECT email, at, COALESCE(role, 'm') AS role FROM sbsh WHERE owner = ? AND site = ? ORDER BY at").bind(email, s).all()).results || [];
 if (req.method === 'GET') return json({ ok: true, list: await list(String(u.searchParams.get('s') || '')) }, 200, { 'cache-control': 'no-store' });
 if (req.method !== 'POST') return json({ ok: false, error: 'không có lệnh này' }, 404);
 const b = await req.json().catch(() => null), s = String(b && b.s || ''), m = sbMail(b && b.email);
@@ -612,33 +619,36 @@ if (b.off) { await env.DB.prepare('DELETE FROM sbsh WHERE owner = ? AND site = ?
 if (m === email) return json({ ok: false, error: 'Đây là Gmail của chính anh', list: await list(s) }, 400);
 const D = await sbDoc(env, email);
 if (!D.v || !Array.isArray(D.v.sites) || !D.v.sites.some(x => x && x.id === s)) return json({ ok: false, error: 'Công trình chưa lên máy chủ – bấm ☁️ đồng bộ rồi thử lại', list: await list(s) }, 400);
+const role = b.role === 'f' ? 'f' : 'm';
+if (b.role && await env.DB.prepare('SELECT 1 AS x FROM sbsh WHERE owner = ? AND site = ? AND email = ?').bind(email, s, m).first()) { await env.DB.prepare('UPDATE sbsh SET role = ? WHERE owner = ? AND site = ? AND email = ?').bind(role, email, s, m).run(); return json({ ok: true, list: await list(s) }); }
 const L0 = await list(s); if (L0.length >= 20) return json({ ok: false, error: 'Tối đa 20 người / công trình', list: L0 }, 400);
-await env.DB.prepare('INSERT OR REPLACE INTO sbsh (owner, site, email, at) VALUES (?, ?, ?, ?)').bind(email, s, m, Date.now()).run();
+await env.DB.prepare('INSERT OR REPLACE INTO sbsh (owner, site, email, at, role) VALUES (?, ?, ?, ?, ?)').bind(email, s, m, Date.now(), role).run();
 return json({ ok: true, list: await list(s) });
 }
 async function sbShared(env, email) {
 await sbshInit(env);
-const { results = [] } = await env.DB.prepare('SELECT owner, site FROM sbsh WHERE email = ? ORDER BY at').bind(email).all();
+const { results = [] } = await env.DB.prepare("SELECT owner, site, COALESCE(role, 'm') AS role FROM sbsh WHERE email = ? ORDER BY at").bind(email).all();
 const docs = {}, out = [];
-for (const r of results) { if (!(r.owner in docs)) docs[r.owner] = (await sbDoc(env, r.owner)).v; const S = docs[r.owner] && Array.isArray(docs[r.owner].sites) && docs[r.owner].sites.find(x => x && x.id === r.site); if (S) out.push({ o: r.owner, s: r.site, name: S.name || '', code: S.code || '' }); }
+for (const r of results) { if (!(r.owner in docs)) docs[r.owner] = (await sbDoc(env, r.owner)).v; const S = docs[r.owner] && Array.isArray(docs[r.owner].sites) && docs[r.owner].sites.find(x => x && x.id === r.site); if (S) out.push({ o: r.owner, s: r.site, name: S.name || '', code: S.code || '', role: r.role }); }
 return json({ ok: true, list: out }, 200, { 'cache-control': 'no-store' });
 }
-const sbGView = (v, S) => { const o = {}; SB_GV.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); return { sites: [o], cur: o.id, cats: v.cats }; };
+const sbGView = (v, S, role) => { const o = {}; if (role === 'f') Object.assign(o, S); else SB_GV.forEach(k => { if (S[k] !== undefined) o[k] = S[k]; }); o.gRole = role === 'f' ? 'f' : 'm'; return { sites: [o], cur: o.id, cats: v.cats }; };
 async function sbGuest(env, email, req, u) {
 await sbshInit(env);
 const o = sbMail(u.searchParams.get('o')), s = String(u.searchParams.get('s') || '');
-const ok = o && await env.DB.prepare('SELECT 1 AS x FROM sbsh WHERE owner = ? AND site = ? AND email = ?').bind(o, s, email).first();
+const ok = o && await env.DB.prepare("SELECT COALESCE(role, 'm') AS role FROM sbsh WHERE owner = ? AND site = ? AND email = ?").bind(o, s, email).first(), role = ok && ok.role;
 if (!ok) return json({ ok: false, error: 'Công trình này chưa chia sẻ cho ' + email + ' hoặc đã bị cắt quyền', gone: true }, 403);
 const D = await sbDoc(env, o), S = D.v && Array.isArray(D.v.sites) && D.v.sites.find(x => x && x.id === s);
 if (!S) return json({ ok: false, error: 'Công trình không còn', gone: true }, 404);
-if (req.method === 'GET') return json({ ok: true, email, rev: D.rev, v: sbGView(D.v, S), at: D.at }, 200, { 'cache-control': 'no-store' });
+if (req.method === 'GET') return json({ ok: true, email, rev: D.rev, v: sbGView(D.v, S, role), at: D.at }, 200, { 'cache-control': 'no-store' });
 if (req.method !== 'PUT') return json({ ok: false, error: 'không có lệnh này' }, 404);
 if (Number(req.headers.get('content-length') || 0) > 1800000) return json({ ok: false, error: 'dữ liệu quá lớn' }, 413);
 const b = await req.json().catch(() => null), G = b && b.v && Array.isArray(b.v.sites) && b.v.sites[0];
 if (!G || G.id !== s) return json({ ok: false, error: 'sai dữ liệu' }, 400);
-if ((Number(b.base) || 0) !== D.rev) return json({ ok: false, conflict: true, rev: D.rev, v: sbGView(D.v, S) }, 409);
+if ((Number(b.base) || 0) !== D.rev) return json({ ok: false, conflict: true, rev: D.rev, v: sbGView(D.v, S, role) }, 409);
 let ch = false;
-for (const k of SB_GW) {
+if (role === 'f') { for (const k of Object.keys(G)) { if (SB_GFX.includes(k) || G[k] === undefined) continue; if (JSON.stringify(G[k]) !== JSON.stringify(S[k] === undefined ? null : S[k])) { S[k] = G[k]; ch = true; } } }
+else for (const k of SB_GW) {
 if (Array.isArray(G[k])) { const nv = G[k].filter(x => x && typeof x === 'object'); if (JSON.stringify(nv) !== JSON.stringify(S[k] || [])) { S[k] = nv; ch = true; } }
 else if (G[k] && typeof G[k] === 'object' && JSON.stringify(G[k]) !== JSON.stringify(S[k] || null)) { S[k] = G[k]; ch = true; }
 }
