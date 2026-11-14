@@ -1,7 +1,7 @@
 {
- "name": "V2.1.7",
- "version": "1.10.470",
+ "name": "V2.1.8",
+ "version": "1.10.471",
  "file": "HaoHao-nhat.zip",
- "sig": "mwc7FfTFb/f0KDhjK+Gl0KLRN7PFMxrkIbZJfpADIdFsG3dpwJ3l6upmaD/oliS8qrsCKbEGL291AvhcVE1eAQ==",
- "notes": "Báo cáo ngày: mặc định theo báo cáo hôm trước, Kế hoạch chỉ gợi ý"
+ "sig": "toZxu890uvtHXw4+sMsm6wGKLyOteWTczLv9PnL4HrUldBllNKMQxWDSheo0SR83TOX9Odss8ynrtkdV5hf3Cg==",
+ "notes": "Sửa lỗi báo cáo ngày mất mục C, D"
 }
