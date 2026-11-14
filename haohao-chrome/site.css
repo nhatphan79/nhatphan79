@@ -105,7 +105,8 @@ body.pg-site .proj { display: none; }
 .sb-t .r { text-align: right; }
 .sb-t td.calc { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
 .sb-t tbody tr:hover td { background: #FBFCFE; }
-.sb-t tr.done td { opacity: .55; } .sb-t tr.done .sb-in { text-decoration: line-through; }
+.sb-t tr.done td, .sb-t tbody tr.done:hover td { background: #E6F4EC; } .sb-t tr.done td:first-child { box-shadow: inset 3px 0 0 #1F7A4A; }   /* V2.1.0: xong = nền xanh, không gạch */
+.sb-t tr.cancel td { opacity: .5; }   /* V2.1.0: Hủy = mờ, không gạch */
 .sb-t tr.okrow td, .sb-t tbody tr.okrow:hover td { background: #E6F4EC; } .sb-t tr.okrow td:first-child { box-shadow: inset 3px 0 0 #1F7A4A; } .sb-t tr.okrow select { color: #1F7A4A; font-weight: 700; }   /* V2.0.4: đã duyệt / đã về – nền xanh, không gạch */
 .sb-t tr.late td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
 .sb-t tr.warnrow td:first-child { box-shadow: inset 3px 0 0 var(--acc); }
@@ -390,7 +391,7 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 /* V1.5.3: xoá dòng tự điền trong báo cáo (Chỉnh tay) */
 .sb-rpx { flex: none; border: 0; background: transparent; color: var(--soft); width: 26px; height: 26px; border-radius: 7px; font-size: 13px; cursor: pointer; line-height: 1; }
 .sb-rpx:hover { background: #FDE8E8; color: var(--bad); }
-.sb-list li.sb-hid > :not(.sb-rpx) { opacity: .38; text-decoration: line-through; }
+.sb-list li.sb-hid > :not(.sb-rpx) { opacity: .38; }
 .sb-list li.sb-hid .sb-rpx { color: var(--ok, #2E8B57); }
 .sb-list li.sb-hid .sb-rpx:hover { background: #E3F5EE; }
 @media print { .sb-rpx { display: none !important; } .sb-list li.sb-hid { display: none !important; } }
@@ -574,7 +575,7 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-payrun .sb-row { gap: 6px; align-items: center; } .sb-payn { white-space: nowrap; font-size: 13px; color: #23305E; }
 .sb-paylist { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .sb-paylist li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
-.sb-paylist li input { margin-top: 2px; accent-color: #1F7A4A; flex: none; } .sb-paylist li.ok span { color: #6B7280; text-decoration: line-through; }
+.sb-paylist li input { margin-top: 2px; accent-color: #1F7A4A; flex: none; } .sb-paylist li.ok span { color: #1F7A4A; font-weight: 600; }
 .sb-paylist li small { margin-left: auto; color: #1F7A4A; font-weight: 700; white-space: nowrap; }
 /* V1.7.4: điều kiện thanh toán liệt kê từng dòng */
 .sb-paycl { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.55; color: var(--ink); }

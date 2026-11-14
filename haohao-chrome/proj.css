@@ -50,7 +50,7 @@
 .pj-task input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--pj-ok); cursor: pointer; flex: none; }
 .pj-task input[type=text] { flex: 1; min-width: 0; border: 0; font: inherit; font-size: 14.5px; color: var(--pj-ink); background: transparent; padding: 4px 2px; }
 .pj-task input[type=text]:focus { outline: none; background: #FFFCF5; }
-.pj-task.done input[type=text] { text-decoration: line-through; color: var(--pj-soft); }
+.pj-task.done input[type=text] { color: #1F7A4A; background: #E6F4EC; }
 .pj-task .pj-x { opacity: 0; } .pj-task:hover .pj-x, .pj-task .pj-x:focus-visible { opacity: 1; }
 .pj-addrow { display: flex; gap: 8px; margin-top: 8px; } .pj-addrow input { flex: 1; }
 .pj-note { min-height: 110px; resize: vertical; line-height: 1.5; }
@@ -75,7 +75,7 @@
 .pj-r .nv:focus-visible { outline: 2px solid var(--pj-acc); outline-offset: -2px; }
 .pj-r .nv a { color: #1A56B8; text-decoration: underline; } .pj-r .nv .ph { color: #B9A869; }
 .pj-r:not(.hd):hover { background: #FFF3BF; }
-.pj-r.done .c-t { text-decoration: line-through; color: var(--pj-soft); }
+.pj-r.done .c-t { color: #1F7A4A; font-weight: 600; }
 .pj-r.blank textarea::placeholder { color: #B9A869; }
 .pj-r .c-x { justify-content: center; padding-top: 5px; } .pj-r .c-x .pj-x { opacity: 0; padding: 3px 6px; }
 .pj-r:hover .c-x .pj-x, .pj-r .c-x .pj-x:focus-visible { opacity: 1; }

@@ -829,7 +829,7 @@
   .todo .tacts button:hover { background: #F1F2F7; opacity: 1; }
   .todo .tacts button.on { opacity: 1; filter: none; }
   .todo .tacts button:focus-visible { outline: 2px solid #23305E; }
-  .todo.done .tx { text-decoration: line-through; color: #9AA1BE; }
+  .todo.done .tx { color: #1F7A4A; font-weight: 600; }
 
   .coin { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 8px 4px; border-bottom: 1px solid #EEF0F6; font-size: 13.5px; }
   .coin .sym { font-weight: 800; }

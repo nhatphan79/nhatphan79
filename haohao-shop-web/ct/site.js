@@ -1557,7 +1557,7 @@
           cb.addEventListener('click', () => coverOpen(S, r)); x.append(cb); }
         dirCell(r, S, x); },
       add: () => ({ id: uid(), grp: g, no: subNext(S, g), rev: 0, t: '', d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: '', hist: [{ r: 0, d: today() }] }), addLb: '＋ Thêm hồ sơ ' + g,
-      cls: x => (x.st === 'A' || x.st === 'B' ? 'okrow' : x.st === 'huy' ? 'done' : '') + (subBad(x) ? ' late lateBg' : '') }));   // V2.0.4: đã duyệt → nền xanh (không gạch); Hủy vẫn gạch
+      cls: x => (x.st === 'A' || x.st === 'B' ? 'okrow' : x.st === 'huy' ? 'cancel' : '') + (subBad(x) ? ' late lateBg' : '') }));   // V2.0.4: đã duyệt → nền xanh (không gạch); Hủy vẫn gạch
     W.append(c);
   }
   // 📄 V1.9.0: mở trang Cover (cover.html) – máy tính; điện thoại / bản xem: chỉ xem mục lục
