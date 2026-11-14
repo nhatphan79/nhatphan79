@@ -1,7 +1,7 @@
 {
- "name": "V2.1.6",
- "version": "1.10.469",
+ "name": "V2.1.7",
+ "version": "1.10.470",
  "file": "HaoHao-nhat.zip",
- "sig": "J2tEVSDV71P52w7cedrteo1ip+fqwdJ87DOpC/yNk7YpPBpfb0vNF3jdRL1KGRar71F6fDp5n97Cjuh8luDkAw==",
- "notes": "Báo cáo: bỏ cột TB/ngày"
+ "sig": "mwc7FfTFb/f0KDhjK+Gl0KLRN7PFMxrkIbZJfpADIdFsG3dpwJ3l6upmaD/oliS8qrsCKbEGL291AvhcVE1eAQ==",
+ "notes": "Báo cáo ngày: mặc định theo báo cáo hôm trước, Kế hoạch chỉ gợi ý"
 }
