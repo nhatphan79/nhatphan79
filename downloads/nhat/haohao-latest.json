@@ -1,7 +1,7 @@
 {
- "name": "V2.1.5",
- "version": "1.10.468",
+ "name": "V2.1.6",
+ "version": "1.10.469",
  "file": "HaoHao-nhat.zip",
- "sig": "XHq4Epn6IStg6FnlLSV9L8uWN8YCZOFfRcR4SOwsNAYh0sY9kd1dZKJRLTr2rmrthk6vqCRi1htIbmOmlrn0Aw==",
- "notes": "Báo cáo: Nhân lực + Khối lượng thực hiện theo tiến độ"
+ "sig": "J2tEVSDV71P52w7cedrteo1ip+fqwdJ87DOpC/yNk7YpPBpfb0vNF3jdRL1KGRar71F6fDp5n97Cjuh8luDkAw==",
+ "notes": "Báo cáo: bỏ cột TB/ngày"
 }
