@@ -114,7 +114,8 @@
   const subAuto = (S, x) => [x.d ? x.d.slice(2, 4) + x.d.slice(5, 7) + x.d.slice(8, 10) : '', subPre(S), x.grp, String(x.no || '').padStart(3, '0')].filter(Boolean).join('_');   // V1.9.5: mã không kèm R – phiên bản ở cột R riêng
   const subLate = x => !['A', 'B', 'huy'].includes(x.st) && x.dl && x.dl < today();
   const subBad = x => x.st === 'C' || subLate(x);
-  const subNext = (S, g) => String(Math.max(0, ...S.subs.filter(x => x.grp === g).map(x => parseInt(x.no, 10) || 0)) + 1).padStart(3, '0');
+  const subManNo = v => { const m = String(v || '').trim().replace(/_R\d{2}$/i, '').match(/(?:^|[_\-.\s])(\d{1,4})$/); return m ? parseInt(m[1], 10) : 0; };   // V2.0.4: số cuối của mã sửa tay (…_OTS_002 → 2)
+  const subNext = (S, g) => String(Math.max(0, ...S.subs.filter(x => x.grp === g).map(x => Math.max(parseInt(x.no, 10) || 0, subManNo(x.mcode)))) + 1).padStart(3, '0');   // V2.0.4: tính cả mã sửa tay → dòng mới nối tiếp số
   const subHist = x => (x.hist || []).map(h => 'R' + String(h.r).padStart(2, '0') + ': trình ' + (fdFull(h.d) || '–') + (h.p ? ' · phản hồi ' + fdFull(h.p) : '')).join('\n');
   function subMig(s) {   // V1.6.7: bảng Shopdrawing cũ (V1.6.4) → danh mục trình duyệt nhóm SHD
     if (s.subMig || !Array.isArray(s.shops)) return; s.subMig = 1;
@@ -1193,7 +1194,7 @@
       { k: 'name', lb: 'Vật tư', t: 'text', ph: 'Thép D16', rr: false }, { k: 'by', lb: 'Người đề xuất', who: true, t: 'text', w: '12%', rr: false, on: m => { if (m.by && m.by.trim()) data.lastBy = m.by.trim(); } }, { k: 'unit', lb: 'ĐVT', t: 'text', w: '64px', rr: false }, { k: 'qty', lb: 'Số lượng', t: 'num', w: '84px', rr: false },
       { k: 'need', lb: 'Cần ngày', t: 'date', w: '128px' }, { k: 'for', lb: 'Cho hạng mục', t: 'text', w: '14%', rr: false }, { k: 'sup', lb: 'Nhà cung cấp', t: 'text', w: '13%', rr: false },
       { k: 'st', lb: 'Trạng thái', t: 'sel', o: MST, w: '100px', on: m => { if (m.st === 've' && m.name && !m.inStock) { S.stock.push({ id: uid(), d, name: m.name, unit: m.unit, io: 'in', qty: num(m.qty), note: 'Từ đề xuất' + (m.sup ? ' · ' + m.sup : '') }); m.inStock = 1; toast('🧱 Đã tự ghi nhập kho ' + m.name); } } }
-    ], { list: S.mats, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), name: '', by: data.lastBy || data.lastWho || '', unit: '', qty: '', need: addD(d, 3), for: '', sup: '', st: 'de' }), addLb: '＋ Thêm vật tư cần', cls: m => (m.st === 've' ? 'done' : '') + (m.st !== 've' && m.need && m.need < d ? ' late' : '') }));
+    ], { list: S.mats, extra: (r, x) => dirCell(r, S, x), add: () => ({ id: uid(), name: '', by: data.lastBy || data.lastWho || '', unit: '', qty: '', need: addD(d, 3), for: '', sup: '', st: 'de' }), addLb: '＋ Thêm vật tư cần', cls: m => (m.st === 've' ? 'okrow' : '') + (m.st !== 've' && m.need && m.need < d ? ' late' : '') }));   // V2.0.4: đã về → nền xanh (không gạch)
     sec(W, '📦 Nhập – xuất vật tư');
     W.append(table(S.stock.slice().sort((a, b) => (b.d || '').localeCompare(a.d || '')), [
       { k: 'd', lb: 'Ngày', t: 'date', w: '128px' }, { k: 'name', lb: 'Vật tư', t: 'text', rr: false }, { k: 'unit', lb: 'ĐVT', t: 'text', w: '64px', rr: false },
@@ -1390,7 +1391,7 @@
       th.append(r0, r1); t.append(th); const tb = $('tbody'); let lastG = null, n = 0;
       S.dmvt.forEach(x => {
         if (x.grp !== lastG) { lastG = x.grp; n = 0; const gr = $('tr', 'sb-boqg'), a = $('td', 'n', x.grp), b = $('td', '', x.grpName); b.colSpan = 9; gr.append(a, b); tb.append(gr); }
-        n++; const r = $('tr'), sub = x.sub && S.subs.find(z => z.id === x.sub), tc = $('td');
+        n++; const sub = x.sub && S.subs.find(z => z.id === x.sub), r = $('tr', sub && (sub.st === 'A' || sub.st === 'B') ? 'okrow' : ''), tc = $('td');   // V2.0.4: vật tư đã duyệt → dòng xanh
         if (sub) { const b = $('span', 'sb-st ' + (sub.st === 'A' || sub.st === 'B' ? 'ok' : sub.st === 'C' ? 'bad' : ''), lbl(SST, sub.st)); tc.append(b, $('div', 'sb-scode', subCode(S, sub))); tc.title = 'Xem ở tab QA/QC Shop – nhóm 3 MAA'; }
         else if (!RO) { const b = $('button', 'sb-btn ghost sm', '＋ Tạo hồ sơ MAA'); b.type = 'button'; b.title = 'Tạo dòng trình duyệt vật liệu trong tab QA/QC Shop';
           b.addEventListener('click', () => { const z = { id: uid(), grp: 'MAA', no: subNext(S, 'MAA'), rev: 0, t: x.t + (x.nt.brand ? ' – ' + x.nt.brand : ''), d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: x.nt.code || '', hist: [{ r: 0, d: today() }] }; S.subs.push(z); x.sub = z.id; save(); render(true); toast('＋ Đã tạo hồ sơ ' + subCode(S, z)); }); tc.append(b); }
@@ -1535,7 +1536,7 @@
       { k: 'stt', lb: 'STT', t: 'calc', w: '34px', f: x => idx + '.' + (all.indexOf(x) + 1) },
       { k: 'code', lb: 'Mã số kiểm soát', t: 'calc', w: '182px', f: x => { const el = $('input', 'sb-in sb-scode' + (x.mcode ? ' man' : '')); el.value = subCode(S, x); el.title = el.value;   // V1.9.8: cột cố định 182px – đủ mã chuẩn el.placeholder = subAuto(S, x); el.setAttribute('aria-label', 'Mã số kiểm soát');
         el.title = x.mcode ? 'Mã sửa tay – xoá trắng rồi Enter để quay về mã tự tạo (' + subAuto(S, x) + ')' : 'Mã tự tạo – gõ để sửa tay';
-        if (RO) el.readOnly = true; else el.addEventListener('change', () => { const v = el.value.trim(); if (!v || v === subAuto(S, x)) delete x.mcode; else x.mcode = v; save(); render(true); });
+        if (RO) el.readOnly = true; else el.addEventListener('change', () => { const v = el.value.trim(); if (!v || v === subAuto(S, x)) delete x.mcode; else { x.mcode = v; const k = subManNo(v); if (k) x.no = String(k).padStart(3, '0'); } save(); render(true); });   // V2.0.4: sửa tay …_002 → STT số 002, dòng sau tự lên 003
         return el; } },
       { k: 'r', lb: 'R', t: 'calc', w: '44px', f: x => { const el = $('input', 'sb-in sb-rv'); el.value = rv(x); el.title = 'Phiên bản – sửa được (vd R02)' + (subHist(x) ? '\n' + subHist(x) : ''); el.setAttribute('aria-label', 'Phiên bản R');   // V1.9.5: cột R sửa tay
         if (RO) el.readOnly = true; else el.addEventListener('change', () => { const n = parseInt(String(el.value).replace(/\D/g, ''), 10); if (!(n >= 0) || n > 99) { el.value = rv(x); return; } x.rev = n; if (!(x.hist || []).some(h => h.r === n)) (x.hist = x.hist || []).push({ r: n, d: x.d || today() }); save(); render(true); });
@@ -1553,7 +1554,7 @@
           cb.addEventListener('click', () => coverOpen(S, r)); x.append(cb); }
         dirCell(r, S, x); },
       add: () => ({ id: uid(), grp: g, no: subNext(S, g), rev: 0, t: '', d: today(), st: 'tk', hc: '', who: data.lastWho || '', dl: '', note: '', hist: [{ r: 0, d: today() }] }), addLb: '＋ Thêm hồ sơ ' + g,
-      cls: x => (x.st === 'A' || x.st === 'B' || x.st === 'huy' ? 'done' : '') + (subBad(x) ? ' late lateBg' : '') }));
+      cls: x => (x.st === 'A' || x.st === 'B' ? 'okrow' : x.st === 'huy' ? 'done' : '') + (subBad(x) ? ' late lateBg' : '') }));   // V2.0.4: đã duyệt → nền xanh (không gạch); Hủy vẫn gạch
     W.append(c);
   }
   // 📄 V1.9.0: mở trang Cover (cover.html) – máy tính; điện thoại / bản xem: chỉ xem mục lục

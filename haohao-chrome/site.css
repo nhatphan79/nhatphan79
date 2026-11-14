@@ -106,6 +106,7 @@ body.pg-site .proj { display: none; }
 .sb-t td.calc { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
 .sb-t tbody tr:hover td { background: #FBFCFE; }
 .sb-t tr.done td { opacity: .55; } .sb-t tr.done .sb-in { text-decoration: line-through; }
+.sb-t tr.okrow td, .sb-t tbody tr.okrow:hover td { background: #E6F4EC; } .sb-t tr.okrow td:first-child { box-shadow: inset 3px 0 0 #1F7A4A; } .sb-t tr.okrow select { color: #1F7A4A; font-weight: 700; }   /* V2.0.4: đã duyệt / đã về – nền xanh, không gạch */
 .sb-t tr.late td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
 .sb-t tr.warnrow td:first-child { box-shadow: inset 3px 0 0 var(--acc); }
 .sb-in { font: inherit; font-size: 13.5px; color: var(--ink); width: 100%; box-sizing: border-box; border: 1px solid transparent; background: transparent; border-radius: 7px; padding: 6px 7px; min-width: 0; }
