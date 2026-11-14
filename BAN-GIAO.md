@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 14/11/2026 (anhnhatpro79) · máy anh + kênh nhat = **V2.0.8** · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
+Cập nhật: 14/11/2026 (anhnhatpro79) · máy anh + kênh nhat = **V2.0.9** · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
 
 ## ⭐ Đọc trước – tóm tắt 01/11 → 08/11
 - **🏗️ Công trình (SITE BRAIN, `haohao-chrome/site.js` + `sitebot.js`) là phần RIÊNG của anh Nhật** – không đưa vào bài giới thiệu / quảng bá HaoHao (anh 08/11). Trang điện thoại: `https://haohao-gia.nhatphan79.workers.dev/cong-trinh` (đăng nhập Google, đồng bộ máy tính ⇄ điện thoại qua `/sb`, gộp 3 chiều trong `sbsync.js`). site.js/site.css/sbsync.js chép thêm vào `haohao-shop-web/ct/` mỗi lần sửa.
@@ -82,6 +82,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 | V2.0.6 (1.10.459) | 14/11 | 💾 **Cover: lưu đúng bản đã in**: bấm Xuất PDF / Tải bìa Excel / In bìa → chốt toàn bộ ô bìa + phần đầu danh mục vào `x.cv.snap = {at, v}` (cover.js `snapNow`); mở lại hiện đúng bản đó, không tự đổi theo Mô tả / Ngày / thông tin công trình mới. Nhãn "💾 Bản đã lưu lúc …" trên thanh nút. Sửa tay 1 ô hoặc bấm ↺ ô đó → bỏ chốt riêng ô đó (↺ = lấy lại thông tin mới bên ngoài). |
 | V2.0.7 (1.10.460) | 14/11 | Cover: nút "📋 Mẫu Hồ sơ pháp lý" đổi tên thành **"📋 Mẫu"**. Bản chốt V2.0.6 áp dụng cả danh mục (phần đầu danh mục nằm trong `snap`; dòng tài liệu vốn lưu sẵn). |
 | V2.0.8 (1.10.461) | 14/11 | Cover: nút **🗑 Xoá toàn bộ** cạnh 📋 Mẫu – hỏi xác nhận, xoá hết dòng danh mục + file đã gắn (IndexedDB). |
+| V2.0.9 (1.10.462) | 14/11 | Cover: Xuất PDF **luôn có trang danh mục** (trước đây danh mục trống thì chỉ ra bìa). |
 | V1.9.9 (1.10.452) | 11/11 | 📐 Cover: bìa **tự vừa đúng 1 trang A4** (`fitH` đo nội dung, 2 ô ký TVGS / CĐT tự giãn lấp chỗ trống); trên xem trước có **thanh ═ kéo lên xuống** ở mép dưới ô Diễn giải, Trình duyệt bao gồm, 2 ô ký – ô kia tự bù, bấm đúp về tự động; lưu `cv.hz` theo hồ sơ; PDF / In ra đúng như xem trước. |
 | V1.9.8 (1.10.451) | 11/11 | 📏 QA/QC Shop: chữ nhỏ lại (12px), bảng `table-layout:fixed` vừa khung – **bỏ thanh kéo ngang**; Mã số kiểm soát cột cố định 182px; **bỏ cột Số và Bản cứng** (số thứ tự vẫn tự đánh trong mã, dữ liệu cũ giữ, vẫn xuất Excel); Mô tả chiếm phần còn lại, tự xuống dòng. Sửa `table()`: dòng "Chưa có…" đúng số cột khi không có cột #. |
 | V1.9.7 (1.10.450) | 11/11 | 🔒 Cover: mọi ô thông tin bìa + phần đầu danh mục (và Loại tài liệu) **khoá, nền xám – bấm đúp mới sửa** (Enter / bấm ra ngoài khoá lại; ô `div.fld` thay `label` để bấm không nhảy vào nút ↺). Bảng danh mục vẫn sửa trực tiếp. |

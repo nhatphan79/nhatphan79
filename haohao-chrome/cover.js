@@ -309,7 +309,7 @@ async function exportPdf() {   // V1.9.4: bìa + danh mục hồ sơ (không g�
     const doc = await PDFDocument.create(); doc.setTitle(V.so() + ' – ' + V.chude()); doc.setAuthor(V.nt()); doc.setCreator('HaoHao – Site Brain');
     const addImgPage = async jpg => { const im = await doc.embedJpg(jpg); const pg = doc.addPage([W, H]); pg.drawImage(im, { x: 0, y: 0, width: W, height: H }); return pg; };
     const cov = await addImgPage(await shot(coverHTML())), nDm = dmPages(); let dm0 = null;
-    if (CV.items.length) for (let t = 0; t < nDm; t++) { const pg = await addImgPage(await shot(dmHTML(t, nDm, null))); if (!t) dm0 = pg; }
+    for (let t = 0; t < nDm; t++) { const pg = await addImgPage(await shot(dmHTML(t, nDm, null))); if (!t) dm0 = pg; }   // V2.0.9: luôn xuất trang danh mục (kể cả chưa có dòng)
     const ctx = doc.context, ent = [['Bìa – ' + MAU[V.mau()][1], cov]].concat(dm0 ? [[V.tt(), dm0]] : []);
     const oRef = ctx.nextRef(), refs = ent.map(() => ctx.nextRef());
     ent.forEach(([t, pg], i) => { const o = { Title: PDFHexString.fromText(t), Parent: oRef, Dest: ctx.obj([pg.ref, PDFName.of('Fit')]) }; if (i) o.Prev = refs[i - 1]; if (i < refs.length - 1) o.Next = refs[i + 1]; ctx.assign(refs[i], ctx.obj(o)); });
