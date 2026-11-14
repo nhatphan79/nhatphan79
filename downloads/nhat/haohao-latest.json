@@ -1,7 +1,7 @@
 {
- "name": "V2.1.2",
- "version": "1.10.465",
+ "name": "V2.1.3",
+ "version": "1.10.466",
  "file": "HaoHao-nhat.zip",
- "sig": "3ahxaJKQ/sVCyXGH7rMYf/QgnOSXHY3VFhTOnw+mfCAiumzs8+oHmwYJj5agtpN+PhkA/YHJM16YeNwZdwlIDA==",
- "notes": "Chỉ báo chậm khi qua ngày kết thúc; nhắc khi tới ngày làm"
+ "sig": "J6dC+hOYLotgDRww4aspGgzxoW9seJISTwhukyqGNz4zbu8YFYEcEUuzoWBWeTOeLcMp6FsbAxX1IQHyKk3OBQ==",
+ "notes": "Tiến độ: chèn công tác mới ngay dưới dòng"
 }
