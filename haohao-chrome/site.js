@@ -729,6 +729,8 @@
     const insertAfter = (G) => { const last = G.items[G.items.length - 1], s0 = last && last.e ? addD(last.e, 1) : d;
       const r = { id: uid(), sec: G.sec, gn: G.gn, g: G.g, n: '', t: '', s: s0, e: addD(s0, 6), pct: 0, mile: false }; S.plan.splice(S.plan.indexOf(last) + 1, 0, r); save(); render(true);
       setTimeout(() => { const x = root.querySelector('tr[data-id="' + r.id + '"] input.sb-in'); if (x) x.focus(); }, 60); };
+    const insertBelow = p => { const s0 = p.s || d, r = { id: uid(), sec: p.sec, gn: p.gn, g: p.g, n: '', t: '', s: s0, e: p.e && p.e >= s0 ? p.e : addD(s0, 6), pct: 0, mile: false };   // V2.1.3: chèn công tác mới ngay dưới dòng này (cùng nhóm)
+      S.plan.splice(S.plan.indexOf(p) + 1, 0, r); save(); render(true); setTimeout(() => { const x = root.querySelector('tr[data-id="' + r.id + '"] input.sb-in'); if (x) x.focus(); }, 60); };
     if (S.plan.length) aggRow('tot', '', 'TỔNG TIẾN ĐỘ THI CÔNG', S.plan);
     let lastSec = null;
     planTree(S).forEach(G => {
@@ -751,7 +753,7 @@
         const slow = pState(p)[0] === 'late', nt = $('td', 'pnote' + (slow && !String(p.why || '').trim() ? ' need' : ''));
         const ni = field(p, { k: 'why', lb: 'Ghi chú / lý do chậm', t: 'text', ph: slow ? 'Ghi lý do chậm…' : 'Ghi chú' });
         ni.addEventListener('input', () => nt.classList.toggle('need', slow && !ni.value.trim())); nt.append(ni);
-        const x = $('td', 'x'); if (!RO) x.append(delBtn(() => { S.plan.splice(S.plan.indexOf(p), 1); save(); render(true); }));
+        const x = $('td', 'x'); if (!RO) { const ad = $('button', 'sb-radd', '＋'); ad.type = 'button'; ad.title = 'Chèn công tác mới ngay dưới dòng này'; ad.setAttribute('aria-label', 'Chèn công tác mới dưới ' + (p.t || 'dòng này')); ad.addEventListener('click', () => insertBelow(p)); x.append(ad, delBtn(() => { S.plan.splice(S.plan.indexOf(p), 1); save(); render(true); })); }   // V2.1.3
         tr.append(sd, dn, ed, $('td', 'r pc kh', planPct(p, d) + '%'), pc, mk, sc, nt, x); tb.append(tr);
       });
     });
