@@ -725,7 +725,7 @@
     const aggRow = (cls, tt, name, L, extra) => { const A = aggOf(L), tr = $('tr', cls);
       tr.append($('td', 'n', tt)); const nm = $('td', 'nm'); nm.append($('span', '', name)); if (extra) extra(nm); tr.append(nm);
       tr.append($('td', 'dt', A.s ? fdFull(A.s) : ''), $('td', 'r dn', A.s ? String(days(A.s, A.e) + 1) : ''), $('td', 'dt', A.e ? fdFull(A.e) : ''), $('td', 'r pc', aggKh(L, d) + '%'), $('td', 'r pc', A.pct + '%'), $('td', 'c mk'));
-      const sc = $('td', 'st'); if (A.s) sc.append(st({ ...A, s: A.s, e: A.e })); tr.append(sc, $('td', 'pnote'), $('td', 'x')); tb.append(tr); return tr; };
+      const sc = $('td', 'st'); if (A.s && cls === 'pgrp') sc.append(st({ ...A, s: A.s, e: A.e })); tr.append(sc, $('td', 'pnote'), $('td', 'x')); tb.append(tr); return tr; };   // V2.1.4: dòng Tổng + phần lớn (A, B…) không hiện tình trạng
     const insertAfter = (G) => { const last = G.items[G.items.length - 1], s0 = last && last.e ? addD(last.e, 1) : d;
       const r = { id: uid(), sec: G.sec, gn: G.gn, g: G.g, n: '', t: '', s: s0, e: addD(s0, 6), pct: 0, mile: false }; S.plan.splice(S.plan.indexOf(last) + 1, 0, r); save(); render(true);
       setTimeout(() => { const x = root.querySelector('tr[data-id="' + r.id + '"] input.sb-in'); if (x) x.focus(); }, 60); };
