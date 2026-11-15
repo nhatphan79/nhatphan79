@@ -1,6 +1,27 @@
 # Bàn giao HaoHao
 
-Cập nhật: 14/11/2026 (anhnhatpro79) · máy anh + kênh nhat = **V2.1.8** · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
+Cập nhật: 15/11/2026 13:40 (anhnhatpro79 → bàn giao sang **nhatphan79**, CÙNG MÁY BÀN) · máy anh + kênh nhat = **V2.1.8** · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
+
+## 🔁 BÀN GIAO SANG TÀI KHOẢN nhatphan79 – CÙNG MÁY BÀN (15/11/2026)
+**Trạng thái lúc bàn giao:** máy bàn + kênh nhat = **V2.1.8** (1.10.471, commit gói 64f454c, `haohao-latest.json` đã ký – commit 85ffbc0). Máy chủ `haohao-gia` = commit **a22f31c** (deploy 14/11 23:55). Không còn việc dở dang.
+
+**Bắt đầu ở tài khoản nhatphan79 (cùng máy bàn desktop-3knerph):**
+1. Mở app Claude trên máy bàn, đăng nhập nhatphan79@gmail.com, mở chat mới → nhắn: *"làm tiếp HaoHao, đọc BAN-GIAO.md trong kho nhatphan79"*.
+2. Claude xin quyền thư mục máy: **`D:\4 .Phần mềm tự viết  - Nhật\HaoHao-V1-1.9.58`** (có 2 dấu cách trước "- Nhật") → anh bấm Cho phép. Trong đó: `HaoHao\` (Chrome nạp thẳng) và `_release\khoa-ky\rieng.pem` (khoá ký – không rời máy).
+3. GitHub: kho `nhatphan79/nhatphan79` (tài khoản này là chủ kho) – Claude cần quyền đẩy (push). Nhánh làm việc: `claude/loving-ramanujan-om0dq8`.
+4. Cloudflare (deploy máy chủ): trình duyệt trong app Claude đã đăng nhập Cloudflare (tài khoản nhatphan79) – nếu hỏi đăng nhập lại thì anh tự đăng nhập. Deploy máy chủ chỉ làm khi anh bảo rõ ("deploy máy chủ" / "cập nhật bot").
+
+**Quy trình MỖI LẦN SỬA (đã chạy ổn 14–15/11, V2.0.4 → V2.1.8):**
+1. Sửa `haohao-chrome/…` → `node --check` → tăng `manifest.json` (version 1.10.x + version_name V2.x.y).
+2. Chép `site.js`, `site.css` sang `haohao-shop-web/ct/` (web điện thoại /cong-trinh).
+3. Thêm 1 dòng vào bảng phiên bản bên dưới + sửa số bản ở dòng "Cập nhật" đầu file.
+4. `python3 haohao-store/dong-goi-nhat.py` → `downloads/nhat/HaoHao-nhat.zip` → commit + push.
+5. Trên máy bàn (device_bash): `curl` gói từ raw GitHub **theo mã commit** vào `~/tai/`, so md5 → giải nén đè `HaoHao\` (manifest ghi sau cùng) → kiểm md5 từng file (274 file) → chép gói vào `_release\HaoHao-nhat.zip` → ký: `node -e` với `crypto.sign(null, zip, rieng.pem)` → `_release\HaoHao-nhat.sig`, kiểm lại bằng `khoa-ky\cong.pem`.
+6. Ghi `downloads/nhat/haohao-latest.json` = `{name, version, file:"HaoHao-nhat.zip", sig, notes}` (kiểm chữ ký với khoá công khai `MCowBQYDK2VwAyEAvmkfSaXXZjW5QtfkhMfELl9V8ikDkTGfXL4Qkm5mSb8=`) → push. Laptop tự cập nhật (≤30 phút, đợi máy rảnh); web điện thoại đổi sau ≤5 phút.
+- ⚠️ `device_commit_files` từ cloud lỗi HTTP 400 → luôn tải gói từ GitHub về máy bằng curl.
+- ⚠️ Chú thích cuối dòng code phải đặt SAU toàn bộ lệnh (V2.1.7 lỡ đưa `doc.append(c)` vào chú thích → mất mục C, D).
+
+**Luật anh Nhật (14–15/11):** trả lời ngắn ✅/⚠️/❌ · gợi ý trước, anh nói thẳng thì làm luôn · **không chữ gạch ngang** – xong/đã duyệt = nền xanh · Hủy = mờ · danh sách Người thực hiện = họ tên Ban chỉ huy · tiến độ: chỉ **chậm** khi qua ngày kết thúc mà thực tế < 90%, ≥90% = "Đạt", tới ngày bắt đầu mà 0% = "Tới ngày làm"; dòng Tổng + phần A/B không hiện tình trạng · báo cáo tuần/tháng: 1. Nhân lực (bảng quân số, không TB/ngày) · 2. Khối lượng thực hiện (KH % / Thực hiện % / Đạt % KH) · 3. Kết quả · 4. **Vướng mắc** · 5. Kế hoạch kỳ tới · 6. Đề xuất CHT, không ô số liệu đầu · báo cáo ngày: B mặc định theo báo cáo hôm trước đã nhập tay, Kế hoạch/QA-QC chỉ là 💡 gợi ý bấm thêm, C/D tự gõ · Cover: lưu đúng bản lúc Xuất PDF/Excel/In, luôn có trang danh mục, nút 📋 Mẫu + 🗑 Xoá toàn bộ.
 
 ## ⭐ Đọc trước – tóm tắt 01/11 → 08/11
 - **🏗️ Công trình (SITE BRAIN, `haohao-chrome/site.js` + `sitebot.js`) là phần RIÊNG của anh Nhật** – không đưa vào bài giới thiệu / quảng bá HaoHao (anh 08/11). Trang điện thoại: `https://haohao-gia.nhatphan79.workers.dev/cong-trinh` (đăng nhập Google, đồng bộ máy tính ⇄ điện thoại qua `/sb`, gộp 3 chiều trong `sbsync.js`). site.js/site.css/sbsync.js chép thêm vào `haohao-shop-web/ct/` mỗi lần sửa.
