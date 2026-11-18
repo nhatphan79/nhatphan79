@@ -1572,6 +1572,8 @@
   function coverOpen(S, x) {
     if (!WEB && !RO && !GUEST) { const u = 'cover.html?s=' + encodeURIComponent(S.id) + '&x=' + encodeURIComponent(x.id) + '&c=' + encodeURIComponent(subCode(S, x));
       try { if (chrome.tabs && chrome.tabs.create) { chrome.tabs.create({ url: chrome.runtime.getURL(u) }); return; } } catch {} window.open(u, '_blank'); return; }
+    if (!RO && (WEB || GUEST)) { save(); const u = SB_API + '/shop/cover-ct.html?s=' + encodeURIComponent(S.id) + '&x=' + encodeURIComponent(x.id) + '&c=' + encodeURIComponent(subCode(S, x)) + (GUEST ? '&g=' + encodeURIComponent(GUEST.o) : '');   // V2.1.9: web + người được chia sẻ (Thành viên) sửa được Cover
+      setTimeout(() => window.open(u, '_blank'), 450); return; }
     const it = x.cv && Array.isArray(x.cv.items) ? x.cv.items : [], so = (x.cv && x.cv.so) || subCode(S, x);
     dialog('📄 Mục lục hồ sơ ' + so, b => {
       if (!it.length) return b.append($('p', 'sb-p', 'Chưa có tài liệu. Lập Cover và chọn file ở HaoHao trên máy tính (nút 📄 ở dòng hồ sơ).'));

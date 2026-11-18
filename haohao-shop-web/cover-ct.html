@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cover hồ sơ trình – HaoHao</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/shop/cover-ct.css">
+<style id="cvcss"></style>
+</head>
+<body>
+<header class="top">
+  <div class="tt"><b>📄 Cover hồ sơ trình</b><span id="hCode"></span></div>
+  <div class="acts">
+    <span id="snap" class="snap" hidden></span>
+    <button type="button" id="bPdf" class="pri">📦 Xuất PDF (bìa + danh mục)</button>
+    <button type="button" id="bXls">📊 Tải bìa Excel</button>
+    <button type="button" id="bPrint">🖨 In bìa</button>
+  </div>
+</header>
+<main class="wrap">
+  <section class="left">
+    <div class="card">
+      <h2>Thông tin bìa <small>🔒 lấy mặc định theo hồ sơ / hợp đồng – bấm đúp vào ô để sửa</small></h2>
+      <div class="grid" id="form"></div>
+    </div>
+    <div class="card">
+      <h2>Danh mục hồ sơ – phần đầu <small>theo hợp đồng + TVGS · dùng chung cả công trình · 🔒 bấm đúp để sửa</small></h2>
+      <div class="grid" id="head"></div>
+    </div>
+    <div class="card">
+      <h2>Danh mục hồ sơ – các dòng <small id="sum"></small></h2>
+      <div class="rowb"><button type="button" id="bP" class="sm2">＋ Phần (A, B…)</button><button type="button" id="bG" class="sm2">＋ Nhóm (1, 2…)</button><button type="button" id="bD" class="sm2">＋ Tài liệu</button><button type="button" id="bTpl" class="sm2 tpl">📋 Mẫu</button><button type="button" id="bClr" class="sm2 clr" title="Xoá hết các dòng danh mục (cả file đã gắn)">🗑 Xoá toàn bộ</button></div>
+      <div class="tw"><table class="toc"><thead><tr><th>Stt / cấp</th><th>Tên hồ sơ</th><th>Có / Không</th><th>Ghi chú</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+      <p class="hint">Chọn <b>Có / Không</b> ở từng dòng tài liệu (mặc định Không). Phần đầu danh mục (Dự án, Gói thầu, Địa điểm, Ban điều hành, TVGS, Nhà thầu) dùng chung cho mọi hồ sơ của công trình. Xuất PDF gồm bìa + danh mục.</p>
+    </div>
+  </section>
+  <section class="right">
+    <div class="pvh pvt"><button type="button" data-t="cv" class="on">Bìa</button><button type="button" data-t="dm">Danh mục</button><small>xem trước A4</small></div>
+    <div class="pv" id="pv"></div>
+  </section>
+</main>
+<div class="msg" id="msg" hidden></div>
+<script src="/shop/cover-logo.js"></script>
+<script src="/ct/lib/khtc/jszip.min.js"></script>
+<script src="/ct/lib/khtc/xlpatch.js"></script>
+<script src="/ct/sbsync.js"></script>
+<script>
+// 🌐 V2.1.9: Cover chạy trên web (/cong-trinh) – chủ đăng nhập web + người được chia sẻ (Thành viên / Toàn quyền) sửa được, tự đồng bộ máy chủ
+(() => {
+  const Q = new URLSearchParams(location.search), ls = { get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } } };
+  const a = ls.get('sbAuth'); if (!a || !a.token) { document.addEventListener('DOMContentLoaded', () => { document.body.innerHTML = '<p style="padding:40px;font:16px system-ui">Chưa đăng nhập – mở trang <a href="/cong-trinh">Công trình</a>, đăng nhập Google rồi bấm 📄 ở dòng hồ sơ.</p>'; }); return; }
+  const GO = String(Q.get('g') || '').toLowerCase(), GS = Q.get('s') || '';
+  const docKey = GO ? 'sbG:' + a.email + ':' + GO + ':' + GS : 'sbDoc:' + a.email, bk = GO ? 'sbGB:' + a.email + ':' + GO + ':' + GS : 'sbBase:' + a.email;
+  const listeners = [], fire = v => listeners.forEach(f => { try { f({ siteBrain: { newValue: v } }, 'local'); } catch {} });
+  const eng = SBSync({ api: location.origin, path: GO ? '/sb?ns=g&o=' + encodeURIComponent(GO) + '&s=' + encodeURIComponent(GS) : undefined, token: async () => a.token,
+    getLocal: async () => ls.get(docKey), setLocal: async v => { ls.set(docKey, v); fire(v); },
+    getBase: async () => ls.get(bk), setBase: async v => { if (!ls.set(bk, v)) ls.set(bk, null); } });
+  let busy = false, t = 0; const sync = async () => { if (busy) return; busy = true; try { await eng.sync(); } catch {} busy = false; };
+  const soon = () => { clearTimeout(t); t = setTimeout(sync, 1200); };
+  const d0 = ls.get(docKey), S0 = d0 && d0.sites && d0.sites[0];
+  window.HH_GM = !!GO && !(S0 && S0.gRole === 'f');
+  window.HH_PDFLIB = '/shop/pdf-lib.esm.min.js';
+  window.chrome = { storage: { local: {
+    get: async k => ({ siteBrain: ls.get(docKey) }),
+    set: async v => { if (v && v.siteBrain) { ls.set(docKey, v.siteBrain); soon(); } } },
+    onChanged: { addListener: f => listeners.push(f) } } };
+  window.addEventListener('storage', e => { if (e.key === docKey) fire(ls.get(docKey)); });   // trang Công trình (tab khác) sửa → bìa tự đổi theo
+  sync(); setInterval(() => { if (!document.hidden) sync(); }, 30000);
+  window.addEventListener('pagehide', () => { if (t) { clearTimeout(t); sync(); } });
+})();
+</script>
+<script src="/shop/cover-ct.js" type="module"></script>
+</body>
+</html>

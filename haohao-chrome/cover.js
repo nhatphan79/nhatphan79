@@ -45,9 +45,10 @@ const D0 = {
 // V1.9.4: phần đầu danh mục + công trình + nhà thầu lưu chung cho cả công trình (S.cvHd) – theo hợp đồng / TVGS; còn lại theo từng hồ sơ (cv)
 const POL = () => /polaris/i.test((S.code || '') + ' ' + (S.name || ''));   // HĐ 0711/2026/HĐXD/TTĐN-ACON
 const SK = new Set(['ct', 'da', 'hm', 'dd', 'bdh', 'tvgs', 'nt', 'hdso']);
-const gv = k => SK.has(k) ? ((S.cvHd || {})[k] || '') : (CV[k] || '');
+const GM = () => !!globalThis.HH_GM;   // V2.1.9: người được chia sẻ quyền Thành viên sửa bìa trên web – phần chung (cvHd) lưu riêng vào hồ sơ này
+const gv = k => SK.has(k) ? ((GM() && CV[k]) || (S.cvHd || {})[k] || '') : (CV[k] || '');
 const sn = k => (CV && CV.snap && CV.snap.v && CV.snap.v[k]) || '';   // V2.0.6: giá trị đã chốt lúc xuất file
-const sv = (k, v) => { if (SK.has(k)) S.cvHd = { ...(S.cvHd || {}), [k]: v }; else CV[k] = v; if (CV.snap && CV.snap.v) delete CV.snap.v[k]; };
+const sv = (k, v) => { if (SK.has(k) && !GM()) S.cvHd = { ...(S.cvHd || {}), [k]: v }; else CV[k] = v; if (CV.snap && CV.snap.v) delete CV.snap.v[k]; };
 const V = {}; KEYS.forEach(k => { V[k] = () => sn(k) || gv(k) || D0[k](); });   // V2.0.6: ưu tiên bản đã chốt → không tự đổi theo dữ liệu mới bên ngoài
 function snapNow(how) { CV.snap = { at: new Date().toISOString(), v: Object.fromEntries(KEYS.map(k => [k, V[k]()])) }; if (saveT) clearTimeout(saveT); saveNow(); snapLbl(); return how; }   // V2.0.6: xuất PDF / Excel / In → lưu đúng bản đó
 function snapLbl() { const e = q('#snap'); if (!e) return; const a = CV.snap && CV.snap.at; e.hidden = !a; if (a) { const d = new Date(a); e.textContent = '💾 Bản đã lưu lúc ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); e.title = 'Lần xuất PDF / Excel / In gần nhất – mở lại giữ đúng nội dung này. Bấm ↺ ở từng ô để lấy lại thông tin mới từ bên ngoài.'; } }
@@ -79,7 +80,7 @@ const idb = () => new Promise((ok, no) => { const r = indexedDB.open('hhCover', 
 const fget = async k => { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction('f').objectStore('f').get(k); t.onsuccess = () => ok(t.result || null); t.onerror = () => no(t.error); }); };
 const fput = async (k, v) => { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction('f', 'readwrite'); t.objectStore('f').put(v, k); t.oncomplete = ok; t.onerror = () => no(t.error); }); };
 const fdel = async k => { const d = await idb(); return new Promise(ok => { const t = d.transaction('f', 'readwrite'); t.objectStore('f').delete(k); t.oncomplete = ok; t.onerror = ok; }); };
-let pdflibP; const pdflib = () => pdflibP ||= import('./lib/pdflib/pdf-lib.esm.min.js');
+let pdflibP; const pdflib = () => pdflibP ||= import(globalThis.HH_PDFLIB || './lib/pdflib/pdf-lib.esm.min.js');
 const isPdf = f => /pdf/i.test(f.type || '') || /\.pdf$/i.test(f.name || '');
 const isImg = f => /^image\/(png|jpe?g|webp|gif|bmp)$/i.test(f.type || '') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name || '');
 async function readFile(f) {
