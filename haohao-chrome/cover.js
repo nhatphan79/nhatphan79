@@ -321,10 +321,65 @@ async function exportPdf() {   // V1.9.4: bìa + danh mục hồ sơ (không g�
   } catch (e) { msg('⚠ Chưa xuất được: ' + (e && e.message || e), true); }
   finally { btn.disabled = false; }
 }
+// 📊 V2.2.0: thêm sheet DANH MỤC (logo + phần đầu + bảng Stt | Tên hồ sơ | Có | Không | Ghi chú) vào file Excel bìa
+async function addDmSheet(z) {
+  const X = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let st = await z.file('xl/styles.xml').async('string');
+  const addTo = (tag, items) => { const re = new RegExp('<' + tag + '( count="(\\d+)")?([^>]*)>([\\s\\S]*?)</' + tag + '>'), m = re.exec(st); const n0 = m[2] ? +m[2] : (m[4].match(new RegExp('<' + tag.replace(/s$/, '') + '[ >/]', 'g')) || []).length;
+    st = st.replace(re, '<' + tag + ' count="' + (n0 + items.length) + '"' + m[3] + '>' + m[4] + items.join('') + '</' + tag + '>'); return n0; };
+  const F = n => '<font>' + n + '<sz val="SZ"/><name val="Times New Roman"/><family val="1"/></font>';
+  const f0 = addTo('fonts', [F('<b/>').replace('SZ', 11), F('').replace('SZ', 11), F('<i/>').replace('SZ', 11), F('<b/>').replace('SZ', 14), F('<i/>').replace('SZ', 9)]);
+  const ln = '<left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right><top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/>';
+  const b0 = addTo('borders', ['<border>' + ln + '</border>']);
+  const XF = (f, b, al) => '<xf numFmtId="0" fontId="' + (f0 + f) + '" fillId="0" borderId="' + (b ? b0 : 0) + '" xfId="0" applyFont="1"' + (b ? ' applyBorder="1"' : '') + ' applyAlignment="1"><alignment ' + al + '/></xf>';
+  const C = 'horizontal="center" vertical="center" wrapText="1"', Lf = 'horizontal="left" vertical="center" wrapText="1"', T = 'horizontal="left" vertical="top" wrapText="1"';
+  const x0 = addTo('cellXfs', [XF(3, 0, C), XF(0, 0, T), XF(1, 0, T), XF(0, 1, C), XF(1, 1, C), XF(0, 1, Lf), XF(2, 1, Lf), XF(1, 1, Lf), XF(4, 0, 'horizontal="right" vertical="center"')]);
+  const S_ = { title: x0, lbl: x0 + 1, val: x0 + 2, th: x0 + 3, c: x0 + 4, pb: x0 + 5, d: x0 + 6, note: x0 + 7, ft: x0 + 8, cb: x0 + 3 };
+  z.file('xl/styles.xml', st);
+  const cell = (ref, v, s) => '<c r="' + ref + '" s="' + s + '"' + (v === '' || v == null ? '/>' : ' t="inlineStr"><is><t xml:space="preserve">' + X(v) + '</t></is></c>');
+  const rows = [], merges = []; let r = 0;
+  const lines = (t, w) => String(t || '').split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(l.length / w)), 0);
+  const row = (cells, ht) => { r++; rows.push('<row r="' + r + '"' + (ht ? ' ht="' + ht + '" customHeight="1"' : '') + '>' + cells.map(([c, v, s]) => cell(c + r, v, s)).join('') + '</row>'); return r; };
+  row([['A', '', S_.title], ['C', V.tt(), S_.title]], 42); merges.push('C1:F1');
+  row([], 6);
+  [['DỰ ÁN', V.da()], ['HẠNG MỤC/GÓI THẦU', V.hm()], ['ĐỊA ĐIỂM', V.dd()], ['BAN ĐIỀU HÀNH DỰ ÁN', V.bdh()], ['ĐƠN VỊ TVGS', V.tvgs()], ['NHÀ THẦU', V.nt()]].forEach(([k, v]) => {
+    const n = row([['A', k, S_.lbl], ['C', ': ' + (v || ''), S_.val]], Math.max(1, lines(': ' + v, 68)) * 15.6); merges.push('A' + n + ':B' + n, 'C' + n + ':F' + n); });
+  row([], 8);
+  const h = row([['A', 'Stt', S_.th], ['B', 'Tên hồ sơ', S_.th], ['C', '', S_.th], ['D', 'Có', S_.th], ['E', 'Không', S_.th], ['F', 'Ghi chú', S_.th]], 22); merges.push('B' + h + ':C' + h);
+  const N = numbering(), ck = '✓';
+  CV.items.forEach((it, i) => { const n = N[i], nm = it.lv === 'p' ? String(it.t || '').toUpperCase() : (it.t || ''), ht = Math.max(1, lines(nm, 58)) * 18;
+    let k; if (it.lv !== 'd') k = row([['A', n.stt, S_.th], ['B', nm, S_.pb], ['C', '', S_.pb], ['D', '', S_.c], ['E', '', S_.c], ['F', '', S_.note]], Math.max(20, ht));
+    else { const co = coOf(it); k = row([['A', '', S_.c], ['B', nm, S_.d], ['C', '', S_.d], ['D', co ? ck : '', S_.cb], ['E', co ? '' : ck, S_.cb], ['F', it.note || '', S_.note]], Math.max(20, ht, lines(it.note, 20) * 16)); }
+    merges.push('B' + k + ':C' + k); });
+  row([], 6); const ft = row([['F', V.so() + ' · ' + V.pb() + ' · ' + fd(V.ngay()), S_.ft]]);
+  const cols = '<cols><col min="1" max="1" width="7" customWidth="1"/><col min="2" max="2" width="22" customWidth="1"/><col min="3" max="3" width="36" customWidth="1"/><col min="4" max="4" width="7" customWidth="1"/><col min="5" max="5" width="8" customWidth="1"/><col min="6" max="6" width="24" customWidth="1"/></cols>';
+  const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:F' + r + '"/><sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>' + cols +
+    '<sheetData>' + rows.join('') + '</sheetData><mergeCells count="' + merges.length + '">' + merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' +
+    '<printOptions horizontalCentered="1"/><pageMargins left="0.5" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/><drawing r:id="rIdL"/></worksheet>';
+  z.file('xl/worksheets/sheetHHDM.xml', xml);
+  // logo ACON
+  const lg = L().acon || ''; let w = 150, hh = 40;
+  if (lg) { try { const im = new Image(); im.src = lg; await im.decode(); hh = 46; w = Math.round(im.naturalWidth / im.naturalHeight * hh); } catch {}
+    z.file('xl/media/hhdm_logo.jpeg', lg.split(',')[1], { base64: true });
+    z.file('xl/drawings/drawingHHDM.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>19050</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>38100</xdr:rowOff></xdr:from><xdr:ext cx="' + w * 9525 + '" cy="' + hh * 9525 + '"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Logo ACON"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + w * 9525 + '" cy="' + hh * 9525 + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>');
+    z.file('xl/drawings/_rels/drawingHHDM.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/hhdm_logo.jpeg"/></Relationships>');
+    z.file('xl/worksheets/_rels/sheetHHDM.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdL" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawingHHDM.xml"/></Relationships>');
+  } else z.file('xl/worksheets/sheetHHDM.xml', xml.replace('<drawing r:id="rIdL"/>', ''));
+  let ct = await z.file('[Content_Types].xml').async('string');
+  ct = ct.replace('</Types>', '<Override PartName="/xl/worksheets/sheetHHDM.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' + (lg ? '<Override PartName="/xl/drawings/drawingHHDM.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' : '') + (/Extension="jpeg"/i.test(ct) ? '' : '<Default Extension="jpeg" ContentType="image/jpeg"/>') + '</Types>');
+  z.file('[Content_Types].xml', ct);
+  let rl = await z.file('xl/_rels/workbook.xml.rels').async('string');
+  rl = rl.replace('</Relationships>', '<Relationship Id="rIdHHDM" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheetHHDM.xml"/></Relationships>');
+  z.file('xl/_rels/workbook.xml.rels', rl);
+  let wb = await z.file('xl/workbook.xml').async('string');
+  const sid = Math.max(0, ...[...wb.matchAll(/sheetId="(\d+)"/g)].map(m => +m[1])) + 1;
+  wb = wb.replace('</sheets>', '<sheet name="DANH MỤC" sheetId="' + sid + '" r:id="rIdHHDM"/></sheets>');
+  z.file('xl/workbook.xml', wb);
+}
 async function exportXls() {
   const btn = q('#bXls'); btn.disabled = true; snapNow('xls');
   try {
-    const src = new Uint8Array(await (await fetch('khtc-mau/cover-acon.xlsx')).arrayBuffer()), sh = MAU[V.mau()][2], m = V.mau();
+    const src = globalThis.HH_COVER_XLSX ? Uint8Array.from(atob(globalThis.HH_COVER_XLSX), c => c.charCodeAt(0)) : new Uint8Array(await (await fetch('khtc-mau/cover-acon.xlsx')).arrayBuffer()), sh = MAU[V.mau()][2], m = V.mau();
     const e = { C1: 'Công trình: ' + V.ct(), C2: 'Ngày        : ' + fd(V.ngay()), C3: 'Số            : ' + V.so(), A4: MAU[m][1], C6: fd(V.ngay()), E6: V.so(), G6: V.pb() };
     if (m !== 'shop') Object.assign(e, { A5: 'NHÀ THẦU: ' + V.nt(), B7: 'Yêu cầu phê duyệt: ' + V.chude(), A9: V.dien(), A11: V.gom(), E11: fd(V.ph()) }, m === 'vl' ? { Q9: '' } : {});
     else { Object.assign(e, { A8: V.dien(), A9: 'Trình duyệt bao gồm: ' + V.gom() }); LOAI.forEach(([k], i) => { e['E' + (11 + i)] = CV.loai && CV.loai[k] ? 'þ' : 'o '; }); }
@@ -336,13 +391,13 @@ async function exportXls() {
     wb = wb.replace(/<sheet ([^>]*?)\/>/g, (all, a) => { const nm = (/name="([^"]+)"/.exec(a) || [])[1]; a = a.replace(/\s*state="[^"]*"/, ''); return '<sheet ' + a + (nm && nm.replace(/&amp;/g, '&') !== sh ? ' state="hidden"' : '') + '/>'; });
     wb = /<workbookView[^>]*activeTab="/.test(wb) ? wb.replace(/activeTab="\d+"/, 'activeTab="' + ix + '"') : wb.replace(/<workbookView /, '<workbookView activeTab="' + ix + '" ');
     wb = wb.replace(/firstSheet="\d+"/, 'firstSheet="' + ix + '"');
-    z.file('xl/workbook.xml', wb);
+    z.file('xl/workbook.xml', wb); await addDmSheet(z);
     const rels = await z.file('xl/_rels/workbook.xml.rels').async('string'), rid = (new RegExp('<sheet [^>]*name="' + sh.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*r:id="([^"]+)"').exec(wb) || [])[1];
     for (const f of Object.keys(z.files).filter(f => /^xl\/worksheets\/sheet\d+\.xml$/.test(f))) { let x = await z.file(f).async('string'); const me = rid && new RegExp('Id="' + rid + '"[^>]*Target="(?:/xl/)?worksheets/' + f.split('/').pop() + '"').test(rels) || (rid && new RegExp('Target="(?:/xl/)?worksheets/' + f.split('/').pop() + '"[^>]*Id="' + rid + '"').test(rels));
       x = x.replace(/\s*tabSelected="1"/g, ''); if (me) x = x.replace(/<sheetView /, '<sheetView tabSelected="1" '); z.file(f, x); }
     out = await z.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
     dl(out, fname(V.so() + ' - Cover.xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    msg('✅ Đã tải bìa Excel (sheet ' + sh + ')');
+    msg('✅ Đã tải Excel: sheet ' + sh + ' (bìa) + sheet DANH MỤC (' + CV.items.length + ' dòng)');
   } catch (e) { msg('⚠ Chưa tạo được Excel: ' + (e && e.message || e), true); }
   finally { btn.disabled = false; }
 }
