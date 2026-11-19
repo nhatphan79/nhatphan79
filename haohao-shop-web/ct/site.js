@@ -188,6 +188,10 @@
     const c = { ...(data.people || {}) }, off = new Set(data.peopleOff || []);
     if (S) [...S.tasks.map(t => t.who), ...S.issues.map(x => x.who), ...S.teams.map(t => t.name), ...(S.roles || []).map(x => x.who), ...S.mats.map(m => m.by)].forEach(v => { v = String(v || '').trim(); if (v && !(v in c)) c[v] = 0; });
     return Object.keys(c).filter(v => !off.has(v)).sort((a, b) => c[b] - c[a] || a.localeCompare(b, 'vi')); };
+  const whoAll = el => { let old = null, ph0 = '';   // V2.2.2: bấm vào ô tên người → hiện ĐỦ danh sách Ban chỉ huy (tạm xoá chữ để danh sách không lọc), bỏ ra không chọn thì trả lại tên cũ
+    el.addEventListener('focus', () => { if (el.readOnly || !el.value) return; old = el.value; ph0 = el.placeholder; el.placeholder = old; el.value = ''; });
+    el.addEventListener('input', () => { old = null; });
+    el.addEventListener('blur', () => { if (old != null) { if (!el.value) el.value = old; el.placeholder = ph0; } old = null; }); };
   const peopleDl = S => { const dl = $('datalist'); dl.id = 'sb-people'; peopleList(S).forEach(v => { const o = $('option'); o.value = v; dl.append(o); }); return dl; };
   function peopleDlg(S) {
     dialog('👤 Danh sách tên người', b => {
@@ -245,7 +249,7 @@
       if (c.t === 'money' || c.t === 'num') { el.inputMode = 'decimal'; el.classList.add('r'); el.value = r[c.k] ? (c.t === 'money' ? money(r[c.k]) : String(r[c.k])) : ''; }
       else el.value = esc(r[c.k]); }
     if (c.ph && !RO) el.placeholder = c.ph; el.setAttribute('aria-label', c.lb || c.k);
-    if (c.who && !RO) { el.setAttribute('list', 'sb-people'); el.autocomplete = 'off'; el.addEventListener('change', () => rememberWho(el.value)); }   // V1.5.5
+    if (c.who && !RO) { el.setAttribute('list', 'sb-people'); el.autocomplete = 'off'; el.addEventListener('change', () => rememberWho(el.value)); whoAll(el); }   // V1.5.5
     if (c.t === 'area') { el.classList.add('sb-grow'); el.addEventListener('input', () => grow(el)); }   // V1.5.5: tự xuống dòng, ô tự cao theo chữ
     if (RO) { if (el.tagName === 'SELECT' || c.t === 'chk') el.disabled = true; else el.readOnly = true; }
     const get = () => c.t === 'chk' ? el.checked : (c.t === 'money' || c.t === 'num') ? num(el.value) : el.value;
@@ -646,7 +650,7 @@
     if (RO) return $('div');
     const f = $('form', 'sb-quick'), i = $('input', 'sb-in'); i.placeholder = ph; i.setAttribute('aria-label', ph);
     const who = $('input', 'sb-in who'); who.placeholder = 'Người làm'; who.setAttribute('aria-label', 'Người phụ trách'); who.setAttribute('list', 'sb-people'); who.autocomplete = 'off';
-    who.value = data.lastWho && !(data.peopleOff || []).includes(data.lastWho) ? data.lastWho : '';   // V1.5.5: mặc định người chọn lần gần nhất
+    who.value = data.lastWho && !(data.peopleOff || []).includes(data.lastWho) ? data.lastWho : ''; whoAll(who);   // V1.5.5: mặc định người chọn lần gần nhất · V2.2.2: bấm vào hiện đủ danh sách
     const dl = $('button', 'sb-btn ghost sm sb-pplbtn', '⚙️'); dl.type = 'button'; dl.title = 'Danh sách tên người (xoá tên gõ nhầm)'; dl.setAttribute('aria-label', 'Danh sách tên người'); dl.addEventListener('click', () => peopleDlg(S));
     const b = $('button', 'sb-btn sm', '＋'); b.type = 'submit'; b.setAttribute('aria-label', 'Thêm việc');
     const ct = $('select', 'sb-in cat'); ct.setAttribute('aria-label', 'Bộ phận'); catList().forEach(([v, l]) => { const o = $('option', '', l); o.value = v; ct.append(o); }); { const o = $('option', '', '＋ Thêm bộ phận…'); o.value = NEWCAT; ct.append(o); } ct.value = flt.cat && flt.cat !== 'all' ? flt.cat : catDef();
