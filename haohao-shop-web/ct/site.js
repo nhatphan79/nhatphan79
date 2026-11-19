@@ -1600,24 +1600,65 @@
     bar.append($('span', 'sb-fl', 'Tiền tố mã'), pre, $('small', '', 'vd mã: ' + subCode(S, { d: today(), grp: groups[0][0], no: '001', rev: 0 })), ex); W.append(bar);
     return { all: () => true, cho: x => x.st === 'tr', lai: x => x.st === 'C' || x.st === 'BC', late: subLate, ok: x => x.st === 'A' || x.st === 'B' }[fs] || (() => true);
   }
-  async function subExport(S, groups, title) {
+  // V2.2.3: Excel CÓ ĐỊNH DẠNG (tự ghi file .xlsx bằng JSZip – SheetJS bản miễn phí không ghi được màu)
+  async function xlsxStyled(name, sheet, cols, rows, opt = {}) {
+    if (!window.JSZip) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'lib/khtc/jszip.min.js'; sc.onload = ok; sc.onerror = no; document.head.append(sc); });
+    const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+    const F = [], FI = [], B = [], X = [], key = new Map();   // font, fill, border, cellXfs
+    const idx = (arr, xml) => { let i = arr.indexOf(xml); if (i < 0) { arr.push(xml); i = arr.length - 1; } return i; };
+    F.push('<font><sz val="11"/><name val="Arial"/></font>'); FI.push('<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'); B.push('<border><left/><right/><top/><bottom/><diagonal/></border>'); X.push('<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>');
+    const st = o => { if (!o) return 0; const k = JSON.stringify(o); if (key.has(k)) return key.get(k);
+      const f = idx(F, '<font>' + (o.b ? '<b/>' : '') + (o.i ? '<i/>' : '') + '<sz val="' + (o.sz || 11) + '"/><color rgb="FF' + (o.c || '1F2937') + '"/><name val="Arial"/></font>');
+      const fi = o.bg ? idx(FI, '<fill><patternFill patternType="solid"><fgColor rgb="FF' + o.bg + '"/><bgColor indexed="64"/></patternFill></fill>') : 0;
+      const bd = o.bd ? idx(B, '<border><left style="' + (o.bl || 'thin') + '"><color rgb="FF' + (o.blc || 'CBD2E1') + '"/></left><right style="thin"><color rgb="FFCBD2E1"/></right><top style="thin"><color rgb="FFCBD2E1"/></top><bottom style="thin"><color rgb="FFCBD2E1"/></bottom><diagonal/></border>') : 0;
+      X.push('<xf numFmtId="0" fontId="' + f + '" fillId="' + fi + '" borderId="' + bd + '" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"' + (o.h ? ' horizontal="' + o.h + '"' : '') + (o.w ? ' wrapText="1"' : '') + '/></xf>');
+      key.set(k, X.length - 1); return X.length - 1; };
+    const colL = n => { let s = ''; n++; while (n) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+    const merges = []; let xml = '';
+    rows.forEach((r, ri) => { const R = ri + 1; xml += '<row r="' + R + '"' + (r.ht ? ' ht="' + r.ht + '" customHeight="1"' : '') + '>';
+      r.c.forEach((c, ci) => { const ref = colL(ci) + R, o = c && typeof c === 'object' && !Array.isArray(c) ? c : { v: c }, s = st(o.s || r.s);
+        xml += o.v === '' || o.v == null ? (s ? '<c r="' + ref + '" s="' + s + '"/>' : '') : '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + esc(o.v) + '</t></is></c>'; });
+      xml += '</row>'; if (r.merge) merges.push('A' + R + ':' + colL(r.merge - 1) + R); });
+    const sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      + '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" zoomScale="90">' + (opt.freeze ? '<pane ySplit="' + opt.freeze + '" topLeftCell="A' + (opt.freeze + 1) + '" activePane="bottomLeft" state="frozen"/>' : '') + '</sheetView></sheetViews>'
+      + '<sheetFormatPr defaultRowHeight="18"/><cols>' + cols.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>'
+      + '<sheetData>' + xml + '</sheetData>' + (merges.length ? '<mergeCells count="' + merges.length + '">' + merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' : '')
+      + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+    const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="' + F.length + '">' + F.join('') + '</fonts><fills count="' + FI.length + '">' + FI.join('') + '</fills><borders count="' + B.length + '">' + B.join('') + '</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="' + X.length + '">' + X.join('') + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    const z = new JSZip();
+    z.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
+    z.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    z.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="' + esc(sheet.slice(0, 31)) + '" sheetId="1" r:id="rId1"/></sheets></workbook>');
+    z.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    z.file('xl/worksheets/sheet1.xml', sheetXml); z.file('xl/styles.xml', stylesXml);
+    const blob = await z.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name + '.xlsx'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  async function subExport(S, groups, title) {   // V2.2.3: xuất đúng màu như bảng QA/QC Shop
     const head = ['STT', 'NỘI DUNG TRÌNH DUYỆT', 'MÃ SỐ KIỂM SOÁT', 'R', 'MÔ TẢ TRÌNH DUYỆT', 'SỐ', 'NGÀY TRÌNH', 'TÌNH TRẠNG PHÊ DUYỆT', 'TÌNH TRẠNG BẢN CỨNG', 'NGƯỜI THỰC HIỆN', 'GHI CHÚ', 'DEADLINE'];
     for (let i = 0; i <= 4; i++) head.push('Ngày trình R0' + i, 'Ngày phản hồi R0' + i);
-    const rows = [['DANH MỤC HỒ SƠ TRÌNH DUYỆT VÀ TÌNH TRẠNG'], ['DỰ ÁN / PROJECT : ' + S.name], ['CHỦ ĐẦU TƯ / OWNER : ' + (S.owner || '')], ['ĐỊA ĐIỂM XÂY DỰNG / ADDRESS : ' + (S.addr || '')], [], head];
-    groups.forEach((G, gi) => { const L = S.subs.filter(x => x.grp === G[0]); if (!L.length) return; rows.push([String(gi + 1), G[0] + ' – ' + G[1]]);
-      L.forEach((x, i) => { const r = [(gi + 1) + '.' + (i + 1), G[2], subCode(S, x), rv(x), x.t || '', x.no || '', fdFull(x.d), lbl(SST, x.st), lbl(SHC, x.hc).replace('—', ''), x.who || '', x.note || '', fdFull(x.dl)];
-        for (let k = 0; k <= 4; k++) { const h = (x.hist || []).find(z => z.r === k) || {}; r.push(fdFull(h.d), fdFull(h.p)); } rows.push(r); }); });
+    const N = head.length, NAVY = '23305E';
+    const T = { s: { b: 1, sz: 15, c: NAVY } }, I = { s: { sz: 11, c: '374151' } };
+    const rows = [{ c: [{ v: 'DANH MỤC HỒ SƠ TRÌNH DUYỆT VÀ TÌNH TRẠNG', ...T }], merge: N, ht: 26 }, { c: [{ v: 'DỰ ÁN / PROJECT : ' + S.name, ...I }], merge: N }, { c: [{ v: 'CHỦ ĐẦU TƯ / OWNER : ' + (S.owner || ''), ...I }], merge: N }, { c: [{ v: 'ĐỊA ĐIỂM XÂY DỰNG / ADDRESS : ' + (S.addr || ''), ...I }], merge: N }, { c: [] },
+      { c: head.map(v => ({ v, s: { b: 1, sz: 10, c: 'FFFFFF', bg: NAVY, bd: 1, h: 'center', w: 1 } })), ht: 32 }];
+    groups.forEach((G, gi) => { const L = S.subs.filter(x => x.grp === G[0]);
+      rows.push({ c: Array.from({ length: N }, (_, k) => ({ v: k === 0 ? String(gi + 1) : k === 1 ? G[0] + ' – ' + G[1] + ' (' + L.length + ' hồ sơ)' : '', s: { b: 1, sz: 11, c: NAVY, bg: 'E8EEF9', bd: 1, h: k === 0 ? 'center' : undefined } })), ht: 22 });
+      L.forEach((x, i) => { const ok = x.st === 'A' || x.st === 'B', cancel = x.st === 'huy', bad = !ok && !cancel && subBad(x);
+        const bg = ok ? 'E6F4EC' : bad ? 'FFF3EF' : undefined, fc = cancel ? '9CA3AF' : '1F2937', bl = ok ? 'thick' : bad ? 'thick' : undefined, blc = ok ? '1F7A4A' : bad ? 'C4401F' : undefined;
+        const base = (o = {}) => ({ sz: 10, c: fc, bg, bd: 1, ...o });
+        const stc = x.st === 'A' || x.st === 'B' ? '1F7A4A' : x.st === 'C' ? 'C4401F' : x.st === 'BC' ? 'B7791F' : x.st === 'tr' ? '2563EB' : fc;
+        const v = [(gi + 1) + '.' + (i + 1), G[2], subCode(S, x), rv(x), x.t || '', x.no || '', fdFull(x.d), lbl(SST, x.st), lbl(SHC, x.hc).replace('—', ''), x.who || '', x.note || '', fdFull(x.dl)];
+        for (let k = 0; k <= 4; k++) { const h = (x.hist || []).find(z => z.r === k) || {}; v.push(fdFull(h.d), fdFull(h.p)); }
+        rows.push({ c: v.map((val, k) => ({ v: val, s: base(k === 0 ? { h: 'center', bl, blc } : k === 2 || k === 3 ? { b: 1 } : k === 7 ? { b: ok || x.st === 'C' ? 1 : 0, c: stc } : k === 4 || k === 1 || k === 10 ? { w: 1 } : k >= 5 && k !== 9 ? { h: 'center' } : {}) })), ht: 20 }); });
+      if (!L.length) rows.push({ c: Array.from({ length: N }, (_, k) => ({ v: k === 1 ? 'Chưa có hồ sơ ' + G[0] : '', s: { i: 1, sz: 10, c: '9CA3AF', bd: 1 } })) }); });
     const name = 'DANH_MUC_TRINH_DUYET_' + subPre(S) + '_' + today().replace(/-/g, '');
-    try {
-      if (!window.XLSX && !WEB && !RO) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'lib/xlsx/xlsx.full.min.js'; sc.onload = ok; sc.onerror = no; document.head.append(sc); });
-      if (!window.XLSX) throw 0;
-      const ws = XLSX.utils.aoa_to_sheet(rows); ws['!cols'] = [6, 34, 34, 5, 50, 6, 12, 26, 20, 16, 30, 12].map(w => ({ wch: w })).concat(Array(10).fill({ wch: 12 }));
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'DM trình duyệt hồ sơ'); XLSX.writeFile(wb, name + '.xlsx'); toast('📤 Đã xuất ' + name + '.xlsx');
-    } catch {
-      const csv = '﻿' + rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    try { await xlsxStyled(name, 'DM trình duyệt hồ sơ', [7, 26, 30, 6, 46, 6, 12, 26, 20, 16, 26, 12, ...Array(10).fill(13)], rows, { freeze: 6 }); toast('📤 Đã xuất ' + name + '.xlsx (có màu như bảng)'); }
+    catch (e) {
+      const csv = '﻿' + rows.map(r => r.c.map(c => { const v = c && typeof c === 'object' ? c.v : c; return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(',')).join('\r\n');
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = name + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('📤 Đã xuất ' + name + '.csv (mở bằng Excel)');
     }
   }
+
   function shopdraw(W, S) { const pk = subHead(W, S, '📐 Danh mục Shopdrawing trình duyệt', [SHDG], 'sd'); subTable(W, S, SHDG, 1, pk); }
   function qaqc(W, S) {   // V1.6.8: 1 tab chung, thứ tự nhóm theo file mẫu: MTS · SHD · MAA · OTS · HSE · SCH · RFA · RFI · NT
     const GS = [SGRP[0], SHDG, SGRP[2], SGRP[3], SGRP[4], SGRP[1], SGRP[5], SGRP[6]];
