@@ -1,7 +1,7 @@
 {
- "name": "V2.2.2",
- "version": "1.10.475",
+ "name": "V2.2.3",
+ "version": "1.10.476",
  "file": "HaoHao-nhat.zip",
- "sig": "OxfOckvxCcmXIEzBsRNgZc/xrhtvfRMGLCkncUfg7pFCjka3GRmYrLJAcJdEJnwdIDvPSeOBne990eYkiDrXBQ==",
- "notes": "Ô tên người bấm vào hiện đủ danh sách Ban chỉ huy"
+ "sig": "rFdrAXq22e8i6c6w3q4XPOi//dMHNoDkw8Fk/29okt62szIZqQtq+JyNtQ3CWkVhIaXqEwjJFw752cH28zefBA==",
+ "notes": "QA/QC Shop: Xuất Excel có đủ màu như bảng"
 }
