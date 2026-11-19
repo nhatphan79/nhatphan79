@@ -1,7 +1,7 @@
 {
- "name": "V2.1.8",
- "version": "1.10.471",
+ "name": "V2.2.0",
+ "version": "1.10.473",
  "file": "HaoHao-nhat.zip",
- "sig": "toZxu890uvtHXw4+sMsm6wGKLyOteWTczLv9PnL4HrUldBllNKMQxWDSheo0SR83TOX9Odss8ynrtkdV5hf3Cg==",
- "notes": "Sửa lỗi báo cáo ngày mất mục C, D"
+ "sig": "4FvzAYoHEYRiqMq6hUJHdWhdz441ZHd18WgdQnRfmvjqzQn7um3Mo5xJEdOe8ozIyr7hFdfZtyh7oRUY/jFWCg==",
+ "notes": "Cover: sửa được trên web; Tải Excel có sheet Danh mục"
 }
