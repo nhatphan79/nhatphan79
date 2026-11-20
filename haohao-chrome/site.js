@@ -676,7 +676,7 @@
   const wkLabel = (S, a, b) => { const n = projWeek(S, a); return (n ? 'Tuần ' + n + ' (' : 'Tuần (') + fd(a) + ' – ' + fd(b) + '/' + b.slice(0, 4) + ')'; };
   // V2.2.21: hồ sơ trình duyệt ĐƯỢC DUYỆT (A / B) trong kỳ – tự đưa vào 3.2 Hồ sơ của báo cáo (ngày duyệt = ngày phản hồi của lần trình hiện tại, chưa có thì ngày trình)
   const subAppr = (S, P) => (S.subs || []).filter(x => x.st === 'A' || x.st === 'B').map(x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)) || {}, dd = h.p || x.d || ''; return { x, dd }; })
-    .filter(o => !o.dd || o.dd <= P.b).sort((a, b) => (a.dd || '') < (b.dd || '') ? -1 : 1)   // V2.2.22: đã chấp thuận là hiện (không cần ngày duyệt trong kỳ) – trừ hồ sơ trình sau kỳ này
+    .filter(o => o.dd && o.dd >= P.a && o.dd <= P.b).sort((a, b) => a.dd < b.dd ? -1 : 1)
     .map(({ x, dd }) => ({ dd, key: subCode(S, x), txt: 'Hồ sơ ' + subCode(S, x) + ' – ' + (x.t || '') + ': ' + lbl(SST, x.st) }));
   function gantt(W, S) {
     const P = S.plan.filter(p => p.s && p.e); if (!P.length) return;
@@ -1874,7 +1874,7 @@
     L.push('', '3. CÔNG VIỆC THI CÔNG TRONG ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG'));   // V2.2.14
     [['a) Hiện trường', X.done.filter(t => catOf(t) === 'ht'), 's3'], ['b) Hồ sơ', X.done.filter(t => catOf(t) !== 'ht'), 's3b']].forEach(([lb, T, kk]) => { L.push(lb);   // V2.2.15
       const n0 = L.length; T.filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 8).forEach(t => L.push('• ' + t.t)); if (T.length > 8) L.push('• … và ' + (T.length - 8) + ' việc khác');
-      if (kk === 's3b') subAppr(S, P).filter(o => !hid('s3a', o.key)).forEach(o => L.push('• ' + o.txt + (o.dd ? ' (duyệt ' + fd(o.dd) + ')' : '')));   // V2.2.21
+      if (kk === 's3b') subAppr(S, P).filter(o => !hid('s3a', o.key)).forEach(o => L.push('• ' + o.txt));   // V2.2.21
       ad(kk); if (L.length === n0) L.push('• Không'); });
     L.push('', '4. VƯỚNG MẮC VÀ ĐỀ XUẤT');   // V2.2.16
     X.slow.filter(p => lagDays(p, dE) >= 3 && !hid('s4', S4.slow(p))).forEach(p => L.push('• Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày' + (String(p.why || '').trim() ? ' – lý do: ' + String(p.why).trim() : '')));
@@ -1989,7 +1989,7 @@
         if (sk === 'hs') { const AP = subAppr(S, P), hk = () => (N.hide && N.hide.s3a) || [], ED = !RO && rpMode !== 'tay';   // V2.2.21: hồ sơ được duyệt trong kỳ – tự thêm, 👁 ẩn / hiện
           const vis = AP.filter(o => ED || !hk().includes(o.key));
           if (vis.length) { sb.querySelectorAll(':scope > ul.sb-list > li.sb-none').forEach(x => x.remove()); const u = sb.querySelector(':scope > ul.sb-list') || sb.appendChild($('ul', 'sb-list'));
-            vis.forEach(o => { const li = $('li', 'sb-appr'), off = () => hk().includes(o.key); li.append($('span', '', '✓ ' + o.txt), $('small', '', o.dd ? 'duyệt ' + fd(o.dd) : 'đã duyệt'));
+            vis.forEach(o => { const li = $('li', 'sb-appr'), off = () => hk().includes(o.key); li.append($('span', '', '✓ ' + o.txt));   // V2.2.22: chỉ tới "A – Chấp thuận", không ghi ngày
               const paint = () => { li.classList.toggle('sb-off', off()); li.classList.toggle('sb-noprint', off()); };
               if (ED) { const e = $('button', 'sb-rpeye sb-noprint', ''); e.type = 'button'; const lbE = () => { e.textContent = off() ? '🙈' : '👁'; e.title = off() ? 'Đang ẩn – bấm để hiện lại trong báo cáo' : 'Ẩn dòng này khỏi báo cáo (không in, không chép Zalo)'; };
                 e.addEventListener('click', () => { N.hide = N.hide || {}; const L0 = hk(); N.hide.s3a = off() ? L0.filter(k => k !== o.key) : [...L0, o.key]; N.savedAt = Date.now(); save(); paint(); lbE(); }); lbE(); li.append(e); }
