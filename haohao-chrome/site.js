@@ -1840,8 +1840,8 @@
       Q.rows.forEach(r => L.push('• ' + r.nm + (r.job ? ' (' + r.job + ')' : '') + ': ' + r.t + ' công'));
       if (rp.kind === 'w') L.push('• Theo ngày: ' + Q.D.map((x, i) => dowLb(x) + ' ' + (Q.dayT[i] || '–')).join(' · ')); }
     ad('s1');
-    L.push('', '2. KHỐI LƯỢNG THỰC HIỆN (theo tiến độ) – tổng: thực tế ' + R.endTt + '% / KH ' + R.endKh + '% → đạt ' + (R.endKh ? Math.round(R.endTt / R.endKh * 100) : 100) + '% kế hoạch');
-    R.items.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (k.ht != null ? ' → đạt ' + k.ht + '% KH' : '') + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
+    L.push('', '2. KHỐI LƯỢNG THỰC HIỆN (theo tiến độ) – tổng: thực tế ' + R.endTt + '% / KH ' + R.endKh + '%');
+    R.items.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
     L.push('', '3. KẾT QUẢ CHÍNH (' + R.done.length + ' việc xong)');
     X.done.slice(0, 8).filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 6).forEach(t => L.push('• ' + t.t)); if (R.done.length > 6) L.push('• … và ' + (R.done.length - 6) + ' việc khác'); ad('s3');
     L.push('', '4. VƯỚNG MẮC');
@@ -1942,12 +1942,12 @@
       c.append(p); }
     // 2 tiến độ hạng mục
     { const c = S2('2. Khối lượng thực hiện (theo tiến độ)');   // V2.1.5: % hoàn thành kế hoạch = thực tế / kế hoạch đến cuối kỳ
-      const bx = $('div', 'sb-tw'), t = $('table', 'sb-t sb-rpt'), hr = $('tr'); hr.append($('th', 'n', 'STT'), $('th', '', 'Hạng mục'), $('th', 'c', 'Thời gian'), $('th', 'r', 'Kế hoạch %'), $('th', 'r', 'Thực hiện %'), $('th', 'r', 'Đạt % KH'), $('th', '', 'Ghi chú'));
+      const bx = $('div', 'sb-tw'), t = $('table', 'sb-t sb-rpt'), hr = $('tr'); hr.append($('th', 'n', 'STT'), $('th', '', 'Hạng mục'), $('th', 'c', 'Thời gian'), $('th', 'r', 'Kế hoạch %'), $('th', 'r', 'Thực hiện %'), $('th', '', 'Ghi chú'));   // V2.2.9: bỏ cột Đạt % KH
       const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
       R.items.forEach((p, i) => { const k = repKL(p, dE), tr = $('tr', k.tt >= 100 ? 'done' : '');
-        tr.append($('td', 'n', String(i + 1)), $('td', '', plab(p)), $('td', 'c', fd(p.s) + ' – ' + fd(p.e)), $('td', 'r', k.kh + '%'), $('td', 'r b', k.tt + '%'), $('td', 'r b ' + (k.ht == null ? '' : k.ht >= 90 ? 'goodt' : k.ht >= 60 ? 'warnt' : 'bad'), k.ht == null ? '' : k.ht + '%'), $('td', 'sb-rpj', String(p.why || '').trim())); tb.append(tr); });
-      if (!R.items.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Không có hạng mục nào trong kỳ'); td.colSpan = 7; tr.append(td); tb.append(tr); }
-      else { const fr = $('tr', 'sum'), ht = R.endKh ? Math.round(R.endTt / R.endKh * 100) : 100; fr.append($('td', 'n', ''), $('td', 'b', 'Tổng tiến độ công trình'), $('td', 'c', ''), $('td', 'r b', R.endKh + '%'), $('td', 'r b', R.endTt + '%'), $('td', 'r b ' + (ht >= 90 ? 'goodt' : ht >= 60 ? 'warnt' : 'bad'), ht + '%'), $('td', '', R.startTt != null ? 'tăng ' + (R.endTt - R.startTt) + '% trong kỳ' : '')); tb.append(fr); }
+        tr.append($('td', 'n', String(i + 1)), $('td', '', plab(p)), $('td', 'c', fd(p.s) + ' – ' + fd(p.e)), $('td', 'r', k.kh + '%'), $('td', 'r b', k.tt + '%'), $('td', 'sb-rpj', String(p.why || '').trim())); tb.append(tr); });
+      if (!R.items.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Không có hạng mục nào trong kỳ'); td.colSpan = 6; tr.append(td); tb.append(tr); }
+      else { const fr = $('tr', 'sum'); fr.append($('td', 'n', ''), $('td', 'b', 'Tổng tiến độ công trình'), $('td', 'c', ''), $('td', 'r b', R.endKh + '%'), $('td', 'r b', R.endTt + '%'), $('td', '', R.startTt != null ? 'tăng ' + (R.endTt - R.startTt) + '% trong kỳ' : '')); tb.append(fr); }
       t.append(tb); bx.append(t); c.append(bx); }
     // 3 kết quả chính
     { const c = S2('3. Kết quả chính (' + R.done.length + ' việc hoàn thành)'); c.append(ul(X.done.slice(0, 8), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận việc hoàn thành')); if (R.done.length > 8) c.append($('p', 'sb-p', '… và ' + (R.done.length - 8) + ' việc khác')); }

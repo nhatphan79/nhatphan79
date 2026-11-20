@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "HaoHao – Việc cần làm, Nhắc nhở, Ghi chú & Tab mới",
-  "version": "1.10.481",
-  "version_name": "V2.2.8",
+  "version": "1.10.482",
+  "version_name": "V2.2.9",
   "description": "Ghi việc cần làm, nhắc giờ, lịch âm, ghi chú, Pomodoro, dịch nhanh, so giá Shopee – chú hamster giúp bạn bớt quên, bớt rối.",
   "permissions": [
     "storage",
