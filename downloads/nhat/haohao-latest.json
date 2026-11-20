@@ -1,7 +1,7 @@
 {
- "name": "V2.2.11",
- "version": "1.10.484",
+ "name": "V2.2.12",
+ "version": "1.10.485",
  "file": "HaoHao-nhat.zip",
- "sig": "vQkMRtCRT2UJ6qceDKXeFd7sg+6Y5EhK5Vsmw4sSU/JfRZbgB/h2QogBWHUekBbUiUe7bf31d+zk7aI0TimUDA==",
- "notes": "Bản chỉnh tay cũng bỏ cột Đạt % KH"
+ "sig": "lyNFXiaJGxmmCDixhMwDYwPJUa2UNqhuXO2QtlNyur5nSeFrpw8Dr1l96LhfzNMsimLFzHpI4+s8fcN6g56uAw==",
+ "notes": "Báo cáo: Khối lượng hiện mọi hạng mục đã bắt đầu, kể cả đã xong"
 }
