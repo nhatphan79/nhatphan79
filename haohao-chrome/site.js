@@ -839,21 +839,31 @@
       S[list].push(r); save(); render(true); toast('＋ Đã thêm'); }, 'Thêm');
   }
   // ✍️ V2.0.3 (anh Nhật 14/11): SỬA TAY TOÀN BỘ văn bản (Báo cáo tuần/tháng, Kế hoạch tuần) – bấm chữ nào sửa chữ đó, 💾 Lưu nguyên bản đã sửa theo kỳ (S.reports[key].html)
-  let hdEdit = '';
+  let hdEdit = '', hdFresh = false, rpMode = 'auto';   // V2.2.6: báo cáo tuần/tháng 2 kiểu tách riêng – 'auto' (tự động) · 'tay' (bản chỉnh tay sao từ bản tự động, lưu riêng)
   const hdStore = S => { if (!S.reports || typeof S.reports !== 'object' || Array.isArray(S.reports)) S.reports = {}; return S.reports; };
-  function hdTools(S, key, label, act) {
-    const N = hdStore(S)[key] = hdStore(S)[key] || {}, on = hdEdit === key; let doc = null;
+  function hdTools(S, key, label, act, mode) {   // mode: undefined = kiểu cũ (kế hoạch tuần) · 'auto' · 'tay' (V2.2.6)
+    const N = hdStore(S)[key] = hdStore(S)[key] || {};
+    if (mode === 'auto') { if (hdEdit === key) hdEdit = ''; return { on: false, N, note: () => {}, put: (W, d) => W.append(d) }; }   // V2.2.6: bản tự động – luôn số liệu mới, không dính bản chỉnh tay
+    const on = hdEdit === key, TAY = mode === 'tay'; let doc = null;
     if (!RO) {
-      if (!on) { const ed = $('button', 'sb-btn ghost sm', N.html ? '✏️ Sửa tiếp' : '✏️ Chỉnh tay'); ed.type = 'button'; ed.title = 'Sửa trực tiếp mọi chữ, số trong ' + label; ed.addEventListener('click', () => { hdEdit = key; render(true); }); act.append(ed);
-        if (N.html) { const bk = $('button', 'sb-btn ghost sm', '↺ Về bản tự động'); bk.type = 'button'; bk.title = 'Bỏ bản đã sửa tay – lấy lại số liệu tự động mới nhất'; bk.addEventListener('click', () => { if (!confirm('Bỏ bản đã sửa tay của ' + label + ' và quay về bản tự động?')) return; delete N.html; delete N.savedAt; save(); render(true); toast('↺ Đã về bản tự động'); }); act.append(bk); } }
+      if (!on) {
+        if (TAY && !N.html) { const mk = $('button', 'sb-btn sm', '✏️ Tạo bản chỉnh tay'); mk.type = 'button'; mk.title = 'Sao 1 bản từ báo cáo tự động hiện tại rồi sửa tuỳ ý – lưu riêng, không ảnh hưởng bản tự động'; mk.addEventListener('click', () => { hdFresh = true; hdEdit = key; render(true); }); act.append(mk); }
+        else { const ed = $('button', 'sb-btn ghost sm', N.html ? '✏️ Sửa tiếp' : '✏️ Chỉnh tay'); ed.type = 'button'; ed.title = 'Sửa trực tiếp mọi chữ, số trong ' + label; ed.addEventListener('click', () => { hdFresh = false; hdEdit = key; render(true); }); act.append(ed); }
+        if (N.html) { const bk = $('button', 'sb-btn ghost sm', TAY ? '↺ Tạo lại từ bản tự động' : '↺ Về bản tự động'); bk.type = 'button';
+          bk.title = TAY ? 'Sao lại bản tự động mới nhất để sửa (bản chỉnh tay cũ bị thay khi bấm 💾 Lưu)' : 'Bỏ bản đã sửa tay – lấy lại số liệu tự động mới nhất';
+          bk.addEventListener('click', () => { if (TAY) { hdFresh = true; hdEdit = key; render(true); return; } if (!confirm('Bỏ bản đã sửa tay của ' + label + ' và quay về bản tự động?')) return; delete N.html; delete N.savedAt; save(); render(true); toast('↺ Đã về bản tự động'); }); act.append(bk); }
+        if (TAY && N.html) { const dx = $('button', 'sb-btn ghost sm', '🗑 Xoá bản chỉnh tay'); dx.type = 'button'; dx.addEventListener('click', () => { if (!confirm('Xoá bản chỉnh tay của ' + label + '? (bản tự động không đổi)')) return; delete N.html; delete N.savedAt; save(); render(true); toast('🗑 Đã xoá bản chỉnh tay'); }); act.append(dx); } }
       else { const sv = $('button', 'sb-btn sm', '💾 Lưu'), no = $('button', 'sb-btn ghost sm', 'Huỷ'); sv.type = no.type = 'button';
-        sv.addEventListener('click', () => { if (!doc) return; const c = doc.cloneNode(true); c.querySelectorAll('.sb-noprint,button,.sb-rpx').forEach(x => x.remove()); c.querySelectorAll('[contenteditable],[tabindex],[title]').forEach(x => { x.removeAttribute('contenteditable'); x.removeAttribute('tabindex'); }); const box = $('div'); box.append(...cleanHtml(c.innerHTML)); N.html = box.innerHTML; N.savedAt = Date.now(); hdEdit = ''; save(); render(true); toast('💾 Đã lưu ' + label); });
-        no.addEventListener('click', () => { hdEdit = ''; render(true); }); act.append(sv, no); }
+        sv.addEventListener('click', () => { if (!doc) return; const c = doc.cloneNode(true); c.querySelectorAll('input,textarea').forEach(x => x.replaceWith(document.createTextNode(x.value || ''))); c.querySelectorAll('.sb-noprint,button,.sb-rpx').forEach(x => x.remove()); c.querySelectorAll('[contenteditable],[tabindex],[title]').forEach(x => { x.removeAttribute('contenteditable'); x.removeAttribute('tabindex'); }); const box = $('div'); box.append(...cleanHtml(c.innerHTML)); N.html = box.innerHTML; N.savedAt = Date.now(); hdEdit = ''; hdFresh = false; save(); render(true); toast('💾 Đã lưu ' + (TAY ? 'bản chỉnh tay ' : '') + label); });
+        no.addEventListener('click', () => { hdEdit = ''; hdFresh = false; render(true); }); act.append(sv, no); }
     }
-    return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay: bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
-        else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
-      put: (W, d) => { doc = d; if (N.html) d.replaceChildren(...cleanHtml(N.html)); if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); } W.append(d); } };
+    const useHtml = N.html && !(on && hdFresh);
+    return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay' + (hdFresh ? ' (bản sao từ báo cáo tự động)' : '') + ': bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
+        else if (TAY && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Chưa có bản chỉnh tay cho kỳ này – bên dưới là bản tự động. Bấm “✏️ Tạo bản chỉnh tay” để sao 1 bản rồi sửa; bản chỉnh tay lưu riêng, không ảnh hưởng bản tự động.'));
+        else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', TAY ? '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Tách riêng với bản tự động (xem bản tự động: bấm 🤖 Tự động).' : '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
+      put: (W, d) => { doc = d; if (useHtml) d.replaceChildren(...cleanHtml(N.html)); if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); } W.append(d); } };
   }
+
   const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;
     const sel = $('select', 'sb-in sb-rpsaved'); sel.setAttribute('aria-label', 'Bản đã lưu'); const o0 = $('option', '', '📚 Đã lưu (' + L.length + ')'); o0.value = ''; sel.append(o0);
     L.forEach(([k, v]) => { const a = k.slice(pre.length); const o = $('option', '', (a.length === 7 ? 'Tháng ' + (+a.slice(5, 7)) + '/' + a.slice(0, 4) : 'Tuần ' + fd(a) + '/' + a.slice(0, 4)) + (v.html ? ' ✏️' : '')); o.value = a; sel.append(o); });
@@ -1869,16 +1879,17 @@
     nav.append(pv, $('b', 'sb-rplabel', P.label), nx); if (rp.off) nav.append(cur);
     const act = $('div', 'sb-row'), cp = $('button', 'sb-btn sm', '📋 Chép gửi Zalo'), pr = $('button', 'sb-btn ghost sm', '🖨 In / Lưu PDF');
     cp.type = pr.type = 'button';
-    cp.addEventListener('click', async () => { const lv = root.querySelector('article.sb-rp'); const t = N.html && lv ? lv.innerText : repText(S, R, N.note, N.add, N.hide); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
+    cp.addEventListener('click', async () => { const lv = root.querySelector('article.sb-rp'); const t = rpMode === 'tay' && N.html && lv ? lv.innerText : repText(S, R, N.note, N.add, N.hide); try { await navigator.clipboard.writeText(t); toast('📋 Đã chép báo cáo – dán vào Zalo'); } catch { dialog('📋 Báo cáo', b => { const ta = $('textarea', 'sb-in sb-ta'); ta.rows = 18; ta.value = t; b.append(ta); }, () => {}, 'Đóng'); } });
     pr.addEventListener('click', () => { document.body.classList.add('sb-printing'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('sb-printing'), 500); }, 50); });
     act.append(cp, pr);
     // V1.3.7: CHỈNH TAY = giữ nguyên các mục & số liệu tự động, chỉ THÊM Ý dưới từng mục (xuống dòng = gạch đầu dòng mới, Tab = ý con)
     const hasAdd = x => x && ((x.add && Object.values(x.add).some(v => Array.isArray(v) && v.some(t => String(t).trim()))) || (x.hide && Object.values(x.hide).some(v => Array.isArray(v) && v.length)));
     if (N.note && !(N.add && N.add.s6)) { N.add = N.add || {}; N.add.s6 = String(N.note).split('\n'); }
-    const HD = hdTools(S, P.key, 'báo cáo ' + P.label, act);   // ✍️ V2.0.3: sửa tay toàn bộ báo cáo
-    if (!RO) hdSaved(S, rp.kind === 'w' ? 'W' : 'M', act, x => { for (let off = -260; off <= 52; off++) { if (period(rp.kind, off).key === (rp.kind === 'w' ? 'W' : 'M') + x) { rp = { kind: rp.kind, off }; hdEdit = ''; render(true); return; } } });
+    act.prepend(chips([['auto', '🤖 Tự động'], ['tay', '✏️ Chỉnh tay']], rpMode, v => { rpMode = v; hdEdit = ''; hdFresh = false; render(true); }));   // V2.2.6: 2 kiểu tách riêng
+    const HD = hdTools(S, P.key, 'báo cáo ' + P.label, act, rpMode);   // ✍️ V2.0.3: sửa tay toàn bộ báo cáo
+    if (!RO) hdSaved(S, rp.kind === 'w' ? 'W' : 'M', act, x => { for (let off = -260; off <= 52; off++) { if (period(rp.kind, off).key === (rp.kind === 'w' ? 'W' : 'M') + x) { rp = { kind: rp.kind, off }; hdEdit = ''; rpMode = 'tay'; render(true); return; } } });
     bar.append(nav, act); W.append(bar); HD.note(W);
-    if (hasAdd(N) && !rpEdit && N.savedAt && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Có ý bổ sung – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu tự động vẫn cập nhật theo dữ liệu mới.'));
+    if (rpMode === 'auto' && 0) W.append($('div', 'sb-note sb-noprint', '✏️ Có ý bổ sung – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu tự động vẫn cập nhật theo dữ liệu mới.'));
     if (P.a > today()) { W.append($('div', 'sb-emptybig', 'Kỳ này chưa tới.')); return; }
 
     const doc = $('article', 'sb-rp');
@@ -1953,7 +1964,7 @@
         u.addEventListener('paste', e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); document.execCommand('insertText', false, t); });
         u.addEventListener('input', () => { if (!u.querySelector('li')) { const li = $('li'); li.append(document.createElement('br')); u.append(li); } });
         c.append(u);
-      } else if (!RO && !N.html && ['s3', 's4', 's5', 's6'].includes(k)) {   // V2.2.5: mục 3–6 nhập kiểu todo list – gõ rồi Enter, sửa / ✕ xoá, tự lưu theo kỳ (N.add)
+      } else if (!RO && rpMode !== 'tay' && ['s3', 's4', 's5', 's6'].includes(k)) {   // V2.2.5: mục 3–6 nhập kiểu todo list – gõ rồi Enter, sửa / ✕ xoá, tự lưu theo kỳ (N.add)
         let L = lines.filter(t => String(t).trim()).map(t => String(t));
         const w = $('div', 'sb-wl sb-rptodo'), ph = { s3: '＋ Gõ kết quả đã làm rồi Enter…', s4: '＋ Gõ vướng mắc rồi Enter…', s5: '＋ Gõ việc tuần tới rồi Enter…', s6: '＋ Gõ đề xuất rồi Enter…' }[k];
         const commit = () => { N.add = N.add || {}; N.add[k] = L.filter(t => t.trim()); N.savedAt = Date.now(); save(); };
