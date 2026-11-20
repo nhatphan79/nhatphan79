@@ -845,6 +845,11 @@
   // V2.2.11: bỏ 1 cột theo tiêu đề trong các bảng của bản đã lưu (vd cột "Đạt % KH" đã bỏ ở bản tự động – bản chỉnh tay cũ bỏ theo cho đồng bộ)
   function dropCol(d, re) { d.querySelectorAll('table').forEach(t => { const hr = t.querySelector('thead tr') || t.rows[0]; if (!hr) return; const i = [...hr.cells].findIndex(c => re.test(c.textContent.trim())); if (i < 0) return;
     [...t.rows].forEach(r => { let k = 0; for (const c of [...r.cells]) { const sp = c.colSpan || 1; if (i >= k && i < k + sp) { if (sp > 1) c.colSpan = sp - 1; else c.remove(); break; } k += sp; } }); }); }
+  function hdDrop6(d) {   // V2.2.16: bản chỉnh tay cũ – mục 6 Đề xuất CHT gộp vào mục 4 Vướng mắc và đề xuất rồi bỏ
+    const secs = [...d.querySelectorAll('section')], s6 = secs.find(x => /^6\.\s*Đề xuất/i.test(((x.querySelector('h2') || {}).textContent || '').trim())), s4 = secs.find(x => /^4\.\s*Vướng mắc/i.test(((x.querySelector('h2') || {}).textContent || '').trim()));
+    if (!s6) return; const items = [...s6.querySelectorAll('li')].filter(li => !li.classList.contains('sb-none') && li.textContent.trim());
+    if (items.length && s4) { let u = s4.querySelector(':scope > ol.sb-hol') || s4.querySelector(':scope > ul.sb-rpaddv') || s4.querySelector(':scope > ul.sb-list'); if (!u) { u = $('ul', 'sb-rpaddv'); s4.append(u); } u.querySelectorAll(':scope > li.sb-none').forEach(x => x.remove()); items.forEach(li => u.append($('li', '', li.textContent.trim()))); }
+    s6.remove(); }
   function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
     const TBL = t => /^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t);
     const clean = t => String(t || '').replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\u2713\u2714\s]+/u, '').replace(/\s+/g, ' ').trim();
@@ -891,7 +896,7 @@
     return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay' + (hdFresh ? ' (bản sao từ báo cáo tự động)' : '') + ': bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
         else if (TAY && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Chưa có bản chỉnh tay cho kỳ này – bên dưới là bản tự động. Bấm “✏️ Tạo bản chỉnh tay” để sao 1 bản rồi sửa; bản chỉnh tay lưu riêng, không ảnh hưởng bản tự động.'));
         else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', TAY ? '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Tách riêng với bản tự động (xem bản tự động: bấm 🤖 Tự động).' : '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
-      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); d.querySelectorAll('h2').forEach(h => { if (/^3\.\s*Kết quả chính/i.test(h.textContent.trim())) h.textContent = '3. Công việc thi công trong ' + (/^M/.test(key) ? 'tháng' : 'tuần'); }); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
+      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); d.querySelectorAll('h2').forEach(h => { if (/^3\.\s*Kết quả chính/i.test(h.textContent.trim())) h.textContent = '3. Công việc thi công trong ' + (/^M/.test(key) ? 'tháng' : 'tuần'); if (/^4\.\s*Vướng mắc\s*$/i.test(h.textContent.trim())) h.textContent = '4. Vướng mắc và đề xuất'; }); hdDrop6(d); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
   }
 
   const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;
@@ -1853,13 +1858,13 @@
     L.push('', '3. CÔNG VIỆC THI CÔNG TRONG ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG'));   // V2.2.14
     [['a) Hiện trường', X.done.filter(t => catOf(t) === 'ht'), 's3'], ['b) Hồ sơ', X.done.filter(t => catOf(t) !== 'ht'), 's3b']].forEach(([lb, T, kk]) => { L.push(lb);   // V2.2.15
       const n0 = L.length; T.filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 8).forEach(t => L.push('• ' + t.t)); if (T.length > 8) L.push('• … và ' + (T.length - 8) + ' việc khác'); ad(kk); if (L.length === n0) L.push('• Không'); });
-    L.push('', '4. VƯỚNG MẮC');
+    L.push('', '4. VƯỚNG MẮC VÀ ĐỀ XUẤT');   // V2.2.16
     X.slow.filter(p => lagDays(p, dE) >= 3 && !hid('s4', S4.slow(p))).forEach(p => L.push('• Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày' + (String(p.why || '').trim() ? ' – lý do: ' + String(p.why).trim() : '')));
     X.needs.slice(0, 6).filter(x => !hid('s4', S4.need(x))).slice(0, 5).forEach(x => L.push('• ' + (x.st === 'cd' ? '[Chờ duyệt] ' : '') + (x.t || '').split('\n')[0] + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '')));
     X.late.slice(0, 5).filter(t => !hid('s4', S4.late(t))).slice(0, 4).forEach(t => L.push('• ' + (t.pri === 'cao' ? '🔴 ' : '') + '[' + catName(catOf(t)) + '] ' + t.t + ' – trễ ' + days(t.due, today()) + ' ngày')); ad('s4');
     L.push('', '5. KẾ HOẠCH ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG') + ' TỚI');
     R.nextT.slice().sort((a, b) => (ord3[a.pri] ?? 1) - (ord3[b.pri] ?? 1)).slice(0, 8).filter(t => !hid('s5', (t.pri === 'cao' ? '🔴 ' : '') + t.t)).slice(0, 6).forEach(t => L.push('• ' + t.t + ' – ' + fd(t.due))); ad('s5');
-    if (((add || {}).s6 || []).some(t => t.trim())) { L.push('', '6. ĐỀ XUẤT CỦA CHỈ HUY TRƯỞNG'); ad('s6'); } else if ((note || '').trim()) L.push('', '6. ĐỀ XUẤT CỦA CHỈ HUY TRƯỞNG', note.trim());
+    // V2.2.16: bỏ mục 6 Đề xuất CHT – đề xuất ghi vào mục 4 Vướng mắc và đề xuất
     return L.join('\n').replace(/\n{3,}/g, '\n\n');
   }
   // V1.5.11: 📋 BÁO CÁO NGÀY (trước nằm ở tab Nhật ký) – thời tiết · A. Nhân lực (từ Quân số) · B–F gõ thẳng · xem & sửa & chép Zalo
@@ -1916,7 +1921,7 @@
     act.append(cp, pr);
     // V1.3.7: CHỈNH TAY = giữ nguyên các mục & số liệu tự động, chỉ THÊM Ý dưới từng mục (xuống dòng = gạch đầu dòng mới, Tab = ý con)
     const hasAdd = x => x && ((x.add && Object.values(x.add).some(v => Array.isArray(v) && v.some(t => String(t).trim()))) || (x.hide && Object.values(x.hide).some(v => Array.isArray(v) && v.length)));
-    if (N.note && !(N.add && N.add.s6)) { N.add = N.add || {}; N.add.s6 = String(N.note).split('\n'); }
+    if (!N.s6m) { const ex = [...((N.add && N.add.s6) || []), ...(N.note && !(N.add && N.add.s6) ? String(N.note).split('\n') : [])].filter(t => String(t).trim()); if (ex.length) { N.add = N.add || {}; N.add.s4 = [...(N.add.s4 || []), ...ex]; } if (N.add) delete N.add.s6; N.s6m = 1; }   // V2.2.16: chuyển đề xuất cũ (mục 6) sang mục 4
     act.prepend(chips([['auto', '🤖 Tự động'], ['tay', '✏️ Chỉnh tay']], rpMode, v => { rpMode = v; hdEdit = ''; hdFresh = false; render(true); }));   // V2.2.6: 2 kiểu tách riêng
     const HD = hdTools(S, P.key, 'báo cáo ' + P.label, act, rpMode);   // ✍️ V2.0.3: sửa tay toàn bộ báo cáo
     if (!RO) hdSaved(S, rp.kind === 'w' ? 'W' : 'M', act, x => { for (let off = -260; off <= 52; off++) { if (period(rp.kind, off).key === (rp.kind === 'w' ? 'W' : 'M') + x) { rp = { kind: rp.kind, off }; hdEdit = ''; rpMode = 'tay'; render(true); return; } } });
@@ -1964,7 +1969,7 @@
         const sb = $('div', 'sb-rpsub'); sb.dataset.sub = sk; sb.append($('h3', 'sb-rph3', lb));
         sb.append(ul(T.slice(0, 10), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận')); if (T.length > 10) sb.append($('p', 'sb-p', '… và ' + (T.length - 10) + ' việc khác')); c.append(sb); }); }
     // 4 vướng mắc cần chỉ đạo
-    { const c = S2('4. Vướng mắc', 'sb-rpwarn');
+    { const c = S2('4. Vướng mắc và đề xuất', 'sb-rpwarn');
       const rows = [...X.slow.filter(p => lagDays(p, dE) >= 3).map(p => ['📅 Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày', String(p.why || '').trim() ? 'Lý do: ' + String(p.why).trim() : '']), ...X.needs.slice(0, 6).map(x => [(x.st === 'cd' ? '🖊 Chờ duyệt: ' : '⚠️ ') + (x.t || '').split('\n')[0], (x.who || 'chưa giao') + (x.due ? ' · hạn ' + fd(x.due) : '')]), ...X.late.slice(0, 5).map(t => [(t.pri === 'cao' ? '🔴 ' : '❗ ') + t.t, catName(catOf(t)) + ' · trễ ' + days(t.due, today()) + ' ngày'])];
       c.append(ul(rows, ([a, b], li) => li.append($('span', '', a), $('small', '', b)), 'Không có vướng mắc')); }
     // 5 kế hoạch kỳ tới
@@ -1972,7 +1977,6 @@
       c.append(ul(R.nextT.slice().sort((a, b) => (ord3[a.pri] ?? 1) - (ord3[b.pri] ?? 1)).slice(0, 8), (t, li) => li.append($('span', '', (t.pri === 'cao' ? '🔴 ' : '') + t.t), $('small', '', [t.who, fd(t.due)].filter(Boolean).join(' · '))), 'Chưa có việc nào hẹn trong kỳ tới'));
       if (R.matNext.length) c.append($('p', 'sb-p', '🧱 Vật tư cần chuẩn bị: ' + R.matNext.slice(0, 5).map(m => m.name + ' ' + (m.qty || '') + ' ' + (m.unit || '') + ' (' + fd(m.need) + ')').join(' · '))); }
     // ghi chú CHT
-    S2('6. Đề xuất của Chỉ huy trưởng');
     const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Người lập'), $('span', '', 'Chỉ huy trưởng')); doc.append(ft);
     doc.querySelectorAll('.sb-rps').forEach(c => {
       const k = c.dataset.k, lines = (N.add && N.add[k]) || [];
@@ -2016,7 +2020,7 @@
           if (fi != null) { const x = fi === 'new' ? ni : u.querySelectorAll('li:not(.sb-wnew) input')[fi]; if (x) x.focus(); } };
         draw(); host.append(w); };
         if (k === 's3' && c.querySelector('.sb-rpsub')) { todoOn('s3', c.querySelector('.sb-rpsub[data-sub="ht"]'), '＋ Gõ công việc hiện trường rồi Enter…'); todoOn('s3b', c.querySelector('.sb-rpsub[data-sub="hs"]'), '＋ Gõ công việc hồ sơ rồi Enter…'); }
-        else todoOn(k, c, { s3: '＋ Gõ công việc thi công rồi Enter…', s4: '＋ Gõ vướng mắc rồi Enter…', s5: '＋ Gõ việc tuần tới rồi Enter…', s6: '＋ Gõ đề xuất rồi Enter…' }[k]);
+        else todoOn(k, c, { s3: '＋ Gõ công việc thi công rồi Enter…', s4: '＋ Gõ vướng mắc / đề xuất rồi Enter…', s5: '＋ Gõ việc tuần tới rồi Enter…', s6: '＋ Gõ đề xuất rồi Enter…' }[k]);
         if (k === 's6') c.querySelectorAll('.sb-none').forEach(x => x.remove());
       } else if (k === 's3' && c.querySelector('.sb-rpsub')) {   // V2.2.15: chỉ xem – dòng gõ thêm vào đúng phần Hiện trường / Hồ sơ
         [['s3', 'ht'], ['s3b', 'hs']].forEach(([kk, sk]) => { const ls = ((N.add && N.add[kk]) || []).filter(t => String(t).trim()); if (!ls.length) return; const sb = c.querySelector('.sb-rpsub[data-sub="' + sk + '"]');
