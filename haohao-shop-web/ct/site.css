@@ -656,3 +656,5 @@ input.sb-scode.man { color: #7A5AF8; }
 @media print { .sb-rowx, .sb-hadd { display: none !important; } }
 .sb-rp ol.sb-hol { margin: 6px 0 4px; padding-left: 26px; } .sb-rp ol.sb-hol > li { padding: 5px 0; border-bottom: 1px dashed #EEF0F4; line-height: 1.45; } .sb-rp ol.sb-hol > li::marker { color: #23305E; font-weight: 700; }   /* V2.2.8 */
 .sb-rp ol.sb-hol { list-style-type: '✓  '; padding-left: 24px; } .sb-rp ol.sb-hol > li::marker { color: #1F7A4A; font-weight: 800; }   /* V2.2.10: số 1, 2, 3 → dấu ✓ */
+/* V2.2.13: ẩn hàng trong bản chỉnh tay – xem / in / Zalo không hiện, lúc sửa hiện mờ để bật lại */
+.sb-rp .sb-hrow { display: none; } .sb-rp.sb-hedit tr.sb-hrow { display: table-row; opacity: .35; } .sb-rp.sb-hedit li.sb-hrow { display: list-item; opacity: .35; } .sb-rowh { color: #23305E; background: #EEF1F8; } @media print { .sb-rp .sb-hrow { display: none !important; } }

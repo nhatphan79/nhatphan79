@@ -855,9 +855,12 @@
         else x.querySelectorAll(':scope > li:not(.sb-none)').forEach(li => { const a = li.querySelector('span'), b = li.querySelector('small, em'); const t = clean(a ? a.textContent + (b && b.textContent.trim() ? ' – ' + b.textContent.trim() : '') : li.textContent); if (t) ol.append($('li', '', t)); });
         x.remove(); });
       sec.querySelectorAll(':scope > .sb-none, :scope > ul > li.sb-none').forEach(x => x.remove()); });
-    const renum = tb => { if (!tb || tb.tagName !== 'TBODY') return; let n = 0; [...tb.rows].forEach(r => { if (r.classList.contains('sum')) return; const c = r.cells[0]; if (c && /^\d*$/.test(c.textContent.replace('✕', '').trim())) c.textContent = String(++n); }); };
-    const xBtn = row => { if (row.querySelector(':scope > .sb-rowx, :scope > td:last-child > .sb-rowx')) return; const x = $('button', 'sb-rowx sb-noprint', '✕'); x.type = 'button'; x.contentEditable = 'false'; x.title = 'Xoá hàng này'; x.setAttribute('aria-label', 'Xoá hàng này');
-      x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', e => { e.preventDefault(); const tb = row.parentElement; row.remove(); renum(tb); }); (row.tagName === 'TR' ? row.lastElementChild || row : row).append(x); };
+    const renum = tb => { if (!tb || tb.tagName !== 'TBODY') return; let n = 0; [...tb.rows].forEach(r => { if (r.classList.contains('sum') || r.classList.contains('sb-hrow')) return; const c = r.cells[0]; if (c && /^\d*$/.test(c.textContent.replace('✕', '').trim())) c.textContent = String(++n); }); };
+    const xBtn = row => { if (row.querySelector(':scope > .sb-rowx, :scope > td:last-child > .sb-rowx')) return;
+      const hb = $('button', 'sb-rowx sb-rowh sb-noprint', row.classList.contains('sb-hrow') ? '🙈' : '👁'); hb.type = 'button'; hb.contentEditable = 'false'; hb.title = 'Ẩn / hiện hàng này (ẩn thì không in, không chép Zalo, vẫn giữ để bật lại)'; hb.setAttribute('aria-label', 'Ẩn hoặc hiện hàng này');   // V2.2.13: chế độ ẩn
+      hb.addEventListener('mousedown', e => e.preventDefault()); hb.addEventListener('click', e => { e.preventDefault(); const h = row.classList.toggle('sb-hrow'); hb.textContent = h ? '🙈' : '👁'; renum(row.parentElement); });
+      const x = $('button', 'sb-rowx sb-noprint', '✕'); x.type = 'button'; x.contentEditable = 'false'; x.title = 'Xoá hàng này'; x.setAttribute('aria-label', 'Xoá hàng này');
+      x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', e => { e.preventDefault(); const tb = row.parentElement; row.remove(); renum(tb); }); (row.tagName === 'TR' ? row.lastElementChild || row : row).append(x, hb); };
     d.querySelectorAll('tbody tr, ul li, ol li').forEach(xBtn);
     d.querySelectorAll('section').forEach(sec => { const h = sec.querySelector('h2'); if (!h) return; const t = h.textContent.trim(); if (TBL(t)) return;
       const w = $('div', 'sb-hadd sb-noprint'); w.contentEditable = 'false'; const ni = $('input', 'sb-in'); ni.placeholder = '＋ Gõ thêm dòng cho "' + t.replace(/\s*\(.*$/, '').replace(/^[0-9]+\.\s*/, '') + '" rồi Enter…'; ni.setAttribute('aria-label', 'Thêm dòng ' + t);
