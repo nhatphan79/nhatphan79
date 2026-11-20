@@ -674,6 +674,10 @@
   // V2.2.20: TUẦN THỨ MẤY của tiến độ – tuần 1 = tuần (thứ 2 → CN) có ngày bắt đầu sớm nhất trong Kế hoạch & tiến độ (giống biểu đồ)
   const projWeek = (S, x) => { const P = (S.plan || []).filter(p => p.s); if (!P.length || !x) return null; const a1 = P.reduce((m, p) => p.s < m ? p.s : m, P[0].s), mon = y => addD(y, -((new Date(y + 'T00:00').getDay() + 6) % 7)); const n = Math.floor(days(mon(a1), mon(x)) / 7) + 1; return n >= 1 ? n : null; };
   const wkLabel = (S, a, b) => { const n = projWeek(S, a); return (n ? 'Tuần ' + n + ' (' : 'Tuần (') + fd(a) + ' – ' + fd(b) + '/' + b.slice(0, 4) + ')'; };
+  // V2.2.21: hồ sơ trình duyệt ĐƯỢC DUYỆT (A / B) trong kỳ – tự đưa vào 3.2 Hồ sơ của báo cáo (ngày duyệt = ngày phản hồi của lần trình hiện tại, chưa có thì ngày trình)
+  const subAppr = (S, P) => (S.subs || []).filter(x => x.st === 'A' || x.st === 'B').map(x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)) || {}, dd = h.p || x.d || ''; return { x, dd }; })
+    .filter(o => o.dd && o.dd >= P.a && o.dd <= P.b).sort((a, b) => a.dd < b.dd ? -1 : 1)
+    .map(({ x, dd }) => ({ dd, key: subCode(S, x), txt: 'Hồ sơ ' + subCode(S, x) + ' – ' + (x.t || '') + ': ' + lbl(SST, x.st) }));
   function gantt(W, S) {
     const P = S.plan.filter(p => p.s && p.e); if (!P.length) return;
     // V1.4.5: trục theo TUẦN (thứ 2 → chủ nhật), ghi rõ ngày của từng tuần; kéo ngang khi dài
@@ -1869,7 +1873,9 @@
     R.klItems.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
     L.push('', '3. CÔNG VIỆC THI CÔNG TRONG ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG'));   // V2.2.14
     [['a) Hiện trường', X.done.filter(t => catOf(t) === 'ht'), 's3'], ['b) Hồ sơ', X.done.filter(t => catOf(t) !== 'ht'), 's3b']].forEach(([lb, T, kk]) => { L.push(lb);   // V2.2.15
-      const n0 = L.length; T.filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 8).forEach(t => L.push('• ' + t.t)); if (T.length > 8) L.push('• … và ' + (T.length - 8) + ' việc khác'); ad(kk); if (L.length === n0) L.push('• Không'); });
+      const n0 = L.length; T.filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 8).forEach(t => L.push('• ' + t.t)); if (T.length > 8) L.push('• … và ' + (T.length - 8) + ' việc khác');
+      if (kk === 's3b') subAppr(S, P).filter(o => !hid('s3a', o.key)).forEach(o => L.push('• ' + o.txt + ' (duyệt ' + fd(o.dd) + ')'));   // V2.2.21
+      ad(kk); if (L.length === n0) L.push('• Không'); });
     L.push('', '4. VƯỚNG MẮC VÀ ĐỀ XUẤT');   // V2.2.16
     X.slow.filter(p => lagDays(p, dE) >= 3 && !hid('s4', S4.slow(p))).forEach(p => L.push('• Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày' + (String(p.why || '').trim() ? ' – lý do: ' + String(p.why).trim() : '')));
     X.needs.slice(0, 6).filter(x => !hid('s4', S4.need(x))).slice(0, 5).forEach(x => L.push('• ' + (x.st === 'cd' ? '[Chờ duyệt] ' : '') + (x.t || '').split('\n')[0] + ' – ' + (x.who || 'chưa giao') + (x.due ? ', hạn ' + fd(x.due) : '')));
@@ -1979,7 +1985,16 @@
     { const c = S2('3. Công việc thi công trong ' + (rp.kind === 'w' ? 'tuần' : 'tháng'));   // V2.2.14: đổi tên mục 3
       [['ht', '3.1 Hiện trường', X.done.filter(t => catOf(t) === 'ht')], ['hs', '3.2 Hồ sơ', X.done.filter(t => catOf(t) !== 'ht')]].forEach(([sk, lb, T]) => {   // V2.2.15: chia Hiện trường / Hồ sơ (bộ phận Hiện trường = hiện trường, còn lại = hồ sơ)
         const sb = $('div', 'sb-rpsub'); sb.dataset.sub = sk; sb.append($('h3', 'sb-rph3', lb));
-        sb.append(ul(T.slice(0, 10), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận')); if (T.length > 10) sb.append($('p', 'sb-p', '… và ' + (T.length - 10) + ' việc khác')); c.append(sb); }); }
+        sb.append(ul(T.slice(0, 10), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận')); if (T.length > 10) sb.append($('p', 'sb-p', '… và ' + (T.length - 10) + ' việc khác'));
+        if (sk === 'hs') { const AP = subAppr(S, P), hk = () => (N.hide && N.hide.s3a) || [], ED = !RO && rpMode !== 'tay';   // V2.2.21: hồ sơ được duyệt trong kỳ – tự thêm, 👁 ẩn / hiện
+          const vis = AP.filter(o => ED || !hk().includes(o.key));
+          if (vis.length) { sb.querySelectorAll(':scope > ul.sb-list > li.sb-none').forEach(x => x.remove()); const u = sb.querySelector(':scope > ul.sb-list') || sb.appendChild($('ul', 'sb-list'));
+            vis.forEach(o => { const li = $('li', 'sb-appr'), off = () => hk().includes(o.key); li.append($('span', '', '✓ ' + o.txt), $('small', '', 'duyệt ' + fd(o.dd)));
+              const paint = () => { li.classList.toggle('sb-off', off()); li.classList.toggle('sb-noprint', off()); };
+              if (ED) { const e = $('button', 'sb-rpeye sb-noprint', ''); e.type = 'button'; const lbE = () => { e.textContent = off() ? '🙈' : '👁'; e.title = off() ? 'Đang ẩn – bấm để hiện lại trong báo cáo' : 'Ẩn dòng này khỏi báo cáo (không in, không chép Zalo)'; };
+                e.addEventListener('click', () => { N.hide = N.hide || {}; const L0 = hk(); N.hide.s3a = off() ? L0.filter(k => k !== o.key) : [...L0, o.key]; N.savedAt = Date.now(); save(); paint(); lbE(); }); lbE(); li.append(e); }
+              paint(); u.append(li); }); } }
+        c.append(sb); }); }
     // 4 vướng mắc cần chỉ đạo
     { const c = S2('4. Vướng mắc và đề xuất');   // V2.2.17: màu thường như các mục khác
       const rows = [...X.slow.filter(p => lagDays(p, dE) >= 3).map(p => ['📅 Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày', String(p.why || '').trim() ? 'Lý do: ' + String(p.why).trim() : '']), ...X.needs.slice(0, 6).map(x => [(x.st === 'cd' ? '🖊 Chờ duyệt: ' : '⚠️ ') + (x.t || '').split('\n')[0], (x.who || 'chưa giao') + (x.due ? ' · hạn ' + fd(x.due) : '')]), ...X.late.slice(0, 5).map(t => [(t.pri === 'cao' ? '🔴 ' : '❗ ') + t.t, catName(catOf(t)) + ' · trễ ' + days(t.due, today()) + ' ngày'])];
