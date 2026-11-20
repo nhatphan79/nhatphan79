@@ -274,9 +274,10 @@ label.sb-chip.on { background: #E8EEFB; color: var(--ink); }
 @media print {
   body.sb-printing * { visibility: hidden !important; }
   body.sb-printing .sb-rp, body.sb-printing .sb-rp * { visibility: visible !important; }
-  body.sb-printing .sb-rp { position: absolute; left: 0; top: 0; width: 100%; max-width: none; border: 0; padding: 0; }
+  body.sb-printing .sb-rp { position: absolute; left: 0; top: 0; width: 100%; max-width: none; border: 0; padding: 12mm 14mm; box-sizing: border-box; }
+  body.sb-printing #hattieu-host, body.sb-printing .sb-noprint { display: none !important; }   /* V2.2.19: không in linh vật / nút */
   body.sb-printing .sb-rp textarea { border: 0 !important; resize: none; }
-  @page { size: A4; margin: 14mm; }
+  @page { size: A4; margin: 0; }   /* V2.2.19: lề 0 → trình duyệt không in ngày giờ, tiêu đề trang, đường dẫn, số trang; lề thật nằm trong .sb-rp */
 }
 
 /* V1.3.2: 🚨 cảnh báo chậm / trễ + bộ phận */
@@ -663,3 +664,6 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-rp section.sb-rpnext { background: #EEF4FF; border: 1px solid #C9DAFB; border-left: 5px solid #2F6FD8; border-radius: 12px; padding: 10px 14px 6px; margin-top: 14px; }
 .sb-rp section.sb-rpnext h2 { color: #1D4ED8; border-bottom-color: #C9DAFB; } .sb-rp section.sb-rpnext ol.sb-hol > li::marker { color: #1D4ED8; } .sb-rp section.sb-rpnext ol.sb-hol > li { border-bottom-color: #DCE6FB; }
 @media print { .sb-rp section.sb-rpnext { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* V2.2.19: chân báo cáo – chỉ Người lập */
+.sb-rpf.sb-rpf1 { display: flex; justify-content: flex-end; } .sb-rpsig { display: flex; flex-direction: column; align-items: center; gap: 64px; min-width: 200px; } .sb-rpsig b { font-weight: 800; color: var(--ink); } .sb-rpsn { font-weight: 700; color: var(--ink); }

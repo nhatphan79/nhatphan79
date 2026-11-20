@@ -857,6 +857,8 @@
     [...s3.children].filter(x => x !== h).forEach(x => a.append(x));
     if (!a.querySelector('li')) a.append($('ul', 'sb-list'));
     b.append($('ul', 'sb-list')); s3.append(a, b); }
+  const RP_LAP = 'Phan Thanh Nhật';   // V2.2.19: chân báo cáo chỉ còn Người lập (anh Nhật)
+  const rpFoot = () => { const ft = $('footer', 'sb-rpf sb-rpf1'), bx = $('div', 'sb-rpsig'); bx.append($('b', '', 'Người lập'), $('span', 'sb-rpsn', RP_LAP)); ft.append(bx); return ft; };
   function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
     const TBL = t => /^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t);
     const clean = t => String(t || '').replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\u2713\u2714\s]+/u, '').replace(/\s+/g, ' ').trim();
@@ -903,7 +905,7 @@
     return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay' + (hdFresh ? ' (bản sao từ báo cáo tự động)' : '') + ': bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
         else if (TAY && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Chưa có bản chỉnh tay cho kỳ này – bên dưới là bản tự động. Bấm “✏️ Tạo bản chỉnh tay” để sao 1 bản rồi sửa; bản chỉnh tay lưu riêng, không ảnh hưởng bản tự động.'));
         else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', TAY ? '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Tách riêng với bản tự động (xem bản tự động: bấm 🤖 Tự động).' : '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
-      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); d.querySelectorAll('h2').forEach(h => { if (/^3\.\s*Kết quả chính/i.test(h.textContent.trim())) h.textContent = '3. Công việc thi công trong ' + (/^M/.test(key) ? 'tháng' : 'tuần'); if (/^4\.\s*Vướng mắc\s*$/i.test(h.textContent.trim())) h.textContent = '4. Vướng mắc và đề xuất'; }); hdDrop6(d); hdSub3(d); d.querySelectorAll('section.sb-rpwarn').forEach(x => x.classList.remove('sb-rpwarn')); d.querySelectorAll('section').forEach(x => { if (/^5\.\s*Kế hoạch/i.test(((x.querySelector('h2') || {}).textContent || '').trim())) x.classList.add('sb-rpnext'); }); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
+      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); d.querySelectorAll('h2').forEach(h => { if (/^3\.\s*Kết quả chính/i.test(h.textContent.trim())) h.textContent = '3. Công việc thi công trong ' + (/^M/.test(key) ? 'tháng' : 'tuần'); if (/^4\.\s*Vướng mắc\s*$/i.test(h.textContent.trim())) h.textContent = '4. Vướng mắc và đề xuất'; }); hdDrop6(d); hdSub3(d); d.querySelectorAll('footer.sb-rpf').forEach(f => f.replaceWith(rpFoot())); d.querySelectorAll('section.sb-rpwarn').forEach(x => x.classList.remove('sb-rpwarn')); d.querySelectorAll('section').forEach(x => { if (/^5\.\s*Kế hoạch/i.test(((x.querySelector('h2') || {}).textContent || '').trim())) x.classList.add('sb-rpnext'); }); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
   }
 
   const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;
@@ -961,7 +963,7 @@
     grid('🧱 Vật tư cần về', [['STT', 'n'], ['Vật tư'], ['Người đề xuất'], ['Số lượng', 'r'], ['Cho hạng mục'], ['Nhà cung cấp'], ['Cần ngày', 'dt'], ['Trạng thái', 'st']],
       K.M.map(m => ({ it: m, cls: m.need < d ? 'late lateBg' : '', cells: [[m.name || ''], [m.by || '–'], [(m.qty ? m.qty + ' ' : '') + (m.unit || ''), 'r'], [m.for || '–'], [m.sup || '–'], [dowLb(m.need), 'dt'], [m.need < d ? $('b', 'sb-due late', 'Trễ ' + days(m.need, d) + ' ngày') : lbl(MST, m.st), 'st']] })),
       ['mat', 'Vật tư'], 'Không có vật tư nào cần về');
-    if (WK) { const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Người lập'), $('span', '', 'Chỉ huy trưởng')); doc.append(ft); HD.put(W, doc); }
+    if (WK) { const ft = rpFoot(); doc.append(ft); HD.put(W, doc); }
   }
   // V1.5.13: B. Công việc thi công – chưa nhập thì tự lấy theo Kế hoạch của chính ngày đó (hạng mục đang thi công + việc tới hạn)
   const sdLate = x => (x.st === 'tr' || x.st === 've' || x.st === 'tl') && x.due && x.due < today();
@@ -1984,7 +1986,7 @@
       c.append(ul(R.nextT.slice().sort((a, b) => (ord3[a.pri] ?? 1) - (ord3[b.pri] ?? 1)).slice(0, 8), (t, li) => li.append($('span', '', (t.pri === 'cao' ? '🔴 ' : '') + t.t), $('small', '', [t.who, fd(t.due)].filter(Boolean).join(' · '))), 'Chưa có việc nào hẹn trong kỳ tới'));
       if (R.matNext.length) c.append($('p', 'sb-p', '🧱 Vật tư cần chuẩn bị: ' + R.matNext.slice(0, 5).map(m => m.name + ' ' + (m.qty || '') + ' ' + (m.unit || '') + ' (' + fd(m.need) + ')').join(' · '))); }
     // ghi chú CHT
-    const ft = $('footer', 'sb-rpf'); ft.append($('span', '', 'Lập ngày ' + fdFull(today())), $('span', '', 'Người lập'), $('span', '', 'Chỉ huy trưởng')); doc.append(ft);
+    const ft = rpFoot(); doc.append(ft);
     doc.querySelectorAll('.sb-rps').forEach(c => {
       const k = c.dataset.k, lines = (N.add && N.add[k]) || [];
       // V1.5.3: dòng tự điền xoá được – Chỉnh tay hiện ✕ (bấm lại ↺ để hiện), Lưu báo cáo thì dòng đã ✕ không còn trong báo cáo / In / Zalo của kỳ này
