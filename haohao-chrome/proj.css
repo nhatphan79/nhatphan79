@@ -467,3 +467,6 @@
 .pj-list.wt .pj-lr { grid-template-columns: 48px minmax(180px, 2fr) 132px 132px minmax(110px, 1fr) 118px 150px 130px 130px 104px; min-width: 1234px; }
 .pj-lr .c-tot { justify-content: flex-end; font-variant-numeric: tabular-nums; font-weight: 800; padding-right: 16px; }
 .pj-lr .c-tot.pos { color: #1F7A4A; } .pj-lr .c-tot.neg { color: #C4401F; }
+/* V2.2.4: rút tiền theo dự án */
+.pj-lr .c-tot { flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px; } .pj-lr .c-tot .pj-rutt { font-size: 11px; font-weight: 600; color: #7C3AED; } .pj-lr .c-tot .pj-rutt:empty { display: none; }
+.pj-ic2.on { opacity: .85; }   /* V2.2.4: dự án đã có rút / nhắc */

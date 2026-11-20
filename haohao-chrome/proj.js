@@ -57,7 +57,9 @@
   const isIdeaA = a => (tplOf(a) || {}).id === 'idea';
   const isIdea = p => isIdeaA(data.areas.find(a => a.id === p.area));
   const OP = () => data.projects.filter(p => !isIdea(p));
-  const rutSum = (A, s, e) => (A.rut || []).filter(x => (!s || x.d >= s) && (!e || x.d < e)).reduce((a, x) => a + toVnd(x.v, x.c), 0);
+  const rutIn = (L, s, e) => (L || []).filter(x => (!s || x.d >= s) && (!e || x.d < e));
+  const prut = (p, s, e) => rutIn(p.rut, s, e).reduce((a, x) => a + (Number(x.v) || 0), 0);   // V2.2.4: 💸 rút theo DỰ ÁN (p.rut, cùng đơn vị tiền dự án) – trừ vào cột Tổng
+  const rutSum = (A, s, e) => rutIn(A.rut, s, e).reduce((a, x) => a + toVnd(x.v, x.c), 0) + data.projects.filter(p => p.area === A.id).reduce((a, p) => a + toVnd(prut(p, s, e), curOf(p)), 0);   // mảng = rút của mảng + rút của các dự án
   function migrate() {
     let ch = false;
     if (!Array.isArray(data.areas)) { data.areas = []; ch = true; }
@@ -159,7 +161,7 @@
   const numTxt = (n, c) => (n == null || n === '' || isNaN(n)) ? '' : c === 'usdt' ? Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }) : Number(n).toLocaleString('vi-VN');
   const fmtC = (n, c, sign) => { if (n == null || n === '' || isNaN(n)) n = 0; const v = Number(n), sg = sign && v > 0 ? '+' : v < 0 ? '-' : '';
     return c === 'usdt' ? sg + '$' + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 }) : sg + Math.round(Math.abs(v)).toLocaleString('vi-VN') + ' ₫'; };   // V1.64: VND không lẻ (bỏ phần thập phân khi quy từ USDT)
-  const parseC = (t, c) => { if (c !== 'usdt') return parseMoney(t); const x = String(t || '').replace(/[^\d.\-]/g, ''); if (!x || x === '-' || x === '.') return null; const n = parseFloat(x); return isNaN(n) ? null : Math.round(n * 100) / 100; };
+  const parseC = (t, c) => { if (c !== 'usdt') return parseMoney(t); let x0 = String(t || '').trim(); if (/^-?\d+,\d{1,2}$/.test(x0)) x0 = x0.replace(',', '.'); const x = x0.replace(/[^\d.\-]/g, ''); if (!x || x === '-' || x === '.') return null; const n = parseFloat(x); return isNaN(n) ? null : Math.round(n * 100) / 100; };   // V2.2.4: 23,5 USDT = 23.5
   const sumC = (L, k) => { const o = { vnd: 0, usdt: 0 }; L.forEach(p => { o[curOf(p)] += k === 'von' ? vonOf(p) : laiOf(p); }); return o; };
   const fmtSum = (o, sign, sep) => { const parts = ['vnd', 'usdt'].filter(c => o[c]).map(c => fmtC(o[c], c, sign)); return parts.join(sep || ' · ') || '0'; };
   // V1.40: tỷ giá USDT → VND (CoinGecko, lưu usdtVnd 6 giờ; lỗi mạng thì lấy tỷ giá HaoHao đã lưu ở mục vàng, cuối cùng 26.000)
@@ -293,33 +295,34 @@
   }
   // V1.70: 💸 Rút tiền – ghi các lần rút lợi nhuận của 1 mảng (ngày · số tiền · ghi chú)
   let rutBg = null;   // hộp Rút tiền đang mở – giữ lại khi trang vẽ lại
-  function rutDlg(A) {
+  function rutDlg(A, P) {   // V2.2.4: P = dự án → rút riêng dự án đó (trừ vào Tổng), tiền theo đơn vị của dự án
     root.querySelectorAll('.pj-need').forEach(x => x.remove());
-    if (!Array.isArray(A.rut)) A.rut = [];
-    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc pj-rut'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Rút tiền ' + A.name);
+    const O = P || A, CU = P ? curOf(P) : null; if (!Array.isArray(O.rut)) O.rut = [];
+    const bg = $('div', 'pj-need'), cd = $('div', 'pj-needc pj-rut'); cd.setAttribute('role', 'dialog'); cd.setAttribute('aria-label', 'Rút tiền ' + (P ? P.name : A.name));
     const onKey = e => { if (e.key === 'Escape' && rutBg === bg) close(); };
     const close = () => { document.removeEventListener('keydown', onKey); rutBg = null; bg.remove(); render(true); };
     document.addEventListener('keydown', onKey);
     const draw = () => {
-      cd.replaceChildren($('div', 'pj-needt', '💸 Rút tiền · ' + A.name), $('div', 'pj-needn', 'Tiền lợi nhuận đã lấy ra – chỉ ghi lại để theo dõi, không trừ vào thu / chi.'));
+      cd.replaceChildren($('div', 'pj-needt', '💸 Rút tiền · ' + (P ? P.name : A.name)), $('div', 'pj-needn', P ? 'Tiền rút ra từ dự án này – trừ vào cột Tổng của dự án (đơn vị ' + (CU === 'usdt' ? 'USDT' : 'VND') + ').' : 'Tiền lợi nhuận đã lấy ra – chỉ ghi lại để theo dõi, không trừ vào thu / chi. Rút từ 1 dự án thì bấm 💸 ở dòng dự án đó.'));
+      if (!P) { const pr = data.projects.filter(p => p.area === A.id && (p.rut || []).length); if (pr.length) { const sm = $('div', 'pj-needn'); sm.textContent = 'Rút theo dự án: ' + pr.map(p => p.name + ' ' + fmtC(prut(p), curOf(p))).join(' · '); cd.append(sm); } }
       const L = $('div', 'pj-rutl');
-      if (!A.rut.length) L.append($('div', 'pj-empty', 'Chưa rút lần nào'));
-      A.rut.slice().sort((a, b) => b.d.localeCompare(a.d)).forEach(x => {
+      if (!O.rut.length) L.append($('div', 'pj-empty', 'Chưa rút lần nào'));
+      O.rut.slice().sort((a, b) => b.d.localeCompare(a.d)).forEach(x => {
         const r = $('div', 'pj-rutr'), del = $('button', 'pj-ic2 del', '✕'); del.title = 'Xoá dòng'; del.setAttribute('aria-label', 'Xoá dòng');
-        del.addEventListener('click', () => { A.rut = A.rut.filter(y => y !== x); save(); draw(); });
+        del.addEventListener('click', () => { O.rut = O.rut.filter(y => y !== x); save(); draw(); });
         r.append($('span', 'd', x.d.split('-').reverse().join('/')), $('b', '', fmtC(x.v, x.c)), $('span', 't', x.t || ''), del); L.append(r);
       });
-      const tot = rutSum(A);
+      const tot = P ? prut(P) : rutSum(A);
       const f = $('div', 'pj-rutf'), d = $('input', 'pj-date'); d.type = 'date'; d.value = today();
       const v = $('input', 'pj-in'); v.placeholder = 'Số tiền'; v.inputMode = 'decimal'; v.setAttribute('aria-label', 'Số tiền');
-      const c = $('select', 'pj-st'); [['vnd', 'VND'], ['usdt', 'USDT']].forEach(([k, l]) => { const o = $('option', '', l); o.value = k; c.append(o); });
+      const c = $('select', 'pj-st'); [['vnd', 'VND'], ['usdt', 'USDT']].filter(([k]) => !CU || k === CU).forEach(([k, l]) => { const o = $('option', '', l); o.value = k; c.append(o); }); if (CU) { c.value = CU; c.disabled = true; }
       const t = $('input', 'pj-in'); t.placeholder = 'Ghi chú (vd: rút về tài khoản)'; t.setAttribute('aria-label', 'Ghi chú');
       const ok = $('button', 'pj-btn', '＋ Ghi');
-      const add = () => { const n = parseC(v.value, c.value); if (!n) return v.focus(); A.rut.push({ id: uid(), d: d.value || today(), v: n, c: c.value, t: t.value.trim() }); save(); draw(); };
+      const add = () => { const n = parseC(v.value, c.value); if (!n) return v.focus(); O.rut.push({ id: uid(), d: d.value || today(), v: n, c: c.value, t: t.value.trim() }); save(); draw(); };
       ok.addEventListener('click', add); [v, t].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') add(); }));
       f.append(d, v, c, t, ok);
       const no = $('button', 'pj-btn ghost', 'Đóng'); no.addEventListener('click', close);
-      const row = $('div', 'pj-needb'); const sp = $('div', 'pj-ruts', tot ? 'Tổng đã rút: ' + (A.rut.some(x => x.c === 'usdt') ? '≈ ' : '') + fmtC(tot, 'vnd') : ''); sp.style.flex = '1'; row.append(sp, no);
+      const row = $('div', 'pj-needb'); const sp = $('div', 'pj-ruts', tot ? 'Tổng đã rút: ' + (P ? fmtC(tot, CU) : (A.rut.some(x => x.c === 'usdt') || data.projects.some(p => p.area === A.id && (p.rut || []).length && curOf(p) === 'usdt') ? '≈ ' : '') + fmtC(tot, 'vnd')) : ''); sp.style.flex = '1'; row.append(sp, no);
       cd.append(L, f, row); setTimeout(() => v.focus(), 0);
     };
     draw();
@@ -463,7 +466,7 @@
     }
     if (!isIdeaA(A)) { const rs = rutSum(A), rb = $('button', 'pj-x pj-rutb', rs ? '💸 Đã rút ' + fmtC(rs, 'vnd') : '💸 Rút tiền'); rb.title = 'Ghi tiền đã rút (lợi nhuận lấy ra) của mảng này'; rb.addEventListener('click', () => rutDlg(A)); top.append(rb); }   // V1.70
     top.append(add); W.append(top);
-    const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); const rowUpd = [];   // V2.0.1: cột Tổng = Vốn + Lãi/lỗ T.setAttribute('aria-label', 'Danh sách dự án');
+    const T = $('div', 'pj-list'); T.setAttribute('role', 'table'); const rowUpd = []; T.setAttribute('aria-label', 'Danh sách dự án');   // V2.0.1: cột Tổng = Vốn + Lãi/lỗ
     const hd = $('div', 'pj-lr hd'); hd.setAttribute('role', 'row');
     const IDEA = isIdeaA(A), AIR = (tplOf(A) || {}).id === 'air';   // V1.72: mảng Airdrop – 5 ô tích cho 5 trình duyệt (p.br)
     (IDEA ? ['STT', 'Tên ý tưởng', 'Bắt đầu', 'Kết thúc', 'Tiến độ', 'Trạng thái', 'Ghi chú', ''] : ['STT', 'Tên dự án', 'Bắt đầu', 'Kết thúc', AIR ? '5 trình duyệt' : 'Tiến độ', 'Trạng thái', 'Vốn đầu tư', 'Lãi / lỗ', 'Tổng', '']).forEach(t => { const c = $('div', 'c', t); if (IDEA && t === 'Ghi chú') c.style.gridColumn = 'span 2'; hd.append(c); });
@@ -510,12 +513,14 @@
       const rm = todos.find(t => t.id === p.remindId), al = $('button', 'pj-ic2' + (rm ? ' on' : ''), '⏰'); al.title = rm ? 'Sửa nhắc hẹn' : 'Hẹn ngày nhắc (HaoHao nhắc đúng giờ)'; al.setAttribute('aria-label', 'Hẹn nhắc cho ' + p.name);
       al.addEventListener('click', () => remindDlg(p));
       if (rm && rm.due) { const ch = $('button', 'pj-rmchip', '⏰ ' + whenTxt(rm.due) + ' · ' + rm.text.replace(' · ' + p.name, '')); ch.title = 'Sửa nhắc'; ch.addEventListener('click', () => remindDlg(p)); nmc.append(ch); }
-      ac.append(al, eye, del);
+      const rb = $('button', 'pj-ic2' + ((p.rut || []).length ? ' on' : ''), '💸'); rb.title = (p.rut || []).length ? 'Đã rút ' + fmtC(prut(p), curOf(p)) + ' – bấm để xem / rút thêm' : 'Rút tiền từ dự án này (trừ vào Tổng)'; rb.setAttribute('aria-label', 'Rút tiền ' + (p.name || '')); rb.addEventListener('click', () => rutDlg(A, p));   // V2.2.4
+      ac.append(...(IDEA ? [] : [rb]), al, eye, del);
       if (IDEA) { const nc = $('div', 'c c-note'), ni = $('input', 'pj-in pj-note'); ni.value = p.note || ''; ni.placeholder = 'Ghi chú…'; ni.setAttribute('aria-label', 'Ghi chú ' + (p.name || '')); nc.style.gridColumn = 'span 2';
         ni.addEventListener('input', () => { p.note = ni.value; saveSoon(); }); ni.addEventListener('change', () => { p.note = ni.value.trim(); save(); }); nc.append(ni); r.append(no, nmc, ds, de, pc, sc, nc, ac); }
       else { const tc = $('div', 'c c-tot'), tb = $('b', '');   // V2.0.1: Tổng = Vốn đầu tư + Lãi/lỗ (cùng đơn vị tiền của dự án)
-        const up = () => { const l = laiOf(p); tb.textContent = fmtC(vonOf(p) + l, curOf(p)); tc.className = 'c c-tot' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); tc.title = 'Vốn ' + fmtC(vonOf(p), curOf(p)) + ' + lãi/lỗ ' + fmtC(l, curOf(p), true); };
-        up(); rowUpd.push(up); tc.append(tb); r.append(no, nmc, ds, de, pc, sc, vc, lc, tc, ac); }
+        const rs = $('small', 'pj-rutt');
+        const up = () => { const l = laiOf(p), w = prut(p); tb.textContent = fmtC(vonOf(p) + l - w, curOf(p)); rs.textContent = w ? 'đã rút ' + fmtC(w, curOf(p)) : ''; tc.className = 'c c-tot' + (l > 0 ? ' pos' : l < 0 ? ' neg' : ''); tc.title = 'Vốn ' + fmtC(vonOf(p), curOf(p)) + ' + lãi/lỗ ' + fmtC(l, curOf(p), true) + (w ? ' − đã rút ' + fmtC(w, curOf(p)) : ''); };   // V2.2.4: Tổng = Vốn + Lãi − Đã rút
+        up(); rowUpd.push(up); tc.append(tb, rs); r.append(no, nmc, ds, de, pc, sc, vc, lc, tc, ac); }
       T.append(r);
     });
     if (!VL.length) T.append($('div', 'pj-empty', PL.length ? 'Các dự án trong mảng này đang ẩn' : 'Mảng này chưa có dự án · bấm ＋ Dự án mới'));
@@ -528,7 +533,7 @@
         const vv = sumV(PL, 'von'), vl = sumV(PL, 'lai'), ap = hasUsdt(PL) ? '≈ ' : '';   // V1.40: quy USDT ra VND, 1 dòng
         tv.textContent = ap + fmtC(vv, 'vnd'); tl.textContent = ap + fmtC(vl, 'vnd', true); tl.className = 'c c-sum' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : '');
         tv.title = tl.title = tt.title = hasUsdt(PL) ? 'Đã quy USDT ra VND · 1 USDT ≈ ' + fmtC(RATE, 'vnd') : '';
-        tt.textContent = ap + fmtC(vv + vl, 'vnd'); tt.className = 'c c-sum c-tot' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : ''); rowUpd.forEach(f => f());
+        const vr = PL.reduce((a, p) => a + toVnd(prut(p), curOf(p)), 0); tt.textContent = ap + fmtC(vv + vl - vr, 'vnd'); tt.title = (tt.title ? tt.title + ' · ' : '') + (vr ? 'đã trừ rút ' + fmtC(vr, 'vnd') : ''); tt.className = 'c c-sum c-tot' + (vl > 0 ? ' pos' : vl < 0 ? ' neg' : ''); rowUpd.forEach(f => f());
       };
       updTotal(); T.append(ft);
     }
