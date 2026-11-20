@@ -1,7 +1,7 @@
 {
- "name": "V2.2.28",
- "version": "1.10.501",
+ "name": "V2.2.29",
+ "version": "1.10.502",
  "file": "HaoHao-nhat.zip",
- "sig": "ShkTnUhp0hxW/rfNFykZjYNRIfz5MrVCtbM5kKD95ehQFOTG3rjA92yj9RYd0LuEgmMOHu/5wvC7pjhUv1aaCw==",
- "notes": "Xuất PDF báo cáo bỏ khung đầu trang; tiêu đề có thời gian"
+ "sig": "orZ5NPEODZYe3QvmOriD+5xHgb/hdHtWpw0iGkcrZju3fwspnERVVFQm+GyCnKTn0CLziXdDdrFDPcrvjMFsDg==",
+ "notes": "Logo ACON đầu báo cáo; tiêu đề có thời gian; PDF gọn"
 }
