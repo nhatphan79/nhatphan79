@@ -1,7 +1,7 @@
 {
- "name": "V2.2.20",
- "version": "1.10.493",
+ "name": "V2.2.21",
+ "version": "1.10.494",
  "file": "HaoHao-nhat.zip",
- "sig": "jDKFDWJE7jzuwt1Bl1SWXk18YTAVnZvq/bmTGm+V64toX0W6N3S4ajNWfJ8ZBGyf1RWWerVR4hQPzG0fKpTJBg==",
- "notes": "Báo cáo tuần ghi tuần thứ mấy theo tiến độ; in PDF gọn, chỉ Người lập"
+ "sig": "upNqRdFsRklXGOimSdjxPNk9O9ywybiCyW07b9nX85zqV5Jq8mkCVXz29rDH38huXgvgr7bTnXtkTZVrR6egDQ==",
+ "notes": "Báo cáo: 3.2 Hồ sơ tự thêm hồ sơ được duyệt, nút ẩn/hiện"
 }
