@@ -672,3 +672,4 @@ input.sb-scode.man { color: #7A5AF8; }
 @media print { .sb-rp li.sb-off { display: none !important; } }
 .sb-pdfw { display: inline-flex; gap: 4px; align-items: center; } .sb-pdfo { font-size: 12px; padding-left: 8px; padding-right: 8px; }   /* V2.2.26 */
 .sb-rp .sb-rplogo { display: block; height: 46px; width: auto; margin: 0 0 10px; }   /* V2.2.29: logo ACON */ @media print { .sb-rp .sb-rplogo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+@media print { #hattieu-host, html > #hattieu-host { display: none !important; visibility: hidden !important; } }   /* V2.2.30: linh vật HaoHao gắn vào <html> (ngoài body) → ẩn khi in mọi kiểu */
