@@ -332,18 +332,21 @@
   // ---------- khung trang ----------
   // 📄 V1.7.8: xuất PDF tab đang mở – hộp in của Chrome (chọn "Lưu dưới dạng PDF"), A4 ngang, đầu trang tên công trình + tab + ngày
   function pdfBtn(S) {
-    const b = $('button', 'sb-btn ghost sm', '📄 Xuất PDF'); b.type = 'button'; b.title = 'Xuất tab đang mở ra file PDF (A4 ngang) – trong hộp in chọn "Lưu dưới dạng PDF"';
-    b.addEventListener('click', () => pdfTab(S)); return b;
+    const w = $('span', 'sb-pdfw'), b = $('button', 'sb-btn ghost sm', '📄 Xuất PDF'), o = $('button', 'sb-btn ghost sm sb-pdfo'); b.type = o.type = 'button';   // V2.2.26: chọn khổ A4 đứng / ngang theo từng tab
+    const lb = () => { const L = pdfOri(); o.textContent = L ? '↔ A4 ngang' : '↕ A4 đứng'; o.title = 'Khổ giấy khi xuất PDF tab này – bấm để đổi ' + (L ? 'sang A4 đứng' : 'sang A4 ngang') + ' (nhớ theo từng tab)'; b.title = 'Xuất tab đang mở ra file PDF (' + (L ? 'A4 ngang' : 'A4 đứng') + ') – trong hộp in chọn "Lưu dưới dạng PDF"'; };
+    o.addEventListener('click', () => { data.pdfOri = { ...(data.pdfOri || {}), [tab]: pdfOri() ? 'p' : 'l' }; save(); lb(); });
+    b.addEventListener('click', () => pdfTab(S)); lb(); w.append(b, o); return w;
   }
+  const pdfOri = () => { const v = (data.pdfOri || {})[tab]; return v ? v === 'l' : !['rep', 'log', 'kh'].includes(tab); };   // true = A4 ngang · mặc định: báo cáo / kế hoạch tuần đứng, các tab bảng (QA/QC, hồ sơ, vật tư…) ngang
   function pdfTab(S) {
     const body = root.querySelector('.sb-body'); if (!body || !S) return;
     if (tab === 'cp' && cpF && !cpF.hidden) { try { cpF.contentWindow.KHTCPrint((S.code || 'CONG-TRINH') + ' - Quản lý chi phí - ' + today()); } catch {} return; }
     const tl = ((TABS.find(([k]) => k === tab) || [])[1] || '').trim(), now = new Date(), t0 = document.title;
     const h = $('div', 'sb-pdfh'); h.append($('b', '', (S.code ? S.code + ' · ' : '') + (S.name || '')), $('span', '', tl), $('small', '', 'Xuất lúc ' + now.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })));
     body.prepend(h);
-    const zs = [...body.querySelectorAll('.sb-tw, .sb-gwrap')].map(w => { const ow = w.style.width; w.style.width = '1030px'; const sw = w.scrollWidth; w.style.width = ow; const z = Math.min(1, 1030 / Math.max(1, sw)); const o = w.style.zoom; if (z < 1) w.style.zoom = z.toFixed(3); return [w, o]; });   // bảng rộng → thu vừa khổ A4 ngang
+    const LS = pdfOri(), PW = LS ? 1030 : 700, zs = [...body.querySelectorAll('.sb-tw, .sb-gwrap')].map(w => { const ow = w.style.width; w.style.width = PW + 'px'; const sw = w.scrollWidth; w.style.width = ow; const z = Math.min(1, PW / Math.max(1, sw)); const o = w.style.zoom; if (z < 1) w.style.zoom = z.toFixed(3); return [w, o]; });   // bảng rộng → thu vừa khổ A4 ngang
     const fn = (S.code || 'CONG-TRINH') + ' - ' + tl.replace(/^\S+\s+/, '') + ' - ' + today();
-    const ps = document.createElement('style'); ps.textContent = '@page { size: A4 landscape; margin: 10mm 10mm 12mm; @bottom-right { content: "Trang " counter(page) "/" counter(pages); font: 9pt "Segoe UI", sans-serif; color: #6B625B; } @bottom-left { content: "HaoHao · Site Brain"; font: 9pt "Segoe UI", sans-serif; color: #9A918A; } }'; document.head.append(ps);   // chỉ lúc xuất PDF – không đụng khổ in báo cáo ngày
+    const ps = document.createElement('style'); ps.textContent = '@page { size: A4 ' + (LS ? 'landscape' : 'portrait') + '; margin: 10mm 10mm 12mm; @bottom-right { content: "Trang " counter(page) "/" counter(pages); font: 9pt "Segoe UI", sans-serif; color: #6B625B; } @bottom-left { content: "HaoHao · Site Brain"; font: 9pt "Segoe UI", sans-serif; color: #9A918A; } }'; document.head.append(ps);   // chỉ lúc xuất PDF – không đụng khổ in báo cáo ngày
     const ed = [...body.querySelectorAll('input[type=date]')].filter(x => !x.value); ed.forEach(x => x.classList.add('sb-pdfe'));   // ô ngày trống → không in mm/dd/yyyy
     document.title = fn; body.classList.add('sb-pdfz'); document.body.classList.add('sb-pdf');
     const done = () => { window.removeEventListener('afterprint', done); document.body.classList.remove('sb-pdf'); body.classList.remove('sb-pdfz'); h.remove(); ps.remove(); ed.forEach(x => x.classList.remove('sb-pdfe')); zs.forEach(([w, o]) => { w.style.zoom = o; }); document.title = t0; };

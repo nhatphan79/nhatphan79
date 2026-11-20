@@ -670,3 +670,4 @@ input.sb-scode.man { color: #7A5AF8; }
 /* V2.2.21: hồ sơ được duyệt trong báo cáo – nút ẩn / hiện */
 .sb-rp li.sb-appr small { color: #1F7A4A; } .sb-rp li.sb-off { opacity: .4; } .sb-rpeye { all: unset; cursor: pointer; margin-left: 8px; padding: 1px 6px; border-radius: 6px; background: #EEF1F8; font-size: 12px; } .sb-rpeye:hover { background: #DCE3F3; }
 @media print { .sb-rp li.sb-off { display: none !important; } }
+.sb-pdfw { display: inline-flex; gap: 4px; align-items: center; } .sb-pdfo { font-size: 12px; padding-left: 8px; padding-right: 8px; }   /* V2.2.26 */
