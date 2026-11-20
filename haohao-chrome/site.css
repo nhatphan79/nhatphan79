@@ -673,3 +673,5 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-pdfw { display: inline-flex; gap: 4px; align-items: center; } .sb-pdfo { font-size: 12px; padding-left: 8px; padding-right: 8px; }   /* V2.2.26 */
 .sb-rp .sb-rplogo { display: block; height: 46px; width: auto; margin: 0 0 10px; }   /* V2.2.29: logo ACON */ @media print { .sb-rp .sb-rplogo { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 @media print { #hattieu-host, html > #hattieu-host { display: none !important; visibility: hidden !important; } }   /* V2.2.30: linh vật HaoHao gắn vào <html> (ngoài body) → ẩn khi in mọi kiểu */
+/* V2.2.31: lề trên/dưới mọi trang khi in */
+@media print { body.sb-printing .sb-rp.sb-prwon { padding-top: 0; padding-bottom: 0; } table.sb-prw { width: 100%; border-collapse: collapse; border: 0; } table.sb-prw > * > tr > td { padding: 0; border: 0; } .sb-prsp { height: 12mm; } .sb-prsp.b { height: 10mm; } }

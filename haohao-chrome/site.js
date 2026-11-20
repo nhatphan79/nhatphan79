@@ -879,7 +879,13 @@
     if (!a.querySelector('li')) a.append($('ul', 'sb-list'));
     b.append($('ul', 'sb-list')); const n3 = mk('nt', '3.3 Nghiệm thu'); n3.append($('ul', 'sb-list')); s3.append(a, b, n3); }
   const rpLogo = () => { const im = document.createElement('img'); im.className = 'sb-rplogo'; im.src = WEB ? 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/ct/acon-logo.png' : 'acon-logo.png'; im.alt = 'ACON Construction'; return im; };   // V2.2.29: logo ACON đầu báo cáo / kế hoạch
-  const RP_LAP = 'Phan Thanh Nhật';   // V2.2.19: chân báo cáo chỉ còn Người lập (anh Nhật)
+  const RP_LAP = 'Phan Thanh Nhật';
+  // V2.2.31: in nhiều trang – lề trên / dưới cho MỌI trang (trang 2, 3… không dính mép) mà không hiện chữ của trình duyệt: lúc in bọc bản báo cáo trong bảng có thead / tfoot trống (lặp lại mỗi trang)
+  window.addEventListener('beforeprint', () => { if (!document.body.classList.contains('sb-printing')) return; const a = root && root.querySelector('article.sb-rp'); if (!a || a.querySelector(':scope > table.sb-prw')) return;
+    const t = document.createElement('table'), th = document.createElement('thead'), tb = document.createElement('tbody'), tf = document.createElement('tfoot'), mk = c => { const tr = document.createElement('tr'), td = document.createElement('td'); if (c) td.append(c); tr.append(td); return [tr, td]; };
+    t.className = 'sb-prw'; const [h1] = mk($('div', 'sb-prsp')), [b1, bd] = mk(), [f1] = mk($('div', 'sb-prsp b'));
+    bd.append(...a.childNodes); th.append(h1); tb.append(b1); tf.append(f1); t.append(th, tb, tf); a.append(t); a.classList.add('sb-prwon'); });
+  window.addEventListener('afterprint', () => { document.querySelectorAll('article.sb-rp > table.sb-prw').forEach(t => { const a = t.parentElement, bd = t.querySelector(':scope > tbody > tr > td'); a.append(...(bd ? bd.childNodes : [])); t.remove(); a.classList.remove('sb-prwon'); }); });   // V2.2.19: chân báo cáo chỉ còn Người lập (anh Nhật)
   const rpFoot = () => { const ft = $('footer', 'sb-rpf sb-rpf1'), bx = $('div', 'sb-rpsig'); bx.append($('b', '', 'Người lập'), $('span', 'sb-rpsn', RP_LAP)); ft.append(bx); return ft; };
   function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
     const TBL = t => /^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t);
