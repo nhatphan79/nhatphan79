@@ -2031,7 +2031,7 @@
         u.addEventListener('input', () => { if (!u.querySelector('li')) { const li = $('li'); li.append(document.createElement('br')); u.append(li); } });
         c.append(u);
       } else if (!RO && rpMode !== 'tay' && ['s3', 's4', 's5', 's6'].includes(k)) {   // V2.2.5: mục 3–6 nhập kiểu todo list – gõ rồi Enter, sửa / ✕ xoá, tự lưu theo kỳ (N.add) · V2.2.15: mục 3 có 2 ô (Hiện trường s3, Hồ sơ s3b)
-        const todoOn = (kk, host, ph) => { let L = ((N.add && N.add[kk]) || []).filter(t => String(t).trim()).map(t => String(t));
+        const todoOn = (kk, host, ph, sugFn) => { let L = ((N.add && N.add[kk]) || []).filter(t => String(t).trim()).map(t => String(t));   // V2.2.25: sugFn = 💡 gợi ý bấm để thêm
         const w = $('div', 'sb-wl sb-rptodo');
         const commit = () => { N.add = N.add || {}; N.add[kk] = L.filter(t => t.trim()); N.savedAt = Date.now(); save(); };
         const draw = fi => { w.textContent = ''; const u = $('ol', 'sb-wli');
@@ -2044,9 +2044,11 @@
           const addIt = () => { const v = ni.value.trim(); ni.value = ''; if (!v) return; L.push(v); commit(); draw('new'); };
           ni.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addIt(); } }); ni.addEventListener('change', addIt); nl.append(ni); u.append(nl);
           w.append(u); host.querySelectorAll(':scope > ul.sb-list > li.sb-none').forEach(x => { x.hidden = L.some(t => t.trim()); });
+          if (sugFn) { const have = new Set(L.map(t => t.trim().toLowerCase())), sg = sugFn().filter(t => t && !have.has(t.trim().toLowerCase()));
+            if (sg.length) { const r = $('div', 'sb-sug sb-noprint'); r.append($('span', 'sb-sugl', '💡 Gợi ý theo tiến độ tuần này:')); sg.forEach(t => { const b = $('button', 'sb-sugb', '＋ ' + t); b.type = 'button'; b.title = 'Thêm vào 3.1 Hiện trường'; b.addEventListener('click', () => { L.push(t); commit(); draw(); }); r.append(b); }); w.append(r); } }
           if (fi != null) { const x = fi === 'new' ? ni : u.querySelectorAll('li:not(.sb-wnew) input')[fi]; if (x) x.focus(); } };
         draw(); host.append(w); };
-        if (k === 's3' && c.querySelector('.sb-rpsub')) { todoOn('s3', c.querySelector('.sb-rpsub[data-sub="ht"]'), '＋ Gõ công việc hiện trường rồi Enter…'); todoOn('s3b', c.querySelector('.sb-rpsub[data-sub="hs"]'), '＋ Gõ công việc hồ sơ rồi Enter…'); }
+        if (k === 's3' && c.querySelector('.sb-rpsub')) { todoOn('s3', c.querySelector('.sb-rpsub[data-sub="ht"]'), '＋ Gõ công việc hiện trường rồi Enter…', () => R.items.filter(p => num(p.pct) < 100 || p.e >= P.a).map(p => plab(p))); todoOn('s3b', c.querySelector('.sb-rpsub[data-sub="hs"]'), '＋ Gõ công việc hồ sơ rồi Enter…'); }
         else todoOn(k, c, { s3: '＋ Gõ công việc thi công rồi Enter…', s4: '＋ Gõ vướng mắc / đề xuất rồi Enter…', s5: '＋ Gõ việc tuần tới rồi Enter…', s6: '＋ Gõ đề xuất rồi Enter…' }[k]);
         if (k === 's6') c.querySelectorAll('.sb-none').forEach(x => x.remove());
       } else if (k === 's3' && c.querySelector('.sb-rpsub')) {   // V2.2.15: chỉ xem – dòng gõ thêm vào đúng phần Hiện trường / Hồ sơ
