@@ -1,7 +1,7 @@
 {
- "name": "V2.2.7",
- "version": "1.10.480",
+ "name": "V2.2.8",
+ "version": "1.10.481",
  "file": "HaoHao-nhat.zip",
- "sig": "rBWStL4xHD4oZVfi8tqeCKhBujRdi14i2Two48w4+4k+eXZN3mn/y62qP8y6F7ox9VZY8m0EQm0PQUDppBT5AQ==",
- "notes": "Sửa tay: xoá từng hàng, thêm dòng kiểu todo list"
+ "sig": "gG5czYVJs+Il2BnWnpXY74hOJ18nmk0O6LkDNaHNMd6poHzlZod722RnFyBSQEcrkA4MeA0ioqTRoSm4dmZVDw==",
+ "notes": "Sửa tay: danh sách đánh số, sửa/xoá từng dòng, STT tự đánh lại"
 }
