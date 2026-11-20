@@ -676,7 +676,7 @@
   const wkLabel = (S, a, b) => { const n = projWeek(S, a); return (n ? 'Tuần ' + n + ' (' : 'Tuần (') + fd(a) + ' – ' + fd(b) + '/' + b.slice(0, 4) + ')'; };
   // V2.2.21: hồ sơ trình duyệt ĐƯỢC DUYỆT (A / B) trong kỳ – tự đưa vào 3.2 Hồ sơ của báo cáo (ngày duyệt = ngày phản hồi của lần trình hiện tại, chưa có thì ngày trình)
   const subAppr = (S, P) => (S.subs || []).filter(x => x.st === 'A' || x.st === 'B').map(x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)) || {}, dd = h.p || x.d || ''; return { x, dd }; })
-    .filter(o => o.dd && o.dd >= P.a && o.dd <= P.b).sort((a, b) => a.dd < b.dd ? -1 : 1)
+    .filter(o => !o.dd || o.dd <= P.b).sort((a, b) => (a.dd || '') < (b.dd || '') ? -1 : 1)   // V2.2.24: hồ sơ đã chấp thuận (A / B) là hiện – không cần ngày duyệt trong kỳ (trừ hồ sơ trình sau cuối kỳ)
     .map(({ x, dd }) => ({ dd, key: subCode(S, x), txt: 'Hồ sơ ' + subCode(S, x) + ' – ' + (x.t || '') + ': ' + lbl(SST, x.st) }));
   function gantt(W, S) {
     const P = S.plan.filter(p => p.s && p.e); if (!P.length) return;
