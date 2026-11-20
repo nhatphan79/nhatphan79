@@ -842,6 +842,9 @@
   let hdEdit = '', hdFresh = false, rpMode = 'auto';   // V2.2.6: báo cáo tuần/tháng 2 kiểu tách riêng – 'auto' (tự động) · 'tay' (bản chỉnh tay sao từ bản tự động, lưu riêng)
   const hdStore = S => { if (!S.reports || typeof S.reports !== 'object' || Array.isArray(S.reports)) S.reports = {}; return S.reports; };
   // V2.2.6b: khi SỬA TAY – mỗi hàng bảng / dòng danh sách có ✕ xoá hàng; mục 3–6 (báo cáo) và các mục danh sách có ô "＋ Gõ rồi Enter" kiểu todo list
+  // V2.2.11: bỏ 1 cột theo tiêu đề trong các bảng của bản đã lưu (vd cột "Đạt % KH" đã bỏ ở bản tự động – bản chỉnh tay cũ bỏ theo cho đồng bộ)
+  function dropCol(d, re) { d.querySelectorAll('table').forEach(t => { const hr = t.querySelector('thead tr') || t.rows[0]; if (!hr) return; const i = [...hr.cells].findIndex(c => re.test(c.textContent.trim())); if (i < 0) return;
+    [...t.rows].forEach(r => { let k = 0; for (const c of [...r.cells]) { const sp = c.colSpan || 1; if (i >= k && i < k + sp) { if (sp > 1) c.colSpan = sp - 1; else c.remove(); break; } k += sp; } }); }); }
   function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
     const TBL = t => /^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t);
     const clean = t => String(t || '').replace(/^[\p{Extended_Pictographic}️‍\s]+/u, '').replace(/\s+/g, ' ').trim();
@@ -884,7 +887,7 @@
     return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay' + (hdFresh ? ' (bản sao từ báo cáo tự động)' : '') + ': bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
         else if (TAY && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Chưa có bản chỉnh tay cho kỳ này – bên dưới là bản tự động. Bấm “✏️ Tạo bản chỉnh tay” để sao 1 bản rồi sửa; bản chỉnh tay lưu riêng, không ảnh hưởng bản tự động.'));
         else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', TAY ? '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Tách riêng với bản tự động (xem bản tự động: bấm 🤖 Tự động).' : '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
-      put: (W, d) => { doc = d; if (useHtml) d.replaceChildren(...cleanHtml(N.html)); if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
+      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
   }
 
   const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;

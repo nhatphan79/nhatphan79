@@ -1,6 +1,6 @@
 # Bàn giao HaoHao
 
-Cập nhật: 15/11/2026 13:40 (anhnhatpro79 → bàn giao sang **nhatphan79**, CÙNG MÁY BÀN) · máy anh + kênh nhat = **V2.2.10** · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
+Cập nhật: 15/11/2026 13:40 (anhnhatpro79 → bàn giao sang **nhatphan79**, CÙNG MÁY BÀN) · máy anh + kênh nhat = **V2.2.11** · **HaoHao V1** (tiện ích Chrome) bản **V1.6.0** (1.10.415) – chạy trên máy anh; Chrome Web Store vẫn là V1.2.3 · **Web cửa hàng** haohaostore.com + /app + máy chủ `haohao-gia` · **HaoHao V2** (app Windows): ⛔ DỪNG, anh Nhật 08/11 không làm nữa.
 
 ## 🔁 BÀN GIAO SANG TÀI KHOẢN nhatphan79 – CÙNG MÁY BÀN (15/11/2026)
 **Trạng thái lúc bàn giao:** máy bàn + kênh nhat = **V2.1.8** (1.10.471, commit gói 64f454c, `haohao-latest.json` đã ký – commit 85ffbc0). Máy chủ `haohao-gia` = commit **a22f31c** (deploy 14/11 23:55). Không còn việc dở dang.
@@ -112,6 +112,7 @@ Sau MỖI lần sửa xong: chạy `python3 _release/dong-goi.py` (nén + làm r
 | V2.1.5 (1.10.468) | 15/11 | 📑 **Báo cáo tuần/tháng mới**: bỏ 5 ô số liệu đầu báo cáo. **1. Nhân lực** = bảng quân số trong kỳ (`repQS`: Ban chỉ huy + từng tổ đội + công nhật; tuần: cột T2…CN, tháng: số ngày; Tổng công, TB/ngày, dòng Cộng). **2. Khối lượng thực hiện (theo tiến độ)** = bảng hạng mục trong kỳ: thời gian, Kế hoạch %, Thực hiện %, **Đạt % KH** = thực tế ÷ kế hoạch (`repKL`; xanh ≥90, cam ≥60, đỏ <60) + dòng Tổng tiến độ công trình. Mục 4 đổi tên **"Vướng mắc"** (cả bản Zalo + bot sitebot.js). Bản chép Zalo đổi theo. |
 | V2.1.6 (1.10.469) | 15/11 | Báo cáo – bảng Nhân lực bỏ cột **TB/ngày** (cả bản Zalo). |
 | V2.1.7 (1.10.470) | 15/11 | 📋 **Báo cáo ngày**: B. Công việc thi công mặc định = **báo cáo ngày gần nhất đã nhập tay** (`prevWorkLog`/`prevWork`, nút ↺ Lấy lại theo báo cáo ngày đó); việc theo Kế hoạch chỉ là **💡 gợi ý** bấm ＋ để thêm (`lineList` tham số `sugFn`). C. Nghiệm thu không tự điền nữa – Hồ sơ QA/QC cũng chỉ là gợi ý. Bản chép Zalo theo đúng danh sách. |
+| V2.2.11 (1.10.484) | 20/11 | ✏️ Bản chỉnh tay đã lưu cũng **bỏ cột "Đạt % KH"** cho đồng bộ – `dropCol(d, re)` bỏ cột theo tiêu đề khi hiện bản đã lưu (xử lý colspan); lưu lại là mất hẳn. |
 | V2.2.10 (1.10.483) | 20/11 | ✏️ Bản chỉnh tay: danh sách các mục (`ol.sb-hol`) đổi số 1, 2, 3 thành dấu **✓** xanh (CSS `list-style-type`, áp cả bản đã lưu). |
 | V2.2.9 (1.10.482) | 20/11 | 📑 Báo cáo – bảng Khối lượng thực hiện **bỏ cột "Đạt % KH"** (cả dòng Tổng + bản Zalo). Bản chỉnh tay đã lưu trước đó vẫn giữ cột – bấm ↺ Tạo lại từ bản tự động nếu muốn bỏ. |
 | V2.2.8 (1.10.481) | 20/11 | ✏️ Sửa tay: mỗi mục danh sách (Kết quả, Vướng mắc, Kế hoạch tới, Đề xuất…) gộp dòng tự động + dòng gõ thêm + dòng "Vật tư cần chuẩn bị" thành **1 danh sách đánh số 1, 2, 3…** (`ol.sb-hol`, bỏ biểu tượng ❗🔴🧱 đầu dòng, ghép phần ghi chú nhỏ "– Hiện trường · trễ 3 ngày"), sửa chữ / ✕ xoá / ＋ thêm từng dòng. Bảng (Nhân lực, Khối lượng): sửa mọi ô (kể cả Thực hiện %), ✕ xoá hàng thì **STT tự đánh lại**. |
