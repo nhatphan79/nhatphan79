@@ -1,7 +1,7 @@
 {
- "name": "V2.2.9",
- "version": "1.10.482",
+ "name": "V2.2.10",
+ "version": "1.10.483",
  "file": "HaoHao-nhat.zip",
- "sig": "ts6whlQqH20ZNl3B9FXI9ZN6cWatxAifGDN/E164ilKcBOmrlAs7Fvrg8SjfwvVVEDHkP2aX33Iitnq+E1WHAw==",
- "notes": "Báo cáo: bỏ cột Đạt % KH"
+ "sig": "chrhu/G9Fk6tNqgxNi00171TmFT6SezQ4/jYWpKvSY+6rWpMu7cAOEuAMK/PONBLMil8HhcL6TED/RP3x9qECw==",
+ "notes": "Bản chỉnh tay: danh sách dùng dấu ✓"
 }
