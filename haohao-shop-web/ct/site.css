@@ -659,3 +659,7 @@ input.sb-scode.man { color: #7A5AF8; }
 /* V2.2.13: ẩn hàng trong bản chỉnh tay – xem / in / Zalo không hiện, lúc sửa hiện mờ để bật lại */
 .sb-rp .sb-hrow { display: none; } .sb-rp.sb-hedit tr.sb-hrow { display: table-row; opacity: .35; } .sb-rp.sb-hedit li.sb-hrow { display: list-item; opacity: .35; } .sb-rowh { color: #23305E; background: #EEF1F8; } @media print { .sb-rp .sb-hrow { display: none !important; } }
 .sb-rp .sb-rpsub { margin: 4px 0 10px; } .sb-rp .sb-rph3 { font-size: 14px; font-weight: 800; color: #23305E; margin: 10px 0 4px; }   /* V2.2.15: mục 3 – Hiện trường / Hồ sơ */
+/* V2.2.17: mục Kế hoạch kỳ tới nổi bật */
+.sb-rp section.sb-rpnext { background: #EEF4FF; border: 1px solid #C9DAFB; border-left: 5px solid #2F6FD8; border-radius: 12px; padding: 10px 14px 6px; margin-top: 14px; }
+.sb-rp section.sb-rpnext h2 { color: #1D4ED8; border-bottom-color: #C9DAFB; } .sb-rp section.sb-rpnext ol.sb-hol > li::marker { color: #1D4ED8; } .sb-rp section.sb-rpnext ol.sb-hol > li { border-bottom-color: #DCE6FB; }
+@media print { .sb-rp section.sb-rpnext { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
