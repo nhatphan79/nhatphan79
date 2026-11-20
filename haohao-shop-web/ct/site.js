@@ -878,6 +878,7 @@
     [...s3.children].filter(x => x !== h).forEach(x => a.append(x));
     if (!a.querySelector('li')) a.append($('ul', 'sb-list'));
     b.append($('ul', 'sb-list')); const n3 = mk('nt', '3.3 Nghiệm thu'); n3.append($('ul', 'sb-list')); s3.append(a, b, n3); }
+  const rpLogo = () => { const im = document.createElement('img'); im.className = 'sb-rplogo'; im.src = WEB ? 'https://raw.githubusercontent.com/nhatphan79/nhatphan79/claude/loving-ramanujan-om0dq8/haohao-shop-web/ct/acon-logo.png' : 'acon-logo.png'; im.alt = 'ACON Construction'; return im; };   // V2.2.29: logo ACON đầu báo cáo / kế hoạch
   const RP_LAP = 'Phan Thanh Nhật';   // V2.2.19: chân báo cáo chỉ còn Người lập (anh Nhật)
   const rpFoot = () => { const ft = $('footer', 'sb-rpf sb-rpf1'), bx = $('div', 'sb-rpsig'); bx.append($('b', '', 'Người lập'), $('span', 'sb-rpsn', RP_LAP)); ft.append(bx); return ft; };
   function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
@@ -926,7 +927,7 @@
     return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay' + (hdFresh ? ' (bản sao từ báo cáo tự động)' : '') + ': bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
         else if (TAY && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Chưa có bản chỉnh tay cho kỳ này – bên dưới là bản tự động. Bấm “✏️ Tạo bản chỉnh tay” để sao 1 bản rồi sửa; bản chỉnh tay lưu riêng, không ảnh hưởng bản tự động.'));
         else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', TAY ? '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Tách riêng với bản tự động (xem bản tự động: bấm 🤖 Tự động).' : '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
-      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); d.querySelectorAll('h2').forEach(h => { if (/^3\.\s*Kết quả chính/i.test(h.textContent.trim())) h.textContent = '3. Công việc thi công trong ' + (/^M/.test(key) ? 'tháng' : 'tuần'); if (/^4\.\s*Vướng mắc\s*$/i.test(h.textContent.trim())) h.textContent = '4. Vướng mắc và đề xuất'; }); hdDrop6(d); hdSub3(d); d.querySelectorAll('footer.sb-rpf').forEach(f => f.replaceWith(rpFoot())); if (/^K?W\d{4}-/.test(key)) { const a = key.replace(/^K?W/, ''), lb = wkLabel(S, a, addD(a, 6)), k0 = d.querySelector('.sb-rpk'); if (k0 && /^(BÁO CÁO|KẾ HOẠCH) TUẦN/i.test(k0.textContent.trim())) k0.textContent = (/^KẾ/i.test(k0.textContent.trim()) ? 'KẾ HOẠCH ' : 'BÁO CÁO ') + lb.toUpperCase(); const m0 = d.querySelector('.sb-rpm'); if (m0) m0.textContent = m0.textContent.replace(/\s*·?\s*Tuần \d*\s*\(?\d{2}\/\d{2} – \d{2}\/\d{2}\/\d{4}\)?( \([^)]*\))?/, '').replace(/^\s*·\s*/, ''); } d.querySelectorAll('section.sb-rpwarn').forEach(x => x.classList.remove('sb-rpwarn')); d.querySelectorAll('section').forEach(x => { if (/^5\.\s*Kế hoạch/i.test(((x.querySelector('h2') || {}).textContent || '').trim())) x.classList.add('sb-rpnext'); }); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
+      put: (W, d) => { doc = d; if (useHtml) { d.replaceChildren(...cleanHtml(N.html)); dropCol(d, /^Đạt\s*%\s*KH$/i); d.querySelectorAll('h2').forEach(h => { if (/^3\.\s*Kết quả chính/i.test(h.textContent.trim())) h.textContent = '3. Công việc thi công trong ' + (/^M/.test(key) ? 'tháng' : 'tuần'); if (/^4\.\s*Vướng mắc\s*$/i.test(h.textContent.trim())) h.textContent = '4. Vướng mắc và đề xuất'; }); hdDrop6(d); hdSub3(d); d.querySelectorAll('footer.sb-rpf').forEach(f => f.replaceWith(rpFoot())); { const h0 = d.querySelector('.sb-rph'); if (h0 && !h0.querySelector('.sb-rplogo')) h0.prepend(rpLogo()); } if (/^K?W\d{4}-/.test(key)) { const a = key.replace(/^K?W/, ''), lb = wkLabel(S, a, addD(a, 6)), k0 = d.querySelector('.sb-rpk'); if (k0 && /^(BÁO CÁO|KẾ HOẠCH) TUẦN/i.test(k0.textContent.trim())) k0.textContent = (/^KẾ/i.test(k0.textContent.trim()) ? 'KẾ HOẠCH ' : 'BÁO CÁO ') + lb.toUpperCase(); const m0 = d.querySelector('.sb-rpm'); if (m0) m0.textContent = m0.textContent.replace(/\s*·?\s*Tuần \d*\s*\(?\d{2}\/\d{2} – \d{2}\/\d{2}\/\d{4}\)?( \([^)]*\))?/, '').replace(/^\s*·\s*/, ''); } d.querySelectorAll('section.sb-rpwarn').forEach(x => x.classList.remove('sb-rpwarn')); d.querySelectorAll('section').forEach(x => { if (/^5\.\s*Kế hoạch/i.test(((x.querySelector('h2') || {}).textContent || '').trim())) x.classList.add('sb-rpnext'); }); } if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
   }
 
   const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;
@@ -956,7 +957,7 @@
     bar.append(nav, act); W.append(bar);
     let host = W, doc = null;
     if (WK) { HD.note(W); doc = $('article', 'sb-rp sb-khdoc'); host = doc; const hd = $('header', 'sb-rph');
-      hd.append($('div', 'sb-rpk', 'KẾ HOẠCH ' + wkLabel(S, a, b).toUpperCase()), $('h1', '', S.name), $('div', 'sb-rpm', [S.code, S.owner ? 'CĐT: ' + S.owner : '', S.addr].filter(Boolean).join(' · '))); doc.append(hd); }
+      hd.append(rpLogo(), $('div', 'sb-rpk', 'KẾ HOẠCH ' + wkLabel(S, a, b).toUpperCase()), $('h1', '', S.name), $('div', 'sb-rpm', [S.code, S.owner ? 'CĐT: ' + S.owner : '', S.addr].filter(Boolean).join(' · '))); doc.append(hd); }
     const ged = GL() && !RO ? { task: [t => { t.st = 'done'; }, () => khAdd('task', S, b)], issue: [x => { x.st = 'dong'; }, () => khAdd('issue', S, b)], mat: [m => { m.st = 've'; }, () => khAdd('mat', S, b)] } : {};   // 👥 V1.6.0: người được chia sẻ – ✓ xong / ＋ thêm ngay tại Kế hoạch
     const grid = (title, heads, rows, go, empty) => {
       const E = ged[go[0]];
@@ -1917,7 +1918,7 @@
     cp.addEventListener('click', () => { ensure(); save(); repDlg(S, L); });
     const doc = $('article', 'sb-rp sb-rpday'), hd = $('header', 'sb-rph');
     const nm = String(S.name || '').trim();
-    hd.append($('div', 'sb-rpk', 'BÁO CÁO CÔNG VIỆC NGÀY ' + fdFull(rpDay)), $('h1', '', /^dự án/i.test(nm) ? nm : 'Dự án ' + nm));
+    hd.append(rpLogo(), $('div', 'sb-rpk', 'BÁO CÁO CÔNG VIỆC NGÀY ' + fdFull(rpDay)), $('h1', '', /^dự án/i.test(nm) ? nm : 'Dự án ' + nm));
     doc.append(hd);
     const wx = field(L, { k: 'wx', lb: 'Thời tiết', t: 'sel', o: WX.map(w => [w, w]) }); wx.addEventListener('change', ensure);
     const wr = $('div', 'sb-row sb-wx'); wr.append($('b', '', 'Thời tiết:'), wx); doc.append(wr);
@@ -1964,7 +1965,7 @@
 
     const doc = $('article', 'sb-rp');
     const hd = $('header', 'sb-rph');
-    hd.append($('div', 'sb-rpk', 'BÁO CÁO ' + (rp.kind === 'w' ? P.label : P.label + ' (' + fd(P.a) + ' – ' + fdFull(P.b) + ')').toUpperCase()), $('h1', '', S.name), $('div', 'sb-rpm', [S.code, S.owner ? 'CĐT: ' + S.owner : '', S.addr].filter(Boolean).join(' · ')));   // V2.2.28: thời gian lên tiêu đề, dòng dưới bỏ
+    hd.append(rpLogo(), $('div', 'sb-rpk', 'BÁO CÁO ' + (rp.kind === 'w' ? P.label : P.label + ' (' + fd(P.a) + ' – ' + fdFull(P.b) + ')').toUpperCase()), $('h1', '', S.name), $('div', 'sb-rpm', [S.code, S.owner ? 'CĐT: ' + S.owner : '', S.addr].filter(Boolean).join(' · ')));   // V2.2.28: thời gian lên tiêu đề, dòng dưới bỏ
     doc.append(hd);
     const k = $('div', 'sb-kpis');
     { const X0 = repLead(S, R); k.append(kpi('Tiến độ thực tế', R.endTt + '%', 'kế hoạch ' + R.endKh + '%', R.endTt + 5 < R.endKh || X0.maxLag >= 3 ? 'bad' : 'good'), kpi('Chậm nhất', X0.maxLag ? X0.maxLag + ' ngày' : '0', X0.slow.length ? X0.slow.length + ' hạng mục chậm' : 'không chậm', X0.maxLag >= 3 ? 'bad' : X0.maxLag ? 'warn' : 'good'),
