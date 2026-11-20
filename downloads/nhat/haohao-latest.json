@@ -1,7 +1,7 @@
 {
- "name": "V2.2.21",
- "version": "1.10.494",
+ "name": "V2.2.23",
+ "version": "1.10.496",
  "file": "HaoHao-nhat.zip",
- "sig": "upNqRdFsRklXGOimSdjxPNk9O9ywybiCyW07b9nX85zqV5Jq8mkCVXz29rDH38huXgvgr7bTnXtkTZVrR6egDQ==",
- "notes": "Báo cáo: 3.2 Hồ sơ tự thêm hồ sơ được duyệt, nút ẩn/hiện"
+ "sig": "fKwF48+561QmWoytRfyAyc3/NBW+haNPvhXrephnbxzPToEno8HN76TPhyo7EmnlfBpOi2ujDxxXfXxOipfnAw==",
+ "notes": "Báo cáo: 3.2 Hồ sơ không ghi ngày duyệt"
 }
