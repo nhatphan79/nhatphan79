@@ -1,7 +1,7 @@
 {
- "name": "V2.2.6",
- "version": "1.10.479",
+ "name": "V2.2.7",
+ "version": "1.10.480",
  "file": "HaoHao-nhat.zip",
- "sig": "o1S2EtQQCuVvq5gLFhCLHAvZqn4RNfVZOMRWHX3SpOgGwu0D4WFkmHWggWDv/a9IC50ek1qxeoL5Yd0pOLRbBg==",
- "notes": "Báo cáo tuần/tháng: 2 kiểu Tự động / Chỉnh tay tách riêng"
+ "sig": "rBWStL4xHD4oZVfi8tqeCKhBujRdi14i2Two48w4+4k+eXZN3mn/y62qP8y6F7ox9VZY8m0EQm0PQUDppBT5AQ==",
+ "notes": "Sửa tay: xoá từng hàng, thêm dòng kiểu todo list"
 }
