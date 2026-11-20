@@ -681,6 +681,11 @@
   const subAppr = (S, P) => (S.subs || []).filter(x => x.st === 'A' || x.st === 'B').map(x => { const h = (x.hist || []).find(z => z.r === (+x.rev || 0)) || {}, dd = h.p || x.d || ''; return { x, dd }; })
     .filter(o => !o.dd || o.dd <= P.b).sort((a, b) => (a.dd || '') < (b.dd || '') ? -1 : 1)   // V2.2.24: hồ sơ đã chấp thuận (A / B) là hiện – không cần ngày duyệt trong kỳ (trừ hồ sơ trình sau cuối kỳ)
     .map(({ x, dd }) => ({ dd, key: subCode(S, x), txt: 'Hồ sơ ' + subCode(S, x) + ' – ' + (x.t || '') + ': ' + lbl(SST, x.st) }));
+  // V2.2.27: NGHIỆM THU trong kỳ – từ Hồ sơ QA/QC (ngày trong kỳ) + mục C. Nghiệm thu của các báo cáo ngày trong kỳ (bỏ trùng)
+  const qaWeek = (S, P) => { const out = [], seen = new Set(), add = t => { t = String(t || '').replace(/^[-•+–*✓\s]+/, '').trim(); const k = t.toLowerCase(); if (t && !seen.has(k)) { seen.add(k); out.push({ key: t, txt: t }); } };
+    (S.qas || []).filter(x => x.d && x.d >= P.a && x.d <= P.b && String(x.t || '').trim()).sort((a, b) => a.d < b.d ? -1 : 1).forEach(x => add((lbl(QTYPE, x.type) ? lbl(QTYPE, x.type) + ': ' : '') + String(x.t).trim().split('\n')[0] + (x.res && x.res !== 'cho' ? ' – ' + lbl(QRES, x.res) : '')));
+    (S.logs || []).filter(l => l.d >= P.a && l.d <= P.b).sort((a, b) => a.d < b.d ? -1 : 1).forEach(l => String(l.qa || '').split('\n').forEach(add));
+    return out; };
   function gantt(W, S) {
     const P = S.plan.filter(p => p.s && p.e); if (!P.length) return;
     // V1.4.5: trục theo TUẦN (thứ 2 → chủ nhật), ghi rõ ngày của từng tuần; kéo ngang khi dài
@@ -861,12 +866,13 @@
     if (items.length && s4) { let u = s4.querySelector(':scope > ol.sb-hol') || s4.querySelector(':scope > ul.sb-rpaddv') || s4.querySelector(':scope > ul.sb-list'); if (!u) { u = $('ul', 'sb-rpaddv'); s4.append(u); } u.querySelectorAll(':scope > li.sb-none').forEach(x => x.remove()); items.forEach(li => u.append($('li', '', li.textContent.trim()))); }
     s6.remove(); }
   function hdSub3(d) {   // V2.2.18: bản chỉnh tay cũ – mục 3 chưa chia thì chia 3.1 Hiện trường / 3.2 Hồ sơ cho giống bản tự động (dòng cũ đưa vào 3.1, anh tự chuyển)
-    const s3 = [...d.querySelectorAll('section')].find(x => /^3\./.test(((x.querySelector('h2') || {}).textContent || '').trim())); if (!s3 || s3.querySelector(':scope > .sb-rpsub')) return;
+    const s3 = [...d.querySelectorAll('section')].find(x => /^3\./.test(((x.querySelector('h2') || {}).textContent || '').trim())); if (!s3) return;
     const mk = (sk, lb) => { const sb = $('div', 'sb-rpsub'); sb.dataset.sub = sk; sb.append($('h3', 'sb-rph3', lb)); return sb; };
+    if (s3.querySelector(':scope > .sb-rpsub')) { if (![...s3.querySelectorAll(':scope > .sb-rpsub h3')].some(h => /^3\.3/.test(h.textContent.trim()))) { const n = mk('nt', '3.3 Nghiệm thu'); n.append($('ul', 'sb-list')); s3.append(n); } return; }   // V2.2.27
     const a = mk('ht', '3.1 Hiện trường'), b = mk('hs', '3.2 Hồ sơ'), h = s3.querySelector('h2');
     [...s3.children].filter(x => x !== h).forEach(x => a.append(x));
     if (!a.querySelector('li')) a.append($('ul', 'sb-list'));
-    b.append($('ul', 'sb-list')); s3.append(a, b); }
+    b.append($('ul', 'sb-list')); const n3 = mk('nt', '3.3 Nghiệm thu'); n3.append($('ul', 'sb-list')); s3.append(a, b, n3); }
   const RP_LAP = 'Phan Thanh Nhật';   // V2.2.19: chân báo cáo chỉ còn Người lập (anh Nhật)
   const rpFoot = () => { const ft = $('footer', 'sb-rpf sb-rpf1'), bx = $('div', 'sb-rpsig'); bx.append($('b', '', 'Người lập'), $('span', 'sb-rpsn', RP_LAP)); ft.append(bx); return ft; };
   function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
@@ -1875,9 +1881,10 @@
     L.push('', '2. KHỐI LƯỢNG THỰC HIỆN (theo tiến độ) – tổng: thực tế ' + R.endTt + '% / KH ' + R.endKh + '%');
     R.klItems.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
     L.push('', '3. CÔNG VIỆC THI CÔNG TRONG ' + (rp.kind === 'w' ? 'TUẦN' : 'THÁNG'));   // V2.2.14
-    [['a) Hiện trường', X.done.filter(t => catOf(t) === 'ht'), 's3'], ['b) Hồ sơ', X.done.filter(t => catOf(t) !== 'ht'), 's3b']].forEach(([lb, T, kk]) => { L.push(lb);   // V2.2.15
+    [['a) Hiện trường', X.done.filter(t => catOf(t) === 'ht'), 's3'], ['b) Hồ sơ', X.done.filter(t => catOf(t) !== 'ht'), 's3b'], ['c) Nghiệm thu', [], 's3c']].forEach(([lb, T, kk]) => { L.push(lb);   // V2.2.15
       const n0 = L.length; T.filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 8).forEach(t => L.push('• ' + t.t)); if (T.length > 8) L.push('• … và ' + (T.length - 8) + ' việc khác');
-      if (kk === 's3b') subAppr(S, P).filter(o => !hid('s3a', o.key)).forEach(o => L.push('• ' + o.txt));   // V2.2.21
+      if (kk === 's3b') subAppr(S, P).filter(o => !hid('s3a', o.key)).forEach(o => L.push('• ' + o.txt));
+      if (kk === 's3c') qaWeek(S, P).filter(o => !hid('s3n', o.key)).forEach(o => L.push('• ' + o.txt));   // V2.2.27   // V2.2.21
       ad(kk); if (L.length === n0) L.push('• Không'); });
     L.push('', '4. VƯỚNG MẮC VÀ ĐỀ XUẤT');   // V2.2.16
     X.slow.filter(p => lagDays(p, dE) >= 3 && !hid('s4', S4.slow(p))).forEach(p => L.push('• Hạng mục ' + plab(p) + ' chậm ' + lagDays(p, dE) + ' ngày' + (String(p.why || '').trim() ? ' – lý do: ' + String(p.why).trim() : '')));
@@ -1986,16 +1993,17 @@
       t.append(tb); bx.append(t); c.append(bx); }
     // 3 kết quả chính
     { const c = S2('3. Công việc thi công trong ' + (rp.kind === 'w' ? 'tuần' : 'tháng'));   // V2.2.14: đổi tên mục 3
-      [['ht', '3.1 Hiện trường', X.done.filter(t => catOf(t) === 'ht')], ['hs', '3.2 Hồ sơ', X.done.filter(t => catOf(t) !== 'ht')]].forEach(([sk, lb, T]) => {   // V2.2.15: chia Hiện trường / Hồ sơ (bộ phận Hiện trường = hiện trường, còn lại = hồ sơ)
+      [['ht', '3.1 Hiện trường', X.done.filter(t => catOf(t) === 'ht')], ['hs', '3.2 Hồ sơ', X.done.filter(t => catOf(t) !== 'ht')], ['nt', '3.3 Nghiệm thu', []]].forEach(([sk, lb, T]) => {   // V2.2.27: thêm 3.3 Nghiệm thu
+          // V2.2.15: chia Hiện trường / Hồ sơ (bộ phận Hiện trường = hiện trường, còn lại = hồ sơ)
         const sb = $('div', 'sb-rpsub'); sb.dataset.sub = sk; sb.append($('h3', 'sb-rph3', lb));
         sb.append(ul(T.slice(0, 10), (t, li) => li.append($('span', '', '✓ ' + t.t), catTag(t.cat)), 'Chưa ghi nhận')); if (T.length > 10) sb.append($('p', 'sb-p', '… và ' + (T.length - 10) + ' việc khác'));
-        if (sk === 'hs') { const AP = subAppr(S, P), hk = () => (N.hide && N.hide.s3a) || [], ED = !RO && rpMode !== 'tay';   // V2.2.21: hồ sơ được duyệt trong kỳ – tự thêm, 👁 ẩn / hiện
+        if (sk === 'hs' || sk === 'nt') { const HK = sk === 'hs' ? 's3a' : 's3n', AP = sk === 'hs' ? subAppr(S, P) : qaWeek(S, P), hk = () => (N.hide && N.hide[HK]) || [], ED = !RO && rpMode !== 'tay';   // V2.2.21: hồ sơ được duyệt trong kỳ – tự thêm, 👁 ẩn / hiện
           const vis = AP.filter(o => ED || !hk().includes(o.key));
           if (vis.length) { sb.querySelectorAll(':scope > ul.sb-list > li.sb-none').forEach(x => x.remove()); const u = sb.querySelector(':scope > ul.sb-list') || sb.appendChild($('ul', 'sb-list'));
             vis.forEach(o => { const li = $('li', 'sb-appr'), off = () => hk().includes(o.key); li.append($('span', '', '✓ ' + o.txt));   // V2.2.22: chỉ tới "A – Chấp thuận", không ghi ngày
               const paint = () => { li.classList.toggle('sb-off', off()); li.classList.toggle('sb-noprint', off()); };
               if (ED) { const e = $('button', 'sb-rpeye sb-noprint', ''); e.type = 'button'; const lbE = () => { e.textContent = off() ? '🙈' : '👁'; e.title = off() ? 'Đang ẩn – bấm để hiện lại trong báo cáo' : 'Ẩn dòng này khỏi báo cáo (không in, không chép Zalo)'; };
-                e.addEventListener('click', () => { N.hide = N.hide || {}; const L0 = hk(); N.hide.s3a = off() ? L0.filter(k => k !== o.key) : [...L0, o.key]; N.savedAt = Date.now(); save(); paint(); lbE(); }); lbE(); li.append(e); }
+                e.addEventListener('click', () => { N.hide = N.hide || {}; const L0 = hk(); N.hide[HK] = off() ? L0.filter(k => k !== o.key) : [...L0, o.key]; N.savedAt = Date.now(); save(); paint(); lbE(); }); lbE(); li.append(e); }
               paint(); u.append(li); }); } }
         c.append(sb); }); }
     // 4 vướng mắc cần chỉ đạo
@@ -2051,11 +2059,11 @@
             if (sg.length) { const r = $('div', 'sb-sug sb-noprint'); r.append($('span', 'sb-sugl', '💡 Gợi ý theo tiến độ tuần này:')); sg.forEach(t => { const b = $('button', 'sb-sugb', '＋ ' + t); b.type = 'button'; b.title = 'Thêm vào 3.1 Hiện trường'; b.addEventListener('click', () => { L.push(t); commit(); draw(); }); r.append(b); }); w.append(r); } }
           if (fi != null) { const x = fi === 'new' ? ni : u.querySelectorAll('li:not(.sb-wnew) input')[fi]; if (x) x.focus(); } };
         draw(); host.append(w); };
-        if (k === 's3' && c.querySelector('.sb-rpsub')) { todoOn('s3', c.querySelector('.sb-rpsub[data-sub="ht"]'), '＋ Gõ công việc hiện trường rồi Enter…', () => R.items.filter(p => num(p.pct) < 100 || p.e >= P.a).map(p => plab(p))); todoOn('s3b', c.querySelector('.sb-rpsub[data-sub="hs"]'), '＋ Gõ công việc hồ sơ rồi Enter…'); }
+        if (k === 's3' && c.querySelector('.sb-rpsub')) { todoOn('s3', c.querySelector('.sb-rpsub[data-sub="ht"]'), '＋ Gõ công việc hiện trường rồi Enter…', () => R.items.filter(p => num(p.pct) < 100 || p.e >= P.a).map(p => plab(p))); todoOn('s3b', c.querySelector('.sb-rpsub[data-sub="hs"]'), '＋ Gõ công việc hồ sơ rồi Enter…'); todoOn('s3c', c.querySelector('.sb-rpsub[data-sub="nt"]'), '＋ Gõ nghiệm thu rồi Enter…'); }
         else todoOn(k, c, { s3: '＋ Gõ công việc thi công rồi Enter…', s4: '＋ Gõ vướng mắc / đề xuất rồi Enter…', s5: '＋ Gõ việc tuần tới rồi Enter…', s6: '＋ Gõ đề xuất rồi Enter…' }[k]);
         if (k === 's6') c.querySelectorAll('.sb-none').forEach(x => x.remove());
       } else if (k === 's3' && c.querySelector('.sb-rpsub')) {   // V2.2.15: chỉ xem – dòng gõ thêm vào đúng phần Hiện trường / Hồ sơ
-        [['s3', 'ht'], ['s3b', 'hs']].forEach(([kk, sk]) => { const ls = ((N.add && N.add[kk]) || []).filter(t => String(t).trim()); if (!ls.length) return; const sb = c.querySelector('.sb-rpsub[data-sub="' + sk + '"]');
+        [['s3', 'ht'], ['s3b', 'hs'], ['s3c', 'nt']].forEach(([kk, sk]) => { const ls = ((N.add && N.add[kk]) || []).filter(t => String(t).trim()); if (!ls.length) return; const sb = c.querySelector('.sb-rpsub[data-sub="' + sk + '"]');
           const u = $('ul', 'sb-rpaddv'); ls.forEach(t => u.append($('li', /^\s{2}/.test(t) ? 'sub' : '', String(t).trim()))); sb.append(u); sb.querySelectorAll('.sb-none').forEach(x => x.remove()); });
       } else if (lines.some(t => t.trim())) {
         const u = $('ul', 'sb-rpaddv'); lines.filter(t => t.trim()).forEach(t => u.append($('li', /^\s{2}/.test(t) ? 'sub' : '', t.trim()))); c.append(u);
