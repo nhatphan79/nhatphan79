@@ -1,7 +1,7 @@
 {
- "name": "V2.2.25",
- "version": "1.10.498",
+ "name": "V2.2.27",
+ "version": "1.10.500",
  "file": "HaoHao-nhat.zip",
- "sig": "JK6tutpUpB23rctz2OQyB1Ngx5YGLAmBF5vVkezs5sF3izMgNzruzYo4ijlGoY0+mt7TfJbQqrJ2RLIkBhQkDw==",
- "notes": "Báo cáo: 3.1 Hiện trường gợi ý công tác theo tiến độ tuần"
+ "sig": "r4NHbCt/SMBIirbivfXuHM9msMkQXANGUMMveMDvU8axoUqsptYK5ZHzXEsgV84SDVqyOcd4NWx8B67i7SJVDQ==",
+ "notes": "Báo cáo: thêm 3.3 Nghiệm thu; Xuất PDF chọn A4 đứng / ngang"
 }
