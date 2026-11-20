@@ -1808,8 +1808,9 @@
     const matNext = S.mats.filter(m => m.st !== 've' && m.need && m.need <= P.next.b).sort((a, b) => a.need < b.need ? -1 : 1);
     const isNew = S.issues.filter(x => inP(x.d, P)), isClosed = S.issues.filter(x => x.st === 'dong' && inP(x.closed, P)), isOpen = S.issues.filter(x => x.st !== 'dong');
     const items = S.plan.filter(p => p.s && p.e && p.s <= P.b && p.e >= P.a);
+    const klItems = S.plan.filter(p => p.s && p.e && p.s <= P.b);   // V2.2.12: bảng Khối lượng – mọi hạng mục đã bắt đầu tới cuối kỳ (kể cả đã xong) để theo dõi
     const photos = logs.reduce((a, l) => a + ((l.photos || []).length || num(l.pc)), 0);
-    return { P, startKh, startTt, endKh, endTt, logs, crewT, other, cong, rain, done, added, late, nextT, costs, inc, cSum, iSum, byCat, cAll, iAll, debt, B, stIn, stOut, matNext, isNew, isClosed, isOpen, items, photos };
+    return { P, klItems, startKh, startTt, endKh, endTt, logs, crewT, other, cong, rain, done, added, late, nextT, costs, inc, cSum, iSum, byCat, cAll, iAll, debt, B, stIn, stOut, matNext, isNew, isClosed, isOpen, items, photos };
   }
   // V2.1.5: báo cáo – 1. NHÂN LỰC theo ngày trong kỳ (lấy từ Quân số / Nhật ký) · 2. KHỐI LƯỢNG THỰC HIỆN theo tiến độ (% hoàn thành kế hoạch)
   function repQS(S, P) {
@@ -1844,7 +1845,7 @@
       if (rp.kind === 'w') L.push('• Theo ngày: ' + Q.D.map((x, i) => dowLb(x) + ' ' + (Q.dayT[i] || '–')).join(' · ')); }
     ad('s1');
     L.push('', '2. KHỐI LƯỢNG THỰC HIỆN (theo tiến độ) – tổng: thực tế ' + R.endTt + '% / KH ' + R.endKh + '%');
-    R.items.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
+    R.klItems.filter(p => !hid('s2', plab(p))).forEach(p => { const k = repKL(p, dE); L.push('• ' + plab(p) + ': ' + k.tt + '% / KH ' + k.kh + '%' + (String(p.why || '').trim() ? ' (' + String(p.why).trim() + ')' : '')); }); ad('s2');
     L.push('', '3. KẾT QUẢ CHÍNH (' + R.done.length + ' việc xong)');
     X.done.slice(0, 8).filter(t => !hid('s3', '✓ ' + t.t)).slice(0, 6).forEach(t => L.push('• ' + t.t)); if (R.done.length > 6) L.push('• … và ' + (R.done.length - 6) + ' việc khác'); ad('s3');
     L.push('', '4. VƯỚNG MẮC');
@@ -1947,9 +1948,9 @@
     { const c = S2('2. Khối lượng thực hiện (theo tiến độ)');   // V2.1.5: % hoàn thành kế hoạch = thực tế / kế hoạch đến cuối kỳ
       const bx = $('div', 'sb-tw'), t = $('table', 'sb-t sb-rpt'), hr = $('tr'); hr.append($('th', 'n', 'STT'), $('th', '', 'Hạng mục'), $('th', 'c', 'Thời gian'), $('th', 'r', 'Kế hoạch %'), $('th', 'r', 'Thực hiện %'), $('th', '', 'Ghi chú'));   // V2.2.9: bỏ cột Đạt % KH
       const th = $('thead'); th.append(hr); t.append(th); const tb = $('tbody');
-      R.items.forEach((p, i) => { const k = repKL(p, dE), tr = $('tr', k.tt >= 100 ? 'done' : '');
+      R.klItems.forEach((p, i) => { const k = repKL(p, dE), tr = $('tr', k.tt >= 100 ? 'done' : '');
         tr.append($('td', 'n', String(i + 1)), $('td', '', plab(p)), $('td', 'c', fd(p.s) + ' – ' + fd(p.e)), $('td', 'r', k.kh + '%'), $('td', 'r b', k.tt + '%'), $('td', 'sb-rpj', String(p.why || '').trim())); tb.append(tr); });
-      if (!R.items.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Không có hạng mục nào trong kỳ'); td.colSpan = 6; tr.append(td); tb.append(tr); }
+      if (!R.klItems.length) { const tr = $('tr'), td = $('td', 'sb-none', 'Chưa có hạng mục nào bắt đầu'); td.colSpan = 6; tr.append(td); tb.append(tr); }
       else { const fr = $('tr', 'sum'); fr.append($('td', 'n', ''), $('td', 'b', 'Tổng tiến độ công trình'), $('td', 'c', ''), $('td', 'r b', R.endKh + '%'), $('td', 'r b', R.endTt + '%'), $('td', '', R.startTt != null ? 'tăng ' + (R.endTt - R.startTt) + '% trong kỳ' : '')); tb.append(fr); }
       t.append(tb); bx.append(t); c.append(bx); }
     // 3 kết quả chính
