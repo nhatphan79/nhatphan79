@@ -1953,6 +1953,23 @@
         u.addEventListener('paste', e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); document.execCommand('insertText', false, t); });
         u.addEventListener('input', () => { if (!u.querySelector('li')) { const li = $('li'); li.append(document.createElement('br')); u.append(li); } });
         c.append(u);
+      } else if (!RO && !N.html && ['s3', 's4', 's5', 's6'].includes(k)) {   // V2.2.5: mục 3–6 nhập kiểu todo list – gõ rồi Enter, sửa / ✕ xoá, tự lưu theo kỳ (N.add)
+        let L = lines.filter(t => String(t).trim()).map(t => String(t));
+        const w = $('div', 'sb-wl sb-rptodo'), ph = { s3: '＋ Gõ kết quả đã làm rồi Enter…', s4: '＋ Gõ vướng mắc rồi Enter…', s5: '＋ Gõ việc tuần tới rồi Enter…', s6: '＋ Gõ đề xuất rồi Enter…' }[k];
+        const commit = () => { N.add = N.add || {}; N.add[k] = L.filter(t => t.trim()); N.savedAt = Date.now(); save(); };
+        const draw = fi => { w.textContent = ''; const u = $('ol', 'sb-wli');
+          L.forEach((t, i) => { const li = $('li', /^\s{2}/.test(t) ? 'sub' : ''), inp = $('input', 'sb-in'); inp.value = t.trim(); inp.setAttribute('aria-label', 'Dòng ' + (i + 1));
+            inp.addEventListener('change', () => { const v = inp.value.trim(); if (v) L[i] = (/^\s{2}/.test(t) ? '  ' : '') + v; else L.splice(i, 1); commit(); draw(); });
+            inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const v = inp.value.trim(); if (v) L[i] = v; L.splice(i + 1, 0, ''); draw(i + 1); } });
+            const x = $('button', 'sb-rpx sb-noprint', '✕'); x.type = 'button'; x.title = 'Xoá dòng này'; x.setAttribute('aria-label', 'Xoá: ' + t.trim()); x.addEventListener('click', () => { L.splice(i, 1); commit(); draw(); });
+            li.append(inp, x); u.append(li); });
+          const nl = $('li', 'sb-wnew sb-noprint'), ni = $('input', 'sb-in'); ni.placeholder = ph; ni.setAttribute('aria-label', ph.replace(/^＋\s*/, ''));
+          const addIt = () => { const v = ni.value.trim(); ni.value = ''; if (!v) return; L.push(v); commit(); draw('new'); };
+          ni.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addIt(); } }); ni.addEventListener('change', addIt); nl.append(ni); u.append(nl);
+          w.append(u); c.querySelectorAll(':scope > ul.sb-list > li.sb-none').forEach(x => { x.hidden = L.some(t => t.trim()); });
+          if (fi != null) { const x = fi === 'new' ? ni : u.querySelectorAll('li:not(.sb-wnew) input')[fi]; if (x) x.focus(); } };
+        draw(); c.append(w);
+        if (k === 's6') c.querySelectorAll('.sb-none').forEach(x => x.remove());
       } else if (lines.some(t => t.trim())) {
         const u = $('ul', 'sb-rpaddv'); lines.filter(t => t.trim()).forEach(t => u.append($('li', /^\s{2}/.test(t) ? 'sub' : '', t.trim()))); c.append(u);
         c.querySelectorAll('.sb-none').forEach(x => x.remove());
