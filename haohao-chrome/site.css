@@ -658,3 +658,4 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-rp ol.sb-hol { list-style-type: '✓  '; padding-left: 24px; } .sb-rp ol.sb-hol > li::marker { color: #1F7A4A; font-weight: 800; }   /* V2.2.10: số 1, 2, 3 → dấu ✓ */
 /* V2.2.13: ẩn hàng trong bản chỉnh tay – xem / in / Zalo không hiện, lúc sửa hiện mờ để bật lại */
 .sb-rp .sb-hrow { display: none; } .sb-rp.sb-hedit tr.sb-hrow { display: table-row; opacity: .35; } .sb-rp.sb-hedit li.sb-hrow { display: list-item; opacity: .35; } .sb-rowh { color: #23305E; background: #EEF1F8; } @media print { .sb-rp .sb-hrow { display: none !important; } }
+.sb-rp .sb-rpsub { margin: 4px 0 10px; } .sb-rp .sb-rph3 { font-size: 14px; font-weight: 800; color: #23305E; margin: 10px 0 4px; }   /* V2.2.15: mục 3 – Hiện trường / Hồ sơ */
