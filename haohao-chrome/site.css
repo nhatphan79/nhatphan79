@@ -650,3 +650,7 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-sug { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 4px; padding: 8px 10px; background: #FFFBF2; border: 1px dashed #E8C68A; border-radius: 10px; }
 .sb-sugl { font-size: 12.5px; color: #8A6A2B; font-weight: 600; margin-right: 2px; } .sb-sugb { all: unset; cursor: pointer; font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: #fff; border: 1px solid #EAD7B0; color: #23305E; } .sb-sugb:hover, .sb-sugb:focus-visible { background: #FFF1D6; border-color: #E0B865; }
 .sb-rp .sb-rptodo { margin-top: 4px; } .sb-rp .sb-rptodo li.sub { padding-left: 22px; }   /* V2.2.5: báo cáo tuần – mục 3–6 kiểu todo list */
+/* V2.2.6b: sửa tay – ✕ xoá hàng + ô thêm dòng */
+.sb-rowx { all: unset; cursor: pointer; float: right; margin-left: 8px; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 6px; font-size: 12px; color: #C4401F; background: #FDECEA; opacity: .55; user-select: none; } .sb-rowx:hover { opacity: 1; }
+.sb-hedit tr:hover > td, .sb-hedit li:hover { background: #FFF6E6; } .sb-hadd { margin: 6px 0 10px; } .sb-hadd .sb-in { width: 100%; border: 1px dashed #E8C68A; background: #FFFBF2; }
+@media print { .sb-rowx, .sb-hadd { display: none !important; } }

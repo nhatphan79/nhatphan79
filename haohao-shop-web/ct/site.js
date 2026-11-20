@@ -841,6 +841,19 @@
   // ✍️ V2.0.3 (anh Nhật 14/11): SỬA TAY TOÀN BỘ văn bản (Báo cáo tuần/tháng, Kế hoạch tuần) – bấm chữ nào sửa chữ đó, 💾 Lưu nguyên bản đã sửa theo kỳ (S.reports[key].html)
   let hdEdit = '', hdFresh = false, rpMode = 'auto';   // V2.2.6: báo cáo tuần/tháng 2 kiểu tách riêng – 'auto' (tự động) · 'tay' (bản chỉnh tay sao từ bản tự động, lưu riêng)
   const hdStore = S => { if (!S.reports || typeof S.reports !== 'object' || Array.isArray(S.reports)) S.reports = {}; return S.reports; };
+  // V2.2.6b: khi SỬA TAY – mỗi hàng bảng / dòng danh sách có ✕ xoá hàng; mục 3–6 (báo cáo) và các mục danh sách có ô "＋ Gõ rồi Enter" kiểu todo list
+  function hdDecor(d) {
+    const xBtn = row => { if (row.querySelector(':scope > .sb-rowx, :scope > td:last-child > .sb-rowx')) return; const x = $('button', 'sb-rowx sb-noprint', '✕'); x.type = 'button'; x.contentEditable = 'false'; x.title = 'Xoá hàng này'; x.setAttribute('aria-label', 'Xoá hàng này');
+      x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', e => { e.preventDefault(); row.remove(); }); (row.tagName === 'TR' ? row.lastElementChild || row : row).append(x); };
+    d.querySelectorAll('tbody tr, ul li, ol li').forEach(xBtn);
+    d.querySelectorAll('section').forEach(sec => { const h = sec.querySelector('h2'); if (!h) return; const t = h.textContent.trim();
+      if (/^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t)) return;   // bảng số liệu: chỉ xoá hàng / sửa số, không thêm dòng kiểu todo
+      const w = $('div', 'sb-hadd sb-noprint'); w.contentEditable = 'false'; const ni = $('input', 'sb-in'); ni.placeholder = '＋ Gõ thêm dòng cho "' + t.replace(/\s*\(.*$/, '') + '" rồi Enter…'; ni.setAttribute('aria-label', 'Thêm dòng ' + t);
+      ni.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); const v = ni.value.trim(); if (!v) return; ni.value = '';
+        let u = sec.querySelector('ul.sb-rpaddv') || sec.querySelector('ul.sb-list'); if (!u) { u = $('ul', 'sb-rpaddv'); sec.insertBefore(u, w); }
+        u.querySelectorAll(':scope > li.sb-none').forEach(x => x.remove()); const li = $('li', '', v); u.append(li); xBtn(li); });
+      w.append(ni); sec.append(w); });
+  }
   function hdTools(S, key, label, act, mode) {   // mode: undefined = kiểu cũ (kế hoạch tuần) · 'auto' · 'tay' (V2.2.6)
     const N = hdStore(S)[key] = hdStore(S)[key] || {};
     if (mode === 'auto') { if (hdEdit === key) hdEdit = ''; return { on: false, N, note: () => {}, put: (W, d) => W.append(d) }; }   // V2.2.6: bản tự động – luôn số liệu mới, không dính bản chỉnh tay
@@ -861,7 +874,7 @@
     return { on, N, note: W => { if (on) W.append($('div', 'sb-note sb-noprint sb-editnote', '✏️ Đang sửa tay' + (hdFresh ? ' (bản sao từ báo cáo tự động)' : '') + ': bấm vào chữ, số bất kỳ để sửa · Enter = xuống dòng · xoá / thêm dòng thoải mái · xong bấm 💾 Lưu.'));
         else if (TAY && !N.html) W.append($('div', 'sb-note sb-noprint', '✏️ Chưa có bản chỉnh tay cho kỳ này – bên dưới là bản tự động. Bấm “✏️ Tạo bản chỉnh tay” để sao 1 bản rồi sửa; bản chỉnh tay lưu riêng, không ảnh hưởng bản tự động.'));
         else if (N.html && N.savedAt) W.append($('div', 'sb-note sb-noprint', TAY ? '✏️ Bản chỉnh tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Tách riêng với bản tự động (xem bản tự động: bấm 🤖 Tự động).' : '✏️ Bản đã sửa tay – lưu lúc ' + new Date(N.savedAt).toLocaleString('vi-VN') + '. Số liệu kỳ này giữ nguyên như bản đã sửa (bấm ↺ Về bản tự động để lấy số liệu mới).')); },
-      put: (W, d) => { doc = d; if (useHtml) d.replaceChildren(...cleanHtml(N.html)); if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); } W.append(d); } };
+      put: (W, d) => { doc = d; if (useHtml) d.replaceChildren(...cleanHtml(N.html)); if (on) { d.contentEditable = 'true'; d.spellcheck = false; d.classList.add('editing', 'sb-hedit'); hdDecor(d); } W.append(d); } };
   }
 
   const hdSaved = (S, pre, act, go) => { const L = Object.entries(S.reports || {}).filter(([k, v]) => k.startsWith(pre) && /^\d/.test(k.slice(pre.length)) && v && (v.html || (v.add && Object.values(v.add).some(z => Array.isArray(z) && z.some(t => String(t).trim()))) || (v.hide && Object.values(v.hide).some(z => Array.isArray(z) && z.length)))).sort((x, y) => x[0] < y[0] ? 1 : -1); if (!L.length) return;
