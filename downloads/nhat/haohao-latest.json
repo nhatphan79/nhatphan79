@@ -1,7 +1,7 @@
 {
- "name": "V2.2.10",
- "version": "1.10.483",
+ "name": "V2.2.11",
+ "version": "1.10.484",
  "file": "HaoHao-nhat.zip",
- "sig": "chrhu/G9Fk6tNqgxNi00171TmFT6SezQ4/jYWpKvSY+6rWpMu7cAOEuAMK/PONBLMil8HhcL6TED/RP3x9qECw==",
- "notes": "Bản chỉnh tay: danh sách dùng dấu ✓"
+ "sig": "vQkMRtCRT2UJ6qceDKXeFd7sg+6Y5EhK5Vsmw4sSU/JfRZbgB/h2QogBWHUekBbUiUe7bf31d+zk7aI0TimUDA==",
+ "notes": "Bản chỉnh tay cũng bỏ cột Đạt % KH"
 }
