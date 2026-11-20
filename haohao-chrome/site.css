@@ -654,3 +654,4 @@ input.sb-scode.man { color: #7A5AF8; }
 .sb-rowx { all: unset; cursor: pointer; float: right; margin-left: 8px; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 6px; font-size: 12px; color: #C4401F; background: #FDECEA; opacity: .55; user-select: none; } .sb-rowx:hover { opacity: 1; }
 .sb-hedit tr:hover > td, .sb-hedit li:hover { background: #FFF6E6; } .sb-hadd { margin: 6px 0 10px; } .sb-hadd .sb-in { width: 100%; border: 1px dashed #E8C68A; background: #FFFBF2; }
 @media print { .sb-rowx, .sb-hadd { display: none !important; } }
+.sb-rp ol.sb-hol { margin: 6px 0 4px; padding-left: 26px; } .sb-rp ol.sb-hol > li { padding: 5px 0; border-bottom: 1px dashed #EEF0F4; line-height: 1.45; } .sb-rp ol.sb-hol > li::marker { color: #23305E; font-weight: 700; }   /* V2.2.8 */

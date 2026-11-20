@@ -842,18 +842,28 @@
   let hdEdit = '', hdFresh = false, rpMode = 'auto';   // V2.2.6: báo cáo tuần/tháng 2 kiểu tách riêng – 'auto' (tự động) · 'tay' (bản chỉnh tay sao từ bản tự động, lưu riêng)
   const hdStore = S => { if (!S.reports || typeof S.reports !== 'object' || Array.isArray(S.reports)) S.reports = {}; return S.reports; };
   // V2.2.6b: khi SỬA TAY – mỗi hàng bảng / dòng danh sách có ✕ xoá hàng; mục 3–6 (báo cáo) và các mục danh sách có ô "＋ Gõ rồi Enter" kiểu todo list
-  function hdDecor(d) {
+  function hdDecor(d) {   // V2.2.8: mỗi mục danh sách gộp thành 1 danh sách ĐÁNH SỐ 1, 2, 3… sửa / xoá từng dòng; bảng xoá hàng thì STT tự đánh lại
+    const TBL = t => /^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t);
+    const clean = t => String(t || '').replace(/^[\p{Extended_Pictographic}️‍\s]+/u, '').replace(/\s+/g, ' ').trim();
+    d.querySelectorAll('section').forEach(sec => { const h = sec.querySelector('h2'); if (!h || TBL(h.textContent.trim())) return;
+      const srcs = [...sec.querySelectorAll(':scope > ul.sb-list, :scope > ul.sb-rpaddv, :scope > ul.sb-rpadd, :scope > p.sb-p, :scope > p.sb-rpsum')];
+      let ol = sec.querySelector(':scope > ol.sb-hol'); if (!ol) { ol = $('ol', 'sb-hol'); (srcs[0] ? sec.insertBefore(ol, srcs[0]) : h.after(ol)); }
+      srcs.forEach(x => { if (x.tagName === 'P') { const t = clean(x.textContent); if (t) ol.append($('li', '', t)); }
+        else x.querySelectorAll(':scope > li:not(.sb-none)').forEach(li => { const a = li.querySelector('span'), b = li.querySelector('small, em'); const t = clean(a ? a.textContent + (b && b.textContent.trim() ? ' – ' + b.textContent.trim() : '') : li.textContent); if (t) ol.append($('li', '', t)); });
+        x.remove(); });
+      sec.querySelectorAll(':scope > .sb-none, :scope > ul > li.sb-none').forEach(x => x.remove()); });
+    const renum = tb => { if (!tb || tb.tagName !== 'TBODY') return; let n = 0; [...tb.rows].forEach(r => { if (r.classList.contains('sum')) return; const c = r.cells[0]; if (c && /^\d*$/.test(c.textContent.replace('✕', '').trim())) c.textContent = String(++n); }); };
     const xBtn = row => { if (row.querySelector(':scope > .sb-rowx, :scope > td:last-child > .sb-rowx')) return; const x = $('button', 'sb-rowx sb-noprint', '✕'); x.type = 'button'; x.contentEditable = 'false'; x.title = 'Xoá hàng này'; x.setAttribute('aria-label', 'Xoá hàng này');
-      x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', e => { e.preventDefault(); row.remove(); }); (row.tagName === 'TR' ? row.lastElementChild || row : row).append(x); };
+      x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', e => { e.preventDefault(); const tb = row.parentElement; row.remove(); renum(tb); }); (row.tagName === 'TR' ? row.lastElementChild || row : row).append(x); };
     d.querySelectorAll('tbody tr, ul li, ol li').forEach(xBtn);
-    d.querySelectorAll('section').forEach(sec => { const h = sec.querySelector('h2'); if (!h) return; const t = h.textContent.trim();
-      if (/^[0-9]+\.\s*(Nhân lực|Khối lượng)/i.test(t)) return;   // bảng số liệu: chỉ xoá hàng / sửa số, không thêm dòng kiểu todo
-      const w = $('div', 'sb-hadd sb-noprint'); w.contentEditable = 'false'; const ni = $('input', 'sb-in'); ni.placeholder = '＋ Gõ thêm dòng cho "' + t.replace(/\s*\(.*$/, '') + '" rồi Enter…'; ni.setAttribute('aria-label', 'Thêm dòng ' + t);
+    d.querySelectorAll('section').forEach(sec => { const h = sec.querySelector('h2'); if (!h) return; const t = h.textContent.trim(); if (TBL(t)) return;
+      const w = $('div', 'sb-hadd sb-noprint'); w.contentEditable = 'false'; const ni = $('input', 'sb-in'); ni.placeholder = '＋ Gõ thêm dòng cho "' + t.replace(/\s*\(.*$/, '').replace(/^[0-9]+\.\s*/, '') + '" rồi Enter…'; ni.setAttribute('aria-label', 'Thêm dòng ' + t);
       ni.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); const v = ni.value.trim(); if (!v) return; ni.value = '';
-        let u = sec.querySelector('ul.sb-rpaddv') || sec.querySelector('ul.sb-list'); if (!u) { u = $('ul', 'sb-rpaddv'); sec.insertBefore(u, w); }
-        u.querySelectorAll(':scope > li.sb-none').forEach(x => x.remove()); const li = $('li', '', v); u.append(li); xBtn(li); });
+        let u = sec.querySelector(':scope > ol.sb-hol'); if (!u) { u = $('ol', 'sb-hol'); sec.insertBefore(u, w); }
+        const li = $('li', '', v); u.append(li); xBtn(li); });
       w.append(ni); sec.append(w); });
   }
+
   function hdTools(S, key, label, act, mode) {   // mode: undefined = kiểu cũ (kế hoạch tuần) · 'auto' · 'tay' (V2.2.6)
     const N = hdStore(S)[key] = hdStore(S)[key] || {};
     if (mode === 'auto') { if (hdEdit === key) hdEdit = ''; return { on: false, N, note: () => {}, put: (W, d) => W.append(d) }; }   // V2.2.6: bản tự động – luôn số liệu mới, không dính bản chỉnh tay
