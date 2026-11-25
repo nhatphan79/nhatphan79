@@ -681,21 +681,23 @@
     let cost = 0, val = 0; (f.holds || []).forEach(h => { const q = +h.qty || 0, c = +h.cost || 0, p = priceOf(h) ?? c; cost += q * c; val += q * p; });
     return { cost, val, pnl: val - cost };
   }
-  function bookCalc(f) {
-    const B = f.book || { start: 0, pct: 3, days: [] }, pct = +B.pct || 0, start = +B.start || 0;
-    let prev = start; const rows = [...(B.days || [])].sort((a, b) => a.d.localeCompare(b.d)).map(x => {
-      const open = prev, close = +x.close || 0, tgt = open * (1 + pct / 100), r = { x, d: x.d, note: x.note, open, close, tgt, pnl: close - open, pctd: open ? (close - open) / open * 100 : 0, hit: close >= tgt };
-      prev = close; return r; });
-    const bal = rows.length ? rows[rows.length - 1].close : start;
+  function bookCalc(f, W) {   // V2.2.33: W = danh sách rút của dự án (p.rut) – tiền rút trong ngày cộng lại vào lãi ngày đó, không tính là lỗ
+    const B = f.book || { start: 0, pct: 3, days: [] }, pct = +B.pct || 0, start = +B.start || 0, WL = (W || []).filter(x => x && x.d);
+    const wIn = (a, b) => WL.filter(x => (!a || x.d > a) && (!b || x.d <= b)).reduce((t, x) => t + (Number(x.v) || 0), 0);
+    let prev = start, pd = ''; const rows = [...(B.days || [])].sort((a, b) => a.d.localeCompare(b.d)).map(x => {
+      const w = wIn(pd, x.d), open = prev, close = +x.close || 0, tgt = open * (1 + pct / 100) - w, pnl = close - open + w, r = { x, d: x.d, note: x.note, open, close, w, tgt, pnl, pctd: open ? pnl / open * 100 : 0, hit: close >= tgt - 1e-9 };
+      prev = close; pd = x.d; return r; });
+    const wAfter = wIn(pd, ''), wAll = wIn('', ''), bal = (rows.length ? rows[rows.length - 1].close : start) - wAfter;
     let streak = 0; for (let i = rows.length - 1; i >= 0; i--) { if (rows[i].hit) streak++; else break; }
-    return { rows, pct, start, bal, pnl: bal - start, streak, hits: rows.filter(r => r.hit).length, n: rows.length, next: bal * (1 + pct / 100) };
+    return { rows, pct, start, bal, w: wAll, pnl: bal - start + wAll, streak, hits: rows.filter(r => r.hit).length, n: rows.length, last: pd, next: bal * (1 + pct / 100) };
   }
+  const bookW = (p, f) => (p.folders || []).find(x => x.kind === 'trade' && x.book) === f ? p.rut : null;   // rút của dự án gắn vào sổ Trade đầu tiên
   // vốn / lãi của dự án Trade = Hold (giá vốn, lãi chưa chốt) + Trade (vốn gốc, số dư − vốn gốc)
   function cryptoOf(p) {
     let von = 0, lai = 0, any = false;
     for (const f of p.folders || []) {
       if (f.kind === 'hold' && (f.holds || []).length) { const h = holdCalc(f); von += h.cost; lai += h.pnl; any = true; }
-      if (f.kind === 'trade' && f.book && (+f.book.start || (f.book.days || []).length)) { const b = bookCalc(f); von += b.start; lai += b.pnl; any = true; }
+      if (f.kind === 'trade' && f.book && (+f.book.start || (f.book.days || []).length)) { const b = bookCalc(f, bookW(p, f)); von += b.start; lai += b.pnl; any = true; }
     }
     return any ? { von, lai } : null;
   }
@@ -734,7 +736,7 @@
 
   function tradeView(M, p, f) {
     if (!f.book) f.book = { start: 0, pct: 3, days: [] };
-    const B = f.book, b = bookCalc(f);
+    const B = f.book, b = bookCalc(f, bookW(p, f));
     const fh = $('div', 'pj-fh'); fh.append('📒', $('b', 'pj-f0t', 'Sổ vốn theo ngày')); M.append(fh);
     const set = $('div', 'pj-bset');
     const st = $('input', 'pj-in'); st.inputMode = 'decimal'; st.value = B.start || ''; st.placeholder = 'Vốn gốc (USDT)'; st.setAttribute('aria-label', 'Vốn gốc');
@@ -744,10 +746,10 @@
     const l1 = $('label', 'pj-bl'); l1.append('Vốn gốc', st); const l2 = $('label', 'pj-bl'); l2.append('Mục tiêu %/ngày', pc);
     set.append(l1, l2); M.append(set);
     const k = $('div', 'pj-kpis');
-    kpi(k, 'Số dư hiện tại', usd(b.bal), b.start ? sgnU(b.pnl) + ' · ' + (b.pnl / b.start * 100).toFixed(1) + '%' : 'nhập vốn gốc để bắt đầu', 'loi' + tone(b.pnl));
-    kpi(k, 'Hôm nay cần đạt', b.bal ? usd(b.next) : '–', b.pct + '% / ngày');
+    kpi(k, 'Số dư hiện tại', usd(b.bal), b.start ? 'lãi ' + sgnU(b.pnl) + ' · ' + (b.pnl / b.start * 100).toFixed(1) + '%' + (b.w ? ' · đã rút ' + usd(b.w) : '') : 'nhập vốn gốc để bắt đầu', 'loi' + tone(b.pnl));
+    kpi(k, b.last === today() ? 'Ngày mai cần đạt' : 'Hôm nay cần đạt', b.bal ? usd(b.next) : '–', b.pct + '% / ngày');
     kpi(k, 'Chuỗi ngày đạt', b.streak + ' ngày', b.n ? b.hits + '/' + b.n + ' ngày đạt · ' + Math.round(b.hits / b.n * 100) + '%' : 'chưa ghi ngày nào');
-    const d2 = b.pct > 0 ? Math.ceil(Math.log(2) / Math.log(1 + b.pct / 100)) : null; kpi(k, 'Ở tốc độ này', d2 ? 'gấp đôi sau ' + d2 + ' ngày' : '–', d2 ? '×10 sau ' + Math.ceil(Math.log(10) / Math.log(1 + b.pct / 100)) + ' ngày' : '');
+    const d2 = b.pct > 0 ? Math.ceil(Math.log(2) / Math.log(1 + b.pct / 100)) : null; kpi(k, 'Theo mục tiêu ' + b.pct + '%', d2 ? 'gấp đôi sau ' + d2 + ' ngày' : '–', d2 ? '×10 sau ' + Math.ceil(Math.log(10) / Math.log(1 + b.pct / 100)) + ' ngày' : '');
     M.append(k);
     const ar = $('div', 'pj-addrow pj-dayadd');
     const dd = $('input', 'pj-in'); dd.type = 'date'; dd.value = today(); dd.setAttribute('aria-label', 'Ngày');
@@ -765,7 +767,7 @@
       const res = $('div', 'c'); res.append($('span', 'pj-hit ' + (r.hit ? 'ok' : 'no'), r.hit ? '✓ Đạt' : '✗ Chưa đạt'));
       const del = $('button', 'pj-x', '✕'); del.setAttribute('aria-label', 'Xoá ngày ' + r.d); del.addEventListener('click', () => { B.days = B.days.filter(x => x !== r.x); save(); render(true); });
       const xc = $('div', 'c x'); xc.append(del);
-      row.append(cell(new Date(r.d + 'T00:00').toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })), cell(usd(r.open), 'n'), cell(usd(r.tgt), 'n dim'), cell(usd(r.close), 'n'),
+      row.append(cell(new Date(r.d + 'T00:00').toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })), cell(usd(r.open), 'n'), cell(usd(r.tgt), 'n dim'), r.w ? (() => { const d = cell(usd(r.close), 'n'); d.append($('small', 'pj-bw', 'rút ' + usd(r.w))); d.title = 'Số dư sau khi rút ' + usd(r.w); return d; })() : cell(usd(r.close), 'n'),
         cell(sgnU(r.pnl), 'n' + tone(r.pnl)), cell((r.pctd >= 0 ? '+' : '') + r.pctd.toFixed(2) + '%', 'n' + tone(r.pctd)), res, cell(r.note || '', 'note'), xc);
       T.append(row);
     });
