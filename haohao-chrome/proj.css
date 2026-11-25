@@ -471,3 +471,4 @@
 .pj-lr .c-tot { flex-direction: column; align-items: flex-end; justify-content: center; gap: 1px; } .pj-lr .c-tot .pj-rutt { font-size: 11px; font-weight: 600; color: #7C3AED; } .pj-lr .c-tot .pj-rutt:empty { display: none; }
 .pj-ic2.on { opacity: .85; }   /* V2.2.4: dự án đã có rút / nhắc */
 .pj-cr.book .c.n .pj-bw { display: block; font-size: 11px; font-weight: 600; color: #7C3AED; }   /* V2.2.33: số tiền rút trong ngày */
+.pj-list::-webkit-scrollbar:horizontal, .pj-cs::-webkit-scrollbar:horizontal { height: 0; }   /* V2.2.34: bỏ thanh cuộn ngang dưới bảng (vẫn cuộn được bằng Shift + lăn chuột) */
