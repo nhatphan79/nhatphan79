@@ -1,7 +1,7 @@
 {
- "name": "V2.2.33",
- "version": "1.10.506",
+ "name": "V2.2.34",
+ "version": "1.10.507",
  "file": "HaoHao-nhat.zip",
- "sig": "LxYaGuRtE2v907vjhblXSy+rdcKFWCQW1HURPH+tT+wxn6ZEZEcscXcC7IgCi758lytf1Mm5UMB+yAwAuyUfBg==",
- "notes": "Sổ vốn Trade tính tiền rút của dự án"
+ "sig": "8HEXgvgv1nIVpzly10XC87zvvphz/JYGuc/WK1RjnHxwhFfMPZOvHMlrTJawqYhNuOEhY1HvZd8S3hCffmywCg==",
+ "notes": "Bỏ thanh cuộn ngang bảng dự án"
 }
