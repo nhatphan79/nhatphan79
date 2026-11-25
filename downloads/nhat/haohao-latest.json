@@ -1,7 +1,7 @@
 {
- "name": "V2.2.34",
- "version": "1.10.507",
+ "name": "V2.2.35",
+ "version": "1.10.508",
  "file": "HaoHao-nhat.zip",
- "sig": "8HEXgvgv1nIVpzly10XC87zvvphz/JYGuc/WK1RjnHxwhFfMPZOvHMlrTJawqYhNuOEhY1HvZd8S3hCffmywCg==",
- "notes": "Bỏ thanh cuộn ngang bảng dự án"
+ "sig": "9XbnxhJotI7Xfti5RkGFYZX9vB+ujldQ/SpKmAwsPZwQQixnf2STaibrQxHe2Zg0DyvXvazbMDpXOWyW/E3vBQ==",
+ "notes": "Bảng dự án vừa khung, bỏ thanh cuộn ngang"
 }
