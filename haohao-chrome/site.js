@@ -675,9 +675,45 @@
     alertBox(W, S, 'plan');
     sec(W, '📅 Kế hoạch & tiến độ', 'Nhập hạng mục theo giai đoạn – kế hoạch tự tính theo ngày, anh chỉ cần cập nhật % thực tế');
     const k = $('div', 'sb-kpis'); k.append(kpi('Kế hoạch đến hôm nay', pr.kh + '%'), kpi('Thực tế', pr.tt + '%', '', pr.tt + 5 < pr.kh ? 'bad' : 'good'), kpi('Chênh lệch', (pr.tt - pr.kh > 0 ? '+' : '') + (pr.tt - pr.kh) + '%', pr.tt + 5 < pr.kh ? 'đang chậm' : 'ổn', pr.tt + 5 < pr.kh ? 'bad' : ''), kpi('Mốc nghiệm thu', S.plan.filter(p => p.mile && num(p.pct) >= 100).length + '/' + S.plan.filter(p => p.mile).length, 'đã đạt'));
+    if (!RO && !WEB) { const bar = $('div', 'sb-row'), im = $('button', 'sb-btn sm', '📥 Nạp tiến độ từ Excel'); im.type = 'button'; im.title = 'Chọn file tiến độ thi công (.xlsx, cột TT · CÔNG VIỆC · NHÂN CÔNG · … · BẮT ĐẦU · SỐ NGÀY · KẾT THÚC) – thay ngày theo file mới, giữ % thực tế và ghi chú của việc trùng tên'; im.addEventListener('click', () => planImport(S)); bar.append(im); W.append(bar); }
     W.append(k);
     W.append(planTable(S));
     gantt(W, S);
+  }
+  // V2.2.36: 📥 NẠP TIẾN ĐỘ TỪ EXCEL (vd 261121_TIEN_DO_POLARIS_R12.xlsx, sheet TĐ HOP DONG) – A/B… = phần · I/II/1/2 (không có nhân công) = nhóm · còn lại = công việc
+  function planParse(wb) {
+    const nm = x => String(x == null ? '' : x).replace(/\s+/g, ' ').trim(), up = x => nm(x).toUpperCase();
+    const dt = v => { if (v == null || v === '') return ''; if (typeof v === 'number') return ymd(new Date(Math.round((v - 25569) * 86400000) + new Date().getTimezoneOffset() * 60000)); const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if (m) return (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); return ''; };
+    for (const n of wb.SheetNames) {
+      const a = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' });
+      const hi = a.findIndex(r => up(r[0]) === 'TT' && /CÔNG VIỆC|HẠNG MỤC|NỘI DUNG/.test(up(r[1])) && r.some(c => /BẮT ĐẦU/.test(up(c)))); if (hi < 0) continue;
+      const H = a[hi], ci = re => H.findIndex(c => re.test(up(c))), cS = ci(/BẮT ĐẦU/), cE = ci(/KẾT THÚC/), cN = ci(/SỐ NGÀY/), cW = ci(/NHÂN CÔNG/); if (cS < 0) continue;
+      const out = []; let sec = '', gn = '', g = '';
+      for (let i = hi + 1; i < a.length; i++) { const r = a[i], tt = nm(r[0]), t = nm(r[1]); if (!t || /^(TỔNG TIẾN ĐỘ|GHI CHÚ)/i.test(t)) continue;
+        let s0 = dt(r[cS]), e0 = cE >= 0 ? dt(r[cE]) : ''; const nd = cN >= 0 ? +r[cN] : 0; if (!s0 || s0 < '2000') continue; if (!e0 && nd > 0) e0 = addD(s0, nd - 1); if (!e0) e0 = s0;
+        const roman = /^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)$/.test(tt), noCrew = cW < 0 || r[cW] === '' || r[cW] == null;
+        if (!roman && /^[A-Z]$/.test(tt)) { sec = tt + '|' + t; gn = ''; g = ''; continue; }
+        if (roman || (tt && noCrew && /^\d+$/.test(tt))) { gn = tt; g = t; continue; }
+        out.push({ sec, gn, g, n: tt, t, s: s0, e: e0 }); }
+      if (out.length) return { sheet: n, items: out };
+    }
+    throw new Error('Không thấy bảng tiến độ (dòng tiêu đề TT · CÔNG VIỆC · … · BẮT ĐẦU · KẾT THÚC) trong file');
+  }
+  async function planImport(S) {
+    const f = await new Promise(ok => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.xlsx,.xlsm,.xls'; i.onchange = () => ok(i.files[0]); i.click(); });
+    if (!f) return; toast('⏳ Đang đọc ' + f.name + '…');
+    try {
+      if (!window.XLSX) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'lib/xlsx/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('thiếu thư viện Excel')); document.head.append(sc); });
+      const P = planParse(XLSX.read(await f.arrayBuffer(), { type: 'array' }));
+      const K = (g, t) => (String(g || '') + '\u0001' + String(t || '')).toLowerCase().replace(/\s+/g, ' ').trim(), old = new Map(); (S.plan || []).forEach(p => { const k = K(p.g, p.t); if (!old.has(k)) old.set(k, p); });
+      let keep = 0; const used = new Set();
+      const L = P.items.map(x => { const o = old.get(K(x.g, x.t)); const r = { id: o && !used.has(o) ? o.id : uid(), ...x, pct: 0, mile: false }; if (o && !used.has(o)) { used.add(o); keep++; r.pct = o.pct || 0; if (o.why) r.why = o.why; if (o.mile) r.mile = true; if (o.done) r.done = o.done; } return r; });
+      const lost = (S.plan || []).filter(p => !used.has(p) && (num(p.pct) > 0 || p.why));
+      const msg = 'Nạp ' + L.length + ' công việc từ ' + f.name + ' (sheet ' + P.sheet + ').\n\n• ' + keep + ' việc trùng tên: giữ % thực tế + ghi chú, cập nhật ngày theo file mới.\n• ' + (L.length - keep) + ' việc mới.' + (lost.length ? '\n\n⚠ ' + lost.length + ' việc cũ đã có % / ghi chú nhưng KHÔNG có trong file mới (sẽ bỏ):\n' + lost.slice(0, 8).map(p => '  – ' + (p.g ? p.g + ' › ' : '') + p.t + ' (' + num(p.pct) + '%)').join('\n') + (lost.length > 8 ? '\n  …' : '') : '') + '\n\nThay tiến độ hiện tại bằng file này?';
+      if (!confirm(msg)) return;
+      S.planHist = (S.planHist || []).concat([{ at: Date.now(), src: f.name, plan: S.plan }]).slice(-3);   // giữ 3 bản cũ phòng khi cần lấy lại
+      S.plan = L; S.planSrc = f.name; save(); render(true); toast('📥 Đã nạp tiến độ ' + f.name + ' – ' + L.length + ' việc (giữ % của ' + keep + ' việc)');
+    } catch (e) { dialog('⚠ Chưa nạp được file', b => b.append($('p', 'sb-p', String(e && e.message || e))), () => {}, 'Đóng'); }
   }
   // V2.2.20: TUẦN THỨ MẤY của tiến độ – tuần 1 = tuần (thứ 2 → CN) có ngày bắt đầu sớm nhất trong Kế hoạch & tiến độ (giống biểu đồ)
   const projWeek = (S, x) => { const P = (S.plan || []).filter(p => p.s); if (!P.length || !x) return null; const a1 = P.reduce((m, p) => p.s < m ? p.s : m, P[0].s), mon = y => addD(y, -((new Date(y + 'T00:00').getDay() + 6) % 7)); const n = Math.floor(days(mon(a1), mon(x)) / 7) + 1; return n >= 1 ? n : null; };
